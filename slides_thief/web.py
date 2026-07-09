@@ -22,7 +22,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import quote, unquote, urlparse
 
-from .cli import SUPPORTED, parse_ratio, process
+from PIL import Image, ImageOps
+
+from .cli import SUPPORTED, parse_ratio, process, readable_image
 
 
 DEFAULT_JOBS_DIR = Path("outputs/web_jobs")
@@ -250,8 +252,8 @@ a:hover { text-decoration: underline; }
   padding: 6px 8px;
   text-align: left;
 }
-.fileRow { cursor: default; }
-.slideRow:hover, .slideRow.active {
+.fileRow { cursor: pointer; }
+.fileRow:hover, .fileRow.active, .slideRow:hover, .slideRow.active {
   border-color: var(--line);
   background: var(--panel-strong);
 }
@@ -591,8 +593,12 @@ const els = {
 };
 const ctx = els.canvas.getContext("2d");
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+const emptyMessage = "上传图片后点击自动识别按钮";
 const app = {
   files: [],
+  previews: new Map(),
+  preview: null,
+  previewIndex: -1,
   jobId: null,
   activeRun: null,
   finalRun: null,
@@ -643,7 +649,29 @@ function handleFiles(fileList) {
   app.files = Array.from(fileList)
     .filter(file => supported.some(ext => file.name.toLowerCase().endsWith(ext)))
     .sort((a, b) => collator.compare(a.name, b.name));
+  app.previews = new Map();
+  app.preview = null;
+  app.previewIndex = -1;
+  app.activeRun = null;
+  app.finalRun = null;
+  app.jobId = null;
+  app.quads = {};
+  app.index = 0;
+  app.viewport = null;
   renderFiles();
+  renderLinks();
+  els.metrics.replaceChildren();
+  els.cornerTable.replaceChildren();
+  els.slideCount.textContent = "0";
+  els.slideTitle.textContent = "未选择页面";
+  els.prev.disabled = true;
+  els.next.disabled = true;
+  els.resetSlide.disabled = true;
+  els.downloadJson.disabled = true;
+  els.canvas.hidden = true;
+  els.empty.hidden = false;
+  els.empty.textContent = emptyMessage;
+  updateZoomControls();
   setBusy(false);
   if (app.files.length) setStatus(`${app.files.length} 张`);
 }
@@ -652,8 +680,9 @@ function renderFiles() {
   els.fileCount.textContent = String(app.files.length);
   els.files.replaceChildren();
   app.files.forEach((file, i) => {
-    const row = document.createElement("div");
-    row.className = "fileRow";
+    const row = document.createElement("button");
+    row.className = "fileRow" + (i === app.previewIndex ? " active" : "");
+    row.onclick = () => loadPreview(i);
     const idx = document.createElement("div");
     idx.className = "idx";
     idx.textContent = String(i + 1).padStart(2, "0");
@@ -666,6 +695,93 @@ function renderFiles() {
     row.append(idx, main, sub);
     els.files.appendChild(row);
   });
+}
+
+function previewKey(file) {
+  return `${file.name}:${file.size}:${file.lastModified}`;
+}
+
+async function previewForFile(file) {
+  const key = previewKey(file);
+  if (app.previews.has(key)) return app.previews.get(key);
+  const form = new FormData();
+  form.append("file", file, file.name);
+  const data = await fetchJson("/api/previews", { method: "POST", body: form });
+  app.previews.set(key, data);
+  return data;
+}
+
+async function loadPreview(index) {
+  if (app.activeRun || !app.files.length) return;
+  app.previewIndex = Math.max(0, Math.min(app.files.length - 1, index));
+  const file = app.files[app.previewIndex];
+  renderFiles();
+  els.slideTitle.textContent = `${String(app.previewIndex + 1).padStart(2, "0")}  ${file.name}`;
+  els.prev.disabled = app.previewIndex === 0;
+  els.next.disabled = app.previewIndex >= app.files.length - 1;
+  els.resetSlide.disabled = true;
+  els.downloadJson.disabled = true;
+  els.canvas.hidden = true;
+  els.empty.hidden = false;
+  els.empty.textContent = "正在生成预览";
+  setStatus("预览中");
+
+  try {
+    const data = await previewForFile(file);
+    if (app.activeRun || app.files[app.previewIndex] !== file) return;
+    app.preview = data;
+    app.image = new Image();
+    app.image.onload = () => {
+      els.canvas.hidden = false;
+      els.empty.hidden = true;
+      configureCanvas(data);
+      if (app.zoomMode === "fit") {
+        fitCanvas();
+      } else {
+        applyCanvasZoom();
+        draw();
+        scheduleFocusImage();
+      }
+    };
+    app.image.onerror = () => {
+      els.canvas.hidden = true;
+      els.empty.hidden = false;
+      els.empty.textContent = "无法预览这张图片";
+      updateZoomControls();
+      toast("无法预览这张图片");
+    };
+    app.image.src = data.imageUrl;
+    renderPreviewInfo(data);
+    setStatus(`${app.files.length} 张`);
+  } catch (err) {
+    els.empty.textContent = "无法生成预览";
+    setStatus(`${app.files.length} 张`);
+    toast(err.message);
+  }
+}
+
+function renderPreviewInfo(preview) {
+  const rows = [
+    ["文件", preview.filename],
+    ["状态", "待自动识别"],
+    ["尺寸", `${preview.origWidth} × ${preview.origHeight}`]
+  ];
+  const wrap = document.createElement("div");
+  rows.forEach(([key, value]) => {
+    const row = document.createElement("div");
+    row.className = "metric";
+    const k = document.createElement("div");
+    k.className = "key";
+    k.textContent = key;
+    const v = document.createElement("div");
+    v.className = "value";
+    v.textContent = value;
+    row.append(k, v);
+    wrap.appendChild(row);
+  });
+  els.metrics.replaceChildren(wrap);
+  els.cornerTable.replaceChildren();
+  els.links.replaceChildren();
 }
 
 async function fetchJson(url, options) {
@@ -729,6 +845,8 @@ async function runRefine() {
 function setRun(data, options = {}) {
   app.jobId = data.jobId;
   app.activeRun = data;
+  app.preview = null;
+  app.previewIndex = -1;
   app.quads = Object.fromEntries(data.slides.map(slide => [
     slide.filename,
     slide.quad.map(point => [...point])
@@ -767,6 +885,10 @@ function renderSlideList() {
 
 function currentSlide() {
   return app.activeRun && app.activeRun.slides[app.index];
+}
+
+function currentImageItem() {
+  return currentSlide() || app.preview;
 }
 
 function loadSlide(index) {
@@ -809,7 +931,7 @@ function configureCanvas(slide) {
 }
 
 function updateZoomControls() {
-  const enabled = Boolean(currentSlide()) && !els.canvas.hidden;
+  const enabled = Boolean(currentImageItem()) && !els.canvas.hidden;
   els.zoomOut.disabled = !enabled;
   els.zoomIn.disabled = !enabled;
   els.zoomFit.disabled = !enabled;
@@ -838,7 +960,7 @@ function setCanvasZoom(zoom) {
 
 function fitCanvas() {
   const view = app.viewport;
-  if (!currentSlide() || !view) return;
+  if (!currentImageItem() || !view) return;
   app.zoomMode = "fit";
   const availableW = Math.max(220, els.stage.clientWidth - 36);
   const availableH = Math.max(180, els.stage.clientHeight - 36);
@@ -889,8 +1011,9 @@ function toOriginalPoint(slide, x, y) {
 
 function draw() {
   const slide = currentSlide();
+  const item = currentImageItem();
   const view = app.viewport;
-  if (!slide || !view || !app.image.complete) return;
+  if (!item || !view || !app.image.complete) return;
   const imageX = view.padX * app.zoom;
   const imageY = view.padY * app.zoom;
   const imageW = view.imageWidth * app.zoom;
@@ -900,6 +1023,7 @@ function draw() {
   ctx.strokeStyle = "rgba(255, 255, 255, .36)";
   ctx.lineWidth = 1.5;
   ctx.strokeRect(imageX, imageY, imageW, imageH);
+  if (!slide) return;
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
   ctx.lineWidth = 3;
   ctx.strokeStyle = "rgba(200, 69, 53, .98)";
@@ -1042,8 +1166,8 @@ els.choose.onclick = () => els.fileInput.click();
 els.fileInput.onchange = event => handleFiles(event.target.files);
 els.runAuto.onclick = runAuto;
 els.runRefine.onclick = runRefine;
-els.prev.onclick = () => loadSlide(app.index - 1);
-els.next.onclick = () => loadSlide(app.index + 1);
+els.prev.onclick = () => app.activeRun ? loadSlide(app.index - 1) : loadPreview(app.previewIndex - 1);
+els.next.onclick = () => app.activeRun ? loadSlide(app.index + 1) : loadPreview(app.previewIndex + 1);
 els.zoomOut.onclick = () => setCanvasZoom(app.zoom / 1.25);
 els.zoomIn.onclick = () => setCanvasZoom(app.zoom * 1.25);
 els.zoomFit.onclick = fitCanvas;
@@ -1084,12 +1208,18 @@ els.canvas.addEventListener("pointerup", event => {
   try { els.canvas.releasePointerCapture(event.pointerId); } catch (_) {}
 });
 window.addEventListener("keydown", event => {
-  if (!app.activeRun) return;
-  if (event.key === "ArrowLeft") loadSlide(app.index - 1);
-  if (event.key === "ArrowRight") loadSlide(app.index + 1);
+  if (app.activeRun) {
+    if (event.key === "ArrowLeft") loadSlide(app.index - 1);
+    if (event.key === "ArrowRight") loadSlide(app.index + 1);
+    return;
+  }
+  if (app.preview) {
+    if (event.key === "ArrowLeft") loadPreview(app.previewIndex - 1);
+    if (event.key === "ArrowRight") loadPreview(app.previewIndex + 1);
+  }
 });
 window.addEventListener("resize", () => {
-  if (app.zoomMode === "fit" && currentSlide()) fitCanvas();
+  if (app.zoomMode === "fit" && currentImageItem()) fitCanvas();
 });
 </script>
 </body>
@@ -1201,6 +1331,11 @@ def file_url(job_id: str, stage: str, rel_path: str) -> str:
     return f"/files/{quote(job_id)}/{quote(stage)}/{quote(rel, safe='/')}"
 
 
+def preview_file_url(preview_id: str, rel_path: str) -> str:
+    rel = rel_path.replace("\\", "/").lstrip("/")
+    return f"/preview-files/{quote(preview_id)}/{quote(rel, safe='/')}"
+
+
 def relative_to(path: str | Path, root: Path) -> str:
     return str(Path(path).resolve().relative_to(root.resolve())).replace("\\", "/")
 
@@ -1247,6 +1382,24 @@ def new_job_id() -> str:
     return f"{stamp}-{secrets.token_hex(3)}"
 
 
+def make_preview(input_path: Path, preview_root: Path) -> dict:
+    converted_dir = preview_root / "converted"
+    readable = readable_image(input_path, converted_dir)
+    image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
+    preview = image.copy()
+    preview.thumbnail((1800, 1400), Image.Resampling.LANCZOS)
+    output = preview_root / "preview.jpg"
+    output.parent.mkdir(parents=True, exist_ok=True)
+    preview.save(output, quality=90, optimize=True)
+    return {
+        "image": "preview.jpg",
+        "origWidth": image.width,
+        "origHeight": image.height,
+        "assetWidth": preview.width,
+        "assetHeight": preview.height,
+    }
+
+
 class SlidesThiefHandler(BaseHTTPRequestHandler):
     server_version = "SlidesThiefWeb/0.1"
 
@@ -1284,6 +1437,9 @@ class SlidesThiefHandler(BaseHTTPRequestHandler):
         if parsed.path.startswith("/files/"):
             self.serve_file(parsed.path)
             return
+        if parsed.path.startswith("/preview-files/"):
+            self.serve_preview_file(parsed.path)
+            return
         self.send_error_json(HTTPStatus.NOT_FOUND, "Not found")
 
     def do_POST(self) -> None:
@@ -1291,6 +1447,9 @@ class SlidesThiefHandler(BaseHTTPRequestHandler):
         try:
             if parsed.path == "/api/jobs":
                 self.create_job()
+                return
+            if parsed.path == "/api/previews":
+                self.create_preview()
                 return
             match = re.fullmatch(r"/api/jobs/([^/]+)/refine", parsed.path)
             if match:
@@ -1344,6 +1503,38 @@ class SlidesThiefHandler(BaseHTTPRequestHandler):
         result = run_pipeline(input_dir, output_dir, work_dir, settings, manual=None)
         self.send_json(result_response(job_id, "auto", output_dir, result, settings))
 
+    def create_preview(self) -> None:
+        body = self.read_body()
+        _, uploads = parse_multipart(self.headers, body)
+        upload = next((item for item in uploads if item[0] == "file"), None)
+        if not upload:
+            self.send_error_json(HTTPStatus.BAD_REQUEST, "No preview file was uploaded")
+            return
+
+        _, filename, payload = upload
+        clean = sanitize_filename(filename, fallback="preview")
+        if Path(clean).suffix.lower() not in SUPPORTED:
+            self.send_error_json(HTTPStatus.BAD_REQUEST, "Unsupported image type")
+            return
+
+        preview_id = new_job_id()
+        preview_root = (self.jobs_dir / "_previews" / preview_id).resolve()
+        preview_root.mkdir(parents=True, exist_ok=True)
+        input_path = unique_path(preview_root, clean)
+        input_path.write_bytes(payload)
+        preview = make_preview(input_path, preview_root)
+        self.send_json(
+            {
+                "previewId": preview_id,
+                "filename": clean,
+                "imageUrl": preview_file_url(preview_id, preview["image"]),
+                "origWidth": preview["origWidth"],
+                "origHeight": preview["origHeight"],
+                "assetWidth": preview["assetWidth"],
+                "assetHeight": preview["assetHeight"],
+            }
+        )
+
     def refine_job(self, job_id: str) -> None:
         if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[a-f0-9]{6}", job_id):
             self.send_error_json(HTTPStatus.BAD_REQUEST, "Invalid job id")
@@ -1380,6 +1571,32 @@ class SlidesThiefHandler(BaseHTTPRequestHandler):
             self.send_error_json(HTTPStatus.NOT_FOUND, "Not found")
             return
         root = (self.jobs_dir / job_id / stage).resolve()
+        target = (root / Path(*rel_parts)).resolve()
+        if root != target and root not in target.parents:
+            self.send_error_json(HTTPStatus.FORBIDDEN, "Forbidden")
+            return
+        if not target.is_file():
+            self.send_error_json(HTTPStatus.NOT_FOUND, "Not found")
+            return
+
+        data = target.read_bytes()
+        content_type = mimetypes.guess_type(str(target))[0] or "application/octet-stream"
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(data)))
+        self.end_headers()
+        self.wfile.write(data)
+
+    def serve_preview_file(self, path: str) -> None:
+        parts = [unquote(part) for part in path.split("/") if part]
+        if len(parts) < 3:
+            self.send_error_json(HTTPStatus.NOT_FOUND, "Not found")
+            return
+        _, preview_id, *rel_parts = parts
+        if not re.fullmatch(r"[0-9]{8}-[0-9]{6}-[a-f0-9]{6}", preview_id):
+            self.send_error_json(HTTPStatus.BAD_REQUEST, "Invalid preview id")
+            return
+        root = (self.jobs_dir / "_previews" / preview_id).resolve()
         target = (root / Path(*rel_parts)).resolve()
         if root != target and root not in target.parents:
             self.send_error_json(HTTPStatus.FORBIDDEN, "Forbidden")
