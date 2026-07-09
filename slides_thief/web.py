@@ -50,6 +50,7 @@ APP_HTML = r"""<!doctype html>
   --shadow: 0 10px 28px rgba(21, 32, 38, .08);
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { height: 100%; }
 body {
   margin: 0;
@@ -332,9 +333,8 @@ a:hover { text-decoration: underline; }
 }
 canvas {
   display: block;
-  background: #111;
-  border: 1px solid #1c252b;
-  box-shadow: var(--shadow);
+  background: transparent;
+  border: 0;
   cursor: crosshair;
 }
 canvas[hidden] {
@@ -786,8 +786,8 @@ function loadSlide(index) {
       fitCanvas();
     } else {
       applyCanvasZoom();
+      draw();
     }
-    draw();
   };
   app.image.src = slide.imageUrl;
   renderMetrics();
@@ -795,16 +795,16 @@ function loadSlide(index) {
 }
 
 function configureCanvas(slide) {
-  const padX = Math.max(160, Math.round(slide.assetWidth * 0.35));
-  const padY = Math.max(160, Math.round(slide.assetHeight * 0.35));
+  const padX = Math.max(140, Math.round(slide.assetWidth * 0.25));
+  const padY = Math.max(140, Math.round(slide.assetHeight * 0.25));
   app.viewport = {
     padX,
     padY,
     imageWidth: slide.assetWidth,
-    imageHeight: slide.assetHeight
+    imageHeight: slide.assetHeight,
+    totalWidth: slide.assetWidth + padX * 2,
+    totalHeight: slide.assetHeight + padY * 2
   };
-  els.canvas.width = slide.assetWidth + padX * 2;
-  els.canvas.height = slide.assetHeight + padY * 2;
 }
 
 function updateZoomControls() {
@@ -816,39 +816,48 @@ function updateZoomControls() {
 }
 
 function applyCanvasZoom() {
-  els.canvas.style.width = `${Math.round(els.canvas.width * app.zoom)}px`;
-  els.canvas.style.height = `${Math.round(els.canvas.height * app.zoom)}px`;
+  const view = app.viewport;
+  if (!view) return;
+  const width = Math.max(1, Math.round(view.totalWidth * app.zoom));
+  const height = Math.max(1, Math.round(view.totalHeight * app.zoom));
+  els.canvas.width = width;
+  els.canvas.height = height;
+  els.canvas.style.width = `${width}px`;
+  els.canvas.style.height = `${height}px`;
   updateZoomControls();
 }
 
 function setCanvasZoom(zoom) {
   app.zoomMode = "manual";
-  app.zoom = Math.max(0.12, Math.min(4, zoom));
+  app.zoom = Math.max(0.12, Math.min(3, zoom));
   applyCanvasZoom();
+  draw();
 }
 
 function fitCanvas() {
-  if (!currentSlide() || !els.canvas.width || !els.canvas.height) return;
+  const view = app.viewport;
+  if (!currentSlide() || !view) return;
   app.zoomMode = "fit";
   const availableW = Math.max(220, els.stage.clientWidth - 36);
   const availableH = Math.max(180, els.stage.clientHeight - 36);
-  app.zoom = Math.max(0.12, Math.min(1, availableW / els.canvas.width, availableH / els.canvas.height));
+  app.zoom = Math.max(0.12, Math.min(1, availableW / view.totalWidth, availableH / view.totalHeight));
   applyCanvasZoom();
+  draw();
 }
 
 function toCanvasPoint(slide, point) {
   const view = app.viewport;
   return [
-    view.padX + point[0] / slide.origWidth * view.imageWidth,
-    view.padY + point[1] / slide.origHeight * view.imageHeight
+    (view.padX + point[0] / slide.origWidth * view.imageWidth) * app.zoom,
+    (view.padY + point[1] / slide.origHeight * view.imageHeight) * app.zoom
   ];
 }
 
 function toOriginalPoint(slide, x, y) {
   const view = app.viewport;
   return [
-    Math.round((x - view.padX) / view.imageWidth * slide.origWidth * 100) / 100,
-    Math.round((y - view.padY) / view.imageHeight * slide.origHeight * 100) / 100
+    Math.round((x / app.zoom - view.padX) / view.imageWidth * slide.origWidth * 100) / 100,
+    Math.round((y / app.zoom - view.padY) / view.imageHeight * slide.origHeight * 100) / 100
   ];
 }
 
@@ -856,33 +865,33 @@ function draw() {
   const slide = currentSlide();
   const view = app.viewport;
   if (!slide || !view || !app.image.complete) return;
+  const imageX = view.padX * app.zoom;
+  const imageY = view.padY * app.zoom;
+  const imageW = view.imageWidth * app.zoom;
+  const imageH = view.imageHeight * app.zoom;
   ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
-  ctx.fillStyle = "#11181d";
-  ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
-  ctx.fillStyle = "#0b0f12";
-  ctx.fillRect(view.padX - 1, view.padY - 1, view.imageWidth + 2, view.imageHeight + 2);
-  ctx.drawImage(app.image, view.padX, view.padY);
+  ctx.drawImage(app.image, imageX, imageY, imageW, imageH);
   ctx.strokeStyle = "rgba(255, 255, 255, .36)";
-  ctx.lineWidth = Math.max(1, 1.5 / app.zoom);
-  ctx.strokeRect(view.padX, view.padY, view.imageWidth, view.imageHeight);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(imageX, imageY, imageW, imageH);
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
-  ctx.lineWidth = Math.max(0.75, 3 / app.zoom);
+  ctx.lineWidth = 3;
   ctx.strokeStyle = "rgba(200, 69, 53, .98)";
   ctx.beginPath();
   pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
   ctx.closePath();
   ctx.stroke();
   pts.forEach(([x, y], i) => {
-    const r = Math.max(3, 9 / app.zoom);
+    const r = 9;
     ctx.fillStyle = "rgba(255, 216, 74, .98)";
     ctx.strokeStyle = "rgba(23, 32, 38, .9)";
-    ctx.lineWidth = Math.max(0.75, 2 / app.zoom);
+    ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "#172026";
-    ctx.font = `700 ${Math.max(4, 13 / app.zoom)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.font = "700 13px -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(String(i + 1), x, y + 1);
@@ -900,7 +909,7 @@ function eventPoint(event) {
 function nearestHandle(x, y) {
   const slide = currentSlide();
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
-  const threshold = Math.max(18, 28 / app.zoom);
+  const threshold = 28;
   let best = -1;
   let bestDist = Infinity;
   pts.forEach(([px, py], i) => {
