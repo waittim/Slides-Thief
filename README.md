@@ -21,8 +21,14 @@ need manual corner cleanup.
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e .
 ```
+
+If you are using the older macOS-provided Python/pip, the upgrade step matters:
+old pip versions cannot install pure `pyproject.toml` projects in editable mode.
+This repository also includes `setup.py` for compatibility with those older
+editable installs.
 
 HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
 works anywhere Pillow can read the files.
