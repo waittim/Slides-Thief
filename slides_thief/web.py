@@ -245,7 +245,7 @@ a:hover { text-decoration: underline; }
   text-overflow: ellipsis;
 }
 .settings {
-  --settings-columns: minmax(94px, .65fr) minmax(112px, .75fr) minmax(116px, .75fr) minmax(148px, .95fr) minmax(232px, 1.35fr) minmax(86px, .55fr) minmax(122px, .75fr) minmax(142px, .9fr);
+  --settings-columns: 94px 108px 108px 138px minmax(220px, 1fr) 76px 104px 116px;
   display: grid;
   grid-template-columns: var(--settings-columns);
   gap: 8px;
