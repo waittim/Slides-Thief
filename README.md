@@ -5,6 +5,27 @@ slide images and a PDF. It is designed for conference-room photos where the
 camera is off-axis, the screen has perspective distortion, and a few pages may
 need manual corner cleanup.
 
+## Quick Start
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip setuptools wheel
+python -m pip install -e .
+slides-thief-web
+```
+
+Open [http://127.0.0.1:8765](http://127.0.0.1:8765), drag in your source images,
+and let the app sort, detect, and flatten slides. See [Usage](#usage) below for
+CLI options and the manual correction workflow.
+
+This project uses a modern `pyproject.toml` package configuration with a
+`src/` layout. The pip upgrade step keeps editable installs working on older
+local Python environments.
+
+HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
+works anywhere Pillow can read the files.
+
 ## What It Does
 
 - Reads JPEG, PNG, TIFF, HEIC, and HEIF images.
@@ -18,52 +39,7 @@ need manual corner cleanup.
 - The browser UIs follow the system light/dark theme and browser language by
   default, with in-page controls for manual overrides.
 
-## Install
-
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install -e .
-```
-
-This project uses a modern `pyproject.toml` package configuration with a
-`src/` layout. The pip upgrade step keeps editable installs working on older
-local Python environments.
-
-HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
-works anywhere Pillow can read the files.
-
-## Project Layout
-
-```text
-src/slides_thief/
-  cli.py                  # image processing pipeline and command-line entry
-  web.py                  # local HTTP workflow
-  templates/app.html      # packaged web UI
-tests/                    # focused regression tests
-pyproject.toml            # build, runtime, and development configuration
-```
-
-Generated jobs, intermediate files, and package build artifacts stay outside
-source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
-`*.egg-info/`.
-
-## Development
-
-Install test and lint tools with:
-
-```bash
-python -m pip install -e ".[dev]"
-```
-
-Run the test suite:
-
-```bash
-python -m pytest
-```
-
-## Basic Usage
+## Usage
 
 ### Local Web UI
 
@@ -120,10 +96,11 @@ Important outputs:
 - `manual_review.html`: browser UI for dragging corner points.
 - `slide_lens_report.json`: machine-readable report with points and confidence.
 
-## Manual Correction Pass
+### Manual Correction Pass
 
-Open `manual_review.html`, adjust any bad pages by dragging the numbered corner
-handles, then export `manual_quads.json`.
+Automatic detection is a first pass. When a few pages need cleanup, open
+`manual_review.html`, adjust bad pages by dragging the numbered corner handles,
+then export `manual_quads.json`.
 
 Run the second pass with:
 
@@ -147,8 +124,37 @@ The point order is top-left, top-right, bottom-right, bottom-left.
 
 ## Notes
 
-Automatic detection is intentionally treated as a first pass. It works well when
-the physical slide boundary is visible, but internal chart lines, clipped screen
-edges, hands, and audience heads can still confuse any detector. The intended
-workflow is: auto-run, inspect the contact sheets, fix only the outliers in the
-manual review page, then rerun with `--manual`.
+Automatic detection works well when the physical slide boundary is visible, but
+internal chart lines, clipped screen edges, hands, and audience heads can still
+confuse any detector. The intended workflow is: auto-run, inspect the contact
+sheets, fix only the outliers in the manual review page, then rerun with
+`--manual`.
+
+## Development
+
+Install test and lint tools with:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run the test suite:
+
+```bash
+python -m pytest
+```
+
+## Project Layout
+
+```text
+src/slides_thief/
+  cli.py                  # image processing pipeline and command-line entry
+  web.py                  # local HTTP workflow
+  templates/app.html      # packaged web UI
+tests/                    # focused regression tests
+pyproject.toml            # build, runtime, and development configuration
+```
+
+Generated jobs, intermediate files, and package build artifacts stay outside
+source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
+`*.egg-info/`.
