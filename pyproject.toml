@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slides-thief"
+version = "0.1.0"
+description = "Flatten photographed presentation slides and export them as PDF."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy>=1.24",
+  "Pillow>=10",
+  "reportlab>=4",
+]
+
+[project.scripts]
+slides-thief = "slides_thief.cli:main"
+slides-thief-web = "slides_thief.web:main"
