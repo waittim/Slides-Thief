@@ -252,10 +252,22 @@ a:hover { text-decoration: underline; }
   padding: 6px 8px;
   text-align: left;
 }
+.slideRow {
+  grid-template-columns: 28px 64px minmax(0, 1fr) auto;
+  min-height: 56px;
+}
 .fileRow { cursor: pointer; }
 .fileRow:hover, .fileRow.active, .slideRow:hover, .slideRow.active {
   border-color: var(--line);
   background: var(--panel-strong);
+}
+.thumb {
+  width: 64px;
+  height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  background: #f8fafb;
+  object-fit: cover;
 }
 .idx {
   width: 26px;
@@ -872,13 +884,17 @@ function renderSlideList() {
     const idx = document.createElement("div");
     idx.className = "idx";
     idx.textContent = String(i + 1).padStart(2, "0");
+    const thumb = document.createElement("img");
+    thumb.className = "thumb";
+    thumb.src = slide.correctedUrl;
+    thumb.alt = "";
     const main = document.createElement("div");
     main.className = "name";
     main.textContent = slide.filename;
     const badge = document.createElement("div");
     badge.className = "badge" + (slide.confidence < 0.65 ? " low" : "");
     badge.textContent = Number(slide.confidence).toFixed(2);
-    row.append(idx, main, badge);
+    row.append(idx, thumb, main, badge);
     els.files.appendChild(row);
   });
 }
@@ -1124,8 +1140,6 @@ function renderLinks() {
   if (!run) return;
   const items = [
     ["PDF", run.pdfUrl],
-    ["拉正总览", run.correctedContactSheetUrl],
-    ["识别总览", run.detectionContactSheetUrl],
     ["报告", run.reportUrl]
   ];
   for (const [label, url] of items) {
