@@ -576,7 +576,7 @@ def make_contact_sheet(images: list[Path], output: Path, title: str) -> None:
 def make_manual_review_html(items: list[dict], output: Path) -> None:
     payload = json.dumps(items, ensure_ascii=False)
     html = f"""<!doctype html>
-<html lang="en">
+<html lang="en" data-theme="auto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -591,6 +591,49 @@ def make_manual_review_html(items: list[dict], output: Path) -> None:
   --line: #d8e0e5;
   --accent: #e24b3c;
   --handle: #ffd84a;
+  --control-bg: #ffffff;
+  --control-hover: #aebbc4;
+  --primary-bg: #1f272c;
+  --primary-text: #ffffff;
+  --canvas-bg: #111111;
+  --canvas-border: #20272c;
+  --toast-text: #ffffff;
+}}
+:root[data-theme="dark"] {{
+  color-scheme: dark;
+  --bg: #101416;
+  --panel: #171d20;
+  --text: #eef4f6;
+  --muted: #9daab1;
+  --line: #344147;
+  --accent: #ff7b68;
+  --handle: #ffd84a;
+  --control-bg: #1d2529;
+  --control-hover: #5b6b73;
+  --primary-bg: #eef4f6;
+  --primary-text: #101416;
+  --canvas-bg: #050607;
+  --canvas-border: #344147;
+  --toast-text: #101416;
+}}
+@media (prefers-color-scheme: dark) {{
+  :root:not([data-theme="light"]) {{
+    color-scheme: dark;
+    --bg: #101416;
+    --panel: #171d20;
+    --text: #eef4f6;
+    --muted: #9daab1;
+    --line: #344147;
+    --accent: #ff7b68;
+    --handle: #ffd84a;
+    --control-bg: #1d2529;
+    --control-hover: #5b6b73;
+    --primary-bg: #eef4f6;
+    --primary-text: #101416;
+    --canvas-bg: #050607;
+    --canvas-border: #344147;
+    --toast-text: #101416;
+  }}
 }}
 * {{ box-sizing: border-box; }}
 body {{
@@ -616,14 +659,15 @@ body {{
 button, select {{
   height: 34px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--control-bg);
   border-radius: 6px;
   padding: 0 10px;
   color: var(--text);
   font: inherit;
 }}
 button {{ cursor: pointer; min-width: 38px; }}
-button.primary {{ background: #1f272c; color: white; border-color: #1f272c; }}
+button:hover, select:hover {{ border-color: var(--control-hover); }}
+button.primary {{ background: var(--primary-bg); color: var(--primary-text); border-color: var(--primary-bg); }}
 .status {{
   min-width: 148px;
   color: var(--muted);
@@ -639,8 +683,8 @@ button.primary {{ background: #1f272c; color: white; border-color: #1f272c; }}
   width: min(100%, 1500px);
   max-height: calc(100vh - 88px);
   overflow: auto;
-  background: #111;
-  border: 1px solid #20272c;
+  background: var(--canvas-bg);
+  border: 1px solid var(--canvas-border);
 }}
 canvas {{
   display: block;
@@ -653,8 +697,8 @@ canvas {{
   left: 50%;
   bottom: 18px;
   transform: translateX(-50%);
-  background: #1f272c;
-  color: white;
+  background: var(--primary-bg);
+  color: var(--toast-text);
   padding: 8px 12px;
   border-radius: 6px;
   opacity: 0;
@@ -672,14 +716,24 @@ canvas {{
 <body>
 <div class="app">
   <div class="bar">
-    <button id="prev" title="Previous page">‹</button>
-    <button id="next" title="Next page">›</button>
+    <button id="prev" title="Previous page" data-i18n-title="nav.prev">‹</button>
+    <button id="next" title="Next page" data-i18n-title="nav.next">›</button>
     <select id="page"></select>
     <span id="status" class="status"></span>
     <span class="spacer"></span>
-    <button id="reset" title="Reset current page">Reset</button>
-    <button id="copy" title="Copy JSON">Copy JSON</button>
-    <button id="download" class="primary" title="Download JSON">Download JSON</button>
+    <select id="themeMode" title="Theme" data-i18n-title="theme.label">
+      <option value="auto" data-i18n="theme.auto">Auto</option>
+      <option value="light" data-i18n="theme.light">Light</option>
+      <option value="dark" data-i18n="theme.dark">Dark</option>
+    </select>
+    <select id="localeMode" title="Language" data-i18n-title="language.label">
+      <option value="auto" data-i18n="language.auto">Auto</option>
+      <option value="zh-CN" data-i18n="language.zh">Chinese</option>
+      <option value="en" data-i18n="language.en">English</option>
+    </select>
+    <button id="reset" title="Reset current page" data-i18n="actions.reset" data-i18n-title="actions.resetTitle">Reset</button>
+    <button id="copy" title="Copy JSON" data-i18n="actions.copy" data-i18n-title="actions.copyTitle">Copy JSON</button>
+    <button id="download" class="primary" title="Download JSON" data-i18n="actions.download" data-i18n-title="actions.downloadTitle">Download JSON</button>
   </div>
   <main class="stage">
     <div class="canvasWrap">
@@ -690,7 +744,92 @@ canvas {{
 <div id="toast" class="toast"></div>
 <script>
 const items = {payload};
+const i18n = {{
+  "zh-CN": {{
+    "title": "Slides Thief 手动审核",
+    "theme.label": "主题",
+    "theme.auto": "自动",
+    "theme.light": "亮色",
+    "theme.dark": "暗色",
+    "language.label": "语言",
+    "language.auto": "自动",
+    "language.zh": "中文",
+    "language.en": "English",
+    "nav.prev": "上一页",
+    "nav.next": "下一页",
+    "actions.reset": "重置",
+    "actions.resetTitle": "重置当前页",
+    "actions.copy": "复制 JSON",
+    "actions.copyTitle": "复制 JSON",
+    "actions.download": "下载 JSON",
+    "actions.downloadTitle": "下载 JSON",
+    "toast.copied": "JSON 已复制"
+  }},
+  en: {{
+    "title": "Slides Thief Manual Review",
+    "theme.label": "Theme",
+    "theme.auto": "Auto",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+    "language.label": "Language",
+    "language.auto": "Auto",
+    "language.zh": "Chinese",
+    "language.en": "English",
+    "nav.prev": "Previous page",
+    "nav.next": "Next page",
+    "actions.reset": "Reset",
+    "actions.resetTitle": "Reset current page",
+    "actions.copy": "Copy JSON",
+    "actions.copyTitle": "Copy JSON",
+    "actions.download": "Download JSON",
+    "actions.downloadTitle": "Download JSON",
+    "toast.copied": "JSON copied"
+  }}
+}};
+const prefStorageKey = "slideLensManualPrefs";
 const storageKey = "slideLensManualQuads:" + location.pathname;
+function readPrefs() {{
+  try {{
+    const saved = JSON.parse(localStorage.getItem(prefStorageKey) || "null");
+    if (saved && typeof saved === "object") return saved;
+  }} catch (_) {{}}
+  return {{}};
+}}
+function savePrefs() {{
+  localStorage.setItem(prefStorageKey, JSON.stringify(prefs));
+}}
+function normalizeChoice(value, choices, fallback) {{
+  return choices.includes(value) ? value : fallback;
+}}
+const prefs = readPrefs();
+prefs.theme = normalizeChoice(prefs.theme || "auto", ["auto", "light", "dark"], "auto");
+prefs.locale = normalizeChoice(prefs.locale || "auto", ["auto", "zh-CN", "en"], "auto");
+let locale = "en";
+function resolveLocale() {{
+  if (prefs.locale !== "auto") return prefs.locale;
+  const languages = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  return languages.some(language => String(language).toLowerCase().startsWith("zh")) ? "zh-CN" : "en";
+}}
+function t(key) {{
+  const dictionary = i18n[locale] || i18n.en;
+  return dictionary[key] || i18n.en[key] || key;
+}}
+function applyTheme() {{
+  document.documentElement.dataset.theme = prefs.theme;
+  themeMode.value = prefs.theme;
+}}
+function applyLocale() {{
+  locale = resolveLocale();
+  document.documentElement.lang = locale;
+  document.title = t("title");
+  localeMode.value = prefs.locale;
+  document.querySelectorAll("[data-i18n]").forEach(element => {{
+    element.textContent = t(element.dataset.i18n);
+  }});
+  document.querySelectorAll("[data-i18n-title]").forEach(element => {{
+    element.title = t(element.dataset.i18nTitle);
+  }});
+}}
 const initial = Object.fromEntries(items.map(item => [item.filename, item.quad.map(p => [...p])]));
 let state = loadState();
 let index = 0;
@@ -701,6 +840,10 @@ const ctx = canvas.getContext("2d");
 const page = document.getElementById("page");
 const status = document.getElementById("status");
 const toast = document.getElementById("toast");
+const themeMode = document.getElementById("themeMode");
+const localeMode = document.getElementById("localeMode");
+applyTheme();
+applyLocale();
 
 for (const [i, item] of items.entries()) {{
   const opt = document.createElement("option");
@@ -825,6 +968,16 @@ canvas.addEventListener("pointerup", event => {{
 document.getElementById("prev").onclick = () => loadPage(index - 1);
 document.getElementById("next").onclick = () => loadPage(index + 1);
 page.onchange = () => loadPage(Number(page.value));
+themeMode.onchange = event => {{
+  prefs.theme = normalizeChoice(event.target.value, ["auto", "light", "dark"], "auto");
+  savePrefs();
+  applyTheme();
+}};
+localeMode.onchange = event => {{
+  prefs.locale = normalizeChoice(event.target.value, ["auto", "zh-CN", "en"], "auto");
+  savePrefs();
+  applyLocale();
+}};
 document.getElementById("reset").onclick = () => {{
   state[current().filename] = initial[current().filename].map(p => [...p]);
   saveState();
@@ -833,7 +986,7 @@ document.getElementById("reset").onclick = () => {{
 document.getElementById("copy").onclick = async () => {{
   const text = JSON.stringify(state, null, 2);
   await navigator.clipboard.writeText(text);
-  showToast("JSON copied");
+  showToast(t("toast.copied"));
 }};
 document.getElementById("download").onclick = () => {{
   const blob = new Blob([JSON.stringify(state, null, 2)], {{ type: "application/json" }});
@@ -847,6 +1000,9 @@ document.getElementById("download").onclick = () => {{
 window.addEventListener("keydown", event => {{
   if (event.key === "ArrowLeft") loadPage(index - 1);
   if (event.key === "ArrowRight") loadPage(index + 1);
+}});
+window.addEventListener("languagechange", () => {{
+  if (prefs.locale === "auto") applyLocale();
 }});
 loadPage(0);
 </script>

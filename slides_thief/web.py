@@ -31,7 +31,7 @@ DEFAULT_JOBS_DIR = Path("outputs/web_jobs")
 
 
 APP_HTML = r"""<!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="auto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -42,14 +42,104 @@ APP_HTML = r"""<!doctype html>
   --bg: #f6f8fa;
   --panel: #ffffff;
   --panel-strong: #edf3f5;
+  --topbar-bg: rgba(255, 255, 255, .92);
   --text: #172026;
   --muted: #64717a;
   --line: #d8e1e7;
   --accent: #c84535;
   --accent-2: #0f766e;
+  --accent-2-text: #ffffff;
   --warn: #b7791f;
   --handle: #ffd84a;
+  --control-bg: #ffffff;
+  --control-hover: #aebbc4;
+  --primary-bg: #172026;
+  --primary-text: #ffffff;
+  --drop-line: #aebbc4;
+  --drop-bg: #fbfcfd;
+  --drop-active-bg: #edf8f6;
+  --thumb-bg: #f8fafb;
+  --chip-bg: #eef2f5;
+  --low-bg: #fff3d6;
+  --low-text: #8a4c06;
+  --stage-grid: rgba(23, 32, 38, .04);
+  --empty-bg: rgba(255, 255, 255, .74);
+  --handle-stroke: #2a3034;
+  --handle-text: #172026;
+  --canvas-outline: rgba(255, 255, 255, .36);
+  --canvas-quad: rgba(200, 69, 53, .98);
+  --toast-text: #ffffff;
   --shadow: 0 10px 28px rgba(21, 32, 38, .08);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #101416;
+  --panel: #171d20;
+  --panel-strong: #222b2f;
+  --topbar-bg: rgba(23, 29, 32, .94);
+  --text: #eef4f6;
+  --muted: #9daab1;
+  --line: #344147;
+  --accent: #ff7b68;
+  --accent-2: #32c8ba;
+  --accent-2-text: #081513;
+  --warn: #e5ae4c;
+  --handle: #ffd84a;
+  --control-bg: #1d2529;
+  --control-hover: #5b6b73;
+  --primary-bg: #eef4f6;
+  --primary-text: #101416;
+  --drop-line: #5b6b73;
+  --drop-bg: #14191c;
+  --drop-active-bg: #132c2a;
+  --thumb-bg: #11181b;
+  --chip-bg: #253035;
+  --low-bg: #3a2d16;
+  --low-text: #ffca73;
+  --stage-grid: rgba(238, 244, 246, .055);
+  --empty-bg: rgba(20, 25, 28, .78);
+  --handle-stroke: #101416;
+  --handle-text: #172026;
+  --canvas-outline: rgba(238, 244, 246, .32);
+  --canvas-quad: rgba(255, 123, 104, .98);
+  --toast-text: #101416;
+  --shadow: 0 10px 28px rgba(0, 0, 0, .34);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #101416;
+    --panel: #171d20;
+    --panel-strong: #222b2f;
+    --topbar-bg: rgba(23, 29, 32, .94);
+    --text: #eef4f6;
+    --muted: #9daab1;
+    --line: #344147;
+    --accent: #ff7b68;
+    --accent-2: #32c8ba;
+    --accent-2-text: #081513;
+    --warn: #e5ae4c;
+    --handle: #ffd84a;
+    --control-bg: #1d2529;
+    --control-hover: #5b6b73;
+    --primary-bg: #eef4f6;
+    --primary-text: #101416;
+    --drop-line: #5b6b73;
+    --drop-bg: #14191c;
+    --drop-active-bg: #132c2a;
+    --thumb-bg: #11181b;
+    --chip-bg: #253035;
+    --low-bg: #3a2d16;
+    --low-text: #ffca73;
+    --stage-grid: rgba(238, 244, 246, .055);
+    --empty-bg: rgba(20, 25, 28, .78);
+    --handle-stroke: #101416;
+    --handle-text: #172026;
+    --canvas-outline: rgba(238, 244, 246, .32);
+    --canvas-quad: rgba(255, 123, 104, .98);
+    --toast-text: #101416;
+    --shadow: 0 10px 28px rgba(0, 0, 0, .34);
+  }
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
@@ -68,22 +158,22 @@ button, input, select {
 button {
   height: 34px;
   border: 1px solid var(--line);
-  background: #fff;
+  background: var(--control-bg);
   border-radius: 6px;
   padding: 0 11px;
   cursor: pointer;
 }
-button:hover { border-color: #aebbc4; }
+button:hover { border-color: var(--control-hover); }
 button:disabled { cursor: not-allowed; opacity: .55; }
 button.primary {
-  background: var(--text);
-  border-color: var(--text);
-  color: #fff;
+  background: var(--primary-bg);
+  border-color: var(--primary-bg);
+  color: var(--primary-text);
 }
 button.green {
   background: var(--accent-2);
   border-color: var(--accent-2);
-  color: #fff;
+  color: var(--accent-2-text);
 }
 button.icon {
   width: 36px;
@@ -94,7 +184,7 @@ select, input[type="number"], input[type="text"] {
   height: 34px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #fff;
+  background: var(--control-bg);
   padding: 0 9px;
   min-width: 0;
 }
@@ -120,7 +210,7 @@ a:hover { text-decoration: underline; }
   align-items: center;
   padding: 10px 14px;
   border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, .92);
+  background: var(--topbar-bg);
   position: sticky;
   top: 0;
   z-index: 20;
@@ -137,8 +227,8 @@ a:hover { text-decoration: underline; }
   display: grid;
   place-items: center;
   border-radius: 7px;
-  background: var(--text);
-  color: #fff;
+  background: var(--primary-bg);
+  color: var(--primary-text);
   font-weight: 750;
 }
 .brandText {
@@ -150,7 +240,7 @@ a:hover { text-decoration: underline; }
 }
 .settings {
   display: grid;
-  grid-template-columns: 100px 96px 96px 92px 116px 1fr;
+  grid-template-columns: 86px 88px 88px 80px minmax(116px, 1fr) 76px 92px 94px;
   gap: 8px;
   align-items: end;
 }
@@ -215,18 +305,18 @@ a:hover { text-decoration: underline; }
 .dropzone {
   margin: 12px;
   min-height: 112px;
-  border: 1px dashed #aebbc4;
+  border: 1px dashed var(--drop-line);
   border-radius: 8px;
   display: grid;
   place-items: center;
   text-align: center;
-  background: #fbfcfd;
+  background: var(--drop-bg);
   color: var(--muted);
   padding: 12px;
 }
 .dropzone.active {
   border-color: var(--accent-2);
-  background: #edf8f6;
+  background: var(--drop-active-bg);
   color: var(--accent-2);
 }
 .dropzone strong {
@@ -252,7 +342,7 @@ a:hover { text-decoration: underline; }
   padding: 6px 8px;
   text-align: left;
 }
-.slideRow {
+.fileRow, .slideRow {
   grid-template-columns: 28px 64px minmax(0, 1fr) auto;
   min-height: 56px;
 }
@@ -266,8 +356,14 @@ a:hover { text-decoration: underline; }
   height: 38px;
   border: 1px solid var(--line);
   border-radius: 4px;
-  background: #f8fafb;
+  background: var(--thumb-bg);
   object-fit: cover;
+}
+.thumb.placeholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 11px;
 }
 .idx {
   width: 26px;
@@ -275,7 +371,7 @@ a:hover { text-decoration: underline; }
   display: grid;
   place-items: center;
   border-radius: 6px;
-  background: #eef2f5;
+  background: var(--chip-bg);
   color: var(--muted);
   font-size: 12px;
 }
@@ -295,13 +391,13 @@ a:hover { text-decoration: underline; }
   display: grid;
   place-items: center;
   border-radius: 999px;
-  background: #eef2f5;
+  background: var(--chip-bg);
   color: var(--muted);
   font-size: 12px;
 }
 .badge.low {
-  color: #8a4c06;
-  background: #fff3d6;
+  color: var(--low-text);
+  background: var(--low-bg);
 }
 .workspace {
   min-height: 0;
@@ -332,10 +428,10 @@ a:hover { text-decoration: underline; }
   padding: 16px;
   overflow: auto;
   background:
-    linear-gradient(45deg, rgba(23, 32, 38, .04) 25%, transparent 25%),
-    linear-gradient(-45deg, rgba(23, 32, 38, .04) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, rgba(23, 32, 38, .04) 75%),
-    linear-gradient(-45deg, transparent 75%, rgba(23, 32, 38, .04) 75%);
+    linear-gradient(45deg, var(--stage-grid) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--stage-grid) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--stage-grid) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--stage-grid) 75%);
   background-size: 28px 28px;
   background-position: 0 0, 0 14px, 14px -14px, -14px 0;
 }
@@ -374,7 +470,7 @@ canvas[hidden] {
   text-align: center;
   border: 1px dashed var(--line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, .74);
+  background: var(--empty-bg);
   padding: 22px;
 }
 .inspectorBody {
@@ -407,7 +503,7 @@ canvas[hidden] {
   gap: 10px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--control-bg);
   padding: 7px 9px;
 }
 .cornerTable {
@@ -428,7 +524,7 @@ canvas[hidden] {
   place-items: center;
   border-radius: 999px;
   background: var(--handle);
-  border: 1px solid #2a3034;
+  border: 1px solid var(--handle-stroke);
   font-size: 12px;
   font-weight: 760;
 }
@@ -448,7 +544,7 @@ canvas[hidden] {
   display: grid;
   place-items: center;
   background: var(--text);
-  color: #fff;
+  color: var(--toast-text);
   border-radius: 7px;
   padding: 8px 12px;
   opacity: 0;
@@ -501,17 +597,19 @@ canvas[hidden] {
       <div class="brandText">Slides Thief</div>
     </div>
     <div class="settings">
-      <label><span>比例</span><select id="ratio"><option value="16:9">16:9</option><option value="4:3">4:3</option></select></label>
-      <label><span>宽度</span><input id="width" type="number" min="800" max="6000" value="2400"></label>
-      <label><span>高度</span><input id="height" type="number" min="600" max="6000" placeholder="自动"></label>
-      <label><span>质量</span><input id="quality" type="number" min="60" max="98" value="92"></label>
-      <label><span>PDF 文件</span><input id="pdfName" type="text" value="flattened_slides.pdf"></label>
-      <label class="checks"><input id="grayscale" type="checkbox"><span>灰度</span></label>
+      <label><span data-i18n="settings.ratio">比例</span><select id="ratio"><option value="16:9">16:9</option><option value="4:3">4:3</option></select></label>
+      <label><span data-i18n="settings.width">宽度</span><input id="width" type="number" min="800" max="6000" value="2400"></label>
+      <label><span data-i18n="settings.height">高度</span><input id="height" type="number" min="600" max="6000" placeholder="自动" data-i18n-placeholder="settings.heightAuto"></label>
+      <label><span data-i18n="settings.quality">质量</span><input id="quality" type="number" min="60" max="98" value="92"></label>
+      <label><span data-i18n="settings.pdfFile">PDF 文件</span><input id="pdfName" type="text" value="flattened_slides.pdf"></label>
+      <label class="checks"><input id="grayscale" type="checkbox"><span data-i18n="settings.grayscale">灰度</span></label>
+      <label><span data-i18n="settings.theme">主题</span><select id="themeMode"><option value="auto" data-i18n="theme.auto">自动</option><option value="light" data-i18n="theme.light">亮色</option><option value="dark" data-i18n="theme.dark">暗色</option></select></label>
+      <label><span data-i18n="settings.language">语言</span><select id="localeMode"><option value="auto" data-i18n="language.auto">自动</option><option value="zh-CN" data-i18n="language.zh">中文</option><option value="en" data-i18n="language.en">English</option></select></label>
     </div>
     <div class="actions">
-      <button id="choose">选择图片</button>
-      <button id="runAuto" class="primary" disabled>自动识别</button>
-      <button id="runRefine" class="green" disabled>生成 PDF</button>
+      <button id="choose" data-i18n="actions.choose">选择图片</button>
+      <button id="runAuto" class="primary" disabled data-i18n="actions.runAuto">自动识别</button>
+      <button id="runRefine" class="green" disabled data-i18n="actions.runRefine">生成 PDF</button>
       <span id="status" class="statusLine">待上传</span>
     </div>
   </header>
@@ -519,13 +617,13 @@ canvas[hidden] {
   <main class="shell">
     <aside class="sidebar">
       <div class="sectionHead">
-        <h2>图片</h2>
+        <h2 data-i18n="section.images">图片</h2>
         <span id="fileCount" class="count">0</span>
       </div>
       <div>
         <input id="fileInput" class="fileInput" type="file" accept="image/*,.heic,.heif,.tif,.tiff" multiple>
         <div id="dropzone" class="dropzone">
-          <div><strong>拖拽图片</strong><span>文件名排序</span></div>
+          <div><strong data-i18n="drop.title">拖拽图片</strong><span data-i18n="drop.subtitle">文件名排序</span></div>
         </div>
         <div id="files" class="files"></div>
       </div>
@@ -533,17 +631,17 @@ canvas[hidden] {
 
     <section class="workspace">
       <div class="reviewBar">
-        <button id="prev" class="icon" disabled title="上一页">‹</button>
-        <button id="next" class="icon" disabled title="下一页">›</button>
+        <button id="prev" class="icon" disabled title="上一页" data-i18n-title="nav.prev">‹</button>
+        <button id="next" class="icon" disabled title="下一页" data-i18n-title="nav.next">›</button>
         <div id="slideTitle" class="title">未选择页面</div>
         <div class="zoomControls">
-          <button id="zoomOut" class="icon" disabled title="缩小">−</button>
+          <button id="zoomOut" class="icon" disabled title="缩小" data-i18n-title="zoom.out">−</button>
           <span id="zoomValue" class="zoomValue">100%</span>
-          <button id="zoomIn" class="icon" disabled title="放大">+</button>
-          <button id="zoomFit" disabled title="适合窗口">适合</button>
+          <button id="zoomIn" class="icon" disabled title="放大" data-i18n-title="zoom.in">+</button>
+          <button id="zoomFit" disabled title="适合窗口" data-i18n="zoom.fit" data-i18n-title="zoom.fitTitle">适合</button>
         </div>
-        <button id="resetSlide" disabled>重置本页</button>
-        <button id="downloadJson" disabled>导出角点</button>
+        <button id="resetSlide" disabled data-i18n="actions.resetSlide">重置本页</button>
+        <button id="downloadJson" disabled data-i18n="actions.exportCorners">导出角点</button>
       </div>
       <div id="stage" class="stage">
         <div class="canvasShell">
@@ -555,7 +653,7 @@ canvas[hidden] {
 
     <aside class="inspector">
       <div class="sectionHead">
-        <h2>输出</h2>
+        <h2 data-i18n="section.output">输出</h2>
         <span id="slideCount" class="count">0</span>
       </div>
       <div class="inspectorBody">
@@ -577,6 +675,8 @@ const els = {
   quality: $("quality"),
   pdfName: $("pdfName"),
   grayscale: $("grayscale"),
+  themeMode: $("themeMode"),
+  localeMode: $("localeMode"),
   choose: $("choose"),
   fileInput: $("fileInput"),
   dropzone: $("dropzone"),
@@ -605,23 +705,258 @@ const els = {
 };
 const ctx = els.canvas.getContext("2d");
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-const emptyMessage = "上传图片后点击自动识别按钮";
+const I18N = {
+  "zh-CN": {
+    "settings.ratio": "比例",
+    "settings.width": "宽度",
+    "settings.height": "高度",
+    "settings.heightAuto": "自动",
+    "settings.quality": "质量",
+    "settings.pdfFile": "PDF 文件",
+    "settings.grayscale": "灰度",
+    "settings.theme": "主题",
+    "settings.language": "语言",
+    "theme.auto": "自动",
+    "theme.light": "亮色",
+    "theme.dark": "暗色",
+    "language.auto": "自动",
+    "language.zh": "中文",
+    "language.en": "English",
+    "actions.choose": "选择图片",
+    "actions.runAuto": "自动识别",
+    "actions.runRefine": "生成 PDF",
+    "actions.resetSlide": "重置本页",
+    "actions.exportCorners": "导出角点",
+    "section.images": "图片",
+    "section.output": "输出",
+    "drop.title": "拖拽图片",
+    "drop.subtitle": "文件名排序",
+    "nav.prev": "上一页",
+    "nav.next": "下一页",
+    "zoom.out": "缩小",
+    "zoom.in": "放大",
+    "zoom.fit": "适合",
+    "zoom.fitTitle": "适合窗口",
+    "slide.none": "未选择页面",
+    "empty.uploadPrompt": "上传图片后点击自动识别按钮",
+    "empty.previewing": "正在生成预览",
+    "empty.previewFail": "无法预览这张图片",
+    "empty.previewCreateFail": "无法生成预览",
+    "status.idle": "待上传",
+    "status.files": "{count} 张",
+    "status.previewing": "预览中",
+    "status.detecting": "识别中",
+    "status.reviewReady": "可审核",
+    "status.generating": "生成中",
+    "status.generated": "已生成",
+    "status.failed": "失败",
+    "metrics.file": "文件",
+    "metrics.status": "状态",
+    "metrics.dimensions": "尺寸",
+    "metrics.method": "方法",
+    "metrics.confidence": "置信度",
+    "metrics.pendingAuto": "待自动识别",
+    "links.report": "报告",
+    "links.open": "打开",
+    "toast.autoDone": "自动识别完成",
+    "toast.pdfUpdated": "PDF 已更新",
+    "errors.previewFile": "无法预览这张图片",
+    "errors.noSupportedImages": "没有上传支持的图片",
+    "errors.noPreviewFile": "没有上传预览文件",
+    "errors.unsupportedImageType": "不支持的图片类型",
+    "errors.invalidJobId": "无效的任务 ID",
+    "errors.jobNotFound": "找不到任务",
+    "errors.manualQuads": "manualQuads 必须是对象"
+  },
+  en: {
+    "settings.ratio": "Ratio",
+    "settings.width": "Width",
+    "settings.height": "Height",
+    "settings.heightAuto": "Auto",
+    "settings.quality": "Quality",
+    "settings.pdfFile": "PDF file",
+    "settings.grayscale": "Grayscale",
+    "settings.theme": "Theme",
+    "settings.language": "Language",
+    "theme.auto": "Auto",
+    "theme.light": "Light",
+    "theme.dark": "Dark",
+    "language.auto": "Auto",
+    "language.zh": "Chinese",
+    "language.en": "English",
+    "actions.choose": "Choose images",
+    "actions.runAuto": "Detect",
+    "actions.runRefine": "Generate PDF",
+    "actions.resetSlide": "Reset page",
+    "actions.exportCorners": "Export corners",
+    "section.images": "Images",
+    "section.output": "Output",
+    "drop.title": "Drop images",
+    "drop.subtitle": "Sorted by filename",
+    "nav.prev": "Previous page",
+    "nav.next": "Next page",
+    "zoom.out": "Zoom out",
+    "zoom.in": "Zoom in",
+    "zoom.fit": "Fit",
+    "zoom.fitTitle": "Fit to window",
+    "slide.none": "No page selected",
+    "empty.uploadPrompt": "Upload images, then click Detect",
+    "empty.previewing": "Generating preview",
+    "empty.previewFail": "Cannot preview this image",
+    "empty.previewCreateFail": "Cannot generate preview",
+    "status.idle": "Ready",
+    "status.files": "{count} images",
+    "status.previewing": "Previewing",
+    "status.detecting": "Detecting",
+    "status.reviewReady": "Ready to review",
+    "status.generating": "Generating",
+    "status.generated": "Generated",
+    "status.failed": "Failed",
+    "metrics.file": "File",
+    "metrics.status": "Status",
+    "metrics.dimensions": "Dimensions",
+    "metrics.method": "Method",
+    "metrics.confidence": "Confidence",
+    "metrics.pendingAuto": "Waiting for detection",
+    "links.report": "Report",
+    "links.open": "Open",
+    "toast.autoDone": "Detection complete",
+    "toast.pdfUpdated": "PDF updated",
+    "errors.previewFile": "Cannot preview this image",
+    "errors.noSupportedImages": "No supported images were uploaded",
+    "errors.noPreviewFile": "No preview file was uploaded",
+    "errors.unsupportedImageType": "Unsupported image type",
+    "errors.invalidJobId": "Invalid job id",
+    "errors.jobNotFound": "Job not found",
+    "errors.manualQuads": "manualQuads must be an object"
+  }
+};
+const ERROR_KEYS = {
+  "No supported images were uploaded": "errors.noSupportedImages",
+  "No preview file was uploaded": "errors.noPreviewFile",
+  "Unsupported image type": "errors.unsupportedImageType",
+  "Invalid job id": "errors.invalidJobId",
+  "Job not found": "errors.jobNotFound",
+  "manualQuads must be an object": "errors.manualQuads"
+};
+const STORAGE_KEYS = {
+  theme: "slidesThief.theme",
+  locale: "slidesThief.locale"
+};
+function storageGet(key, fallback) {
+  try {
+    return localStorage.getItem(key) || fallback;
+  } catch (_) {
+    return fallback;
+  }
+}
+function storageSet(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch (_) {}
+}
+function normalizeChoice(value, choices, fallback) {
+  return choices.includes(value) ? value : fallback;
+}
+const ui = {
+  themeMode: normalizeChoice(storageGet(STORAGE_KEYS.theme, "auto"), ["auto", "light", "dark"], "auto"),
+  localeMode: normalizeChoice(storageGet(STORAGE_KEYS.locale, "auto"), ["auto", "zh-CN", "en"], "auto"),
+  locale: "zh-CN"
+};
 const app = {
   files: [],
   previews: new Map(),
+  previewThumbs: new Map(),
+  previewPromises: new Map(),
+  previewBatch: 0,
   preview: null,
   previewIndex: -1,
   jobId: null,
   activeRun: null,
   finalRun: null,
   quads: {},
+  slideThumbs: new Map(),
+  dirtyThumbs: new Set(),
   index: 0,
   image: new Image(),
   viewport: null,
   zoom: 1,
   zoomMode: "fit",
-  dragging: -1
+  dragging: -1,
+  statusKey: "status.idle",
+  statusVars: {},
+  emptyKey: "empty.uploadPrompt",
+  emptyVars: {}
 };
+
+function resolveLocale() {
+  if (ui.localeMode !== "auto") return ui.localeMode;
+  const languages = navigator.languages && navigator.languages.length ? navigator.languages : [navigator.language || ""];
+  return languages.some(language => String(language).toLowerCase().startsWith("zh")) ? "zh-CN" : "en";
+}
+
+function t(key, vars = {}) {
+  const dictionary = I18N[ui.locale] || I18N.en;
+  const text = dictionary[key] || I18N.en[key] || I18N["zh-CN"][key] || key;
+  return text.replace(/\{(\w+)\}/g, (_, name) => vars[name] ?? "");
+}
+
+function cssVar(name) {
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+}
+
+function applyTheme() {
+  document.documentElement.dataset.theme = ui.themeMode;
+  els.themeMode.value = ui.themeMode;
+  if (currentImageItem()) requestAnimationFrame(draw);
+}
+
+function applyLocale() {
+  ui.locale = resolveLocale();
+  document.documentElement.lang = ui.locale;
+  els.localeMode.value = ui.localeMode;
+  document.querySelectorAll("[data-i18n]").forEach(element => {
+    element.textContent = t(element.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(element => {
+    element.title = t(element.dataset.i18nTitle);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(element => {
+    element.placeholder = t(element.dataset.i18nPlaceholder);
+  });
+  renderLocalizedState();
+}
+
+function renderLocalizedState() {
+  setStatus(app.statusKey, app.statusVars);
+  if (!els.empty.hidden) setEmpty(app.emptyKey, app.emptyVars);
+  if (app.activeRun) {
+    renderSlideList();
+    updateSlideTitle();
+    renderMetrics();
+    renderCorners();
+  } else {
+    renderFiles();
+    updatePreviewTitle();
+    if (app.preview) renderPreviewInfo(app.preview);
+  }
+  renderLinks();
+  updateZoomControls();
+}
+
+function updatePreviewTitle() {
+  if (app.previewIndex >= 0 && app.files[app.previewIndex]) {
+    const file = app.files[app.previewIndex];
+    els.slideTitle.textContent = `${String(app.previewIndex + 1).padStart(2, "0")}  ${file.name}`;
+  } else {
+    els.slideTitle.textContent = t("slide.none");
+  }
+}
+
+function updateSlideTitle() {
+  const slide = currentSlide();
+  els.slideTitle.textContent = slide ? `${String(app.index + 1).padStart(2, "0")}  ${slide.filename}` : t("slide.none");
+}
 
 function formatBytes(size) {
   if (size < 1024) return `${size} B`;
@@ -640,14 +975,32 @@ function settingsPayload() {
   };
 }
 
-function setStatus(text) {
-  els.status.textContent = text;
+function setStatus(key, vars = {}) {
+  app.statusKey = key;
+  app.statusVars = vars;
+  els.status.textContent = t(key, vars);
+}
+
+function setEmpty(key, vars = {}) {
+  app.emptyKey = key;
+  app.emptyVars = vars;
+  els.empty.textContent = t(key, vars);
 }
 
 function toast(text) {
   els.toast.textContent = text;
   els.toast.classList.add("show");
   setTimeout(() => els.toast.classList.remove("show"), 1300);
+}
+
+function toastKey(key, vars = {}) {
+  toast(t(key, vars));
+}
+
+function toastError(error) {
+  const message = error && error.message ? error.message : String(error);
+  const key = ERROR_KEYS[message];
+  toast(key ? t(key) : message);
 }
 
 function setBusy(busy) {
@@ -662,12 +1015,17 @@ function handleFiles(fileList) {
     .filter(file => supported.some(ext => file.name.toLowerCase().endsWith(ext)))
     .sort((a, b) => collator.compare(a.name, b.name));
   app.previews = new Map();
+  app.previewThumbs = new Map();
+  app.previewPromises = new Map();
+  app.previewBatch += 1;
   app.preview = null;
   app.previewIndex = -1;
   app.activeRun = null;
   app.finalRun = null;
   app.jobId = null;
   app.quads = {};
+  app.slideThumbs = new Map();
+  app.dirtyThumbs = new Set();
   app.index = 0;
   app.viewport = null;
   renderFiles();
@@ -675,17 +1033,18 @@ function handleFiles(fileList) {
   els.metrics.replaceChildren();
   els.cornerTable.replaceChildren();
   els.slideCount.textContent = "0";
-  els.slideTitle.textContent = "未选择页面";
+  updatePreviewTitle();
   els.prev.disabled = true;
   els.next.disabled = true;
   els.resetSlide.disabled = true;
   els.downloadJson.disabled = true;
   els.canvas.hidden = true;
   els.empty.hidden = false;
-  els.empty.textContent = emptyMessage;
+  setEmpty("empty.uploadPrompt");
   updateZoomControls();
   setBusy(false);
-  if (app.files.length) setStatus(`${app.files.length} 张`);
+  setStatus(app.files.length ? "status.files" : "status.idle", { count: app.files.length });
+  queuePreviewThumbnails();
 }
 
 function renderFiles() {
@@ -698,13 +1057,25 @@ function renderFiles() {
     const idx = document.createElement("div");
     idx.className = "idx";
     idx.textContent = String(i + 1).padStart(2, "0");
+    const key = previewKey(file);
+    let thumb;
+    if (app.previewThumbs.has(key)) {
+      thumb = document.createElement("img");
+      thumb.className = "thumb";
+      thumb.src = app.previewThumbs.get(key);
+      thumb.alt = "";
+    } else {
+      thumb = document.createElement("div");
+      thumb.className = "thumb placeholder";
+      thumb.textContent = "…";
+    }
     const main = document.createElement("div");
     main.className = "name";
     main.textContent = file.name;
     const sub = document.createElement("div");
     sub.className = "sub";
     sub.textContent = formatBytes(file.size);
-    row.append(idx, main, sub);
+    row.append(idx, thumb, main, sub);
     els.files.appendChild(row);
   });
 }
@@ -716,11 +1087,37 @@ function previewKey(file) {
 async function previewForFile(file) {
   const key = previewKey(file);
   if (app.previews.has(key)) return app.previews.get(key);
-  const form = new FormData();
-  form.append("file", file, file.name);
-  const data = await fetchJson("/api/previews", { method: "POST", body: form });
-  app.previews.set(key, data);
-  return data;
+  if (!app.previewPromises.has(key)) {
+    const form = new FormData();
+    form.append("file", file, file.name);
+    const promise = fetchJson("/api/previews", { method: "POST", body: form })
+      .then(data => {
+        app.previews.set(key, data);
+        app.previewThumbs.set(key, data.imageUrl);
+        return data;
+      })
+      .finally(() => app.previewPromises.delete(key));
+    app.previewPromises.set(key, promise);
+  }
+  return app.previewPromises.get(key);
+}
+
+function queuePreviewThumbnails() {
+  const batch = app.previewBatch;
+  (async () => {
+    for (const file of app.files) {
+      if (batch !== app.previewBatch || app.activeRun) return;
+      const key = previewKey(file);
+      if (app.previewThumbs.has(key)) continue;
+      try {
+        await previewForFile(file);
+        if (batch !== app.previewBatch || app.activeRun) return;
+        renderFiles();
+      } catch (_) {
+        if (batch !== app.previewBatch || app.activeRun) return;
+      }
+    }
+  })();
 }
 
 async function loadPreview(index) {
@@ -728,15 +1125,15 @@ async function loadPreview(index) {
   app.previewIndex = Math.max(0, Math.min(app.files.length - 1, index));
   const file = app.files[app.previewIndex];
   renderFiles();
-  els.slideTitle.textContent = `${String(app.previewIndex + 1).padStart(2, "0")}  ${file.name}`;
+  updatePreviewTitle();
   els.prev.disabled = app.previewIndex === 0;
   els.next.disabled = app.previewIndex >= app.files.length - 1;
   els.resetSlide.disabled = true;
   els.downloadJson.disabled = true;
   els.canvas.hidden = true;
   els.empty.hidden = false;
-  els.empty.textContent = "正在生成预览";
-  setStatus("预览中");
+  setEmpty("empty.previewing");
+  setStatus("status.previewing");
 
   try {
     const data = await previewForFile(file);
@@ -758,25 +1155,25 @@ async function loadPreview(index) {
     app.image.onerror = () => {
       els.canvas.hidden = true;
       els.empty.hidden = false;
-      els.empty.textContent = "无法预览这张图片";
+      setEmpty("empty.previewFail");
       updateZoomControls();
-      toast("无法预览这张图片");
+      toastKey("errors.previewFile");
     };
     app.image.src = data.imageUrl;
     renderPreviewInfo(data);
-    setStatus(`${app.files.length} 张`);
+    setStatus("status.files", { count: app.files.length });
   } catch (err) {
-    els.empty.textContent = "无法生成预览";
-    setStatus(`${app.files.length} 张`);
-    toast(err.message);
+    setEmpty("empty.previewCreateFail");
+    setStatus("status.files", { count: app.files.length });
+    toastError(err);
   }
 }
 
 function renderPreviewInfo(preview) {
   const rows = [
-    ["文件", preview.filename],
-    ["状态", "待自动识别"],
-    ["尺寸", `${preview.origWidth} × ${preview.origHeight}`]
+    [t("metrics.file"), preview.filename],
+    [t("metrics.status"), t("metrics.pendingAuto")],
+    [t("metrics.dimensions"), `${preview.origWidth} × ${preview.origHeight}`]
   ];
   const wrap = document.createElement("div");
   rows.forEach(([key, value]) => {
@@ -806,7 +1203,7 @@ async function fetchJson(url, options) {
 async function runAuto() {
   if (!app.files.length) return;
   setBusy(true);
-  setStatus("识别中");
+  setStatus("status.detecting");
   const settings = settingsPayload();
   const form = new FormData();
   for (const file of app.files) form.append("files", file, file.name);
@@ -819,11 +1216,11 @@ async function runAuto() {
   try {
     const data = await fetchJson("/api/jobs", { method: "POST", body: form });
     setRun(data);
-    setStatus("可审核");
-    toast("自动识别完成");
+    setStatus("status.reviewReady");
+    toastKey("toast.autoDone");
   } catch (err) {
-    setStatus("失败");
-    toast(err.message);
+    setStatus("status.failed");
+    toastError(err);
   } finally {
     setBusy(false);
   }
@@ -831,8 +1228,9 @@ async function runAuto() {
 
 async function runRefine() {
   if (!app.activeRun || !app.jobId) return;
+  refreshCurrentThumbnail();
   setBusy(true);
-  setStatus("生成中");
+  setStatus("status.generating");
   try {
     const data = await fetchJson(`/api/jobs/${encodeURIComponent(app.jobId)}/refine`, {
       method: "POST",
@@ -844,11 +1242,11 @@ async function runRefine() {
     });
     app.finalRun = data;
     setRun(data, { keepIndex: true });
-    setStatus("已生成");
-    toast("PDF 已更新");
+    setStatus("status.generated");
+    toastKey("toast.pdfUpdated");
   } catch (err) {
-    setStatus("失败");
-    toast(err.message);
+    setStatus("status.failed");
+    toastError(err);
   } finally {
     setBusy(false);
   }
@@ -859,6 +1257,8 @@ function setRun(data, options = {}) {
   app.activeRun = data;
   app.preview = null;
   app.previewIndex = -1;
+  app.slideThumbs = new Map();
+  app.dirtyThumbs = new Set();
   app.quads = Object.fromEntries(data.slides.map(slide => [
     slide.filename,
     slide.quad.map(point => [...point])
@@ -886,7 +1286,7 @@ function renderSlideList() {
     idx.textContent = String(i + 1).padStart(2, "0");
     const thumb = document.createElement("img");
     thumb.className = "thumb";
-    thumb.src = slide.correctedUrl;
+    thumb.src = app.slideThumbs.get(slide.filename) || slide.correctedUrl;
     thumb.alt = "";
     const main = document.createElement("div");
     main.className = "name";
@@ -909,10 +1309,11 @@ function currentImageItem() {
 
 function loadSlide(index) {
   if (!app.activeRun || !app.activeRun.slides.length) return;
+  if (index !== app.index) refreshCurrentThumbnail();
   app.index = Math.max(0, Math.min(app.activeRun.slides.length - 1, index));
   const slide = currentSlide();
   renderSlideList();
-  els.slideTitle.textContent = `${String(app.index + 1).padStart(2, "0")}  ${slide.filename}`;
+  updateSlideTitle();
   els.prev.disabled = app.index === 0;
   els.next.disabled = app.index >= app.activeRun.slides.length - 1;
   app.image = new Image();
@@ -1036,13 +1437,13 @@ function draw() {
   const imageH = view.imageHeight * app.zoom;
   ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
   ctx.drawImage(app.image, imageX, imageY, imageW, imageH);
-  ctx.strokeStyle = "rgba(255, 255, 255, .36)";
+  ctx.strokeStyle = cssVar("--canvas-outline");
   ctx.lineWidth = 1.5;
   ctx.strokeRect(imageX, imageY, imageW, imageH);
   if (!slide) return;
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
   ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(200, 69, 53, .98)";
+  ctx.strokeStyle = cssVar("--canvas-quad");
   ctx.beginPath();
   pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
   ctx.closePath();
@@ -1050,18 +1451,117 @@ function draw() {
   pts.forEach(([x, y], i) => {
     const r = 9;
     ctx.fillStyle = "rgba(255, 216, 74, .98)";
-    ctx.strokeStyle = "rgba(23, 32, 38, .9)";
+    ctx.strokeStyle = cssVar("--handle-stroke");
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = "#172026";
+    ctx.fillStyle = cssVar("--handle-text");
     ctx.font = "700 13px -apple-system, BlinkMacSystemFont, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(String(i + 1), x, y + 1);
   });
+}
+
+function parseRatioValue(value) {
+  if (String(value).includes(":")) {
+    const [w, h] = String(value).split(":").map(Number);
+    return w / h;
+  }
+  return Number(value) || 16 / 9;
+}
+
+function outputRatio() {
+  return parseRatioValue((app.activeRun && app.activeRun.settings && app.activeRun.settings.ratio) || els.ratio.value);
+}
+
+function solveLinearSystem(matrix, vector) {
+  const n = vector.length;
+  const rows = matrix.map((row, i) => [...row, vector[i]]);
+  for (let col = 0; col < n; col += 1) {
+    let pivot = col;
+    for (let row = col + 1; row < n; row += 1) {
+      if (Math.abs(rows[row][col]) > Math.abs(rows[pivot][col])) pivot = row;
+    }
+    if (Math.abs(rows[pivot][col]) < 1e-9) throw new Error("Singular transform");
+    [rows[col], rows[pivot]] = [rows[pivot], rows[col]];
+    const scale = rows[col][col];
+    for (let j = col; j <= n; j += 1) rows[col][j] /= scale;
+    for (let row = 0; row < n; row += 1) {
+      if (row === col) continue;
+      const factor = rows[row][col];
+      for (let j = col; j <= n; j += 1) rows[row][j] -= factor * rows[col][j];
+    }
+  }
+  return rows.map(row => row[n]);
+}
+
+function perspectiveCoefficients(src, dst) {
+  const matrix = [];
+  const vector = [];
+  dst.forEach(([x, y], i) => {
+    const [u, v] = src[i];
+    matrix.push([x, y, 1, 0, 0, 0, -u * x, -u * y]);
+    matrix.push([0, 0, 0, x, y, 1, -v * x, -v * y]);
+    vector.push(u, v);
+  });
+  return solveLinearSystem(matrix, vector);
+}
+
+function buildAdjustedThumbnail(slide) {
+  const outW = 160;
+  const outH = Math.max(1, Math.round(outW / outputRatio()));
+  const srcW = slide.assetWidth;
+  const srcH = slide.assetHeight;
+  const sourceCanvas = document.createElement("canvas");
+  sourceCanvas.width = srcW;
+  sourceCanvas.height = srcH;
+  const sourceCtx = sourceCanvas.getContext("2d");
+  sourceCtx.drawImage(app.image, 0, 0, srcW, srcH);
+  const source = sourceCtx.getImageData(0, 0, srcW, srcH).data;
+  const outputCanvas = document.createElement("canvas");
+  outputCanvas.width = outW;
+  outputCanvas.height = outH;
+  const outputCtx = outputCanvas.getContext("2d");
+  const output = outputCtx.createImageData(outW, outH);
+  const src = app.quads[slide.filename].map(([x, y]) => [
+    x / slide.origWidth * slide.assetWidth,
+    y / slide.origHeight * slide.assetHeight
+  ]);
+  const dst = [[0, 0], [outW, 0], [outW, outH], [0, outH]];
+  const coeffs = perspectiveCoefficients(src, dst);
+  for (let y = 0; y < outH; y += 1) {
+    for (let x = 0; x < outW; x += 1) {
+      const den = coeffs[6] * x + coeffs[7] * y + 1;
+      const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / den;
+      const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
+      const outIdx = (y * outW + x) * 4;
+      if (sx >= 0 && sx < srcW && sy >= 0 && sy < srcH) {
+        const ix = Math.max(0, Math.min(srcW - 1, Math.round(sx)));
+        const iy = Math.max(0, Math.min(srcH - 1, Math.round(sy)));
+        const srcIdx = (iy * srcW + ix) * 4;
+        output.data[outIdx] = source[srcIdx];
+        output.data[outIdx + 1] = source[srcIdx + 1];
+        output.data[outIdx + 2] = source[srcIdx + 2];
+        output.data[outIdx + 3] = 255;
+      }
+    }
+  }
+  outputCtx.putImageData(output, 0, 0);
+  return outputCanvas.toDataURL("image/png");
+}
+
+function refreshCurrentThumbnail(force = false) {
+  const slide = currentSlide();
+  if (!slide || !app.image.complete) return;
+  if (!force && !app.dirtyThumbs.has(slide.filename)) return;
+  try {
+    app.slideThumbs.set(slide.filename, buildAdjustedThumbnail(slide));
+    app.dirtyThumbs.delete(slide.filename);
+    renderSlideList();
+  } catch (_) {}
 }
 
 function eventPoint(event) {
@@ -1095,10 +1595,10 @@ function renderMetrics() {
     return;
   }
   const rows = [
-    ["文件", slide.filename],
-    ["方法", slide.method],
-    ["置信度", Number(slide.confidence).toFixed(3)],
-    ["尺寸", `${slide.origWidth} × ${slide.origHeight}`]
+    [t("metrics.file"), slide.filename],
+    [t("metrics.method"), slide.method],
+    [t("metrics.confidence"), Number(slide.confidence).toFixed(3)],
+    [t("metrics.dimensions"), `${slide.origWidth} × ${slide.origHeight}`]
   ];
   const wrap = document.createElement("div");
   rows.forEach(([key, value]) => {
@@ -1140,7 +1640,7 @@ function renderLinks() {
   if (!run) return;
   const items = [
     ["PDF", run.pdfUrl],
-    ["报告", run.reportUrl]
+    [t("links.report"), run.reportUrl]
   ];
   for (const [label, url] of items) {
     if (!url) continue;
@@ -1150,7 +1650,7 @@ function renderLinks() {
     const left = document.createElement("span");
     left.textContent = label;
     const right = document.createElement("span");
-    right.textContent = "打开";
+    right.textContent = t("links.open");
     right.className = "sub";
     link.append(left, right);
     els.links.appendChild(link);
@@ -1161,8 +1661,11 @@ function resetCurrent() {
   const slide = currentSlide();
   if (!slide) return;
   app.quads[slide.filename] = slide.quad.map(point => [...point]);
+  app.slideThumbs.delete(slide.filename);
+  app.dirtyThumbs.delete(slide.filename);
   draw();
   renderCorners();
+  renderSlideList();
 }
 
 function downloadManualJson() {
@@ -1187,6 +1690,16 @@ els.zoomIn.onclick = () => setCanvasZoom(app.zoom * 1.25);
 els.zoomFit.onclick = fitCanvas;
 els.resetSlide.onclick = resetCurrent;
 els.downloadJson.onclick = downloadManualJson;
+els.themeMode.onchange = event => {
+  ui.themeMode = normalizeChoice(event.target.value, ["auto", "light", "dark"], "auto");
+  storageSet(STORAGE_KEYS.theme, ui.themeMode);
+  applyTheme();
+};
+els.localeMode.onchange = event => {
+  ui.localeMode = normalizeChoice(event.target.value, ["auto", "zh-CN", "en"], "auto");
+  storageSet(STORAGE_KEYS.locale, ui.localeMode);
+  applyLocale();
+};
 
 for (const name of ["dragenter", "dragover"]) {
   els.dropzone.addEventListener(name, event => {
@@ -1214,10 +1727,12 @@ els.canvas.addEventListener("pointermove", event => {
   if (!slide || app.dragging < 0) return;
   const [x, y] = eventPoint(event);
   app.quads[slide.filename][app.dragging] = toOriginalPoint(slide, x, y);
+  app.dirtyThumbs.add(slide.filename);
   draw();
   renderCorners();
 });
 els.canvas.addEventListener("pointerup", event => {
+  refreshCurrentThumbnail();
   app.dragging = -1;
   try { els.canvas.releasePointerCapture(event.pointerId); } catch (_) {}
 });
@@ -1235,6 +1750,22 @@ window.addEventListener("keydown", event => {
 window.addEventListener("resize", () => {
   if (app.zoomMode === "fit" && currentImageItem()) fitCanvas();
 });
+window.addEventListener("languagechange", () => {
+  if (ui.localeMode === "auto") applyLocale();
+});
+if (window.matchMedia) {
+  const scheme = window.matchMedia("(prefers-color-scheme: dark)");
+  const redraw = () => {
+    if (ui.themeMode === "auto" && currentImageItem()) draw();
+  };
+  if (scheme.addEventListener) {
+    scheme.addEventListener("change", redraw);
+  } else if (scheme.addListener) {
+    scheme.addListener(redraw);
+  }
+}
+applyTheme();
+applyLocale();
 </script>
 </body>
 </html>

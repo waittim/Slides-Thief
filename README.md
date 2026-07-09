@@ -15,6 +15,8 @@ need manual corner cleanup.
   sheet for review.
 - Builds a local `manual_review.html` page where you can drag four corner
   handles and export `manual_quads.json` for a precise second pass.
+- The browser UIs follow the system light/dark theme and browser language by
+  default, with in-page controls for manual overrides.
 
 ## Install
 
@@ -58,6 +60,8 @@ In the page you can:
 - Drag the four numbered corner handles for manual correction.
 - Generate a refined PDF using the corrected points.
 - Open or download the PDF, contact sheets, report, and corner JSON.
+- Let the UI follow your system theme and browser language automatically, or
+  choose a specific light/dark theme and Chinese/English language in the toolbar.
 
 Web jobs are written under `outputs/web_jobs/` by default. Each job keeps its
 uploaded images, automatic pass, manual JSON, and refined pass together.
