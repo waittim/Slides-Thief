@@ -380,8 +380,6 @@ def detect_quad(
     mask = mask | ((gray > max(115.0, p92 * 0.78)) & (sat < sat_threshold + 18.0))
 
     density = box_blur(mask.astype(np.float64), radius=max(3, round(w * 0.006)))
-    row_counts = density.sum(axis=1)
-    col_counts = density.sum(axis=0)
 
     left_pts: list[tuple[float, float]] = []
     right_pts: list[tuple[float, float]] = []

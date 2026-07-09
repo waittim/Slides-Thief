@@ -14,6 +14,30 @@ dependencies = [
   "reportlab>=4",
 ]
 
+[project.optional-dependencies]
+dev = [
+  "pytest>=8",
+  "ruff>=0.6",
+]
+
 [project.scripts]
 slides-thief = "slides_thief.cli:main"
 slides-thief-web = "slides_thief.web:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+slides_thief = ["templates/*.html"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 120
+src = ["src", "tests"]

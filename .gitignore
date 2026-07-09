@@ -2,9 +2,14 @@
 __pycache__/
 *.py[cod]
 .venv/
+.coverage
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 dist/
 build/
 *.egg-info/
+htmlcov/
 outputs/
 work/
 manual_quads.json

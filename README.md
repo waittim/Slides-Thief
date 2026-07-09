@@ -27,13 +27,41 @@ python -m pip install --upgrade pip setuptools wheel
 python -m pip install -e .
 ```
 
-If you are using the older macOS-provided Python/pip, the upgrade step matters:
-old pip versions cannot install pure `pyproject.toml` projects in editable mode.
-This repository also includes `setup.py` for compatibility with those older
-editable installs.
+This project uses a modern `pyproject.toml` package configuration with a
+`src/` layout. The pip upgrade step keeps editable installs working on older
+local Python environments.
 
 HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
 works anywhere Pillow can read the files.
+
+## Project Layout
+
+```text
+src/slides_thief/
+  cli.py                  # image processing pipeline and command-line entry
+  web.py                  # local HTTP workflow
+  templates/app.html      # packaged web UI
+tests/                    # focused regression tests
+pyproject.toml            # build, runtime, and development configuration
+```
+
+Generated jobs, intermediate files, and package build artifacts stay outside
+source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
+`*.egg-info/`.
+
+## Development
+
+Install test and lint tools with:
+
+```bash
+python -m pip install -e ".[dev]"
+```
+
+Run the test suite:
+
+```bash
+python -m pytest
+```
 
 ## Basic Usage
 
