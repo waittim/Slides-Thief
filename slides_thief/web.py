@@ -787,6 +787,7 @@ function loadSlide(index) {
     } else {
       applyCanvasZoom();
       draw();
+      scheduleFocusImage();
     }
   };
   app.image.src = slide.imageUrl;
@@ -832,6 +833,7 @@ function setCanvasZoom(zoom) {
   app.zoom = Math.max(0.12, Math.min(3, zoom));
   applyCanvasZoom();
   draw();
+  scheduleFocusImage();
 }
 
 function fitCanvas() {
@@ -840,9 +842,33 @@ function fitCanvas() {
   app.zoomMode = "fit";
   const availableW = Math.max(220, els.stage.clientWidth - 36);
   const availableH = Math.max(180, els.stage.clientHeight - 36);
-  app.zoom = Math.max(0.12, Math.min(1, availableW / view.totalWidth, availableH / view.totalHeight));
+  app.zoom = Math.max(0.12, Math.min(1, availableW / view.imageWidth, availableH / view.imageHeight));
   applyCanvasZoom();
   draw();
+  scheduleFocusImage();
+}
+
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function focusImage() {
+  const view = app.viewport;
+  if (!view || els.canvas.hidden) return;
+  const imageX = view.padX * app.zoom;
+  const imageY = view.padY * app.zoom;
+  const imageW = view.imageWidth * app.zoom;
+  const imageH = view.imageHeight * app.zoom;
+  const marginX = imageW < els.stage.clientWidth ? (els.stage.clientWidth - imageW) / 2 : 18;
+  const marginY = imageH < els.stage.clientHeight ? (els.stage.clientHeight - imageH) / 2 : 18;
+  const maxLeft = Math.max(0, els.stage.scrollWidth - els.stage.clientWidth);
+  const maxTop = Math.max(0, els.stage.scrollHeight - els.stage.clientHeight);
+  els.stage.scrollLeft = clamp(imageX - marginX, 0, maxLeft);
+  els.stage.scrollTop = clamp(imageY - marginY, 0, maxTop);
+}
+
+function scheduleFocusImage() {
+  requestAnimationFrame(focusImage);
 }
 
 function toCanvasPoint(slide, point) {
