@@ -325,19 +325,28 @@ a:hover { text-decoration: underline; }
   background-position: 0 0, 0 14px, 14px -14px, -14px 0;
 }
 .canvasShell {
-  max-width: min(100%, 1500px);
-  width: 100%;
+  min-width: 100%;
+  width: max-content;
   display: grid;
   place-items: center;
 }
 canvas {
-  max-width: 100%;
-  height: auto;
   display: block;
   background: #111;
   border: 1px solid #1c252b;
   box-shadow: var(--shadow);
   cursor: crosshair;
+}
+.zoomControls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.zoomValue {
+  min-width: 48px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 12px;
 }
 .empty {
   width: min(560px, 90%);
@@ -510,10 +519,16 @@ canvas {
         <button id="prev" class="icon" disabled title="上一页">‹</button>
         <button id="next" class="icon" disabled title="下一页">›</button>
         <div id="slideTitle" class="title">未选择页面</div>
+        <div class="zoomControls">
+          <button id="zoomOut" class="icon" disabled title="缩小">−</button>
+          <span id="zoomValue" class="zoomValue">100%</span>
+          <button id="zoomIn" class="icon" disabled title="放大">+</button>
+          <button id="zoomFit" disabled title="适合窗口">适合</button>
+        </div>
         <button id="resetSlide" disabled>重置本页</button>
         <button id="downloadJson" disabled>导出角点</button>
       </div>
-      <div class="stage">
+      <div id="stage" class="stage">
         <div class="canvasShell">
           <canvas id="canvas" hidden></canvas>
           <div id="empty" class="empty">上传图片后开始审核</div>
@@ -555,6 +570,10 @@ const els = {
   status: $("status"),
   prev: $("prev"),
   next: $("next"),
+  zoomOut: $("zoomOut"),
+  zoomIn: $("zoomIn"),
+  zoomFit: $("zoomFit"),
+  zoomValue: $("zoomValue"),
   resetSlide: $("resetSlide"),
   downloadJson: $("downloadJson"),
   slideTitle: $("slideTitle"),
@@ -562,6 +581,7 @@ const els = {
   metrics: $("metrics"),
   cornerTable: $("cornerTable"),
   links: $("links"),
+  stage: $("stage"),
   canvas: $("canvas"),
   empty: $("empty"),
   toast: $("toast")
@@ -576,6 +596,9 @@ const app = {
   quads: {},
   index: 0,
   image: new Image(),
+  viewport: null,
+  zoom: 1,
+  zoomMode: "fit",
   dragging: -1
 };
 
@@ -755,8 +778,12 @@ function loadSlide(index) {
   app.image.onload = () => {
     els.canvas.hidden = false;
     els.empty.hidden = true;
-    els.canvas.width = slide.assetWidth;
-    els.canvas.height = slide.assetHeight;
+    configureCanvas(slide);
+    if (app.zoomMode === "fit") {
+      fitCanvas();
+    } else {
+      applyCanvasZoom();
+    }
     draw();
   };
   app.image.src = slide.imageUrl;
@@ -764,43 +791,95 @@ function loadSlide(index) {
   renderCorners();
 }
 
+function configureCanvas(slide) {
+  const padX = Math.max(160, Math.round(slide.assetWidth * 0.35));
+  const padY = Math.max(160, Math.round(slide.assetHeight * 0.35));
+  app.viewport = {
+    padX,
+    padY,
+    imageWidth: slide.assetWidth,
+    imageHeight: slide.assetHeight
+  };
+  els.canvas.width = slide.assetWidth + padX * 2;
+  els.canvas.height = slide.assetHeight + padY * 2;
+}
+
+function updateZoomControls() {
+  const enabled = Boolean(currentSlide()) && !els.canvas.hidden;
+  els.zoomOut.disabled = !enabled;
+  els.zoomIn.disabled = !enabled;
+  els.zoomFit.disabled = !enabled;
+  els.zoomValue.textContent = enabled ? `${Math.round(app.zoom * 100)}%` : "100%";
+}
+
+function applyCanvasZoom() {
+  els.canvas.style.width = `${Math.round(els.canvas.width * app.zoom)}px`;
+  els.canvas.style.height = `${Math.round(els.canvas.height * app.zoom)}px`;
+  updateZoomControls();
+}
+
+function setCanvasZoom(zoom) {
+  app.zoomMode = "manual";
+  app.zoom = Math.max(0.12, Math.min(4, zoom));
+  applyCanvasZoom();
+}
+
+function fitCanvas() {
+  if (!currentSlide() || !els.canvas.width || !els.canvas.height) return;
+  app.zoomMode = "fit";
+  const availableW = Math.max(220, els.stage.clientWidth - 36);
+  const availableH = Math.max(180, els.stage.clientHeight - 36);
+  app.zoom = Math.max(0.12, Math.min(1, availableW / els.canvas.width, availableH / els.canvas.height));
+  applyCanvasZoom();
+}
+
 function toCanvasPoint(slide, point) {
+  const view = app.viewport;
   return [
-    point[0] / slide.origWidth * slide.assetWidth,
-    point[1] / slide.origHeight * slide.assetHeight
+    view.padX + point[0] / slide.origWidth * view.imageWidth,
+    view.padY + point[1] / slide.origHeight * view.imageHeight
   ];
 }
 
 function toOriginalPoint(slide, x, y) {
+  const view = app.viewport;
   return [
-    Math.round(x / slide.assetWidth * slide.origWidth * 100) / 100,
-    Math.round(y / slide.assetHeight * slide.origHeight * 100) / 100
+    Math.round((x - view.padX) / view.imageWidth * slide.origWidth * 100) / 100,
+    Math.round((y - view.padY) / view.imageHeight * slide.origHeight * 100) / 100
   ];
 }
 
 function draw() {
   const slide = currentSlide();
-  if (!slide || !app.image.complete) return;
+  const view = app.viewport;
+  if (!slide || !view || !app.image.complete) return;
   ctx.clearRect(0, 0, els.canvas.width, els.canvas.height);
-  ctx.drawImage(app.image, 0, 0);
+  ctx.fillStyle = "#11181d";
+  ctx.fillRect(0, 0, els.canvas.width, els.canvas.height);
+  ctx.fillStyle = "#0b0f12";
+  ctx.fillRect(view.padX - 1, view.padY - 1, view.imageWidth + 2, view.imageHeight + 2);
+  ctx.drawImage(app.image, view.padX, view.padY);
+  ctx.strokeStyle = "rgba(255, 255, 255, .36)";
+  ctx.lineWidth = Math.max(1, 1.5 / app.zoom);
+  ctx.strokeRect(view.padX, view.padY, view.imageWidth, view.imageHeight);
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
-  ctx.lineWidth = Math.max(3, els.canvas.width / 420);
+  ctx.lineWidth = Math.max(0.75, 3 / app.zoom);
   ctx.strokeStyle = "rgba(200, 69, 53, .98)";
   ctx.beginPath();
   pts.forEach(([x, y], i) => i ? ctx.lineTo(x, y) : ctx.moveTo(x, y));
   ctx.closePath();
   ctx.stroke();
   pts.forEach(([x, y], i) => {
-    const r = Math.max(9, els.canvas.width / 150);
+    const r = Math.max(3, 9 / app.zoom);
     ctx.fillStyle = "rgba(255, 216, 74, .98)";
     ctx.strokeStyle = "rgba(23, 32, 38, .9)";
-    ctx.lineWidth = Math.max(2, els.canvas.width / 700);
+    ctx.lineWidth = Math.max(0.75, 2 / app.zoom);
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fill();
     ctx.stroke();
     ctx.fillStyle = "#172026";
-    ctx.font = `700 ${Math.max(13, els.canvas.width / 80)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+    ctx.font = `700 ${Math.max(4, 13 / app.zoom)}px -apple-system, BlinkMacSystemFont, sans-serif`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(String(i + 1), x, y + 1);
@@ -818,6 +897,7 @@ function eventPoint(event) {
 function nearestHandle(x, y) {
   const slide = currentSlide();
   const pts = app.quads[slide.filename].map(point => toCanvasPoint(slide, point));
+  const threshold = Math.max(18, 28 / app.zoom);
   let best = -1;
   let bestDist = Infinity;
   pts.forEach(([px, py], i) => {
@@ -827,7 +907,7 @@ function nearestHandle(x, y) {
       bestDist = dist;
     }
   });
-  return bestDist <= Math.max(24, els.canvas.width / 55) ? best : -1;
+  return bestDist <= threshold ? best : -1;
 }
 
 function renderMetrics() {
@@ -926,6 +1006,9 @@ els.runAuto.onclick = runAuto;
 els.runRefine.onclick = runRefine;
 els.prev.onclick = () => loadSlide(app.index - 1);
 els.next.onclick = () => loadSlide(app.index + 1);
+els.zoomOut.onclick = () => setCanvasZoom(app.zoom / 1.25);
+els.zoomIn.onclick = () => setCanvasZoom(app.zoom * 1.25);
+els.zoomFit.onclick = fitCanvas;
 els.resetSlide.onclick = resetCurrent;
 els.downloadJson.onclick = downloadManualJson;
 
@@ -966,6 +1049,9 @@ window.addEventListener("keydown", event => {
   if (!app.activeRun) return;
   if (event.key === "ArrowLeft") loadSlide(app.index - 1);
   if (event.key === "ArrowRight") loadSlide(app.index + 1);
+});
+window.addEventListener("resize", () => {
+  if (app.zoomMode === "fit" && currentSlide()) fitCanvas();
 });
 </script>
 </body>
