@@ -143,7 +143,10 @@ APP_HTML = r"""<!doctype html>
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-html, body { height: 100%; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+}
 body {
   margin: 0;
   background: var(--bg);
@@ -198,14 +201,17 @@ label > span { white-space: nowrap; }
 a { color: var(--accent-2); text-decoration: none; }
 a:hover { text-decoration: underline; }
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
 }
 .topbar {
   min-height: 58px;
   display: grid;
-  grid-template-columns: minmax(150px, 230px) 1fr auto;
+  grid-template-columns: minmax(150px, 230px) minmax(0, 1fr);
   gap: 14px;
   align-items: center;
   padding: 10px 14px;
@@ -253,28 +259,98 @@ a:hover { text-decoration: underline; }
   font-size: 13px;
 }
 .checks input { width: 16px; height: 16px; }
-.actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  min-width: 0;
-}
 .shell {
   min-height: 0;
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 280px;
+  overflow: hidden;
+}
+.shell.inspectorCollapsed {
+  grid-template-columns: 300px minmax(0, 1fr) 48px;
 }
 .sidebar, .inspector {
   min-height: 0;
   background: var(--panel);
   border-right: 1px solid var(--line);
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
+}
+.sidebar {
+  grid-template-rows: auto auto auto minmax(0, 1fr);
 }
 .inspector {
   border-right: 0;
   border-left: 1px solid var(--line);
+}
+.inspectorToggle {
+  margin-left: 0;
+  flex: 0 0 auto;
+}
+.inspector.collapsed {
+  grid-template-rows: minmax(0, 1fr);
+}
+.inspector.collapsed .sectionHead {
+  min-height: 0;
+  height: 100%;
+  padding: 8px 6px;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.inspector.collapsed .sectionHead h2 {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  margin: 8px 0;
+}
+.inspector.collapsed .sectionHead .count,
+.inspector.collapsed .inspectorBody {
+  display: none;
+}
+.sidebarActions {
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 8px;
+  border-bottom: 1px solid var(--line);
+}
+.sidebarActions button {
+  width: 100%;
+}
+.sidebarRunMeta {
+  padding: 10px 12px;
+  display: grid;
+  gap: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.sidebarStatus {
+  min-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+}
+.statusDot {
+  width: 8px;
+  height: 8px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  background: var(--muted);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted) 18%, transparent);
+}
+.statusDot.busy {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2) 18%, transparent);
+}
+.statusDot.good {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #16a34a 18%, transparent);
+}
+.statusDot.bad {
+  background: #dc2626;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 18%, transparent);
+}
+.sidebarLinks:empty {
+  display: none;
 }
 .sectionHead {
   min-height: 50px;
@@ -325,8 +401,14 @@ a:hover { text-decoration: underline; }
   font-size: 14px;
   margin-bottom: 4px;
 }
+.sidebar > div:last-child {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
 .files, .slides {
   overflow: auto;
+  min-height: 0;
   padding: 0 8px 12px;
 }
 .fileRow, .slideRow {
@@ -402,7 +484,8 @@ a:hover { text-decoration: underline; }
 .workspace {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
+  overflow: hidden;
 }
 .reviewBar {
   min-height: 50px;
@@ -475,6 +558,7 @@ canvas[hidden] {
 }
 .inspectorBody {
   overflow: auto;
+  min-height: 0;
   padding: 12px;
   display: grid;
   align-content: start;
@@ -496,15 +580,26 @@ canvas[hidden] {
   gap: 8px;
 }
 .links a {
-  min-height: 34px;
+  min-height: 36px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 10px;
-  border: 1px solid var(--line);
-  border-radius: 7px;
-  background: var(--control-bg);
-  padding: 7px 9px;
+  border: 1px solid var(--primary-bg);
+  border-radius: 6px;
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  padding: 7px 11px;
+  font-weight: 700;
+  text-decoration: none;
+}
+.links a:hover {
+  text-decoration: none;
+  border-color: var(--primary-bg);
+}
+.links a .sub {
+  color: inherit;
+  font-weight: 700;
 }
 .cornerTable {
   display: grid;
@@ -530,7 +625,7 @@ canvas[hidden] {
 }
 .statusLine {
   color: var(--muted);
-  min-width: 160px;
+  min-width: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -555,34 +650,63 @@ canvas[hidden] {
 .toast.show { opacity: 1; }
 @media (max-width: 1100px) {
   .topbar {
-    grid-template-columns: 1fr;
-    align-items: stretch;
+    grid-template-columns: minmax(130px, 190px) minmax(0, 1fr);
+    gap: 10px;
   }
   .settings {
-    grid-template-columns: repeat(3, minmax(90px, 1fr));
+    grid-template-columns: 86px 88px 88px 80px minmax(140px, 1fr) 76px 92px 94px;
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: thin;
   }
-  .actions { justify-content: flex-start; flex-wrap: wrap; }
+  .statusLine { min-width: 100px; }
   .shell {
     grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) minmax(180px, 28vh);
+  }
+  .shell.inspectorCollapsed {
+    grid-template-columns: 250px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) 48px;
   }
   .inspector {
     grid-column: 1 / -1;
-    min-height: 230px;
+    min-height: 0;
     border-left: 0;
     border-top: 1px solid var(--line);
   }
+  .inspector.collapsed .sectionHead {
+    min-height: 48px;
+    height: auto;
+    padding: 8px 12px;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+  .inspector.collapsed .sectionHead h2 {
+    writing-mode: horizontal-tb;
+    margin: 0;
+  }
 }
 @media (max-width: 760px) {
+  .topbar {
+    grid-template-columns: minmax(112px, 140px) minmax(0, 1fr);
+  }
   .shell {
     grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 32vh) minmax(0, 1fr) minmax(160px, 22vh);
+  }
+  .shell.inspectorCollapsed {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(260px, 32vh) minmax(0, 1fr) 48px;
   }
   .sidebar {
-    min-height: 240px;
+    min-height: 0;
     border-right: 0;
     border-bottom: 1px solid var(--line);
+    overflow: auto;
   }
   .settings {
-    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    grid-template-columns: 86px 88px 88px 80px minmax(140px, 1fr) 76px 92px 94px;
   }
   .reviewBar { flex-wrap: wrap; }
   .stage { padding: 8px; }
@@ -606,16 +730,21 @@ canvas[hidden] {
       <label><span data-i18n="settings.theme">主题</span><select id="themeMode"><option value="auto" data-i18n="theme.auto">自动</option><option value="light" data-i18n="theme.light">亮色</option><option value="dark" data-i18n="theme.dark">暗色</option></select></label>
       <label><span data-i18n="settings.language">语言</span><select id="localeMode"><option value="auto" data-i18n="language.auto">自动</option><option value="zh-CN" data-i18n="language.zh">中文</option><option value="en" data-i18n="language.en">English</option></select></label>
     </div>
-    <div class="actions">
-      <button id="choose" data-i18n="actions.choose">选择图片</button>
-      <button id="runAuto" class="primary" disabled data-i18n="actions.runAuto">自动识别</button>
-      <button id="runRefine" class="green" disabled data-i18n="actions.runRefine">生成 PDF</button>
-      <span id="status" class="statusLine">待上传</span>
-    </div>
   </header>
 
-  <main class="shell">
+  <main id="shell" class="shell">
     <aside class="sidebar">
+      <div class="sidebarActions">
+        <button id="runAuto" class="primary" disabled data-i18n="actions.runAuto">自动识别</button>
+        <button id="runRefine" class="green" disabled data-i18n="actions.runRefine">生成 PDF</button>
+      </div>
+      <div class="sidebarRunMeta">
+        <div class="sidebarStatus" role="status" aria-live="polite">
+          <span id="statusDot" class="statusDot"></span>
+          <span id="status" class="statusLine">待上传</span>
+        </div>
+        <div id="links" class="links sidebarLinks"></div>
+      </div>
       <div class="sectionHead">
         <h2 data-i18n="section.images">图片</h2>
         <span id="fileCount" class="count">0</span>
@@ -623,7 +752,7 @@ canvas[hidden] {
       <div>
         <input id="fileInput" class="fileInput" type="file" accept="image/*,.heic,.heif,.tif,.tiff" multiple>
         <div id="dropzone" class="dropzone">
-          <div><strong data-i18n="drop.title">拖拽图片</strong><span data-i18n="drop.subtitle">文件名排序</span></div>
+          <div><strong data-i18n="drop.title">点击或拖拽上传</strong><span data-i18n="drop.subtitle">支持 JPG、PNG、TIFF、HEIC/HEIF，按文件名排序</span></div>
         </div>
         <div id="files" class="files"></div>
       </div>
@@ -651,15 +780,15 @@ canvas[hidden] {
       </div>
     </section>
 
-    <aside class="inspector">
+    <aside id="inspector" class="inspector">
       <div class="sectionHead">
-        <h2 data-i18n="section.output">输出</h2>
+        <h2 data-i18n="section.details">详情</h2>
         <span id="slideCount" class="count">0</span>
+        <button id="toggleInspector" class="icon inspectorToggle" type="button" title="缩小详情栏" data-i18n-title="details.collapse">›</button>
       </div>
       <div class="inspectorBody">
         <div id="metrics"></div>
         <div id="cornerTable" class="cornerTable"></div>
-        <div id="links" class="links"></div>
       </div>
     </aside>
   </main>
@@ -677,7 +806,6 @@ const els = {
   grayscale: $("grayscale"),
   themeMode: $("themeMode"),
   localeMode: $("localeMode"),
-  choose: $("choose"),
   fileInput: $("fileInput"),
   dropzone: $("dropzone"),
   files: $("files"),
@@ -685,6 +813,10 @@ const els = {
   runAuto: $("runAuto"),
   runRefine: $("runRefine"),
   status: $("status"),
+  statusDot: $("statusDot"),
+  shell: $("shell"),
+  inspector: $("inspector"),
+  toggleInspector: $("toggleInspector"),
   prev: $("prev"),
   next: $("next"),
   zoomOut: $("zoomOut"),
@@ -722,15 +854,16 @@ const I18N = {
     "language.auto": "自动",
     "language.zh": "中文",
     "language.en": "English",
-    "actions.choose": "选择图片",
     "actions.runAuto": "自动识别",
     "actions.runRefine": "生成 PDF",
     "actions.resetSlide": "重置本页",
     "actions.exportCorners": "导出角点",
     "section.images": "图片",
-    "section.output": "输出",
-    "drop.title": "拖拽图片",
-    "drop.subtitle": "文件名排序",
+    "section.details": "详情",
+    "details.collapse": "缩小详情栏",
+    "details.expand": "展开详情栏",
+    "drop.title": "点击或拖拽上传",
+    "drop.subtitle": "支持 JPG、PNG、TIFF、HEIC/HEIF，按文件名排序",
     "nav.prev": "上一页",
     "nav.next": "下一页",
     "zoom.out": "缩小",
@@ -756,8 +889,7 @@ const I18N = {
     "metrics.method": "方法",
     "metrics.confidence": "置信度",
     "metrics.pendingAuto": "待自动识别",
-    "links.report": "报告",
-    "links.open": "打开",
+    "links.download": "下载",
     "toast.autoDone": "自动识别完成",
     "toast.pdfUpdated": "PDF 已更新",
     "errors.previewFile": "无法预览这张图片",
@@ -784,15 +916,16 @@ const I18N = {
     "language.auto": "Auto",
     "language.zh": "Chinese",
     "language.en": "English",
-    "actions.choose": "Choose images",
     "actions.runAuto": "Detect",
     "actions.runRefine": "Generate PDF",
     "actions.resetSlide": "Reset page",
     "actions.exportCorners": "Export corners",
     "section.images": "Images",
-    "section.output": "Output",
-    "drop.title": "Drop images",
-    "drop.subtitle": "Sorted by filename",
+    "section.details": "Details",
+    "details.collapse": "Collapse details",
+    "details.expand": "Expand details",
+    "drop.title": "Click or drop images",
+    "drop.subtitle": "JPG, PNG, TIFF, HEIC/HEIF; sorted by filename",
     "nav.prev": "Previous page",
     "nav.next": "Next page",
     "zoom.out": "Zoom out",
@@ -818,8 +951,7 @@ const I18N = {
     "metrics.method": "Method",
     "metrics.confidence": "Confidence",
     "metrics.pendingAuto": "Waiting for detection",
-    "links.report": "Report",
-    "links.open": "Open",
+    "links.download": "Download",
     "toast.autoDone": "Detection complete",
     "toast.pdfUpdated": "PDF updated",
     "errors.previewFile": "Cannot preview this image",
@@ -841,7 +973,8 @@ const ERROR_KEYS = {
 };
 const STORAGE_KEYS = {
   theme: "slidesThief.theme",
-  locale: "slidesThief.locale"
+  locale: "slidesThief.locale",
+  inspector: "slidesThief.inspector"
 };
 function storageGet(key, fallback) {
   try {
@@ -861,7 +994,8 @@ function normalizeChoice(value, choices, fallback) {
 const ui = {
   themeMode: normalizeChoice(storageGet(STORAGE_KEYS.theme, "auto"), ["auto", "light", "dark"], "auto"),
   localeMode: normalizeChoice(storageGet(STORAGE_KEYS.locale, "auto"), ["auto", "zh-CN", "en"], "auto"),
-  locale: "zh-CN"
+  locale: "zh-CN",
+  inspectorCollapsed: storageGet(STORAGE_KEYS.inspector, "expanded") === "collapsed"
 };
 const app = {
   files: [],
@@ -924,7 +1058,28 @@ function applyLocale() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach(element => {
     element.placeholder = t(element.dataset.i18nPlaceholder);
   });
+  setInspectorCollapsed(ui.inspectorCollapsed, { persist: false, refit: false });
   renderLocalizedState();
+}
+
+function setInspectorCollapsed(collapsed, options = {}) {
+  const persist = options.persist !== false;
+  const refit = options.refit !== false;
+  ui.inspectorCollapsed = Boolean(collapsed);
+  els.shell.classList.toggle("inspectorCollapsed", ui.inspectorCollapsed);
+  els.inspector.classList.toggle("collapsed", ui.inspectorCollapsed);
+  const titleKey = ui.inspectorCollapsed ? "details.expand" : "details.collapse";
+  els.toggleInspector.textContent = ui.inspectorCollapsed ? "‹" : "›";
+  els.toggleInspector.title = t(titleKey);
+  els.toggleInspector.setAttribute("aria-label", t(titleKey));
+  els.toggleInspector.setAttribute("aria-expanded", String(!ui.inspectorCollapsed));
+  if (persist) storageSet(STORAGE_KEYS.inspector, ui.inspectorCollapsed ? "collapsed" : "expanded");
+  if (refit) {
+    requestAnimationFrame(() => {
+      if (app.zoomMode === "fit" && currentImageItem()) fitCanvas();
+      else if (currentImageItem()) draw();
+    });
+  }
 }
 
 function renderLocalizedState() {
@@ -979,6 +1134,14 @@ function setStatus(key, vars = {}) {
   app.statusKey = key;
   app.statusVars = vars;
   els.status.textContent = t(key, vars);
+  els.statusDot.className = `statusDot ${statusTone(key)}`;
+}
+
+function statusTone(key) {
+  if (key === "status.failed") return "bad";
+  if (["status.reviewReady", "status.generated"].includes(key)) return "good";
+  if (["status.previewing", "status.detecting", "status.generating"].includes(key)) return "busy";
+  return "neutral";
 }
 
 function setEmpty(key, vars = {}) {
@@ -1006,7 +1169,6 @@ function toastError(error) {
 function setBusy(busy) {
   els.runAuto.disabled = busy || app.files.length === 0;
   els.runRefine.disabled = busy || !app.activeRun;
-  els.choose.disabled = busy;
 }
 
 function handleFiles(fileList) {
@@ -1639,20 +1801,14 @@ function renderLinks() {
   const run = app.finalRun || app.activeRun;
   if (!run) return;
   const items = [
-    ["PDF", run.pdfUrl],
-    [t("links.report"), run.reportUrl]
+    ["PDF", run.pdfUrl]
   ];
   for (const [label, url] of items) {
     if (!url) continue;
     const link = document.createElement("a");
     link.href = url;
-    link.target = "_blank";
-    const left = document.createElement("span");
-    left.textContent = label;
-    const right = document.createElement("span");
-    right.textContent = t("links.open");
-    right.className = "sub";
-    link.append(left, right);
+    link.download = "";
+    link.textContent = `${t("links.download")} ${label}`;
     els.links.appendChild(link);
   }
 }
@@ -1679,7 +1835,6 @@ function downloadManualJson() {
   URL.revokeObjectURL(url);
 }
 
-els.choose.onclick = () => els.fileInput.click();
 els.fileInput.onchange = event => handleFiles(event.target.files);
 els.runAuto.onclick = runAuto;
 els.runRefine.onclick = runRefine;
@@ -1690,6 +1845,7 @@ els.zoomIn.onclick = () => setCanvasZoom(app.zoom * 1.25);
 els.zoomFit.onclick = fitCanvas;
 els.resetSlide.onclick = resetCurrent;
 els.downloadJson.onclick = downloadManualJson;
+els.toggleInspector.onclick = () => setInspectorCollapsed(!ui.inspectorCollapsed);
 els.themeMode.onchange = event => {
   ui.themeMode = normalizeChoice(event.target.value, ["auto", "light", "dark"], "auto");
   storageSet(STORAGE_KEYS.theme, ui.themeMode);
