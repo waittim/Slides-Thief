@@ -245,10 +245,31 @@ a:hover { text-decoration: underline; }
   text-overflow: ellipsis;
 }
 .settings {
+  --settings-columns: minmax(94px, .65fr) minmax(112px, .75fr) minmax(116px, .75fr) minmax(148px, .95fr) minmax(232px, 1.35fr) minmax(86px, .55fr) minmax(122px, .75fr) minmax(142px, .9fr);
   display: grid;
-  grid-template-columns: 86px 88px 88px 80px minmax(116px, 1fr) 76px 92px 94px;
+  grid-template-columns: var(--settings-columns);
   gap: 8px;
-  align-items: end;
+  align-items: center;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+.settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  min-width: 0;
+}
+.settings label:not(.checks) > span {
+  flex: 0 0 auto;
+}
+.settings label:not(.checks) > select,
+.settings label:not(.checks) > input[type="number"],
+.settings label:not(.checks) > input[type="text"] {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
 }
 .checks {
   display: flex;
@@ -654,11 +675,8 @@ canvas[hidden] {
     gap: 10px;
   }
   .settings {
-    grid-template-columns: 86px 88px 88px 80px minmax(140px, 1fr) 76px 92px 94px;
-    min-width: 0;
-    overflow-x: auto;
+    grid-template-columns: var(--settings-columns);
     padding-bottom: 2px;
-    scrollbar-width: thin;
   }
   .statusLine { min-width: 100px; }
   .shell {
@@ -706,7 +724,7 @@ canvas[hidden] {
     overflow: auto;
   }
   .settings {
-    grid-template-columns: 86px 88px 88px 80px minmax(140px, 1fr) 76px 92px 94px;
+    grid-template-columns: var(--settings-columns);
   }
   .reviewBar { flex-wrap: wrap; }
   .stage { padding: 8px; }
@@ -724,8 +742,8 @@ canvas[hidden] {
       <label><span data-i18n="settings.ratio">比例</span><select id="ratio"><option value="16:9">16:9</option><option value="4:3">4:3</option></select></label>
       <label><span data-i18n="settings.width">宽度</span><input id="width" type="number" min="800" max="6000" value="2400"></label>
       <label><span data-i18n="settings.height">高度</span><input id="height" type="number" min="600" max="6000" placeholder="自动" data-i18n-placeholder="settings.heightAuto"></label>
-      <label><span data-i18n="settings.quality">质量</span><input id="quality" type="number" min="60" max="98" value="92"></label>
-      <label><span data-i18n="settings.pdfFile">PDF 文件</span><input id="pdfName" type="text" value="flattened_slides.pdf"></label>
+      <label><span data-i18n="settings.quality">导出质量</span><input id="quality" type="number" min="60" max="98" value="92"></label>
+      <label><span data-i18n="settings.pdfFile">目标文件名</span><input id="pdfName" type="text" value="flattened_slides.pdf"></label>
       <label class="checks"><input id="grayscale" type="checkbox"><span data-i18n="settings.grayscale">灰度</span></label>
       <label><span data-i18n="settings.theme">主题</span><select id="themeMode"><option value="auto" data-i18n="theme.auto">自动</option><option value="light" data-i18n="theme.light">亮色</option><option value="dark" data-i18n="theme.dark">暗色</option></select></label>
       <label><span data-i18n="settings.language">语言</span><select id="localeMode"><option value="auto" data-i18n="language.auto">自动</option><option value="zh-CN" data-i18n="language.zh">中文</option><option value="en" data-i18n="language.en">English</option></select></label>
@@ -843,8 +861,8 @@ const I18N = {
     "settings.width": "宽度",
     "settings.height": "高度",
     "settings.heightAuto": "自动",
-    "settings.quality": "质量",
-    "settings.pdfFile": "PDF 文件",
+    "settings.quality": "导出质量",
+    "settings.pdfFile": "目标文件名",
     "settings.grayscale": "灰度",
     "settings.theme": "主题",
     "settings.language": "语言",
@@ -876,7 +894,7 @@ const I18N = {
     "empty.previewFail": "无法预览这张图片",
     "empty.previewCreateFail": "无法生成预览",
     "status.idle": "待上传",
-    "status.files": "{count} 张",
+    "status.files": "{count} 张，等待识别",
     "status.previewing": "预览中",
     "status.detecting": "识别中",
     "status.reviewReady": "可审核",
@@ -905,8 +923,8 @@ const I18N = {
     "settings.width": "Width",
     "settings.height": "Height",
     "settings.heightAuto": "Auto",
-    "settings.quality": "Quality",
-    "settings.pdfFile": "PDF file",
+    "settings.quality": "Export quality",
+    "settings.pdfFile": "Target file name",
     "settings.grayscale": "Grayscale",
     "settings.theme": "Theme",
     "settings.language": "Language",
@@ -938,7 +956,7 @@ const I18N = {
     "empty.previewFail": "Cannot preview this image",
     "empty.previewCreateFail": "Cannot generate preview",
     "status.idle": "Ready",
-    "status.files": "{count} images",
+    "status.files": "{count} images, waiting for detection",
     "status.previewing": "Previewing",
     "status.detecting": "Detecting",
     "status.reviewReady": "Ready to review",
