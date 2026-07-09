@@ -337,6 +337,9 @@ canvas {
   box-shadow: var(--shadow);
   cursor: crosshair;
 }
+canvas[hidden] {
+  display: none;
+}
 .zoomControls {
   display: flex;
   align-items: center;
