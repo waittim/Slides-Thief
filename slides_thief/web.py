@@ -534,7 +534,7 @@ canvas[hidden] {
       <div id="stage" class="stage">
         <div class="canvasShell">
           <canvas id="canvas" hidden></canvas>
-          <div id="empty" class="empty">上传图片后开始审核</div>
+          <div id="empty" class="empty">上传图片后点击自动识别按钮</div>
         </div>
       </div>
     </section>
