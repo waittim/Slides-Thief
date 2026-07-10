@@ -26,6 +26,32 @@ local Python environments.
 HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
 works anywhere Pillow can read the files.
 
+## No-Backend Browser Site
+
+A static browser-only version now lives in `site/`. It processes JPEG, PNG, and
+WebP images locally in the browser, lets you adjust detected slide corners on a
+canvas, and exports a PDF without uploading images to a server.
+
+```bash
+cd site
+npm run dev
+```
+
+For GitHub Pages deployment, the browser site has a dedicated static build and
+workflow:
+
+```bash
+cd site
+npm run build:pages
+```
+
+The build outputs `site/dist-pages/`, and `.github/workflows/deploy-pages.yml`
+uploads that folder to GitHub Pages on pushes to `main`. In GitHub, set
+Settings -> Pages -> Build and deployment -> Source to GitHub Actions.
+
+The Python app remains the fuller local workflow for HEIC/HEIF input and the
+original command-line pipeline.
+
 ## What It Does
 
 - Reads JPEG, PNG, TIFF, HEIC, and HEIF images.
