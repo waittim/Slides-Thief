@@ -18,6 +18,15 @@ decoder is intentionally added.
 
 ## Commands
 
+Use Node.js 22.13 or newer, then install dependencies once:
+
+```bash
+npm ci
+```
+
+The development server uses the Vinext/Cloudflare/Vite app stack. The Pages
+commands use the dedicated static Vite build in `pages/`.
+
 ```bash
 npm run dev
 npm run build

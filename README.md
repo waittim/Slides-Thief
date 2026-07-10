@@ -32,8 +32,13 @@ A static browser-only version now lives in `site/`. It processes JPEG, PNG, and
 WebP images locally in the browser, lets you adjust detected slide corners on a
 canvas, and exports a PDF without uploading images to a server.
 
+The `site/` workspace uses Node.js 22.13 or newer. Development runs through the
+Vinext/Cloudflare/Vite stack, while GitHub Pages uses a dedicated static Vite
+build.
+
 ```bash
 cd site
+npm ci
 npm run dev
 ```
 
@@ -170,6 +175,14 @@ Run the test suite:
 python -m pytest
 ```
 
+For the browser-only site:
+
+```bash
+cd site
+npm ci
+npm test
+```
+
 ## Project Layout
 
 ```text
@@ -177,6 +190,7 @@ src/slides_thief/
   cli.py                  # image processing pipeline and command-line entry
   web.py                  # local HTTP workflow
   templates/app.html      # packaged web UI
+site/                     # browser-only workspace and static Pages build
 tests/                    # focused regression tests
 pyproject.toml            # build, runtime, and development configuration
 ```
