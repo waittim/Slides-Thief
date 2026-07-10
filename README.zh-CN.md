@@ -2,7 +2,7 @@
 
 [English](README.md)
 
-Slides Thief · PPT捕手 可以把拍歪的演示文稿照片拉正，并合成为一个干净的 PDF。它适合会议室、讲座、课堂、展会等场景：只要你拍到了投影屏幕或显示器里的幻灯片，就可以快速整理成可阅读、可分享的文件。
+Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并合成为一个干净的 PDF。它适合会议室、讲座、课堂、展会等场景：只要你拍到了投影屏幕或显示器里的幻灯片，就可以快速整理成可阅读、可分享的文件。
 
 ## 在线使用
 
@@ -131,7 +131,3 @@ pyproject.toml            # build, runtime, and development configuration
 ```
 
 生成任务、中间文件和包构建产物不会进入源码管理，通常位于 `outputs/`、`work/`、`dist/`、`*.egg-info/` 等已忽略路径下。
-
-## 许可证
-
-本项目基于 MIT License 开源。详见 [LICENSE](LICENSE)。
