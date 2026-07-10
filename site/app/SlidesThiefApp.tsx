@@ -61,7 +61,18 @@ const defaultSettings: Settings = {
   fillColor: "#000000",
 };
 
-const supportedExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+const heifExtensions = [".heic", ".heif"];
+const supportedExtensions = [".jpg", ".jpeg", ".png", ".webp", ...heifExtensions];
+const supportedMimeTypes = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/heic",
+  "image/heif",
+  "image/heic-sequence",
+  "image/heif-sequence",
+]);
+const heifMimeTypes = new Set(["image/heic", "image/heif", "image/heic-sequence", "image/heif-sequence"]);
 
 const copy = {
   "zh-CN": {
@@ -86,7 +97,7 @@ const copy = {
     images: "图片",
     details: "详情",
     dropTitle: "点击或拖拽上传",
-    dropSubtitle: "支持 JPG、PNG、WebP；HEIC/HEIF 请使用本地版",
+    dropSubtitle: "支持 JPG、PNG、WebP、HEIC/HEIF",
     prev: "上一页",
     next: "下一页",
     zoomOut: "缩小",
@@ -103,7 +114,7 @@ const copy = {
     generating: "生成中",
     generated: "已生成",
     failed: "失败",
-    downloadPdf: "下载pdf",
+    downloadPdf: "下载 PDF",
     file: "文件",
     status: "状态",
     dimensions: "尺寸",
@@ -136,7 +147,7 @@ const copy = {
     images: "Images",
     details: "Details",
     dropTitle: "Click or drop images",
-    dropSubtitle: "JPG, PNG, WebP in browser; use the local app for HEIC/HEIF",
+    dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF in browser",
     prev: "Previous page",
     next: "Next page",
     zoomOut: "Zoom out",
@@ -170,9 +181,85 @@ function makeId(file: File, index: number) {
   return `${index}-${file.name}-${file.lastModified}-${file.size}`;
 }
 
-function isSupported(file: File) {
+function hasExtension(file: File, extensions: string[]) {
   const lower = file.name.toLowerCase();
-  return supportedExtensions.some((ext) => lower.endsWith(ext));
+  return extensions.some((ext) => lower.endsWith(ext));
+}
+
+function isHeifImage(file: File) {
+  return hasExtension(file, heifExtensions) || heifMimeTypes.has(file.type.toLowerCase());
+}
+
+function isSupported(file: File) {
+  return hasExtension(file, supportedExtensions) || supportedMimeTypes.has(file.type.toLowerCase());
+}
+
+function jpegNameFor(file: File) {
+  return /\.(heic|heif)$/i.test(file.name) ? file.name.replace(/\.(heic|heif)$/i, ".jpg") : `${file.name}.jpg`;
+}
+
+function messageFromError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  if (error && typeof error === "object") {
+    const message = (error as { message?: unknown }).message;
+    if (typeof message === "string") return message;
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return String(error);
+    }
+  }
+  return String(error);
+}
+
+function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number) {
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => {
+        if (blob) resolve(blob);
+        else reject(new Error("Canvas could not encode the image as JPEG."));
+      },
+      "image/jpeg",
+      quality,
+    );
+  });
+}
+
+async function nativeDecodeToJpeg(file: File, quality: number) {
+  const bitmap = await createImageBitmap(file);
+  try {
+    const canvas = document.createElement("canvas");
+    canvas.width = bitmap.width;
+    canvas.height = bitmap.height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) throw new Error("Canvas is not available in this browser.");
+    ctx.drawImage(bitmap, 0, 0);
+    return canvasToJpegBlob(canvas, quality);
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function normalizeImageFile(file: File) {
+  if (!isHeifImage(file)) return file;
+
+  let jpeg: Blob;
+  try {
+    jpeg = await nativeDecodeToJpeg(file, 0.92);
+  } catch {
+    try {
+      const { heicTo } = await import("heic-to/csp");
+      jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
+    } catch (error) {
+      throw new Error(`Could not convert ${file.name} from HEIC/HEIF: ${messageFromError(error)}`);
+    }
+  }
+
+  return new File([jpeg], jpegNameFor(file), {
+    type: "image/jpeg",
+    lastModified: file.lastModified,
+  });
 }
 
 function formatBytes(size: number) {
@@ -339,6 +426,7 @@ export function SlidesThiefApp() {
   const localeRef = useRef<LocaleValue>("zh-CN");
   const settingsRef = useRef<Settings>(defaultSettings);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
+  const loadTokenRef = useRef(0);
   const viewportRef = useRef({ padX: 0, padY: 0 });
   const scaleRef = useRef(1);
 
@@ -494,14 +582,35 @@ export function SlidesThiefApp() {
   }, []);
 
   const loadFiles = useCallback(
-    (fileList: FileList | File[]) => {
-      const files = Array.from(fileList)
+    async (fileList: FileList | File[]) => {
+      const token = loadTokenRef.current + 1;
+      loadTokenRef.current = token;
+      const inputFiles = Array.from(fileList)
         .filter(isSupported)
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const hasHeif = inputFiles.some(isHeifImage);
 
       slidesRef.current.forEach((slide) => URL.revokeObjectURL(slide.url));
       if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
       exportUrlRef.current = null;
+      setSlides([]);
+      setSelectedId(null);
+      setExportUrl(null);
+      setExportName(normalizePdfName(pdfBaseName));
+      setWorkerError("");
+      setBusyText(hasHeif ? (localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF") : "");
+      setZoomMode("fit");
+
+      let files: File[];
+      try {
+        files = await Promise.all(inputFiles.map(normalizeImageFile));
+      } catch (error) {
+        if (loadTokenRef.current !== token) return;
+        setBusyText("");
+        setWorkerError(messageFromError(error));
+        return;
+      }
+      if (loadTokenRef.current !== token) return;
 
       const nextSlides: SlideItem[] = files.map((file, index) => ({
         id: makeId(file, index),
@@ -519,11 +628,7 @@ export function SlidesThiefApp() {
 
       setSlides(nextSlides);
       setSelectedId(nextSlides[0]?.id ?? null);
-      setExportUrl(null);
-      setExportName(normalizePdfName(pdfBaseName));
-      setWorkerError("");
       setBusyText("");
-      setZoomMode("fit");
     },
     [pdfBaseName],
   );
@@ -917,9 +1022,11 @@ export function SlidesThiefApp() {
               ref={inputRef}
               className="fileInput"
               type="file"
-              accept="image/*,.jpg,.jpeg,.png,.webp"
+              accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,image/heic,image/heif"
               multiple
-              onChange={(event) => event.target.files && loadFiles(event.target.files)}
+              onChange={(event) => {
+                if (event.target.files) void loadFiles(event.target.files);
+              }}
             />
             <div
               className={`dropzone ${dragActive ? "active" : ""}`}
@@ -932,7 +1039,7 @@ export function SlidesThiefApp() {
               onDrop={(event) => {
                 event.preventDefault();
                 setDragActive(false);
-                loadFiles(event.dataTransfer.files);
+                void loadFiles(event.dataTransfer.files);
               }}
               role="button"
               tabIndex={0}

@@ -7,14 +7,15 @@ PDF without uploading source photos to a server.
 
 ## Current Scope
 
-- JPEG, PNG, and WebP input through browser-native decoders.
+- JPEG, PNG, WebP, and HEIC/HEIF input. HEIC/HEIF files are converted to JPEG
+  in the browser before the existing slide-processing pipeline runs.
 - Automatic contrast-line slide boundary detection in a Web Worker.
 - Manual corner correction on a canvas.
 - Browser-local PDF generation with `pdf-lib`.
 - No server persistence and no upload endpoint.
 
-HEIC/HEIF remains best handled by the Python local app until a browser HEIC
-decoder is intentionally added.
+Large HEIC/HEIF batches can take longer to start because browser-side decoding
+uses a JavaScript/WASM converter instead of a native image decoder.
 
 ## Commands
 

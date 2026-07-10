@@ -28,9 +28,11 @@ works anywhere Pillow can read the files.
 
 ## No-Backend Browser Site
 
-A static browser-only version now lives in `site/`. It processes JPEG, PNG, and
-WebP images locally in the browser, lets you adjust detected slide corners on a
-canvas, and exports a PDF without uploading images to a server.
+A static browser-only version now lives in `site/`. It processes JPEG, PNG,
+WebP, and HEIC/HEIF images locally in the browser, lets you adjust detected
+slide corners on a canvas, and exports a PDF without uploading images to a
+server. HEIC/HEIF files are converted to JPEG in the browser before the existing
+slide-processing pipeline runs.
 
 The `site/` workspace uses Node.js 22.13 or newer. Development runs through the
 Vinext/Cloudflare/Vite stack, while GitHub Pages uses a dedicated static Vite
@@ -54,8 +56,8 @@ The build outputs `site/dist-pages/`, and `.github/workflows/deploy-pages.yml`
 uploads that folder to GitHub Pages on pushes to `main`. In GitHub, set
 Settings -> Pages -> Build and deployment -> Source to GitHub Actions.
 
-The Python app remains the fuller local workflow for HEIC/HEIF input and the
-original command-line pipeline.
+The Python app remains the fuller local workflow for the original command-line
+pipeline.
 
 ## What It Does
 

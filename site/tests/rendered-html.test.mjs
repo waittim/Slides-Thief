@@ -55,7 +55,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /className="sidebarActions"/);
   assert.match(app, /manual_quads\.json/);
   assert.match(app, /themeSetting/);
-  assert.match(app, /downloadPdf: "下载pdf"/);
+  assert.match(app, /\.heic/);
+  assert.match(app, /normalizeImageFile/);
+  assert.match(app, /downloadPdf: "下载 PDF"/);
   assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
   assert.match(app, /fillColor: "#000000"/);
   assert.match(app, /type="color"/);
@@ -69,5 +71,6 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /canvas\s*\{[^}]*background:\s*transparent/s);
   assert.doesNotMatch(css, /canvas\s*\{[^}]*background:\s*#111/s);
   assert.match(packageJson, /"pdf-lib"/);
+  assert.match(packageJson, /"heic-to"/);
   assert.doesNotMatch(packageJson, /react-loading-skeleton/);
 });
