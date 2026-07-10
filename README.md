@@ -56,50 +56,12 @@ JPEG batches.
 - Light/dark themes and Chinese/English UI.
 - Browser-local PDF generation.
 
-## Local Version
+## Local CLI
 
-The Python version is still useful when you want command-line batch processing,
-saved intermediate files, detection reports, or the original local workflow.
-
-## Local Usage
-
-### Local Web UI
-
-Start the local browser workflow with:
-
-```bash
-slides-thief-web
-```
-
-Then open:
-
-```text
-http://127.0.0.1:8765
-```
-
-In the local page you can:
-
-- Drag in or choose all source images.
-- Sort images by filename.
-- Run automatic slide-boundary detection.
-- Review every page on a canvas.
-- Drag the four numbered corner handles for manual correction.
-- Generate a refined PDF using the corrected points.
-- Download the PDF and export corner JSON. Contact sheets and reports are
-  saved in the job output folder.
-- Let the UI follow your system theme and browser language automatically, or
-  choose a specific light/dark theme and Chinese/English language in the toolbar.
-
-Local web jobs are written under `outputs/web_jobs/` by default. Each job keeps
-its uploaded images, automatic pass, manual JSON, and refined pass together.
-
-You can change the server address or output location:
-
-```bash
-slides-thief-web --host 127.0.0.1 --port 8765 --jobs-dir outputs/web_jobs
-```
-
-### Command Line
+The online web app is the default interactive workflow. The Python CLI remains
+for advanced local use: command-line batch processing, saved intermediate files,
+detection overlays, contact sheets, machine-readable reports, and reproducible
+manual correction passes.
 
 ```bash
 slides-thief ~/Downloads \
@@ -178,9 +140,7 @@ npm test
 
 ```text
 src/slides_thief/
-  cli.py                  # image processing pipeline and command-line entry
-  web.py                  # local HTTP workflow
-  templates/app.html      # packaged web UI
+  cli.py                  # local batch pipeline and command-line entry
 site/                     # browser-only workspace and static Pages build
 tests/                    # focused regression tests
 pyproject.toml            # build, runtime, and development configuration

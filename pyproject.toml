@@ -22,7 +22,6 @@ dev = [
 
 [project.scripts]
 slides-thief = "slides_thief.cli:main"
-slides-thief-web = "slides_thief.web:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
@@ -30,9 +29,6 @@ include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
-
-[tool.setuptools.package-data]
-slides_thief = ["templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
