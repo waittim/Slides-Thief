@@ -31,7 +31,7 @@ test("server-renders the Slides Thief workspace shell with the Chinese alternate
   const html = await response.text();
   assert.match(html, /<title>Slides Thief · PPT捕手<\/title>/i);
   assert.match(html, /Slides Thief · PPT捕手/);
-  assert.match(html, /自动拉伸/);
+  assert.match(html, /自动校正/);
   assert.match(html, /生成 PDF/);
   assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);

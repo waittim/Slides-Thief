@@ -19,7 +19,7 @@ your source photos to a server.
 ## How To Use It
 
 1. Open the web app and select or drop your photos.
-2. Click "Auto stretch" to detect the four slide corners.
+2. Click "Auto straighten" to detect the four slide corners.
 3. Review the thumbnails and the main preview.
 4. Drag the four corner handles if a page needs manual correction.
 5. Click "Generate PDF".
