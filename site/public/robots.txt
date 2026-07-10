@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://www.zekun.blog/Slides-Thief/sitemap.xml

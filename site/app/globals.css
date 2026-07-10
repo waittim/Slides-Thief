@@ -233,6 +233,7 @@ a:hover {
 .brandText {
   font-weight: 760;
   font-size: 16px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;

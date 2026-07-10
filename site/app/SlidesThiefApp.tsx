@@ -128,7 +128,7 @@ const copy = {
     expand: "展开详情栏",
   },
   en: {
-    appTitle: "Slides Thief Web",
+    appTitle: "Slides Thief - Straighten Slide Photos into PDFs",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Ratio",
@@ -397,7 +397,7 @@ export function SlidesThiefApp() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [pdfBaseName, setPdfBaseName] = useState("flattened_slides");
   const [theme, setTheme] = useState<ThemeValue>("auto");
-  const [locale, setLocale] = useState<LocaleValue>("zh-CN");
+  const [locale, setLocale] = useState<LocaleValue>("en");
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [dragActive, setDragActive] = useState(false);
   const [busyText, setBusyText] = useState("");
@@ -416,7 +416,7 @@ export function SlidesThiefApp() {
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slidesRef = useRef<SlideItem[]>([]);
   const exportUrlRef = useRef<string | null>(null);
-  const localeRef = useRef<LocaleValue>("zh-CN");
+  const localeRef = useRef<LocaleValue>("en");
   const settingsRef = useRef<Settings>(defaultSettings);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
   const loadTokenRef = useRef(0);
@@ -869,7 +869,7 @@ export function SlidesThiefApp() {
       <header className="topbar">
         <div className="brand">
           <div className="mark">{text.brandMark}</div>
-          <div className="brandText">{text.brandName}</div>
+          <h1 className="brandText">{text.brandName}</h1>
         </div>
         <div className="settings">
           <label>

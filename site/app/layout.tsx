@@ -1,10 +1,38 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+const siteUrl = "https://www.zekun.blog/Slides-Thief/";
+const title = "Slides Thief - Straighten Slide Photos into PDFs";
+const description =
+  "Straighten skewed photos of presentation slides and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
+
 export const metadata: Metadata = {
-  title: "Slides Thief · PPT捕手",
-  description:
-    "Slides Thief · PPT捕手 可以在浏览器本地把拍歪的演示文稿照片整理成干净 PDF。",
+  metadataBase: new URL("https://www.zekun.blog"),
+  title,
+  description,
+  applicationName: "Slides Thief",
+  creator: "Zekun",
+  alternates: {
+    canonical: siteUrl,
+  },
+  openGraph: {
+    title,
+    description,
+    url: siteUrl,
+    siteName: "Slides Thief",
+    locale: "en_US",
+    alternateLocale: ["zh_CN"],
+    type: "website",
+  },
+  twitter: {
+    card: "summary",
+    title,
+    description,
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
@@ -17,7 +45,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="en">
       <body>{children}</body>
     </html>
   );

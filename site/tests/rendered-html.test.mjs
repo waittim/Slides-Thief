@@ -23,16 +23,21 @@ async function render() {
   );
 }
 
-test("server-renders the Slides Thief workspace shell with the Chinese alternate name", async () => {
+test("server-renders the Slides Thief workspace shell with SEO metadata", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Slides Thief · PPT捕手<\/title>/i);
-  assert.match(html, /Slides Thief · PPT捕手/);
-  assert.match(html, /自动校正/);
-  assert.match(html, /生成 PDF/);
+  assert.match(html, /<html lang="en"/i);
+  assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
+  assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
+  assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
+  assert.match(html, /"@type":"WebApplication"/);
+  assert.match(html, /"alternateName":"PPT捕手"/);
+  assert.match(html, /<h1 class="brandText">Slides Thief<\/h1>/);
+  assert.match(html, /Auto straighten/);
+  assert.match(html, /Generate PDF/);
   assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);
   assert.match(html, /class="reviewBar"/);
