@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slides Thief</title>
+<title>Slides Thief · PPT捕手</title>
 <style>
 :root {
   color-scheme: light;
@@ -787,8 +787,8 @@ canvas[hidden] {
 <div class="app">
   <header class="topbar">
     <div class="brand">
-      <div class="mark">ST</div>
-      <div class="brandText">Slides Thief</div>
+      <div class="mark" data-i18n="brand.mark">ST</div>
+      <div class="brandText" data-i18n="brand.name">Slides Thief · PPT捕手</div>
     </div>
     <div class="settings">
       <label><span data-i18n="settings.ratio">比例</span><select id="ratio"><option value="16:9">16:9</option><option value="4:3">4:3</option></select></label>
@@ -914,6 +914,9 @@ const ctx = els.canvas.getContext("2d");
 const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
 const I18N = {
   "zh-CN": {
+    "brand.title": "Slides Thief · PPT捕手",
+    "brand.mark": "ST",
+    "brand.name": "Slides Thief · PPT捕手",
     "settings.ratio": "比例",
     "settings.width": "宽度",
     "settings.height": "高度",
@@ -977,6 +980,9 @@ const I18N = {
     "errors.manualQuads": "manualQuads 必须是对象"
   },
   en: {
+    "brand.title": "Slides Thief",
+    "brand.mark": "ST",
+    "brand.name": "Slides Thief",
     "settings.ratio": "Ratio",
     "settings.width": "Width",
     "settings.height": "Height",
@@ -1125,6 +1131,7 @@ function applyTheme() {
 function applyLocale() {
   ui.locale = resolveLocale();
   document.documentElement.lang = ui.locale;
+  document.title = t("brand.title");
   els.localeMode.value = ui.localeMode;
   document.querySelectorAll("[data-i18n]").forEach(element => {
     element.textContent = t(element.dataset.i18n);

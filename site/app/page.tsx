@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { SlidesThiefApp } from "./SlidesThiefApp";
 
 export const metadata: Metadata = {
-  title: "Slides Thief Web",
+  title: "Slides Thief · PPT捕手",
   description:
-    "Flatten photographed presentation slides into a clean PDF entirely in your browser.",
+    "Slides Thief · PPT捕手 可以在浏览器本地把拍歪的演示文稿照片整理成干净 PDF。",
 };
 
 export default function Home() {

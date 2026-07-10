@@ -6,7 +6,7 @@ from slides_thief.web import load_app_html, sanitize_filename, settings_from_jso
 def test_load_app_html_reads_packaged_template() -> None:
     html = load_app_html()
 
-    assert "<title>Slides Thief</title>" in html
+    assert "<title>Slides Thief · PPT捕手</title>" in html
     assert "runAuto" in html
 
 

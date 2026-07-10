@@ -85,7 +85,8 @@ In the local page you can:
 - Review every page on a canvas.
 - Drag the four numbered corner handles for manual correction.
 - Generate a refined PDF using the corrected points.
-- Open or download the PDF, contact sheets, report, and corner JSON.
+- Download the PDF and export corner JSON. Contact sheets and reports are
+  saved in the job output folder.
 - Let the UI follow your system theme and browser language automatically, or
   choose a specific light/dark theme and Chinese/English language in the toolbar.
 

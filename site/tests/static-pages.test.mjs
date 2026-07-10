@@ -6,7 +6,7 @@ test("emits a GitHub Pages compatible static app", async () => {
   const html = await readFile(new URL("../dist-pages/index.html", import.meta.url), "utf8");
   const assets = await readdir(new URL("../dist-pages/assets/", import.meta.url));
 
-  assert.match(html, /<title>Slides Thief Web<\/title>/i);
+  assert.match(html, /<title>Slides Thief · PPT捕手<\/title>/i);
   assert.match(html, /<div id="root"><\/div>/i);
   assert.match(html, /\/Slides-Thief\/assets\//);
   assert.match(html, /type="module"/);

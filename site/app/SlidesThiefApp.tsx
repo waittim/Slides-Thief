@@ -76,6 +76,9 @@ const heifMimeTypes = new Set(["image/heic", "image/heif", "image/heic-sequence"
 
 const copy = {
   "zh-CN": {
+    appTitle: "Slides Thief · PPT捕手",
+    brandMark: "ST",
+    brandName: "Slides Thief · PPT捕手",
     ratio: "比例",
     more: "更多设置",
     width: "宽度",
@@ -126,6 +129,9 @@ const copy = {
     expand: "展开详情栏",
   },
   en: {
+    appTitle: "Slides Thief Web",
+    brandMark: "ST",
+    brandName: "Slides Thief",
     ratio: "Ratio",
     more: "More settings",
     width: "Width",
@@ -571,8 +577,9 @@ export function SlidesThiefApp() {
 
   useEffect(() => {
     document.documentElement.lang = locale;
+    document.title = text.appTitle;
     localeRef.current = locale;
-  }, [locale]);
+  }, [locale, text.appTitle]);
 
   useEffect(() => {
     return () => {
@@ -884,8 +891,8 @@ export function SlidesThiefApp() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <div className="mark">ST</div>
-          <div className="brandText">Slides Thief</div>
+          <div className="mark">{text.brandMark}</div>
+          <div className="brandText">{text.brandName}</div>
         </div>
         <div className="settings">
           <label>

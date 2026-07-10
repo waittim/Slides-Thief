@@ -23,14 +23,14 @@ async function render() {
   );
 }
 
-test("server-renders the Slides Thief workspace shell", async () => {
+test("server-renders the Slides Thief workspace shell with the Chinese alternate name", async () => {
   const response = await render();
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
 
   const html = await response.text();
-  assert.match(html, /<title>Slides Thief Web<\/title>/i);
-  assert.match(html, /Slides Thief/);
+  assert.match(html, /<title>Slides Thief · PPT捕手<\/title>/i);
+  assert.match(html, /Slides Thief · PPT捕手/);
   assert.match(html, /自动拉伸/);
   assert.match(html, /生成 PDF/);
   assert.match(html, /导出角点/);

@@ -744,7 +744,7 @@ canvas {{
 const items = {payload};
 const i18n = {{
   "zh-CN": {{
-    "title": "Slides Thief 手动审核",
+    "title": "Slides Thief · PPT捕手 手动审核",
     "theme.label": "主题",
     "theme.auto": "自动",
     "theme.light": "亮色",
