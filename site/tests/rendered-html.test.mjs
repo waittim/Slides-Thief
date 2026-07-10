@@ -33,7 +33,7 @@ test("server-renders the Slides Thief workspace shell with the Chinese alternate
   assert.match(html, /Slides Thief · PPT捕手/);
   assert.match(html, /自动拉伸/);
   assert.match(html, /生成 PDF/);
-  assert.match(html, /导出角点/);
+  assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);
   assert.match(html, /class="reviewBar"/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
@@ -53,7 +53,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /refreshSlideThumbnail/);
   assert.match(app, /x \/ scale - padX/);
   assert.match(app, /className="sidebarActions"/);
-  assert.match(app, /manual_quads\.json/);
+  assert.doesNotMatch(app, /manual_quads\.json/);
   assert.match(app, /themeSetting/);
   assert.match(app, /\.heic/);
   assert.match(app, /normalizeImageFile/);

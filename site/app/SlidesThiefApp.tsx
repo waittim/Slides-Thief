@@ -107,7 +107,6 @@ const copy = {
     zoomIn: "放大",
     fit: "适合",
     resetSlide: "重置本页",
-    exportCorners: "导出角点",
     noSlide: "未选择页面",
     empty: "上传图片后点击自动拉伸按钮",
     ready: "待上传",
@@ -160,7 +159,6 @@ const copy = {
     zoomIn: "Zoom in",
     fit: "Fit",
     resetSlide: "Reset page",
-    exportCorners: "Export corners",
     noSlide: "No page selected",
     empty: "Upload images, then click Auto stretch",
     ready: "Ready",
@@ -280,17 +278,6 @@ function confidenceText(value: number) {
 
 function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
-}
-
-function downloadBlob(blob: Blob, filename: string) {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1200);
 }
 
 function normalizePdfName(value: string) {
@@ -848,16 +835,6 @@ export function SlidesThiefApp() {
     });
   };
 
-  const exportCorners = () => {
-    const payload = Object.fromEntries(
-      readySlides.map((slide) => [
-        slide.name,
-        slide.quad?.map(([x, y]) => [Math.round(x * 100) / 100, Math.round(y * 100) / 100]),
-      ]),
-    );
-    downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), "manual_quads.json");
-  };
-
   const selectAt = (index: number) => {
     const slide = slides[Math.max(0, Math.min(slides.length - 1, index))];
     if (slide) {
@@ -1110,9 +1087,6 @@ export function SlidesThiefApp() {
             </div>
             <button disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
               {text.resetSlide}
-            </button>
-            <button disabled={!readySlides.length} onClick={exportCorners}>
-              {text.exportCorners}
             </button>
           </div>
           <div className="stage" ref={stageRef}>
