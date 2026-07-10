@@ -1,32 +1,31 @@
 # Slides Thief Web
 
-This is the no-backend browser version of Slides Thief. It runs as a static
-site/PWA-style workspace: users pick local images, the browser detects slide
-corners, users can drag the four handles, and the finished deck is exported as a
-PDF without uploading source photos to a server.
+Slides Thief Web 是 Slides Thief 的网页版。普通用户可以直接打开：
 
-## Current Scope
+[https://www.zekun.blog/Slides-Thief/](https://www.zekun.blog/Slides-Thief/)
 
-- JPEG, PNG, WebP, and HEIC/HEIF input. HEIC/HEIF files are converted to JPEG
-  in the browser before the existing slide-processing pipeline runs.
-- Automatic contrast-line slide boundary detection in a Web Worker.
-- Manual corner correction on a canvas.
-- Browser-local PDF generation with `pdf-lib`.
-- No server persistence and no upload endpoint.
+它会在浏览器本地处理照片、调整幻灯片角点并生成 PDF，不需要安装软件，也不会把原始照片上传到服务器。
 
-Large HEIC/HEIF batches can take longer to start because browser-side decoding
-uses a JavaScript/WASM converter instead of a native image decoder.
+## 用户功能
 
-## Commands
+- 支持 JPEG、PNG、WebP、HEIC 和 HEIF 图片。
+- HEIC/HEIF 会先在浏览器里转换成 JPEG，再进入现有幻灯片处理流程。
+- 在 Web Worker 中自动识别幻灯片边界，页面不会被长时间卡住。
+- 支持在画布上拖动四个角点进行手动修正。
+- 使用 `pdf-lib` 在浏览器本地生成 PDF。
+- 没有服务器存储，也没有上传接口。
 
-Use Node.js 22.13 or newer, then install dependencies once:
+大批量 HEIC/HEIF 照片可能会启动得慢一些，因为浏览器端使用的是 JavaScript/WASM 转换器，不是系统原生图片解码器。
+
+## 本地开发
+
+使用 Node.js 22.13 或更新版本。第一次开发前安装依赖：
 
 ```bash
 npm ci
 ```
 
-The development server uses the Vinext/Cloudflare/Vite app stack. The Pages
-commands use the dedicated static Vite build in `pages/`.
+本地预览使用 Vinext/Cloudflare/Vite 应用栈。GitHub Pages 发布使用 `pages/` 里的专用静态 Vite 构建入口。
 
 ```bash
 npm run dev
@@ -36,20 +35,14 @@ npm run preview:pages
 npm test
 ```
 
-## GitHub Pages
+## 发布到 GitHub Pages
 
-GitHub Pages uses the static build target:
+GitHub Pages 使用静态构建：
 
 ```bash
 npm run build:pages
 ```
 
-The generated files are written to `dist-pages/`. The build automatically uses
-`/Slides-Thief/` as the default base path for this repository, and it derives
-the correct base path from `GITHUB_REPOSITORY` inside GitHub Actions. Override
-it locally with `GITHUB_PAGES_BASE=/` when testing a user or organization Pages
-site.
+生成文件会写入 `dist-pages/`。当前仓库默认使用 `/Slides-Thief/` 作为 base path；在 GitHub Actions 中会根据 `GITHUB_REPOSITORY` 自动推导。测试用户或组织主页站点时，可以用 `GITHUB_PAGES_BASE=/` 覆盖。
 
-Publishing is handled by `.github/workflows/deploy-pages.yml`. In the GitHub
-repository, open Settings -> Pages and set Build and deployment -> Source to
-GitHub Actions, then push to `main`.
+发布由 `.github/workflows/deploy-pages.yml` 处理。GitHub 仓库中保持 Settings -> Pages -> Build and deployment -> Source 为 GitHub Actions，然后 push 到 `main` 即可。

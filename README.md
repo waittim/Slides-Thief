@@ -1,115 +1,91 @@
 # Slides Thief
 
-Slides Thief turns a folder of photographed presentation slides into flattened
-slide images and a PDF. It is designed for conference-room photos where the
-camera is off-axis, the screen has perspective distortion, and a few pages may
-need manual corner cleanup.
+Slides Thief 可以把手机或相机拍歪的演示文稿照片拉正，并合成为一个干净的 PDF。适合会议、课堂、讲座、展会等场景：只要你拍到了投影屏幕或显示器里的幻灯片，就可以用它快速整理成可阅读、可分享的文件。
 
-## Quick Start
+## 在线使用
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip setuptools wheel
-python -m pip install -e .
-slides-thief-web
-```
+打开网页版：
 
-Open [http://127.0.0.1:8765](http://127.0.0.1:8765), drag in your source images,
-and let the app sort, detect, and flatten slides. See [Usage](#usage) below for
-CLI options and the manual correction workflow.
+[https://www.zekun.blog/Slides-Thief/](https://www.zekun.blog/Slides-Thief/)
 
-This project uses a modern `pyproject.toml` package configuration with a
-`src/` layout. The pip upgrade step keeps editable installs working on older
-local Python environments.
+网页版不需要安装软件。图片处理和 PDF 生成都在你的浏览器本地完成，照片不会上传到服务器。
 
-HEIC/HEIF input currently uses macOS `sips` for conversion. JPEG/PNG/TIFF input
-works anywhere Pillow can read the files.
+## 使用步骤
 
-## No-Backend Browser Site
+1. 打开网页，拖入或选择照片。
+2. 点击“自动拉伸”，让工具自动识别每张幻灯片的四个角。
+3. 检查左侧缩略图和中间预览。
+4. 如果某一页不准，拖动画布上的四个角点手动调整。
+5. 点击“生成 PDF”。
+6. 点击“下载pdf”保存文件。
 
-A static browser-only version now lives in `site/`. It processes JPEG, PNG,
-WebP, and HEIC/HEIF images locally in the browser, lets you adjust detected
-slide corners on a canvas, and exports a PDF without uploading images to a
-server. HEIC/HEIF files are converted to JPEG in the browser before the existing
-slide-processing pipeline runs.
+## 支持格式
 
-The `site/` workspace uses Node.js 22.13 or newer. Development runs through the
-Vinext/Cloudflare/Vite stack, while GitHub Pages uses a dedicated static Vite
-build.
+网页版支持：
 
-```bash
-cd site
-npm ci
-npm run dev
-```
+- JPEG / JPG
+- PNG
+- WebP
+- HEIC / HEIF
 
-For GitHub Pages deployment, the browser site has a dedicated static build and
-workflow:
+HEIC/HEIF 会先在浏览器里转换成 JPEG，再进入幻灯片拉伸流程。大批量 HEIC/HEIF 照片可能会比 JPEG 慢一些。
 
-```bash
-cd site
-npm run build:pages
-```
+## 适合什么情况
 
-The build outputs `site/dist-pages/`, and `.github/workflows/deploy-pages.yml`
-uploads that folder to GitHub Pages on pushes to `main`. In GitHub, set
-Settings -> Pages -> Build and deployment -> Source to GitHub Actions.
+- 拍摄角度歪了，幻灯片有透视变形。
+- 一次拍了很多页，希望整理成一个 PDF。
+- 自动识别大体正确，但有几页需要手动微调。
+- 不想把照片上传到第三方服务器。
 
-The Python app remains the fuller local workflow for the original command-line
-pipeline.
+## 主要功能
 
-## What It Does
+- 自动识别幻灯片边界。
+- 支持拖动四个角点进行人工修正。
+- 支持 16:9 和 4:3 输出比例。
+- 支持自定义导出宽度、质量、灰度、填充色。
+- 支持浅色/深色主题和中文/英文界面。
+- 在浏览器中直接生成 PDF。
 
-- Reads JPEG, PNG, TIFF, HEIC, and HEIF images.
-- Detects slide boundaries using line candidates, contrast, area, and target
-  aspect ratio constraints rather than assuming a particular slide background.
-- Applies a perspective transform to produce flat 16:9 or 4:3 slide pages.
-- Generates a PDF, corrected slide images, detection overlays, and a contact
-  sheet for review.
-- Builds a local `manual_review.html` page where you can drag four corner
-  handles and export `manual_quads.json` for a precise second pass.
-- The browser UIs follow the system light/dark theme and browser language by
-  default, with in-page controls for manual overrides.
+## 本地版
 
-## Usage
+如果你需要命令行批处理、保存中间结果、生成检测报告，或者希望使用原来的本地工作流，可以运行 Python 版。
 
-### Local Web UI
+## 本地使用
 
-Start the local browser workflow with:
+### 本地网页
+
+启动本地网页：
 
 ```bash
 slides-thief-web
 ```
 
-Then open:
+然后打开：
 
 ```text
 http://127.0.0.1:8765
 ```
 
-In the page you can:
+在本地网页中可以：
 
-- Drag in or choose all source images.
-- Let the app sort them by filename.
-- Run automatic slide-boundary detection.
-- Review every page on a canvas.
-- Drag the four numbered corner handles for manual correction.
-- Generate a refined PDF using the corrected points.
-- Open or download the PDF, contact sheets, report, and corner JSON.
-- Let the UI follow your system theme and browser language automatically, or
-  choose a specific light/dark theme and Chinese/English language in the toolbar.
+- 拖入或选择所有源图片。
+- 按文件名排序。
+- 自动识别幻灯片边界。
+- 在画布中检查每一页。
+- 拖动四个编号角点进行手动修正。
+- 使用修正后的角点生成 PDF。
+- 打开或下载 PDF、接触表、报告和角点 JSON。
+- 让界面自动跟随系统主题和浏览器语言，或在工具栏中手动选择亮色/深色和中文/英文。
 
-Web jobs are written under `outputs/web_jobs/` by default. Each job keeps its
-uploaded images, automatic pass, manual JSON, and refined pass together.
+本地网页任务默认写入 `outputs/web_jobs/`。每个任务会保留上传图片、自动处理结果、手动角点 JSON 和二次修正结果。
 
-You can change the server address or output location:
+也可以修改服务地址或输出目录：
 
 ```bash
 slides-thief-web --host 127.0.0.1 --port 8765 --jobs-dir outputs/web_jobs
 ```
 
-### Command Line
+### 命令行
 
 ```bash
 slides-thief ~/Downloads \
@@ -119,23 +95,21 @@ slides-thief ~/Downloads \
   --pdf-name flattened_slides.pdf
 ```
 
-Important outputs:
+主要输出：
 
-- `flattened_slides.pdf`: the assembled PDF.
-- `corrected_images/`: one flattened JPEG per slide.
-- `detection_overlays/`: original photos with detected quadrilaterals.
-- `corrected_contact_sheet.jpg`: quick visual review of flattened pages.
-- `detection_contact_sheet.jpg`: quick visual review of detected corners.
-- `manual_review.html`: browser UI for dragging corner points.
-- `slide_lens_report.json`: machine-readable report with points and confidence.
+- `flattened_slides.pdf`：合成后的 PDF。
+- `corrected_images/`：每页一张拉正后的 JPEG。
+- `detection_overlays/`：带自动识别四边形标记的原图。
+- `corrected_contact_sheet.jpg`：快速检查拉正结果的接触表。
+- `detection_contact_sheet.jpg`：快速检查识别角点的接触表。
+- `manual_review.html`：用于拖动角点的本地审核页面。
+- `slide_lens_report.json`：包含角点和置信度的机器可读报告。
 
-### Manual Correction Pass
+### 手动修正后二次处理
 
-Automatic detection is a first pass. When a few pages need cleanup, open
-`manual_review.html`, adjust bad pages by dragging the numbered corner handles,
-then export `manual_quads.json`.
+自动识别只是第一遍。如果有少数页面需要修正，打开 `manual_review.html`，拖动编号角点调整问题页面，然后导出 `manual_quads.json`。
 
-Run the second pass with:
+使用手动角点重新处理：
 
 ```bash
 slides-thief ~/Downloads \
@@ -145,7 +119,7 @@ slides-thief ~/Downloads \
   --width 2400
 ```
 
-The manual JSON maps each source filename to four points in this order:
+手动 JSON 会把每个源文件名映射到四个点，顺序如下：
 
 ```json
 {
@@ -153,31 +127,27 @@ The manual JSON maps each source filename to four points in this order:
 }
 ```
 
-The point order is top-left, top-right, bottom-right, bottom-left.
+点的顺序是左上、右上、右下、左下。
 
-## Notes
+## 使用提示
 
-Automatic detection works well when the physical slide boundary is visible, but
-internal chart lines, clipped screen edges, hands, and audience heads can still
-confuse any detector. The intended workflow is: auto-run, inspect the contact
-sheets, fix only the outliers in the manual review page, then rerun with
-`--manual`.
+当幻灯片真实边界清晰可见时，自动识别效果通常更好。内部图表线条、屏幕被裁切、手部遮挡、观众头部等仍然可能干扰识别。推荐流程是：先自动处理，检查结果，只修正少数异常页面，然后用手动角点重新生成。
 
-## Development
+## 开发
 
-Install test and lint tools with:
+安装测试和开发依赖：
 
 ```bash
 python -m pip install -e ".[dev]"
 ```
 
-Run the test suite:
+运行 Python 测试：
 
 ```bash
 python -m pytest
 ```
 
-For the browser-only site:
+运行网页版测试：
 
 ```bash
 cd site
@@ -185,7 +155,7 @@ npm ci
 npm test
 ```
 
-## Project Layout
+## 项目结构
 
 ```text
 src/slides_thief/
@@ -197,6 +167,4 @@ tests/                    # focused regression tests
 pyproject.toml            # build, runtime, and development configuration
 ```
 
-Generated jobs, intermediate files, and package build artifacts stay outside
-source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
-`*.egg-info/`.
+生成任务、中间文件和构建产物不会进入源码管理，通常位于 `outputs/`、`work/`、`dist/`、`*.egg-info/` 等已忽略路径下。
