@@ -131,3 +131,7 @@ pyproject.toml            # build, runtime, and development configuration
 ```
 
 生成任务、中间文件和包构建产物不会进入源码管理，通常位于 `outputs/`、`work/`、`dist/`、`*.egg-info/` 等已忽略路径下。
+
+## 许可证
+
+本项目基于 MIT License 开源。详见 [LICENSE](LICENSE)。

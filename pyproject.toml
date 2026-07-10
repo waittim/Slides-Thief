@@ -7,6 +7,7 @@ name = "slides-thief"
 version = "0.1.0"
 description = "Flatten photographed presentation slides and export them as PDF."
 readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.9"
 dependencies = [
   "numpy>=1.24",
