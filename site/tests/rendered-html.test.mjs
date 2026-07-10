@@ -60,6 +60,14 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /className="sidebarActions"/);
   assert.doesNotMatch(app, /manual_quads\.json/);
   assert.match(app, /themeSetting/);
+  assert.match(app, /localeOptions/);
+  assert.match(app, /"zh-TW"/);
+  assert.match(app, /Español/);
+  assert.match(app, /Français/);
+  assert.match(app, /Português/);
+  assert.match(app, /detectBrowserLocale/);
+  assert.match(app, /navigator\.languages/);
+  assert.match(app, /pt: "pt-BR"/);
   assert.match(app, /\.heic/);
   assert.match(app, /normalizeImageFile/);
   assert.match(app, /downloadPdf: "下载 PDF"/);

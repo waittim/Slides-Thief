@@ -291,9 +291,12 @@ a:hover {
   margin-left: -2px;
 }
 
-.themeSetting select,
-.languageSetting select {
+.themeSetting select {
   max-width: 108px;
+}
+
+.languageSetting select {
+  max-width: 142px;
 }
 
 .themeSetting {
