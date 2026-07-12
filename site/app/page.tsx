@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ProductInfo } from "./ProductInfo";
 import { SlidesThiefApp } from "./SlidesThiefApp";
 
 const siteUrl = "https://www.zekun.blog/Slides-Thief/";
@@ -14,12 +15,24 @@ export const metadata: Metadata = {
 const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
+  "@id": `${siteUrl}#software`,
   name: "Slides Thief",
-  alternateName: "PPT捕手",
+  alternateName: ["PPT捕手", "Slide Photo Straightener", "Presentation Photo to PDF Tool"],
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Web",
   url: siteUrl,
   description,
+  codeRepository: "https://github.com/waittim/Slides-Thief",
+  license: "https://opensource.org/license/mit",
+  author: { "@type": "Person", name: "Zekun Wang", url: "https://github.com/waittim" },
+  featureList: [
+    "Automatic slide boundary detection",
+    "Manual four-corner correction",
+    "Perspective correction",
+    "HEIC and HEIF support",
+    "Local browser processing",
+    "PDF generation",
+  ],
   offers: {
     "@type": "Offer",
     price: "0",
@@ -35,6 +48,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
       />
       <SlidesThiefApp />
+      <ProductInfo />
     </>
   );
 }

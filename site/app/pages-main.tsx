@@ -1,6 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { SlidesThiefApp } from "./SlidesThiefApp";
+import { ProductInfo } from "./ProductInfo";
 import "./globals.css";
 
 const root = document.getElementById("root");
@@ -11,6 +12,9 @@ if (!root) {
 
 createRoot(root).render(
   <StrictMode>
-    <SlidesThiefApp />
+    <>
+      <SlidesThiefApp />
+      <ProductInfo />
+    </>
   </StrictMode>,
 );

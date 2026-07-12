@@ -1,0 +1,10 @@
+{
+  "type": "software",
+  "name": "Slides Thief",
+  "author": "Zekun Wang",
+  "repository": "https://github.com/waittim/Slides-Thief",
+  "website": "https://www.zekun.blog/Slides-Thief/",
+  "license": "MIT",
+  "version": "0.1.0"
+}
+

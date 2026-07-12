@@ -5,10 +5,25 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "slides-thief"
 version = "0.1.0"
-description = "Flatten photographed presentation slides and export them as PDF."
+description = "Straighten photographed presentation slides, correct perspective distortion, and export them as PDF."
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.9"
+authors = [{ name = "Zekun Wang" }]
+keywords = [
+  "presentation slides",
+  "perspective correction",
+  "slide scanner",
+  "photo to pdf",
+  "image processing",
+  "computer vision",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+]
 dependencies = [
   "numpy>=1.24",
   "Pillow>=10",
@@ -23,6 +38,12 @@ dev = [
 
 [project.scripts]
 slides-thief = "slides_thief.cli:main"
+
+[project.urls]
+Homepage = "https://www.zekun.blog/Slides-Thief/"
+Repository = "https://github.com/waittim/Slides-Thief"
+Documentation = "https://github.com/waittim/Slides-Thief/tree/main/docs"
+Issues = "https://github.com/waittim/Slides-Thief/issues"
 
 [tool.setuptools]
 package-dir = {"" = "src"}

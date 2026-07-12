@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json",
+  "title": "Slides Thief detection report",
+  "type": "object",
+  "required": ["input_dir", "output_pdf", "ratio", "size", "slides"],
+  "properties": {
+    "input_dir": { "type": "string" },
+    "output_pdf": { "type": "string" },
+    "ratio": { "type": "string" },
+    "size": {
+      "type": "array",
+      "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 1 }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "source", "output", "quad", "method", "confidence"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "source": { "type": "string" },
+          "output": { "type": "string" },
+          "quad": {
+            "description": "Four [x, y] points ordered top-left, top-right, bottom-right, bottom-left.",
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "array",
+              "prefixItems": [{ "type": "number" }, { "type": "number" }],
+              "items": false,
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "method": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false
+}

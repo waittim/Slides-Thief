@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json",
+  "title": "Slides Thief manual quadrilaterals",
+  "description": "Manual slide corners keyed by source filename or stem. Points are ordered top-left, top-right, bottom-right, bottom-left.",
+  "type": "object",
+  "additionalProperties": {
+    "type": "array",
+    "minItems": 4,
+    "maxItems": 4,
+    "prefixItems": [
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" }
+    ],
+    "items": false
+  },
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    }
+  }
+}
+

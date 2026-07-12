@@ -3,4 +3,8 @@
   <url>
     <loc>https://www.zekun.blog/Slides-Thief/</loc>
   </url>
+  <url><loc>https://www.zekun.blog/Slides-Thief/llms.txt</loc></url>
+  <url><loc>https://www.zekun.blog/Slides-Thief/llms-full.txt</loc></url>
+  <url><loc>https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json</loc></url>
+  <url><loc>https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json</loc></url>
 </urlset>

@@ -1,0 +1,31 @@
+# Slides Thief
+
+> Browser-local web app and Python CLI that turn angled photos of presentation slides into perspective-corrected images and a clean PDF.
+
+## Use and documentation
+
+- Web app: https://www.zekun.blog/Slides-Thief/
+- Full agent reference: https://www.zekun.blog/Slides-Thief/llms-full.txt
+- GitHub repository: https://github.com/waittim/Slides-Thief
+- CLI documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/cli.md
+- Output documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/output-schema.md
+
+## Machine-readable contracts
+
+- Detection report schema: https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json
+- Manual corner schema: https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json
+- Citation metadata: https://www.zekun.blog/Slides-Thief/citation.json
+
+## Core facts
+
+- Browser processing is local; source photos are not uploaded.
+- Web formats: JPEG, PNG, WebP, HEIC, HEIF.
+- Corner order: top-left, top-right, bottom-right, bottom-left.
+- License: MIT.
+
+## Citation
+
+Preferred name: Slides Thief
+Author: Zekun Wang
+Source: https://github.com/waittim/Slides-Thief
+

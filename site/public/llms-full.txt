@@ -1,0 +1,30 @@
+# Slides Thief agent reference
+
+Slides Thief corrects perspective distortion in photographs of projected or displayed presentation slides and exports corrected images as one PDF. It is useful for conferences, classrooms, lectures, meeting rooms, and trade shows.
+
+## Browser application
+
+Open https://www.zekun.blog/Slides-Thief/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
+
+## Python CLI
+
+Install the package and run:
+
+    slides-thief INPUT_DIRECTORY --output-dir OUTPUT_DIRECTORY --ratio 16:9 --width 2400 --pdf-name slides.pdf
+
+A successful run creates the requested PDF, corrected images, detection overlays, contact sheets, `manual_review.html`, and `slide_lens_report.json`. Run `slides-thief --help` for all options.
+
+For manual correction, edit corners in `manual_review.html`, export `manual_quads.json`, then run again with `--manual PATH`. Each quad is ordered top-left, top-right, bottom-right, bottom-left.
+
+## Contracts
+
+- https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json
+- https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json
+
+## Project and citation
+
+Repository: https://github.com/waittim/Slides-Thief
+License: MIT
+Author: Zekun Wang
+Citation: Wang, Z. Slides Thief: Convert photographed presentation slides into perspective-corrected PDFs. https://github.com/waittim/Slides-Thief
+

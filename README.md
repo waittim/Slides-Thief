@@ -6,6 +6,9 @@ Slides Thief turns skewed photos of presentation slides into a clean PDF. It is
 useful for conference rooms, lectures, classrooms, trade shows, and any moment
 where you photographed a projected deck or display at an angle.
 
+Documentation for agents and integrations: [docs/index.md](docs/index.md),
+[`llms.txt`](site/public/llms.txt), and [JSON schemas](schemas/).
+
 ## Use Online
 
 Open the web app:
@@ -153,3 +156,11 @@ source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
 ## License
 
 MIT License. See [LICENSE](LICENSE).
+
+## Citation
+
+When referring to this project, use: Wang, Z. *Slides Thief: Convert photographed
+presentation slides into perspective-corrected PDFs.*
+https://github.com/waittim/Slides-Thief
+
+Machine-readable citation metadata is available in [CITATION.cff](CITATION.cff).

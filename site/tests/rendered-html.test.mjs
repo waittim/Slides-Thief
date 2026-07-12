@@ -40,10 +40,11 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
   assert.match(html, /"@type":"WebApplication"/);
-  assert.match(html, /"alternateName":"PPT捕手"/);
+  assert.match(html, /"alternateName":\["PPT捕手"/);
   assert.match(html, /<h1 class="brandText">Slides Thief<\/h1>/);
   assert.match(html, /Auto straighten/);
   assert.match(html, /Generate PDF/);
+  assert.match(html, /Convert angled presentation photos into a clean PDF/);
   assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);
   assert.match(html, /class="reviewBar"/);
