@@ -128,6 +128,7 @@ button,
   border-radius: 6px;
   padding: 0 11px;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 button:hover,
@@ -138,6 +139,11 @@ button:hover,
 button:disabled {
   cursor: not-allowed;
   opacity: 0.55;
+}
+
+:where(button, a, input, select, summary):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--accent-2), transparent 35%);
+  outline-offset: 2px;
 }
 
 button.primary {
@@ -204,7 +210,8 @@ a:hover {
   grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
   gap: 22px;
   align-items: center;
-  padding: 10px 14px;
+  padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px
+    max(14px, env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
   background: var(--topbar-bg);
   position: sticky;
@@ -522,6 +529,8 @@ a:hover {
 }
 
 .dropzone {
+  width: 100%;
+  height: auto;
   min-height: 92px;
   display: grid;
   align-items: center;
@@ -530,6 +539,8 @@ a:hover {
   background: var(--drop-bg);
   padding: 14px;
   cursor: pointer;
+  color: inherit;
+  text-align: left;
 }
 
 .dropzone.active,
@@ -538,12 +549,13 @@ a:hover {
   background: var(--drop-active-bg);
 }
 
-.dropzone strong,
-.dropzone span {
+.dropzoneContent,
+.dropzoneContent strong,
+.dropzoneContent > span {
   display: block;
 }
 
-.dropzone span {
+.dropzoneContent > span {
   margin-top: 5px;
   color: var(--muted);
   font-size: 12px;
@@ -673,6 +685,7 @@ a:hover {
   min-height: 0;
   display: grid;
   place-items: center;
+  place-items: safe center;
   padding: 14px;
   overflow: auto;
   background:
@@ -691,13 +704,46 @@ a:hover {
   place-items: center;
 }
 
+.canvasWrap {
+  position: relative;
+  width: max-content;
+  height: max-content;
+  line-height: 0;
+}
+
 canvas {
   display: block;
   max-width: none;
   background: transparent;
   box-shadow: var(--shadow);
-  cursor: crosshair;
+  cursor: default;
+  touch-action: pan-x pan-y;
+}
+
+.cornerHandle {
+  position: absolute;
+  z-index: 2;
+  width: 48px;
+  height: 48px;
+  min-height: 48px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  transform: translate(-50%, -50%);
+  cursor: grab;
   touch-action: none;
+}
+
+.cornerHandle:hover {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--handle), transparent 78%);
+}
+
+.cornerHandle.active {
+  cursor: grabbing;
+  background: color-mix(in srgb, var(--handle), transparent 68%);
 }
 
 .empty {
@@ -832,17 +878,241 @@ canvas {
   }
 }
 
+@media (max-width: 720px), (max-height: 600px) and (max-width: 1040px) {
+  html {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    grid-template-rows: auto auto;
+  }
+
+  .topbar {
+    position: relative;
+    top: auto;
+  }
+
+  .shell,
+  .shell.inspectorCollapsed {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+  }
+
+  .sidebar {
+    flex: none;
+    grid-template-rows: none;
+    overflow: visible;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+
+  .sidebarActions {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .files {
+    max-height: none;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 6px;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .fileRow,
+  .slideRow {
+    width: auto;
+    flex: 0 0 min(78vw, 300px);
+    scroll-snap-align: start;
+  }
+
+  .workspace {
+    height: clamp(480px, 72dvh, 680px);
+    min-height: 480px;
+    flex: none;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .reviewBar {
+    padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+  }
+
+  .stage {
+    padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .inspector {
+    flex: none;
+    grid-template-rows: auto auto;
+    overflow: visible;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+  }
+
+  .inspectorBody {
+    overflow: visible;
+  }
+}
+
 @media (max-width: 720px) {
   .topbar {
     grid-template-columns: 1fr;
     align-items: start;
+    gap: 9px;
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
   }
 
   .settings {
-    --settings-columns: max-content max-content minmax(220px, 1fr) max-content max-content;
+    --settings-columns: none;
+    width: 100%;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 1px 1px 3px;
+    scrollbar-width: none;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
-  .sidebarActions {
-    grid-template-columns: 1fr;
+  .settings::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings:has(.moreSettings[open]) {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .settings > label,
+  .settings > details {
+    flex: 0 0 auto;
+  }
+
+  .settings .pdfNameSetting {
+    width: min(250px, 76vw);
+  }
+
+  .themeSetting,
+  .languageSetting {
+    grid-column: auto;
+  }
+
+  .morePanel {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 108px);
+    right: max(12px, env(safe-area-inset-right));
+    bottom: auto;
+    left: max(12px, env(safe-area-inset-left));
+    width: auto;
+    min-width: 0;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px);
+    overflow: auto;
+  }
+
+  .reviewBar {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 44px 44px minmax(0, 1fr) max-content;
+    grid-template-areas:
+      "previous next title reset"
+      "zoom zoom zoom zoom";
+    gap: 8px;
+  }
+
+  .reviewPrevious {
+    grid-area: previous;
+  }
+
+  .reviewNext {
+    grid-area: next;
+  }
+
+  .reviewBar .title {
+    grid-area: title;
+  }
+
+  .reviewBar .zoomControls {
+    grid-area: zoom;
+    display: grid;
+    grid-template-columns: 44px 54px 44px minmax(80px, 1fr);
+    width: 100%;
+  }
+
+  .reviewBar .resetButton {
+    grid-area: reset;
+    max-width: 112px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  select,
+  input[type="number"],
+  input[type="text"] {
+    font-size: 16px;
+  }
+
+  .empty {
+    min-width: min(100%, 460px);
+  }
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  button,
+  .moreSettings summary {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  button.icon {
+    width: 44px;
+  }
+
+  select,
+  input[type="number"],
+  input[type="text"] {
+    height: 44px;
+    font-size: 16px;
+  }
+
+  .settings label {
+    height: 44px;
+  }
+
+  .morePanel label,
+  .morePanel .checks {
+    min-height: 44px;
+    height: auto;
+  }
+
+  .morePanel input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+  }
+
+  .morePanel input[type="color"] {
+    width: 52px;
+    height: 38px;
+  }
+
+  .links a {
+    min-height: 44px;
   }
 }

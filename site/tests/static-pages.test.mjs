@@ -7,8 +7,12 @@ test("emits a GitHub Pages compatible static app", async () => {
   const assets = await readdir(new URL("../dist-pages/assets/", import.meta.url));
   const robots = await readFile(new URL("../dist-pages/robots.txt", import.meta.url), "utf8");
   const sitemap = await readFile(new URL("../dist-pages/sitemap.xml", import.meta.url), "utf8");
+  const mainScriptName = assets.find((name) => /^index-.*\.js$/.test(name));
+  assert.ok(mainScriptName, "expected the main static JavaScript bundle");
+  const mainScript = await readFile(new URL(`../dist-pages/assets/${mainScriptName}`, import.meta.url), "utf8");
 
   assert.match(html, /<html lang="en">/i);
+  assert.match(html, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/i);
   assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
   assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
@@ -23,4 +27,5 @@ test("emits a GitHub Pages compatible static app", async () => {
   assert.ok(assets.some((name) => name.endsWith(".js")), "expected static JavaScript output");
   assert.ok(assets.some((name) => name.endsWith(".css")), "expected static CSS output");
   assert.ok(assets.some((name) => /slides-worker/i.test(name) && name.endsWith(".js")), "expected bundled worker");
+  assert.match(mainScript, /\/Slides-Thief\/assets\/slides-worker-[A-Za-z0-9_-]+\.js/);
 });

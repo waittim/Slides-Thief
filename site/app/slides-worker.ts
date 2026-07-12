@@ -64,9 +64,10 @@ scope.onmessage = async (event) => {
 
 async function detectFiles(files: JobFile[], settings: Settings) {
   for (const item of files) {
+    let bitmap: ImageBitmap | null = null;
     try {
       scope.postMessage({ type: "detect-start", id: item.id });
-      const bitmap = await createImageBitmap(item.file);
+      bitmap = await createImageBitmap(item.file);
       const imageData = imageDataFromBitmap(bitmap, 900);
       const [quad, diagnostics] = detectQuad(imageData, parseRatio(settings.ratio));
       const scale = bitmap.width / imageData.width;
@@ -82,13 +83,14 @@ async function detectFiles(files: JobFile[], settings: Settings) {
           confidence: diagnostics.confidence,
         },
       });
-      bitmap.close();
     } catch (error) {
       scope.postMessage({
         type: "slide-error",
         id: item.id,
         error: error instanceof Error ? error.message : "Could not decode this image in the browser.",
       });
+    } finally {
+      bitmap?.close();
     }
   }
 }
@@ -337,9 +339,15 @@ async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHei
   const sourceHeight = Math.max(1, Math.round(bitmap.height * sourceScale));
   const sourceCanvas = new OffscreenCanvas(sourceWidth, sourceHeight);
   const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
-  if (!sourceCtx) throw new Error("This browser cannot read canvas pixels.");
-  sourceCtx.drawImage(bitmap, 0, 0, sourceWidth, sourceHeight);
-  bitmap.close();
+  if (!sourceCtx) {
+    bitmap.close();
+    throw new Error("This browser cannot read canvas pixels.");
+  }
+  try {
+    sourceCtx.drawImage(bitmap, 0, 0, sourceWidth, sourceHeight);
+  } finally {
+    bitmap.close();
+  }
 
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
   const fill = parseHexColor(settings.fillColor);

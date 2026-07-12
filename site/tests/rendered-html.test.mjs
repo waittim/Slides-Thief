@@ -30,6 +30,12 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
 
   const html = await response.text();
   assert.match(html, /<html lang="en"/i);
+  assert.match(html, /name="viewport" content="width=device-width, initial-scale=1"/i);
+  assert.equal(html.match(/<meta name="viewport"/gi)?.length, 1);
+  assert.match(html, /setAttribute\("content", "width=device-width, initial-scale=1, viewport-fit=cover"\)/i);
+  const viewportIndex = html.search(/<meta[^>]*name="viewport"/i);
+  const viewportPatchIndex = html.indexOf("setAttribute(\"content\"");
+  assert.ok(viewportIndex >= 0 && viewportPatchIndex > viewportIndex);
   assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
   assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
@@ -74,7 +80,20 @@ test("client code uses browser-local processing contracts", async () => {
   assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
   assert.match(app, /fillColor: "#000000"/);
   assert.match(app, /type="color"/);
+  assert.match(app, /const fitScale = Math\.min\(maxWidth \/ totalWidth, maxHeight \/ totalHeight, 1\)/);
+  assert.doesNotMatch(app, /Math\.max\(320, stage\.client/);
+  assert.match(app, /const maxPixels = compact \? 8_000_000 : 24_000_000/);
+  assert.match(app, /quadHandlePositions/);
+  assert.match(app, /className=\{`cornerHandle/);
+  assert.match(app, /window\.requestAnimationFrame/);
+  assert.match(app, /if \(workerRef\.current === worker\) workerRef\.current = null/);
+  assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);
+  assert.match(app, /loading="lazy"/);
+  assert.match(app, /decoding="async"/);
+  assert.doesNotMatch(app, /Promise\.all\(inputFiles\.map\(normalizeImageFile\)\)/);
+  assert.match(app, /files\.push\(await normalizeImageFile\(file\)\)/);
   assert.match(worker, /PDFDocument\.create/);
+  assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
   assert.match(worker, /fillColor/);
   assert.match(worker, /parseHexColor/);
   assert.match(worker, /OffscreenCanvas/);
@@ -82,6 +101,13 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /linear-gradient\(45deg, var\(--stage-grid\) 25%, transparent 25%\)/);
   assert.match(css, /background-position: 0 0, 0 14px, 14px -14px, -14px 0/);
   assert.match(css, /canvas\s*\{[^}]*background:\s*transparent/s);
+  assert.match(css, /canvas\s*\{[^}]*touch-action:\s*pan-x pan-y/s);
+  assert.match(css, /\.cornerHandle\s*\{[^}]*touch-action:\s*none/s);
+  assert.match(css, /@media \(max-width: 720px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
+  assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow:\s*visible/s);
+  assert.match(css, /font-size:\s*16px/);
+  assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /safe-area-inset-bottom/);
   assert.doesNotMatch(css, /canvas\s*\{[^}]*background:\s*#111/s);
   assert.match(packageJson, /"pdf-lib"/);
   assert.match(packageJson, /"heic-to"/);

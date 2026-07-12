@@ -44,6 +44,22 @@ type DetectResult = {
   confidence: number;
 };
 
+type HandlePosition = {
+  left: number;
+  top: number;
+};
+
+type CanvasRenderState = {
+  slideId: string;
+  image: HTMLImageElement;
+  width: number;
+  height: number;
+  padX: number;
+  padY: number;
+  scale: number;
+  compact: boolean;
+};
+
 type WorkerMessage =
   | { type: "detect-start"; id: string }
   | { type: "detect-result"; result: DetectResult }
@@ -136,6 +152,8 @@ const copy = {
     confidence: "置信度",
     pending: "待自动校正",
     noUpload: "浏览器本地处理",
+    adjustCorners: "拖动四个编号角点以对齐幻灯片边缘",
+    cornerHandle: "角点",
     collapse: "缩小详情栏",
     expand: "展开详情栏",
   },
@@ -188,6 +206,8 @@ const copy = {
     confidence: "可信度",
     pending: "待自動校正",
     noUpload: "瀏覽器本機處理",
+    adjustCorners: "拖動四個編號角點以對齊投影片邊緣",
+    cornerHandle: "角點",
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
   },
@@ -240,6 +260,8 @@ const copy = {
     confidence: "Confidence",
     pending: "Waiting for auto straighten",
     noUpload: "Browser-local processing",
+    adjustCorners: "Drag the four numbered corners to align the slide edges",
+    cornerHandle: "Corner",
     collapse: "Collapse details",
     expand: "Expand details",
   },
@@ -292,6 +314,8 @@ const copy = {
     confidence: "Confianza",
     pending: "Esperando enderezado",
     noUpload: "Proceso local",
+    adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear la diapositiva",
+    cornerHandle: "Esquina",
     collapse: "Contraer detalles",
     expand: "Expandir detalles",
   },
@@ -344,6 +368,8 @@ const copy = {
     confidence: "Confiance",
     pending: "En attente",
     noUpload: "Traitement local",
+    adjustCorners: "Faites glisser les quatre coins numérotés pour aligner la diapositive",
+    cornerHandle: "Coin",
     collapse: "Réduire détails",
     expand: "Afficher détails",
   },
@@ -396,6 +422,8 @@ const copy = {
     confidence: "Sicherheit",
     pending: "Wartet auf Begradigung",
     noUpload: "Lokale Verarbeitung",
+    adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Folienränder",
+    cornerHandle: "Ecke",
     collapse: "Details einklappen",
     expand: "Details ausklappen",
   },
@@ -448,6 +476,8 @@ const copy = {
     confidence: "信頼度",
     pending: "自動補正待ち",
     noUpload: "ブラウザ内処理",
+    adjustCorners: "4つの番号付きコーナーをドラッグしてスライドの端に合わせます",
+    cornerHandle: "コーナー",
     collapse: "詳細を閉じる",
     expand: "詳細を開く",
   },
@@ -500,6 +530,8 @@ const copy = {
     confidence: "신뢰도",
     pending: "자동 보정 대기",
     noUpload: "브라우저 내 처리",
+    adjustCorners: "번호가 표시된 네 모서리를 끌어 슬라이드 가장자리에 맞추세요",
+    cornerHandle: "모서리",
     collapse: "상세 접기",
     expand: "상세 펼치기",
   },
@@ -552,6 +584,8 @@ const copy = {
     confidence: "Confiança",
     pending: "Aguardando correção",
     noUpload: "Processamento local",
+    adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do slide",
+    cornerHandle: "Canto",
     collapse: "Recolher detalhes",
     expand: "Expandir detalhes",
   },
@@ -690,6 +724,13 @@ function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
 
+function quadHandlePositions(quad: Quad, padX: number, padY: number, scale: number): HandlePosition[] {
+  return quad.map(([x, y]) => ({
+    left: (padX + x) * scale,
+    top: (padY + y) * scale,
+  }));
+}
+
 function normalizePdfName(value: string) {
   const base = value.trim().replace(/\.pdf$/i, "") || "flattened_slides";
   return `${base}.pdf`;
@@ -819,6 +860,7 @@ export function SlidesThiefApp() {
   const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
   const [zoom, setZoom] = useState(1);
   const [displayZoom, setDisplayZoom] = useState(1);
+  const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -829,9 +871,18 @@ export function SlidesThiefApp() {
   const localeRef = useRef<LocaleValue>("en");
   const settingsRef = useRef<Settings>(defaultSettings);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
+  const canvasRenderRef = useRef<CanvasRenderState | null>(null);
+  const imageCacheRef = useRef<{ id: string; url: string; image: HTMLImageElement } | null>(null);
+  const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const dragHandleRef = useRef<number | null>(null);
+  const activePointerRef = useRef<number | null>(null);
+  const dragFrameRef = useRef<number | null>(null);
+  const thumbnailRefreshTokenRef = useRef(0);
   const loadTokenRef = useRef(0);
   const viewportRef = useRef({ padX: 0, padY: 0 });
   const scaleRef = useRef(1);
+  const fitZoomRef = useRef(1);
+  const maxZoomRef = useRef(3);
 
   const text = copy[locale];
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
@@ -839,9 +890,21 @@ export function SlidesThiefApp() {
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
   const hasRun = slides.some((slide) => slide.status === "ready" || slide.status === "detecting" || slide.status === "error");
   const detecting = slides.some((slide) => slide.status === "detecting");
-  const busy = detecting || exporting;
+  const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
+
+  const cancelActiveDrag = useCallback(() => {
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    latestDragQuadRef.current = null;
+    activePointerRef.current = null;
+    dragHandleRef.current = null;
+    setDragHandle(null);
+  }, []);
 
   const statusText = useMemo(() => {
+    if (workerError) return workerError;
     if (busyText) return busyText;
     if (!slides.length) return text.ready;
     if (detecting) return text.stretching;
@@ -849,7 +912,7 @@ export function SlidesThiefApp() {
     if (exportUrl) return text.generated;
     if (hasRun) return text.reviewReady;
     return locale === "zh-CN" ? `${slides.length} ${text.waiting}` : `${slides.length} ${text.waiting}`;
-  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, slides.length, text]);
+  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, slides.length, text, workerError]);
 
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
@@ -871,9 +934,16 @@ export function SlidesThiefApp() {
 
   const ensureWorker = useCallback(() => {
     if (workerRef.current) return workerRef.current;
-    const worker = new Worker(new URL("./slides-worker.ts", import.meta.url), {
-      type: "module",
-    });
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL("./slides-worker.ts", import.meta.url), {
+        type: "module",
+      });
+    } catch (error) {
+      setWorkerError(messageFromError(error));
+      setBusyText("");
+      return null;
+    }
     worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
       const message = event.data;
       if (message.type === "detect-start") {
@@ -933,22 +1003,43 @@ export function SlidesThiefApp() {
         setBusyText("");
       }
       if (message.type === "error") {
+        setSlides((current) =>
+          current.map((slide) =>
+            slide.status === "detecting"
+              ? { ...slide, status: "error", method: "error", error: message.error }
+              : slide,
+          ),
+        );
         setWorkerError(message.error);
         setExporting(false);
         setBusyText("");
       }
     };
+    const handleWorkerFailure = (message: string) => {
+      worker.terminate();
+      if (workerRef.current === worker) workerRef.current = null;
+      setSlides((current) =>
+        current.map((slide) =>
+          slide.status === "detecting" ? { ...slide, status: "error", method: "error", error: message } : slide,
+        ),
+      );
+      setWorkerError(message);
+      setExporting(false);
+      setBusyText("");
+    };
+    worker.onerror = (event) => handleWorkerFailure(event.message || "The image worker stopped unexpectedly.");
+    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
     workerRef.current = worker;
     return worker;
   }, [refreshSlideThumbnail]);
 
   useEffect(() => {
-    const worker = ensureWorker();
     return () => {
-      worker.terminate();
+      workerRef.current?.terminate();
       workerRef.current = null;
+      if (dragFrameRef.current !== null) window.cancelAnimationFrame(dragFrameRef.current);
     };
-  }, [ensureWorker]);
+  }, []);
 
   useEffect(() => {
     slidesRef.current = slides;
@@ -959,9 +1050,19 @@ export function SlidesThiefApp() {
   }, [settings]);
 
   useEffect(() => {
-    slidesRef.current.forEach((slide) => {
-      if (slide.status === "ready" && slide.quad) void refreshSlideThumbnail(slide.id, slide.quad);
-    });
+    const token = thumbnailRefreshTokenRef.current + 1;
+    thumbnailRefreshTokenRef.current = token;
+    const timeoutId = window.setTimeout(async () => {
+      for (const slide of slidesRef.current) {
+        if (thumbnailRefreshTokenRef.current !== token) return;
+        if (slide.status === "ready" && slide.quad) await refreshSlideThumbnail(slide.id, slide.quad);
+      }
+    }, 150);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      if (thumbnailRefreshTokenRef.current === token) thumbnailRefreshTokenRef.current += 1;
+    };
   }, [refreshSlideThumbnail, settings.fillColor, settings.height, settings.ratio, settings.width]);
 
   useEffect(() => {
@@ -1001,22 +1102,41 @@ export function SlidesThiefApp() {
       const inputFiles = Array.from(fileList)
         .filter(isSupported)
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      if (!inputFiles.length) return;
       const hasHeif = inputFiles.some(isHeifImage);
 
+      workerRef.current?.terminate();
+      workerRef.current = null;
+      cancelActiveDrag();
       slidesRef.current.forEach((slide) => URL.revokeObjectURL(slide.url));
       if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
       exportUrlRef.current = null;
+      imageCacheRef.current = null;
+      canvasRenderRef.current = null;
+      if (canvasRef.current) {
+        canvasRef.current.width = 1;
+        canvasRef.current.height = 1;
+      }
       setSlides([]);
       setSelectedId(null);
+      setHandlePositions([]);
       setExportUrl(null);
       setExportName(normalizePdfName(pdfBaseName));
+      setZoomMode("fit");
       setWorkerError("");
       setBusyText(hasHeif ? (localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF") : "");
-      setZoomMode("fit");
 
-      let files: File[];
+      const files: File[] = [];
       try {
-        files = await Promise.all(inputFiles.map(normalizeImageFile));
+        for (let index = 0; index < inputFiles.length; index += 1) {
+          if (loadTokenRef.current !== token) return;
+          const file = inputFiles[index];
+          if (isHeifImage(file)) {
+            const prefix = localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF";
+            setBusyText(`${prefix} ${index + 1}/${inputFiles.length}`);
+          }
+          files.push(await normalizeImageFile(file));
+        }
       } catch (error) {
         if (loadTokenRef.current !== token) return;
         setBusyText("");
@@ -1043,8 +1163,63 @@ export function SlidesThiefApp() {
       setSelectedId(nextSlides[0]?.id ?? null);
       setBusyText("");
     },
-    [pdfBaseName],
+    [cancelActiveDrag, pdfBaseName],
   );
+
+  const paintCanvas = useCallback((quad: Quad | null) => {
+    const canvas = canvasRef.current;
+    const render = canvasRenderRef.current;
+    if (!canvas || !render) return;
+
+    const { image, width, height, padX, padY, scale, compact } = render;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    ctx.clearRect(0, 0, width, height);
+    const imageX = padX * scale;
+    const imageY = padY * scale;
+    const imageWidth = image.naturalWidth * scale;
+    const imageHeight = image.naturalHeight * scale;
+    ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
+    ctx.strokeStyle = "rgba(255, 255, 255, .36)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
+
+    if (!quad) return;
+    const positions = quadHandlePositions(quad, padX, padY, scale);
+    positions.forEach((position, index) => {
+      const handle = handleRefs.current[index];
+      if (!handle) return;
+      handle.style.left = `${position.left}px`;
+      handle.style.top = `${position.top}px`;
+    });
+
+    ctx.lineWidth = Math.max(3, Math.min(7, width / 420));
+    ctx.strokeStyle = "rgba(200, 69, 53, .98)";
+    ctx.beginPath();
+    positions.forEach(({ left, top }, index) => {
+      if (index === 0) ctx.moveTo(left, top);
+      else ctx.lineTo(left, top);
+    });
+    ctx.closePath();
+    ctx.stroke();
+
+    positions.forEach(({ left, top }, index) => {
+      const radius = compact ? 12 : Math.max(9, Math.min(18, width / 150));
+      ctx.fillStyle = "rgba(255, 216, 74, .96)";
+      ctx.strokeStyle = "rgba(16, 20, 22, .92)";
+      ctx.lineWidth = Math.max(2, Math.min(4, width / 700));
+      ctx.beginPath();
+      ctx.arc(left, top, radius, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#172026";
+      ctx.font = `700 ${Math.max(13, Math.min(18, width / 80))}px -apple-system, BlinkMacSystemFont, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(String(index + 1), left, top + 1);
+    });
+  }, []);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -1052,79 +1227,107 @@ export function SlidesThiefApp() {
     const slide = selectedSlide;
     if (!canvas || !stage || !slide) return;
 
-    const image = new Image();
-    image.onload = () => {
+    const renderImage = (image: HTMLImageElement) => {
+      if (imageCacheRef.current?.image !== image) return;
       if (!slide.width || !slide.height) {
         setSlides((current) =>
           current.map((item) =>
             item.id === slide.id && (!item.width || !item.height)
-              ? { ...item, width: image.width, height: image.height }
+              ? { ...item, width: image.naturalWidth, height: image.naturalHeight }
               : item,
           ),
         );
       }
 
-      const maxWidth = Math.max(320, stage.clientWidth - 26);
-      const maxHeight = Math.max(320, stage.clientHeight - 26);
-      const padX = Math.max(140, Math.round(image.width * 0.25));
-      const padY = Math.max(140, Math.round(image.height * 0.25));
-      const totalWidth = image.width + padX * 2;
-      const totalHeight = image.height + padY * 2;
-      const fitScale = Math.min(maxWidth / image.width, maxHeight / image.height, 1);
-      const scale = zoomMode === "fit" ? fitScale : zoom;
+      const previewQuad = latestDragQuadRef.current?.id === slide.id ? latestDragQuadRef.current.quad : slide.quad;
+      const compact = stage.clientWidth <= 720 || window.matchMedia("(pointer: coarse)").matches;
+      const maxWidth = Math.max(1, stage.clientWidth - (compact ? 16 : 26));
+      const maxHeight = Math.max(1, stage.clientHeight - (compact ? 16 : 26));
+      const imageFitScale = Math.max(
+        0.0001,
+        Math.min(maxWidth / image.naturalWidth, maxHeight / image.naturalHeight, 1),
+      );
+      const desiredHandleGutter = compact ? 30 : 34;
+      const quadOverflowX = previewQuad
+        ? Math.max(
+            0,
+            ...previewQuad.map(([x]) => Math.max(-x, x - image.naturalWidth)),
+          )
+        : 0;
+      const quadOverflowY = previewQuad
+        ? Math.max(
+            0,
+            ...previewQuad.map(([, y]) => Math.max(-y, y - image.naturalHeight)),
+          )
+        : 0;
+      const handleSourceGutter = 24 / imageFitScale;
+      const padX = Math.min(
+        Math.round(image.naturalWidth * 0.3),
+        Math.max(
+          compact ? 40 : 64,
+          Math.round(desiredHandleGutter / imageFitScale),
+          Math.ceil(quadOverflowX + handleSourceGutter),
+        ),
+      );
+      const padY = Math.min(
+        Math.round(image.naturalHeight * 0.3),
+        Math.max(
+          compact ? 40 : 64,
+          Math.round(desiredHandleGutter / imageFitScale),
+          Math.ceil(quadOverflowY + handleSourceGutter),
+        ),
+      );
+      const totalWidth = image.naturalWidth + padX * 2;
+      const totalHeight = image.naturalHeight + padY * 2;
+      const fitScale = Math.min(maxWidth / totalWidth, maxHeight / totalHeight, 1);
+      const maxDimension = compact ? 4096 : 8192;
+      const maxPixels = compact ? 8_000_000 : 24_000_000;
+      const budgetScale = Math.min(
+        maxDimension / totalWidth,
+        maxDimension / totalHeight,
+        Math.sqrt(maxPixels / (totalWidth * totalHeight)),
+      );
+      const maxScale = Math.max(fitScale, Math.min(3, budgetScale));
+      const requestedScale = zoomMode === "fit" ? fitScale : zoom;
+      const scale = Math.max(0.01, Math.min(requestedScale, maxScale));
       const width = Math.max(1, Math.round(totalWidth * scale));
       const height = Math.max(1, Math.round(totalHeight * scale));
+
       canvas.width = width;
       canvas.height = height;
       scaleRef.current = scale;
+      fitZoomRef.current = fitScale;
+      maxZoomRef.current = maxScale;
       viewportRef.current = { padX, padY };
-      setDisplayZoom(scale);
+      canvasRenderRef.current = { slideId: slide.id, image, width, height, padX, padY, scale, compact };
+      setDisplayZoom((current) => (Math.abs(current - scale) < 0.0001 ? current : scale));
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-      ctx.clearRect(0, 0, width, height);
-      const imageX = padX * scale;
-      const imageY = padY * scale;
-      const imageWidth = image.width * scale;
-      const imageHeight = image.height * scale;
-      ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
-      ctx.strokeStyle = "rgba(255, 255, 255, .36)";
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
+      setHandlePositions(previewQuad ? quadHandlePositions(previewQuad, padX, padY, scale) : []);
+      paintCanvas(previewQuad);
+    };
 
-      if (!slide.quad) return;
-      ctx.lineWidth = Math.max(3, width / 420);
-      ctx.strokeStyle = "rgba(200, 69, 53, .98)";
-      ctx.beginPath();
-      slide.quad.forEach(([x, y], index) => {
-        const sx = (padX + x) * scale;
-        const sy = (padY + y) * scale;
-        if (index === 0) ctx.moveTo(sx, sy);
-        else ctx.lineTo(sx, sy);
-      });
-      ctx.closePath();
-      ctx.stroke();
+    const cached = imageCacheRef.current;
+    if (cached?.id === slide.id && cached.url === slide.url) {
+      if (cached.image.complete && cached.image.naturalWidth) {
+        renderImage(cached.image);
+      } else {
+        cached.image.onload = () => renderImage(cached.image);
+        cached.image.onerror = () => {
+          if (imageCacheRef.current?.image === cached.image) setWorkerError("Cannot render this image in the browser.");
+        };
+      }
+      return;
+    }
 
-      slide.quad.forEach(([x, y], index) => {
-        const sx = (padX + x) * scale;
-        const sy = (padY + y) * scale;
-        const radius = Math.max(9, width / 150);
-        ctx.fillStyle = "rgba(255, 216, 74, .96)";
-        ctx.strokeStyle = "rgba(16, 20, 22, .92)";
-        ctx.lineWidth = Math.max(2, width / 700);
-        ctx.beginPath();
-        ctx.arc(sx, sy, radius, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#172026";
-        ctx.font = `700 ${Math.max(13, width / 80)}px -apple-system, BlinkMacSystemFont, sans-serif`;
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(String(index + 1), sx, sy + 1);
-      });
+    const image = new Image();
+    image.decoding = "async";
+    imageCacheRef.current = { id: slide.id, url: slide.url, image };
+    image.onload = () => renderImage(image);
+    image.onerror = () => {
+      if (imageCacheRef.current?.image === image) setWorkerError("Cannot render this image in the browser.");
     };
     image.src = slide.url;
-  }, [selectedSlide, zoom, zoomMode]);
+  }, [paintCanvas, selectedSlide, zoom, zoomMode]);
 
   useEffect(() => {
     redrawCanvas();
@@ -1133,16 +1336,13 @@ export function SlidesThiefApp() {
     return () => observer.disconnect();
   }, [redrawCanvas]);
 
-  const updateSelectedQuad = useCallback(
-    (nextQuad: Quad) => {
-      setSlides((current) =>
-        current.map((slide) => (slide.id === selectedId ? { ...slide, quad: nextQuad, method: "manual" } : slide)),
-      );
-    },
-    [selectedId],
-  );
+  const updateSlideQuad = useCallback((id: string, nextQuad: Quad) => {
+    setSlides((current) =>
+      current.map((slide) => (slide.id === id ? { ...slide, quad: nextQuad, method: "manual" } : slide)),
+    );
+  }, []);
 
-  const canvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const canvasPoint = (event: React.PointerEvent<HTMLElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return [0, 0] as const;
     const rect = canvas.getBoundingClientRect();
@@ -1152,42 +1352,79 @@ export function SlidesThiefApp() {
     ] as const;
   };
 
-  const onPointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (!selectedSlide?.quad) return;
-    latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
-    const [x, y] = canvasPoint(event);
-    const scale = scaleRef.current;
-    const { padX, padY } = viewportRef.current;
-    let best = -1;
-    let bestDistance = Number.POSITIVE_INFINITY;
-    selectedSlide.quad.forEach(([px, py], index) => {
-      const distance = Math.hypot((padX + px) * scale - x, (padY + py) * scale - y);
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        best = index;
-      }
-    });
-    if (best >= 0 && bestDistance <= Math.max(24, (canvasRef.current?.width ?? 1200) / 55)) {
-      setDragHandle(best);
-      event.currentTarget.setPointerCapture(event.pointerId);
+  const onHandlePointerDown = (index: number, event: React.PointerEvent<HTMLButtonElement>) => {
+    if (
+      !event.isPrimary ||
+      activePointerRef.current !== null ||
+      !selectedSlide?.quad ||
+      canvasRenderRef.current?.slideId !== selectedSlide.id
+    ) {
+      return;
     }
+    latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
+    activePointerRef.current = event.pointerId;
+    dragHandleRef.current = index;
+    setDragHandle(index);
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
   };
 
-  const onPointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    if (dragHandle === null || !selectedSlide?.quad) return;
+  const onHandlePointerMove = (event: React.PointerEvent<HTMLButtonElement>) => {
+    const handleIndex = dragHandleRef.current;
+    const render = canvasRenderRef.current;
+    const latest = latestDragQuadRef.current;
+    if (
+      handleIndex === null ||
+      activePointerRef.current !== event.pointerId ||
+      !render ||
+      !latest ||
+      render.slideId !== latest.id
+    ) {
+      return;
+    }
     const [x, y] = canvasPoint(event);
     const scale = scaleRef.current || 1;
     const { padX, padY } = viewportRef.current;
-    const next = cloneQuad(selectedSlide.quad);
-    next[dragHandle] = [x / scale - padX, y / scale - padY];
-    latestDragQuadRef.current = { id: selectedSlide.id, quad: next };
-    updateSelectedQuad(next);
+    const next = cloneQuad(latest.quad);
+    const handleMargin = 24 / scale;
+    next[handleIndex] = [
+      Math.max(
+        -padX + handleMargin,
+        Math.min(render.image.naturalWidth + padX - handleMargin, x / scale - padX),
+      ),
+      Math.max(
+        -padY + handleMargin,
+        Math.min(render.image.naturalHeight + padY - handleMargin, y / scale - padY),
+      ),
+    ];
+    latestDragQuadRef.current = { id: latest.id, quad: next };
+    if (dragFrameRef.current === null) {
+      dragFrameRef.current = window.requestAnimationFrame(() => {
+        dragFrameRef.current = null;
+        const pending = latestDragQuadRef.current;
+        if (pending) paintCanvas(pending.quad);
+      });
+    }
+    event.preventDefault();
   };
 
-  const onPointerUp = (event: React.PointerEvent<HTMLCanvasElement>) => {
+  const onHandlePointerUp = (event: React.PointerEvent<HTMLButtonElement>) => {
+    if (activePointerRef.current !== event.pointerId) return;
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
     const latest = latestDragQuadRef.current;
-    if (latest) void refreshSlideThumbnail(latest.id, latest.quad);
+    if (latest) {
+      paintCanvas(latest.quad);
+      const render = canvasRenderRef.current;
+      if (render) setHandlePositions(quadHandlePositions(latest.quad, render.padX, render.padY, render.scale));
+      updateSlideQuad(latest.id, latest.quad);
+      void refreshSlideThumbnail(latest.id, latest.quad);
+    }
     latestDragQuadRef.current = null;
+    activePointerRef.current = null;
+    dragHandleRef.current = null;
     setDragHandle(null);
     try {
       event.currentTarget.releasePointerCapture(event.pointerId);
@@ -1196,8 +1433,51 @@ export function SlidesThiefApp() {
     }
   };
 
+  const onHandleKeyDown = (index: number, event: React.KeyboardEvent<HTMLButtonElement>) => {
+    const render = canvasRenderRef.current;
+    if (!selectedSlide?.quad || !render || render.slideId !== selectedSlide.id) return;
+    const direction: Record<string, [number, number]> = {
+      ArrowLeft: [-1, 0],
+      ArrowRight: [1, 0],
+      ArrowUp: [0, -1],
+      ArrowDown: [0, 1],
+    };
+    const delta = direction[event.key];
+    if (!delta) return;
+    event.preventDefault();
+    const visualStep = event.shiftKey ? 10 : 1;
+    const sourceStep = visualStep / (scaleRef.current || 1);
+    const next = cloneQuad(selectedSlide.quad);
+    const handleMargin = 24 / (scaleRef.current || 1);
+    next[index] = [
+      Math.max(
+        -render.padX + handleMargin,
+        Math.min(
+          render.image.naturalWidth + render.padX - handleMargin,
+          next[index][0] + delta[0] * sourceStep,
+        ),
+      ),
+      Math.max(
+        -render.padY + handleMargin,
+        Math.min(
+          render.image.naturalHeight + render.padY - handleMargin,
+          next[index][1] + delta[1] * sourceStep,
+        ),
+      ),
+    ];
+    paintCanvas(next);
+    setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
+    updateSlideQuad(selectedSlide.id, next);
+    void refreshSlideThumbnail(selectedSlide.id, next);
+  };
+
   const runAuto = () => {
     if (!slides.length) return;
+    cancelActiveDrag();
+    const worker = ensureWorker();
+    if (!worker) return;
+    if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
+    exportUrlRef.current = null;
     setExportUrl(null);
     setWorkerError("");
     setBusyText(text.stretching);
@@ -1211,7 +1491,7 @@ export function SlidesThiefApp() {
         error: undefined,
       })),
     );
-    ensureWorker().postMessage({
+    worker.postMessage({
       type: "detect",
       files: slides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
       settings,
@@ -1222,12 +1502,16 @@ export function SlidesThiefApp() {
     if (!selectedSlide) return;
     if (selectedSlide.autoQuad) {
       const next = cloneQuad(selectedSlide.autoQuad);
-      updateSelectedQuad(next);
+      cancelActiveDrag();
+      updateSlideQuad(selectedSlide.id, next);
       void refreshSlideThumbnail(selectedSlide.id, next);
       return;
     }
+    cancelActiveDrag();
+    const worker = ensureWorker();
+    if (!worker) return;
     setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-    ensureWorker().postMessage({
+    worker.postMessage({
       type: "detect",
       files: [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
       settings,
@@ -1236,12 +1520,16 @@ export function SlidesThiefApp() {
 
   const exportPdf = () => {
     if (!readySlides.length) return;
+    const worker = ensureWorker();
+    if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
+    if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
+    exportUrlRef.current = null;
     setExporting(true);
     setExportUrl(null);
     setWorkerError("");
     setBusyText(text.generating);
-    ensureWorker().postMessage({
+    worker.postMessage({
       type: "export",
       files: readySlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
       slides: readySlides.map((slide) => ({
@@ -1257,6 +1545,11 @@ export function SlidesThiefApp() {
   const selectAt = (index: number) => {
     const slide = slides[Math.max(0, Math.min(slides.length - 1, index))];
     if (slide) {
+      cancelActiveDrag();
+      if (slide.id !== selectedSlide?.id) {
+        canvasRenderRef.current = null;
+        setHandlePositions([]);
+      }
       setSelectedId(slide.id);
       setZoomMode("fit");
     }
@@ -1264,12 +1557,12 @@ export function SlidesThiefApp() {
 
   const zoomOut = () => {
     setZoomMode("manual");
-    setZoom(Math.max(0.12, (zoomMode === "fit" ? displayZoom : zoom) / 1.18));
+    setZoom(Math.max(fitZoomRef.current * 0.5, Math.min(maxZoomRef.current, displayZoom / 1.18)));
   };
 
   const zoomIn = () => {
     setZoomMode("manual");
-    setZoom(Math.min(3, (zoomMode === "fit" ? displayZoom : zoom) * 1.18));
+    setZoom(Math.min(maxZoomRef.current, Math.max(fitZoomRef.current * 0.5, displayZoom * 1.18)));
   };
 
   const metrics = selectedSlide
@@ -1284,7 +1577,7 @@ export function SlidesThiefApp() {
     : [];
 
   return (
-    <div className="app">
+    <div className="app" aria-busy={busy || Boolean(busyText)}>
       <header className="topbar">
         <div className="brand">
           <div className="mark">{text.brandMark}</div>
@@ -1370,7 +1663,7 @@ export function SlidesThiefApp() {
               </label>
             </div>
           </details>
-          <label>
+          <label className="pdfNameSetting">
             <span>{text.pdfName}</span>
             <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
             <span className="fileSuffix">.pdf</span>
@@ -1399,16 +1692,16 @@ export function SlidesThiefApp() {
       <main className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}>
         <aside className="sidebar">
           <div className="sidebarActions">
-            <button className="primary" disabled={busy || !slides.length} onClick={runAuto}>
+            <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
               {text.runAuto}
             </button>
-            <button className="green" disabled={busy || !readySlides.length} onClick={exportPdf}>
+            <button type="button" className="green" disabled={busy || !readySlides.length} onClick={exportPdf}>
               {text.generatePdf}
             </button>
           </div>
           <div className="sidebarRunMeta">
             <div className="sidebarStatus" role="status" aria-live="polite">
-              <span className={`statusDot ${statusTone}`} />
+              <span className={`statusDot ${statusTone}`} aria-hidden="true" />
               <span className="statusLine">{statusText}</span>
             </div>
             <div className="links sidebarLinks">
@@ -1428,42 +1721,59 @@ export function SlidesThiefApp() {
               ref={inputRef}
               className="fileInput"
               type="file"
-              accept="image/*,.jpg,.jpeg,.png,.webp,.heic,.heif,image/heic,image/heif"
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
               multiple
+              disabled={busy}
               onChange={(event) => {
-                if (event.target.files) void loadFiles(event.target.files);
+                const files = event.currentTarget.files ? Array.from(event.currentTarget.files) : [];
+                event.currentTarget.value = "";
+                if (files.length) void loadFiles(files);
               }}
             />
-            <div
+            <button
+              type="button"
               className={`dropzone ${dragActive ? "active" : ""}`}
+              disabled={busy}
               onClick={() => inputRef.current?.click()}
               onDragOver={(event) => {
                 event.preventDefault();
                 setDragActive(true);
               }}
-              onDragLeave={() => setDragActive(false)}
+              onDragLeave={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
+              }}
               onDrop={(event) => {
                 event.preventDefault();
                 setDragActive(false);
                 void loadFiles(event.dataTransfer.files);
               }}
-              role="button"
-              tabIndex={0}
             >
-              <div>
+              <span className="dropzoneContent">
                 <strong>{text.dropTitle}</strong>
                 <span>{text.dropSubtitle}</span>
-              </div>
-            </div>
+              </span>
+            </button>
             <div className="files">
               {slides.map((slide, index) => {
                 const active = selectedId === slide.id || (!selectedId && index === 0);
                 const className = `${hasRun ? "slideRow" : "fileRow"} ${active ? "active" : ""}`;
                 return (
-                  <button key={slide.id} className={className} onClick={() => selectAt(index)}>
+                  <button
+                    type="button"
+                    key={slide.id}
+                    className={className}
+                    aria-pressed={active}
+                    onClick={() => selectAt(index)}
+                  >
                     <div className="idx">{String(index + 1).padStart(2, "0")}</div>
                     {/* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */}
-                    <img className="thumb" src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url} alt="" />
+                    <img
+                      className="thumb"
+                      src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <div className="name">{slide.name}</div>
                     {hasRun ? (
                       <div className={`badge ${slide.confidence < 0.65 ? "low" : ""}`}>
@@ -1481,13 +1791,22 @@ export function SlidesThiefApp() {
 
         <section className="workspace">
           <div className="reviewBar">
-            <button className="icon" disabled={!slides.length || selectedIndex <= 0} title={text.prev} onClick={() => selectAt(selectedIndex - 1)}>
+            <button
+              type="button"
+              className="icon reviewPrevious"
+              disabled={!slides.length || selectedIndex <= 0}
+              title={text.prev}
+              aria-label={text.prev}
+              onClick={() => selectAt(selectedIndex - 1)}
+            >
               ‹
             </button>
             <button
-              className="icon"
+              type="button"
+              className="icon reviewNext"
               disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
               title={text.next}
+              aria-label={text.next}
               onClick={() => selectAt(selectedIndex + 1)}
             >
               ›
@@ -1496,32 +1815,53 @@ export function SlidesThiefApp() {
               {selectedSlide ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${selectedSlide.name}` : text.noSlide}
             </div>
             <div className="zoomControls">
-              <button className="icon" disabled={!selectedSlide} title={text.zoomOut} onClick={zoomOut}>
+              <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
                 −
               </button>
               <span className="zoomValue">{Math.round(displayZoom * 100)}%</span>
-              <button className="icon" disabled={!selectedSlide} title={text.zoomIn} onClick={zoomIn}>
+              <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
                 +
               </button>
-              <button disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
+              <button type="button" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
                 {text.fit}
               </button>
             </div>
-            <button disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
+            <button type="button" className="resetButton" disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
               {text.resetSlide}
             </button>
           </div>
           <div className="stage" ref={stageRef}>
             <div className="canvasShell">
               {selectedSlide ? (
-                <canvas
-                  ref={canvasRef}
-                  onPointerDown={onPointerDown}
-                  onPointerMove={onPointerMove}
-                  onPointerUp={onPointerUp}
-                  onPointerCancel={onPointerUp}
-                  aria-label="Drag the four numbered handles to align the slide corners"
-                />
+                <div className="canvasWrap">
+                  <canvas ref={canvasRef} aria-label={text.adjustCorners}>
+                    {text.adjustCorners}
+                  </canvas>
+                  {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
+                    ? selectedSlide.quad.map((_, index) => {
+                        const position = handlePositions[index] ?? { left: 0, top: 0 };
+                        return (
+                          <button
+                            type="button"
+                            key={index}
+                            ref={(node) => {
+                              handleRefs.current[index] = node;
+                            }}
+                            className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
+                            style={{ left: position.left, top: position.top }}
+                            aria-label={`${text.cornerHandle} ${index + 1}`}
+                            title={text.adjustCorners}
+                            onPointerDown={(event) => onHandlePointerDown(index, event)}
+                            onPointerMove={onHandlePointerMove}
+                            onPointerUp={onHandlePointerUp}
+                            onPointerCancel={onHandlePointerUp}
+                            onLostPointerCapture={onHandlePointerUp}
+                            onKeyDown={(event) => onHandleKeyDown(index, event)}
+                          />
+                        );
+                      })
+                    : null}
+                </div>
               ) : (
                 <div className="empty">{text.empty}</div>
               )}
@@ -1537,13 +1877,15 @@ export function SlidesThiefApp() {
               className="icon inspectorToggle"
               type="button"
               title={inspectorCollapsed ? text.expand : text.collapse}
+              aria-label={inspectorCollapsed ? text.expand : text.collapse}
               aria-expanded={!inspectorCollapsed}
+              aria-controls="inspectorDetails"
               onClick={() => setInspectorCollapsed((value) => !value)}
             >
-              {inspectorCollapsed ? "‹" : "›"}
+              {inspectorCollapsed ? "+" : "−"}
             </button>
           </div>
-          <div className="inspectorBody">
+          <div className="inspectorBody" id="inspectorDetails">
             <div className="metrics">
               {metrics.map(([key, value]) => (
                 <div className="metric" key={key}>
@@ -1563,8 +1905,8 @@ export function SlidesThiefApp() {
                   ))
                 : null}
             </div>
-            {workerError ? <p className="errorText">{workerError}</p> : null}
-            {selectedSlide?.error ? <p className="errorText">{selectedSlide.error}</p> : null}
+            {workerError ? <p className="errorText" role="alert">{workerError}</p> : null}
+            {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error}</p> : null}
           </div>
         </aside>
       </main>
