@@ -45,8 +45,11 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /Auto straighten/);
   assert.match(html, /Generate PDF/);
   assert.match(html, /Convert angled presentation photos into a clean PDF/);
+  assert.match(html, /<section class="productInfo" aria-hidden="true" inert/);
   assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);
+  assert.match(html, /class="settingsMenu"/);
+  assert.match(html, /class="prefsBar"/);
   assert.match(html, /class="reviewBar"/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
@@ -68,6 +71,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.doesNotMatch(app, /manual_quads\.json/);
   assert.match(app, /themeSetting/);
   assert.match(app, /localeOptions/);
+  assert.match(app, /className="prefsBar"/);
+  assert.match(app, /className="settingsMenu"/);
+  assert.match(app, /settings: "Settings"/);
   assert.match(app, /"zh-TW"/);
   assert.match(app, /Español/);
   assert.match(app, /Français/);
@@ -106,6 +112,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /\.cornerHandle\s*\{[^}]*touch-action:\s*none/s);
   assert.match(css, /@media \(max-width: 720px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
   assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow:\s*visible/s);
+  assert.match(css, /\.productInfo\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
+  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"\s*"prefs"/s);
+  assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);
+  assert.match(css, /\.settingsMenuToggle/);
   assert.match(css, /font-size:\s*16px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /safe-area-inset-bottom/);

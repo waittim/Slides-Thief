@@ -1,6 +1,6 @@
 export function ProductInfo() {
   return (
-    <section className="productInfo" aria-labelledby="product-info-title">
+    <section className="productInfo" aria-hidden="true" inert>
       <div>
         <p className="productInfoEyebrow">Browser-local slide photo correction</p>
         <h2 id="product-info-title">Convert angled presentation photos into a clean PDF</h2>

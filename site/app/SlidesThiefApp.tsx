@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -122,6 +122,7 @@ const copy = {
     brandName: "Slides Thief · PPT捕手",
     ratio: "比例",
     more: "更多设置",
+    settings: "设置",
     width: "宽度",
     height: "高度",
     heightAuto: "自动",
@@ -176,6 +177,7 @@ const copy = {
     brandName: "Slides Thief · PPT捕手",
     ratio: "比例",
     more: "更多設定",
+    settings: "設定",
     width: "寬度",
     height: "高度",
     heightAuto: "自動",
@@ -230,6 +232,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "Ratio",
     more: "More settings",
+    settings: "Settings",
     width: "Width",
     height: "Height",
     heightAuto: "Auto",
@@ -284,6 +287,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "Relación",
     more: "Más ajustes",
+    settings: "Ajustes",
     width: "Ancho",
     height: "Alto",
     heightAuto: "Auto",
@@ -338,6 +342,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "Format",
     more: "Réglages",
+    settings: "Réglages",
     width: "Largeur",
     height: "Hauteur",
     heightAuto: "Auto",
@@ -392,6 +397,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "Format",
     more: "Mehr",
+    settings: "Einstellungen",
     width: "Breite",
     height: "Höhe",
     heightAuto: "Auto",
@@ -446,6 +452,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "比率",
     more: "詳細設定",
+    settings: "設定",
     width: "幅",
     height: "高さ",
     heightAuto: "自動",
@@ -500,6 +507,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "비율",
     more: "추가 설정",
+    settings: "설정",
     width: "너비",
     height: "높이",
     heightAuto: "자동",
@@ -554,6 +562,7 @@ const copy = {
     brandName: "Slides Thief",
     ratio: "Proporção",
     more: "Mais ajustes",
+    settings: "Ajustes",
     width: "Largura",
     height: "Altura",
     heightAuto: "Auto",
@@ -887,6 +896,8 @@ export function SlidesThiefApp() {
   const canvasRenderRef = useRef<CanvasRenderState | null>(null);
   const imageCacheRef = useRef<{ id: string; url: string; image: HTMLImageElement } | null>(null);
   const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  const settingsMenuRef = useRef<HTMLDetailsElement | null>(null);
+  const moreSettingsRef = useRef<HTMLDetailsElement | null>(null);
   const dragHandleRef = useRef<number | null>(null);
   const activePointerRef = useRef<number | null>(null);
   const dragFrameRef = useRef<number | null>(null);
@@ -1101,6 +1112,26 @@ export function SlidesThiefApp() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useLayoutEffect(() => {
+    const settingsMenu = settingsMenuRef.current;
+    const moreSettings = moreSettingsRef.current;
+    if (!settingsMenu) return;
+
+    const media = window.matchMedia("(max-width: 720px)");
+    const sync = () => {
+      if (media.matches) {
+        settingsMenu.open = false;
+        if (moreSettings) moreSettings.open = true;
+      } else {
+        settingsMenu.open = true;
+      }
+    };
+
+    sync();
+    media.addEventListener("change", sync);
+    return () => media.removeEventListener("change", sync);
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -1635,108 +1666,112 @@ export function SlidesThiefApp() {
           <h1 className="brandText">{text.brandName}</h1>
         </div>
         <div className="settings">
-          <label>
-            <span>{text.ratio}</span>
-            <select
-              value={settings.ratio}
-              onChange={(event) => setSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
-            >
-              <option value="16:9">16:9</option>
-              <option value="4:3">4:3</option>
-            </select>
-          </label>
-          <details className="moreSettings">
-            <summary>{text.more}</summary>
-            <div className="morePanel">
-              <label>
-                <span>{text.width}</span>
-                <input
-                  type="number"
-                  min={800}
-                  max={6000}
-                  value={settings.width}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
-                    }))
+          <details
+            className="settingsMenu"
+            ref={settingsMenuRef}
+            defaultOpen
+            onToggle={(event) => {
+              if (!window.matchMedia("(max-width: 720px)").matches) {
+                event.currentTarget.open = true;
+              }
+            }}
+          >
+            <summary className="settingsMenuToggle">{text.settings}</summary>
+            <div className="settingsMenuBody">
+              <label className="ratioSetting">
+                <span>{text.ratio}</span>
+                <select
+                  value={settings.ratio}
+                  onChange={(event) => setSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
+                >
+                  <option value="16:9">16:9</option>
+                  <option value="4:3">4:3</option>
+                </select>
+              </label>
+              <details
+                className="moreSettings"
+                ref={moreSettingsRef}
+                onToggle={(event) => {
+                  if (window.matchMedia("(max-width: 720px)").matches) {
+                    event.currentTarget.open = true;
                   }
-                />
-              </label>
-              <label>
-                <span>{text.height}</span>
-                <input
-                  type="number"
-                  min={600}
-                  max={6000}
-                  placeholder={text.heightAuto}
-                  value={settings.height ?? ""}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      height: event.target.value
-                        ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
-                        : null,
-                    }))
-                  }
-                />
-              </label>
-              <label>
-                <span>{text.quality}</span>
-                <input
-                  type="number"
-                  min={60}
-                  max={98}
-                  value={Math.round(settings.quality * 100)}
-                  onChange={(event) =>
-                    setSettings((current) => ({
-                      ...current,
-                      quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
-                    }))
-                  }
-                />
-              </label>
-              <label className="checks">
-                <span>{text.grayscale}</span>
-                <input
-                  type="checkbox"
-                  checked={settings.grayscale}
-                  onChange={(event) => setSettings((current) => ({ ...current, grayscale: event.target.checked }))}
-                />
-              </label>
-              <label className="colorSetting">
-                <span>{text.fillColor}</span>
-                <input
-                  type="color"
-                  value={settings.fillColor}
-                  onChange={(event) => setSettings((current) => ({ ...current, fillColor: event.target.value }))}
-                />
+                }}
+              >
+                <summary>{text.more}</summary>
+                <div className="morePanel">
+                  <label>
+                    <span>{text.width}</span>
+                    <input
+                      type="number"
+                      min={800}
+                      max={6000}
+                      value={settings.width}
+                      onChange={(event) =>
+                        setSettings((current) => ({
+                          ...current,
+                          width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>{text.height}</span>
+                    <input
+                      type="number"
+                      min={600}
+                      max={6000}
+                      placeholder={text.heightAuto}
+                      value={settings.height ?? ""}
+                      onChange={(event) =>
+                        setSettings((current) => ({
+                          ...current,
+                          height: event.target.value
+                            ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
+                            : null,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label>
+                    <span>{text.quality}</span>
+                    <input
+                      type="number"
+                      min={60}
+                      max={98}
+                      value={Math.round(settings.quality * 100)}
+                      onChange={(event) =>
+                        setSettings((current) => ({
+                          ...current,
+                          quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
+                        }))
+                      }
+                    />
+                  </label>
+                  <label className="checks">
+                    <span>{text.grayscale}</span>
+                    <input
+                      type="checkbox"
+                      checked={settings.grayscale}
+                      onChange={(event) => setSettings((current) => ({ ...current, grayscale: event.target.checked }))}
+                    />
+                  </label>
+                  <label className="colorSetting">
+                    <span>{text.fillColor}</span>
+                    <input
+                      type="color"
+                      value={settings.fillColor}
+                      onChange={(event) => setSettings((current) => ({ ...current, fillColor: event.target.value }))}
+                    />
+                  </label>
+                </div>
+              </details>
+              <label className="pdfNameSetting">
+                <span>{text.pdfName}</span>
+                <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
+                <span className="fileSuffix">.pdf</span>
               </label>
             </div>
           </details>
-          <label className="pdfNameSetting">
-            <span>{text.pdfName}</span>
-            <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
-            <span className="fileSuffix">.pdf</span>
-          </label>
-          <label className="themeSetting">
-            <span>{text.theme}</span>
-            <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
-              <option value="auto">{text.auto}</option>
-              <option value="light">{text.light}</option>
-              <option value="dark">{text.dark}</option>
-            </select>
-          </label>
-          <label className="languageSetting">
-            <span>{text.language}</span>
-            <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
-              {localeOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </label>
         </div>
       </header>
 
@@ -1961,6 +1996,27 @@ export function SlidesThiefApp() {
           </div>
         </aside>
       </main>
+
+      <footer className="prefsBar">
+        <label className="themeSetting">
+          <span>{text.theme}</span>
+          <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
+            <option value="auto">{text.auto}</option>
+            <option value="light">{text.light}</option>
+            <option value="dark">{text.dark}</option>
+          </select>
+        </label>
+        <label className="languageSetting">
+          <span>{text.language}</span>
+          <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
+            {localeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </footer>
     </div>
   );
 }
