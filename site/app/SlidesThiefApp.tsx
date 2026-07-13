@@ -980,6 +980,12 @@ export function SlidesThiefApp() {
         setBusyText("");
       }
       if (message.type === "slide-error") {
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "processing_error", {
+            error_type: "slide_error",
+            error_message: message.error || "Slide processing error",
+          });
+        }
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.id
@@ -993,6 +999,12 @@ export function SlidesThiefApp() {
         setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
       }
       if (message.type === "export-complete") {
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "pdf_export_success", {
+            page_count: slidesRef.current.length,
+            file_size_bytes: message.pdf.byteLength,
+          });
+        }
         if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
         const blob = new Blob([message.pdf], { type: "application/pdf" });
         const url = URL.createObjectURL(blob);
@@ -1003,6 +1015,12 @@ export function SlidesThiefApp() {
         setBusyText("");
       }
       if (message.type === "error") {
+        if (typeof window !== "undefined" && (window as any).gtag) {
+          (window as any).gtag("event", "processing_error", {
+            error_type: "worker_error",
+            error_message: message.error || "General worker error",
+          });
+        }
         setSlides((current) =>
           current.map((slide) =>
             slide.status === "detecting"
@@ -1016,6 +1034,12 @@ export function SlidesThiefApp() {
       }
     };
     const handleWorkerFailure = (message: string) => {
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "processing_error", {
+          error_type: "worker_failure",
+          error_message: message || "Worker terminated unexpectedly",
+        });
+      }
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
       setSlides((current) =>
@@ -1104,6 +1128,13 @@ export function SlidesThiefApp() {
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       if (!inputFiles.length) return;
       const hasHeif = inputFiles.some(isHeifImage);
+
+      if (typeof window !== "undefined" && (window as any).gtag) {
+        (window as any).gtag("event", "image_import", {
+          count: inputFiles.length,
+          has_heif: hasHeif,
+        });
+      }
 
       workerRef.current?.terminate();
       workerRef.current = null;
@@ -1338,7 +1369,19 @@ export function SlidesThiefApp() {
 
   const updateSlideQuad = useCallback((id: string, nextQuad: Quad) => {
     setSlides((current) =>
-      current.map((slide) => (slide.id === id ? { ...slide, quad: nextQuad, method: "manual" } : slide)),
+      current.map((slide) => {
+        if (slide.id === id) {
+          if (slide.method !== "manual") {
+            if (typeof window !== "undefined" && (window as any).gtag) {
+              (window as any).gtag("event", "corner_adjusted", {
+                slide_id: id,
+              });
+            }
+          }
+          return { ...slide, quad: nextQuad, method: "manual" };
+        }
+        return slide;
+      }),
     );
   }, []);
 
