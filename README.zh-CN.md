@@ -1,5 +1,7 @@
 # Slides Thief · PPT捕手
 
+[![Website](https://img.shields.io/badge/Website-slidesthief.com-brightgreen)](https://slidesthief.com/) [![Blog](https://img.shields.io/badge/Blog-zekun.blog-blue)](https://www.zekun.blog/2026/07/13/slides-thief/) [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 [English](README.md)
 
 Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并合成为一个干净的 PDF。它适合会议室、讲座、课堂、展会等场景：只要你拍到了投影屏幕或显示器里的幻灯片，就可以快速整理成可阅读、可分享的文件。

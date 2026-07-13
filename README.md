@@ -1,5 +1,7 @@
 # Slides Thief
 
+[![Website](https://img.shields.io/badge/Website-slidesthief.com-brightgreen)](https://slidesthief.com/) [![Blog](https://img.shields.io/badge/Blog-zekun.blog-blue)](https://www.zekun.blog/2026/07/13/slides-thief/) [![Python 3.9+](https://img.shields.io/badge/Python-3.9+-blue.svg)](https://www.python.org/downloads/) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 [简体中文](README.zh-CN.md)
 
 Slides Thief turns skewed photos of presentation slides into a clean PDF. It is
