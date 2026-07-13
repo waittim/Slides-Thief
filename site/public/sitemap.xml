@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://www.zekun.blog/Slides-Thief/</loc>
+    <loc>https://slidesthief.com/</loc>
   </url>
-  <url><loc>https://www.zekun.blog/Slides-Thief/llms.txt</loc></url>
-  <url><loc>https://www.zekun.blog/Slides-Thief/llms-full.txt</loc></url>
-  <url><loc>https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json</loc></url>
-  <url><loc>https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json</loc></url>
+  <url><loc>https://slidesthief.com/llms.txt</loc></url>
+  <url><loc>https://slidesthief.com/llms-full.txt</loc></url>
+  <url><loc>https://slidesthief.com/schemas/slide-lens-report.schema.json</loc></url>
+  <url><loc>https://slidesthief.com/schemas/manual-quads.schema.json</loc></url>
 </urlset>

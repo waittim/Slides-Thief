@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { ProductInfo } from "./ProductInfo";
 import { SlidesThiefApp } from "./SlidesThiefApp";
 
-const siteUrl = "https://www.zekun.blog/Slides-Thief/";
+const siteUrl = "https://slidesthief.com/";
 const title = "Slides Thief - Straighten Slide Photos into PDFs";
 const description =
   "Straighten skewed photos of presentation slides and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";

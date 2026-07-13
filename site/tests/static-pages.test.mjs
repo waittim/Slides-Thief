@@ -14,19 +14,19 @@ test("emits a GitHub Pages compatible static app", async () => {
   assert.match(html, /<html lang="en">/i);
   assert.match(html, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/i);
   assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
-  assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
+  assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\/"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
   assert.match(html, /"alternateName": \["PPT捕手"/);
   assert.match(html, /<h1>Slides Thief — Convert Angled Slide Photos to PDF<\/h1>/i);
-  assert.match(html, /\/Slides-Thief\/assets\//);
+  assert.match(html, /\/assets\//);
   assert.match(html, /type="module"/);
   assert.doesNotMatch(html, /_next|__next|vinext/i);
-  assert.match(robots, /Sitemap: https:\/\/www\.zekun\.blog\/Slides-Thief\/sitemap\.xml/);
-  assert.match(sitemap, /<loc>https:\/\/www\.zekun\.blog\/Slides-Thief\/<\/loc>/);
+  assert.match(robots, /Sitemap: https:\/\/slidesthief\.com\/sitemap\.xml/);
+  assert.match(sitemap, /<loc>https:\/\/slidesthief\.com\/<\/loc>/);
   assert.match(sitemap, /llms\.txt/);
 
   assert.ok(assets.some((name) => name.endsWith(".js")), "expected static JavaScript output");
   assert.ok(assets.some((name) => name.endsWith(".css")), "expected static CSS output");
   assert.ok(assets.some((name) => /slides-worker/i.test(name) && name.endsWith(".js")), "expected bundled worker");
-  assert.match(mainScript, /\/Slides-Thief\/assets\/slides-worker-[A-Za-z0-9_-]+\.js/);
+  assert.match(mainScript, /\/assets\/slides-worker-[A-Za-z0-9_-]+\.js/);
 });

@@ -37,7 +37,7 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   const viewportPatchIndex = html.indexOf("setAttribute(\"content\"");
   assert.ok(viewportIndex >= 0 && viewportPatchIndex > viewportIndex);
   assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
-  assert.match(html, /<link rel="canonical" href="https:\/\/www\.zekun\.blog\/Slides-Thief\/"/i);
+  assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\/"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
   assert.match(html, /"@type":"WebApplication"/);
   assert.match(html, /"alternateName":\["PPT捕手"/);

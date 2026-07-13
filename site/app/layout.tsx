@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
-const siteUrl = "https://www.zekun.blog/Slides-Thief/";
+const siteUrl = "https://slidesthief.com/";
 const title = "Slides Thief - Straighten Slide Photos into PDFs";
 const description =
   "Straighten skewed photos of presentation slides and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
-
+ 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.zekun.blog"),
+  metadataBase: new URL("https://slidesthief.com"),
   title,
   description,
   applicationName: "Slides Thief",
