@@ -1669,7 +1669,6 @@ export function SlidesThiefApp() {
           <details
             className="settingsMenu"
             ref={settingsMenuRef}
-            defaultOpen
             onToggle={(event) => {
               if (!window.matchMedia("(max-width: 720px)").matches) {
                 event.currentTarget.open = true;

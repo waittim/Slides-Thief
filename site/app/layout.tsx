@@ -35,11 +35,6 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
-  },
-  manifest: "/manifest.webmanifest",
 };
 
 export default function RootLayout({
@@ -50,6 +45,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        {/* Keep icon/manifest relative so local/dev origins stay same-origin with start_url. */}
+        <link rel="icon" href="/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.svg" />
+        <link rel="manifest" href="/manifest.webmanifest" />
         {/* Google tag (gtag.js) */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH" />
@@ -66,7 +65,7 @@ export default function RootLayout({
         />
         <script dangerouslySetInnerHTML={{ __html: viewportScript }} />
       </head>
-      <body>{children}</body>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   );
 }
