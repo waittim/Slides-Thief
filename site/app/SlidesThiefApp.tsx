@@ -142,6 +142,7 @@ const copy = {
     images: "图片",
     details: "详情",
     dropTitle: "点击或拖拽上传",
+    uploadTitle: "点击上传照片",
     dropSubtitle: "支持 JPG、PNG、WebP、HEIC/HEIF",
     prev: "上一页",
     next: "下一页",
@@ -202,6 +203,7 @@ const copy = {
     images: "圖片",
     details: "詳情",
     dropTitle: "點擊或拖放上傳",
+    uploadTitle: "點擊上傳相片",
     dropSubtitle: "支援 JPG、PNG、WebP、HEIC/HEIF",
     prev: "上一頁",
     next: "下一頁",
@@ -262,6 +264,7 @@ const copy = {
     images: "Images",
     details: "Details",
     dropTitle: "Click or drop images",
+    uploadTitle: "Click to upload photos",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF in browser",
     prev: "Previous page",
     next: "Next page",
@@ -322,6 +325,7 @@ const copy = {
     images: "Imágenes",
     details: "Detalles",
     dropTitle: "Haz clic o arrastra imágenes",
+    uploadTitle: "Haz clic para subir fotos",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF local",
     prev: "Página anterior",
     next: "Página siguiente",
@@ -382,6 +386,7 @@ const copy = {
     images: "Images",
     details: "Détails",
     dropTitle: "Cliquez ou déposez des images",
+    uploadTitle: "Cliquez pour charger des photos",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF local",
     prev: "Page précédente",
     next: "Page suivante",
@@ -442,6 +447,7 @@ const copy = {
     images: "Bilder",
     details: "Details",
     dropTitle: "Klicken oder Bilder ablegen",
+    uploadTitle: "Fotos hochladen",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF lokal",
     prev: "Vorherige Seite",
     next: "Nächste Seite",
@@ -502,6 +508,7 @@ const copy = {
     images: "画像",
     details: "詳細",
     dropTitle: "クリックまたはドラッグ",
+    uploadTitle: "タップして写真をアップロード",
     dropSubtitle: "JPG、PNG、WebP、HEIC/HEIF対応",
     prev: "前のページ",
     next: "次のページ",
@@ -562,6 +569,7 @@ const copy = {
     images: "이미지",
     details: "상세",
     dropTitle: "클릭하거나 끌어다 놓기",
+    uploadTitle: "사진 업로드하려면 클릭",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF 지원",
     prev: "이전 페이지",
     next: "다음 페이지",
@@ -622,6 +630,7 @@ const copy = {
     images: "Imagens",
     details: "Detalhes",
     dropTitle: "Clique ou arraste imagens",
+    uploadTitle: "Clique para enviar fotos",
     dropSubtitle: "JPG, PNG, WebP, HEIC/HEIF local",
     prev: "Página anterior",
     next: "Próxima página",
@@ -913,6 +922,8 @@ export function SlidesThiefApp() {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const [pdfBaseName, setPdfBaseName] = useState("flattened_slides");
   const [theme, setTheme] = useState<ThemeValue>("auto");
   const [locale, setLocale] = useState<LocaleValue>("en");
@@ -1166,17 +1177,48 @@ export function SlidesThiefApp() {
 
     const media = window.matchMedia("(max-width: 720px)");
     const sync = () => {
-      if (media.matches) {
+      const matches = media.matches;
+      setIsMobile(matches);
+      if (matches) {
         settingsMenu.open = false;
+        setSettingsOpen(false);
         if (moreSettings) moreSettings.open = true;
       } else {
         settingsMenu.open = true;
+        setSettingsOpen(true);
       }
     };
 
     sync();
     media.addEventListener("change", sync);
     return () => media.removeEventListener("change", sync);
+  }, []);
+
+  useEffect(() => {
+    const handleDocumentClick = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (window.matchMedia("(max-width: 720px)").matches) {
+        const settingsMenu = settingsMenuRef.current;
+        if (settingsMenu && !settingsMenu.contains(target)) {
+          if (settingsMenu.open) {
+            settingsMenu.open = false;
+            setSettingsOpen(false);
+          }
+        }
+      } else {
+        const moreSettings = moreSettingsRef.current;
+        if (moreSettings && !moreSettings.contains(target)) {
+          if (moreSettings.open) {
+            moreSettings.open = false;
+          }
+        }
+      }
+    };
+
+    document.addEventListener("click", handleDocumentClick);
+    return () => {
+      document.removeEventListener("click", handleDocumentClick);
+    };
   }, []);
 
   useEffect(() => {
@@ -1716,106 +1758,113 @@ export function SlidesThiefApp() {
             className="settingsMenu"
             ref={settingsMenuRef}
             onToggle={(event) => {
-              if (!window.matchMedia("(max-width: 720px)").matches) {
+              const isOpen = event.currentTarget.open;
+              if (window.matchMedia("(max-width: 720px)").matches) {
+                setSettingsOpen(isOpen);
+              } else {
                 event.currentTarget.open = true;
+                setSettingsOpen(true);
               }
             }}
           >
             <summary className="settingsMenuToggle">{text.settings}</summary>
-            <div className="settingsMenuBody">
-              <label className="ratioSetting">
-                <span>{text.ratio}</span>
-                <select
-                  value={settings.ratio}
-                  onChange={(event) => setSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
+            {settingsOpen && (
+              <div className="settingsMenuBody">
+                <label className="ratioSetting">
+                  <span>{text.ratio}</span>
+                  <select
+                    value={settings.ratio}
+                    onChange={(event) => setSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
+                  >
+                    <option value="16:9">16:9</option>
+                    <option value="4:3">4:3</option>
+                  </select>
+                </label>
+                <details
+                  className="moreSettings"
+                  ref={moreSettingsRef}
+                  open={isMobile ? true : undefined}
+                  onToggle={(event) => {
+                    if (window.matchMedia("(max-width: 720px)").matches) {
+                      event.currentTarget.open = true;
+                    }
+                  }}
                 >
-                  <option value="16:9">16:9</option>
-                  <option value="4:3">4:3</option>
-                </select>
-              </label>
-              <details
-                className="moreSettings"
-                ref={moreSettingsRef}
-                onToggle={(event) => {
-                  if (window.matchMedia("(max-width: 720px)").matches) {
-                    event.currentTarget.open = true;
-                  }
-                }}
-              >
-                <summary>{text.more}</summary>
-                <div className="morePanel">
-                  <label>
-                    <span>{text.width}</span>
-                    <input
-                      type="number"
-                      min={800}
-                      max={6000}
-                      value={settings.width}
-                      onChange={(event) =>
-                        setSettings((current) => ({
-                          ...current,
-                          width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>{text.height}</span>
-                    <input
-                      type="number"
-                      min={600}
-                      max={6000}
-                      placeholder={text.heightAuto}
-                      value={settings.height ?? ""}
-                      onChange={(event) =>
-                        setSettings((current) => ({
-                          ...current,
-                          height: event.target.value
-                            ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
-                            : null,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>{text.quality}</span>
-                    <input
-                      type="number"
-                      min={60}
-                      max={98}
-                      value={Math.round(settings.quality * 100)}
-                      onChange={(event) =>
-                        setSettings((current) => ({
-                          ...current,
-                          quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="checks">
-                    <span>{text.grayscale}</span>
-                    <input
-                      type="checkbox"
-                      checked={settings.grayscale}
-                      onChange={(event) => setSettings((current) => ({ ...current, grayscale: event.target.checked }))}
-                    />
-                  </label>
-                  <label className="colorSetting">
-                    <span>{text.fillColor}</span>
-                    <input
-                      type="color"
-                      value={settings.fillColor}
-                      onChange={(event) => setSettings((current) => ({ ...current, fillColor: event.target.value }))}
-                    />
-                  </label>
-                </div>
-              </details>
-              <label className="pdfNameSetting">
-                <span>{text.pdfName}</span>
-                <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
-                <span className="fileSuffix">.pdf</span>
-              </label>
-            </div>
+                  <summary>{text.more}</summary>
+                  <div className="morePanel">
+                    <label>
+                      <span>{text.width}</span>
+                      <input
+                        type="number"
+                        min={800}
+                        max={6000}
+                        value={settings.width}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>{text.height}</span>
+                      <input
+                        type="number"
+                        min={600}
+                        max={6000}
+                        placeholder={text.heightAuto}
+                        value={settings.height ?? ""}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            height: event.target.value
+                              ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
+                              : null,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label>
+                      <span>{text.quality}</span>
+                      <input
+                        type="number"
+                        min={60}
+                        max={98}
+                        value={Math.round(settings.quality * 100)}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="checks">
+                      <span>{text.grayscale}</span>
+                      <input
+                        type="checkbox"
+                        checked={settings.grayscale}
+                        onChange={(event) => setSettings((current) => ({ ...current, grayscale: event.target.checked }))}
+                      />
+                    </label>
+                    <label className="colorSetting">
+                      <span>{text.fillColor}</span>
+                      <input
+                        type="color"
+                        value={settings.fillColor}
+                        onChange={(event) => setSettings((current) => ({ ...current, fillColor: event.target.value }))}
+                      />
+                    </label>
+                  </div>
+                </details>
+                <label className="pdfNameSetting">
+                  <span>{text.pdfName}</span>
+                  <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
+                  <span className="fileSuffix">.pdf</span>
+                </label>
+              </div>
+            )}
           </details>
         </div>
       </header>
@@ -1880,8 +1929,8 @@ export function SlidesThiefApp() {
               }}
             >
               <span className="dropzoneContent">
-                <strong>{text.dropTitle}</strong>
-                <span>{text.dropSubtitle}</span>
+                <strong>{isMobile ? text.uploadTitle : text.dropTitle}</strong>
+                {!isMobile && <span>{text.dropSubtitle}</span>}
               </span>
             </button>
             <div className="files">
