@@ -17,7 +17,7 @@ Slides Thief converts angled photos of presentation slides into perspective-corr
 - Browser photo processing is local; do not add source-image uploads by default.
 - Corner order is top-left, top-right, bottom-right, bottom-left.
 - Preserve both the server-rendered Sites build and the GitHub Pages static build.
-- Keep public documentation URLs under `https://www.zekun.blog/Slides-Thief/`.
+- Keep public documentation URLs under `https://slidesthief.com/`.
 
 ## Validation
 

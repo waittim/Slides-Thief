@@ -8,7 +8,7 @@ Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并
 
 打开网页版：
 
-[https://www.zekun.blog/Slides-Thief/](https://www.zekun.blog/Slides-Thief/)
+[https://slidesthief.com/](https://slidesthief.com/)
 
 不需要安装软件。照片处理和 PDF 生成都在你的浏览器本地完成，网页不会把原始照片上传到服务器。
 

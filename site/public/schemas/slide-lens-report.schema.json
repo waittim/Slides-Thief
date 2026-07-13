@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json",
+  "$id": "https://slidesthief.com/schemas/slide-lens-report.schema.json",
   "title": "Slides Thief detection report",
   "type": "object",
   "required": ["input_dir", "output_pdf", "ratio", "size", "slides"],

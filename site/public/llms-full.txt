@@ -4,7 +4,7 @@ Slides Thief corrects perspective distortion in photographs of projected or disp
 
 ## Browser application
 
-Open https://www.zekun.blog/Slides-Thief/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
+Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
 
 ## Python CLI
 
@@ -18,8 +18,8 @@ For manual correction, edit corners in `manual_review.html`, export `manual_quad
 
 ## Contracts
 
-- https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json
-- https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json
+- https://slidesthief.com/schemas/slide-lens-report.schema.json
+- https://slidesthief.com/schemas/manual-quads.schema.json
 
 ## Project and citation
 

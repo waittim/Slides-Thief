@@ -3,7 +3,7 @@
 Slides Thief Web is the browser-only version of Slides Thief. Users can open it
 directly at:
 
-[https://www.zekun.blog/Slides-Thief/](https://www.zekun.blog/Slides-Thief/)
+[https://slidesthief.com/](https://slidesthief.com/)
 
 The app processes photos, adjusts slide corners, and generates a PDF locally in
 the browser. It does not require installation and does not upload source photos

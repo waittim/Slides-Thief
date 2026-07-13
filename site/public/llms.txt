@@ -4,17 +4,17 @@
 
 ## Use and documentation
 
-- Web app: https://www.zekun.blog/Slides-Thief/
-- Full agent reference: https://www.zekun.blog/Slides-Thief/llms-full.txt
+- Web app: https://slidesthief.com/
+- Full agent reference: https://slidesthief.com/llms-full.txt
 - GitHub repository: https://github.com/waittim/Slides-Thief
 - CLI documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/cli.md
 - Output documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/output-schema.md
 
 ## Machine-readable contracts
 
-- Detection report schema: https://www.zekun.blog/Slides-Thief/schemas/slide-lens-report.schema.json
-- Manual corner schema: https://www.zekun.blog/Slides-Thief/schemas/manual-quads.schema.json
-- Citation metadata: https://www.zekun.blog/Slides-Thief/citation.json
+- Detection report schema: https://slidesthief.com/schemas/slide-lens-report.schema.json
+- Manual corner schema: https://slidesthief.com/schemas/manual-quads.schema.json
+- Citation metadata: https://slidesthief.com/citation.json
 
 ## Core facts
 

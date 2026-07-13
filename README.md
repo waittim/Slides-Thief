@@ -13,7 +13,7 @@ Documentation for agents and integrations: [docs/index.md](docs/index.md),
 
 Open the web app:
 
-[https://www.zekun.blog/Slides-Thief/](https://www.zekun.blog/Slides-Thief/)
+[https://slidesthief.com/](https://slidesthief.com/)
 
 No installation is required. Your photos are processed locally in your browser,
 and the generated PDF is created on your device. The web app does not upload

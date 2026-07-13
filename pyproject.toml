@@ -40,7 +40,7 @@ dev = [
 slides-thief = "slides_thief.cli:main"
 
 [project.urls]
-Homepage = "https://www.zekun.blog/Slides-Thief/"
+Homepage = "https://slidesthief.com/"
 Repository = "https://github.com/waittim/Slides-Thief"
 Documentation = "https://github.com/waittim/Slides-Thief/tree/main/docs"
 Issues = "https://github.com/waittim/Slides-Thief/issues"
