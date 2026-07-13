@@ -1580,7 +1580,14 @@ export function SlidesThiefApp() {
     <div className="app" aria-busy={busy || Boolean(busyText)}>
       <header className="topbar">
         <div className="brand">
-          <div className="mark">{text.brandMark}</div>
+          <div className="mark" aria-label={text.brandMark} role="img">
+            <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 10.5L24 8.5V21.5L8 23.5V10.5Z" fill="var(--logo-slide, #F5F7F2)"/>
+              <path d="M11 13.625L21 12.375V13.375L11 14.625Z" fill="var(--logo-lines, #64717A)"/>
+              <path d="M11 16.125L19 15.125V16.125L11 17.125Z" fill="var(--logo-lines, #64717A)"/>
+              <path d="M11 18.625L16 18.0V19.0L11 19.625Z" fill="var(--logo-lines, #64717A)"/>
+            </svg>
+          </div>
           <h1 className="brandText">{text.brandName}</h1>
         </div>
         <div className="settings">
