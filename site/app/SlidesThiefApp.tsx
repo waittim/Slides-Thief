@@ -170,6 +170,11 @@ const copy = {
     cornerHandle: "角点",
     collapse: "缩小详情栏",
     expand: "展开详情栏",
+    infoTitle: "关于 Slides Thief · PPT捕手",
+    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄倾斜的幻灯片照片快速矫正并整理成清晰的 PDF。",
+    infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
+    infoRepo: "开源仓库",
+    infoBlog: "介绍博客",
   },
   "zh-TW": {
     appTitle: "Slides Thief · PPT捕手",
@@ -225,6 +230,11 @@ const copy = {
     cornerHandle: "角點",
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
+    infoTitle: "關於 Slides Thief · PPT捕手",
+    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝傾斜的投影片相片快速矯正並整理成清晰的 PDF。",
+    infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
+    infoRepo: "開源倉庫",
+    infoBlog: "介紹網誌",
   },
   en: {
     appTitle: "Slides Thief - Straighten Slide Photos into PDFs",
@@ -280,6 +290,11 @@ const copy = {
     cornerHandle: "Corner",
     collapse: "Collapse details",
     expand: "Expand details",
+    infoTitle: "About Slides Thief",
+    infoDesc: "Slides Thief is a browser-local tool that quickly straightens skewed presentation slide photos and organizes them into a clear PDF.",
+    infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
+    infoRepo: "Open Source Repo",
+    infoBlog: "Introductory Blog",
   },
   es: {
     appTitle: "Slides Thief - Endereza fotos de diapositivas en PDF",
@@ -335,6 +350,11 @@ const copy = {
     cornerHandle: "Esquina",
     collapse: "Contraer detalles",
     expand: "Expandir detalles",
+    infoTitle: "Sobre Slides Thief",
+    infoDesc: "Slides Thief es una herramienta local del navegador que corrige rápidamente las fotos torcidas de las diapositivas y las organiza en un PDF claro.",
+    infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
+    infoRepo: "Repositorio de Código",
+    infoBlog: "Blog de Introducción",
   },
   fr: {
     appTitle: "Slides Thief - Redresser des photos de diapositives en PDF",
@@ -390,6 +410,11 @@ const copy = {
     cornerHandle: "Coin",
     collapse: "Réduire détails",
     expand: "Afficher détails",
+    infoTitle: "À propos de Slides Thief",
+    infoDesc: "Slides Thief est un outil local dans le navigateur qui redresse rapidement les photos inclinées des diapositives et les organise dans un PDF propre.",
+    infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
+    infoRepo: "Dépôt de Code",
+    infoBlog: "Blog d'Introduction",
   },
   de: {
     appTitle: "Slides Thief - Folienfotos als PDF begradigen",
@@ -445,6 +470,11 @@ const copy = {
     cornerHandle: "Ecke",
     collapse: "Details einklappen",
     expand: "Details ausklappen",
+    infoTitle: "Über Slides Thief",
+    infoDesc: "Slides Thief ist ein browserlokales Tool, das schiefe Folienfotos schnell begradigt und sie in einer übersichtlichen PDF-Datei organisiert.",
+    infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
+    infoRepo: "Code-Repository",
+    infoBlog: "Einführungs-Blog",
   },
   ja: {
     appTitle: "Slides Thief - スライド写真を補正してPDF化",
@@ -500,6 +530,11 @@ const copy = {
     cornerHandle: "コーナー",
     collapse: "詳細を閉じる",
     expand: "詳細を開く",
+    infoTitle: "Slides Thief について",
+    infoDesc: "Slides Thiefは、斜めに撮影されたスライド写真をすばやく補正し、綺麗なPDFとして整理するローカルブラウザツールです。",
+    infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
+    infoRepo: "オープンソースリポジトリ",
+    infoBlog: "紹介ブログ",
   },
   ko: {
     appTitle: "Slides Thief - 슬라이드 사진을 PDF로 보정",
@@ -555,6 +590,11 @@ const copy = {
     cornerHandle: "모서리",
     collapse: "상세 접기",
     expand: "상세 펼치기",
+    infoTitle: "Slides Thief 정보",
+    infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드 사진을 빠르게 교정하고 깔끔한 PDF로 정리해 주는 브라우저 로컬 도구입니다.",
+    infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
+    infoRepo: "오픈 소스 저장소",
+    infoBlog: "소개 블로그",
   },
   "pt-BR": {
     appTitle: "Slides Thief - Corrigir fotos de slides em PDF",
@@ -610,6 +650,11 @@ const copy = {
     cornerHandle: "Canto",
     collapse: "Recolher detalhes",
     expand: "Expandir detalhes",
+    infoTitle: "Sobre o Slides Thief",
+    infoDesc: "O Slides Thief é uma ferramenta local no navegador que corrige rapidamente fotos inclinadas de slides de apresentação e as organiza em um PDF limpo.",
+    infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
+    infoRepo: "Repositório de Código",
+    infoBlog: "Blog de Introdução",
   },
 };
 
@@ -883,6 +928,7 @@ export function SlidesThiefApp() {
   const [zoom, setZoom] = useState(1);
   const [displayZoom, setDisplayZoom] = useState(1);
   const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1997,6 +2043,19 @@ export function SlidesThiefApp() {
       </main>
 
       <footer className="prefsBar">
+        <button
+          type="button"
+          className="icon infoButton"
+          title={text.infoTitle}
+          aria-label={text.infoTitle}
+          onClick={() => setIsInfoOpen(true)}
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 16v-4" />
+            <path d="M12 8h.01" />
+          </svg>
+        </button>
         <label className="themeSetting">
           <span>{text.theme}</span>
           <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
@@ -2016,6 +2075,33 @@ export function SlidesThiefApp() {
           </select>
         </label>
       </footer>
+
+      {isInfoOpen && (
+        <div className="modalOverlay" onClick={() => setIsInfoOpen(false)}>
+          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
+            <div className="modalHeader">
+              <h3>{text.infoTitle}</h3>
+              <button className="closeButton" type="button" onClick={() => setIsInfoOpen(false)} aria-label="Close">
+                &times;
+              </button>
+            </div>
+            <div className="modalBody">
+              <p className="modalDesc">{text.infoDesc}</p>
+              <p className="modalPrivacy">
+                <strong>{text.infoPrivacy}</strong>
+              </p>
+              <div className="modalLinks">
+                <a href="https://github.com/waittim/Slides-Thief" target="_blank" rel="noopener noreferrer" className="modalLink">
+                  {text.infoRepo}
+                </a>
+                <a href="https://www.zekun.blog/2026/07/13/slides-thief/" target="_blank" rel="noopener noreferrer" className="modalLink">
+                  {text.infoBlog}
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
