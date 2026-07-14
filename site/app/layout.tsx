@@ -49,6 +49,12 @@ export default function RootLayout({
         <link rel="icon" href="/favicon.svg" />
         <link rel="shortcut icon" href="/favicon.svg" />
         <link rel="manifest" href="/manifest.webmanifest" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#20211f" />
+        <meta name="theme-color" content="#20211f" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="Slides Thief" />
         {/* Google tag (gtag.js) */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH" />
