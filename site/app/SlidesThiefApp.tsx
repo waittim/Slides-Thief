@@ -1947,7 +1947,7 @@ export function SlidesThiefApp() {
             </div>
             <div className="links sidebarLinks">
               {exportUrl ? (
-                <a href={exportUrl} download={exportName}>
+                <a href={exportUrl} download={exportName} target="_blank" rel="noopener noreferrer">
                   {text.downloadPdf}
                 </a>
               ) : null}
