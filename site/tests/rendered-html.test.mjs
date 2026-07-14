@@ -85,6 +85,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /pt: "pt-BR"/);
   assert.match(app, /\.heic/);
   assert.match(app, /normalizeImageFile/);
+  assert.match(app, /const clearExport = useCallback/);
+  assert.match(app, /clearExport\(\);\s*setSlides/s);
+  assert.match(app, /settings\.enhancement/);
   assert.match(app, /downloadPdf: "下载 PDF"/);
   assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
   assert.match(app, /enhancement: "original"/);

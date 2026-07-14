@@ -1051,6 +1051,14 @@ export function SlidesThiefApp() {
     }
   }, []);
 
+  const clearExport = useCallback(() => {
+    if (exportUrlRef.current) {
+      URL.revokeObjectURL(exportUrlRef.current);
+      exportUrlRef.current = null;
+    }
+    setExportUrl((current) => (current === null ? current : null));
+  }, []);
+
   const ensureWorker = useCallback(() => {
     if (workerRef.current) return workerRef.current;
     let worker: Worker;
@@ -1183,6 +1191,18 @@ export function SlidesThiefApp() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  useEffect(() => {
+    clearExport();
+  }, [
+    clearExport,
+    settings.enhancement,
+    settings.fillColor,
+    settings.height,
+    settings.quality,
+    settings.ratio,
+    settings.width,
+  ]);
 
   useEffect(() => {
     const token = thumbnailRefreshTokenRef.current + 1;
@@ -1528,6 +1548,7 @@ export function SlidesThiefApp() {
   }, [redrawCanvas]);
 
   const updateSlideQuad = useCallback((id: string, nextQuad: Quad) => {
+    clearExport();
     setSlides((current) =>
       current.map((slide) => {
         if (slide.id === id) {
@@ -1541,7 +1562,7 @@ export function SlidesThiefApp() {
         return slide;
       }),
     );
-  }, []);
+  }, [clearExport]);
 
   const canvasPoint = (event: React.PointerEvent<HTMLElement>) => {
     const canvas = canvasRef.current;
@@ -1677,9 +1698,7 @@ export function SlidesThiefApp() {
     cancelActiveDrag();
     const worker = ensureWorker();
     if (!worker) return;
-    if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-    exportUrlRef.current = null;
-    setExportUrl(null);
+    clearExport();
     setWorkerError("");
     setBusyText(text.stretching);
     setSlides((current) =>
@@ -1701,6 +1720,7 @@ export function SlidesThiefApp() {
 
   const resetSelected = () => {
     if (!selectedSlide) return;
+    clearExport();
     if (selectedSlide.autoQuad) {
       const next = cloneQuad(selectedSlide.autoQuad);
       cancelActiveDrag();
@@ -1724,10 +1744,8 @@ export function SlidesThiefApp() {
     const worker = ensureWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
-    if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-    exportUrlRef.current = null;
+    clearExport();
     setExporting(true);
-    setExportUrl(null);
     setWorkerError("");
     setBusyText(text.generating);
     worker.postMessage({
