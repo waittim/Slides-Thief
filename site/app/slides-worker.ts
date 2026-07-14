@@ -1,6 +1,7 @@
 /// <reference lib="webworker" />
 
 import { PDFDocument } from "pdf-lib";
+import { applyEnhancement, type EnhancementMode } from "./enhance";
 
 type RatioValue = "16:9" | "4:3";
 type Quad = [[number, number], [number, number], [number, number], [number, number]];
@@ -10,7 +11,7 @@ type Settings = {
   width: number;
   height: number | null;
   quality: number;
-  grayscale: boolean;
+  enhancement: EnhancementMode;
   fillColor: string;
 };
 
@@ -365,9 +366,11 @@ async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHei
       const denom = coeffs[6] * x + coeffs[7] * y + 1;
       const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denom;
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denom;
-      sampleRgb(source, sx, sy, output.data, (y * outWidth + x) * 4, settings.grayscale, fill);
+      sampleRgb(source, sx, sy, output.data, (y * outWidth + x) * 4, fill);
     }
   }
+
+  applyEnhancement(output.data, outWidth, outHeight, settings.enhancement);
 
   const outputCanvas = new OffscreenCanvas(outWidth, outHeight);
   const outputCtx = outputCanvas.getContext("2d");
@@ -425,7 +428,6 @@ function sampleRgb(
   y: number,
   target: Uint8ClampedArray,
   offset: number,
-  grayscaleOutput: boolean,
   fill: [number, number, number],
 ) {
   const width = source.width;
@@ -451,20 +453,9 @@ function sampleRgb(
   const p01 = (y1 * width + x0) * 4;
   const p11 = (y1 * width + x1) * 4;
 
-  let r = bilinear(data[p00], data[p10], data[p01], data[p11], wx, wy);
-  let g = bilinear(data[p00 + 1], data[p10 + 1], data[p01 + 1], data[p11 + 1], wx, wy);
-  let b = bilinear(data[p00 + 2], data[p10 + 2], data[p01 + 2], data[p11 + 2], wx, wy);
-
-  if (grayscaleOutput) {
-    const gray = r * 0.299 + g * 0.587 + b * 0.114;
-    r = gray;
-    g = gray;
-    b = gray;
-  }
-
-  target[offset] = r;
-  target[offset + 1] = g;
-  target[offset + 2] = b;
+  target[offset] = bilinear(data[p00], data[p10], data[p01], data[p11], wx, wy);
+  target[offset + 1] = bilinear(data[p00 + 1], data[p10 + 1], data[p01 + 1], data[p11 + 1], wx, wy);
+  target[offset + 2] = bilinear(data[p00 + 2], data[p10 + 2], data[p01 + 2], data[p11 + 2], wx, wy);
   target[offset + 3] = 255;
 }
 

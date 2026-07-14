@@ -23,6 +23,13 @@ export function ProductInfo() {
           <p>Image correction and PDF generation run locally in your browser without uploading source photos.</p>
         </article>
         <article>
+          <h3>Optional readability enhancement</h3>
+          <p>
+            Keep original colors by default, or choose Clean, High contrast, or Black &amp; white to
+            lift gray projector backgrounds before PDF export.
+          </p>
+        </article>
+        <article>
           <h3>CLI and machine-readable reports</h3>
           <p>
             Batch jobs can produce corrected images, review pages, and JSON reports. See the{" "}

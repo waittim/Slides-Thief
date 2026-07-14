@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { applyEnhancement, type EnhancementMode } from "./enhance";
 
 interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -24,7 +25,7 @@ type Settings = {
   width: number;
   height: number | null;
   quality: number;
-  grayscale: boolean;
+  enhancement: EnhancementMode;
   fillColor: string;
 };
 
@@ -86,7 +87,7 @@ const defaultSettings: Settings = {
   width: 2400,
   height: null,
   quality: 0.92,
-  grayscale: false,
+  enhancement: "original",
   fillColor: "#000000",
 };
 
@@ -127,7 +128,11 @@ const copy = {
     height: "高度",
     heightAuto: "自动",
     quality: "导出质量",
-    grayscale: "灰度",
+    enhancement: "输出效果",
+    enhancementOriginal: "原图",
+    enhancementClean: "清晰增强",
+    enhancementHighContrast: "高对比",
+    enhancementBw: "黑白扫描",
     fillColor: "填充色",
     pdfName: "目标文件名",
     theme: "主题",
@@ -172,7 +177,7 @@ const copy = {
     collapse: "缩小详情栏",
     expand: "展开详情栏",
     infoTitle: "关于 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄倾斜的幻灯片照片快速矫正并整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片照片快速矫正并整理成清晰的 PDF。",
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
@@ -188,7 +193,11 @@ const copy = {
     height: "高度",
     heightAuto: "自動",
     quality: "匯出品質",
-    grayscale: "灰階",
+    enhancement: "輸出效果",
+    enhancementOriginal: "原圖",
+    enhancementClean: "清晰增強",
+    enhancementHighContrast: "高對比",
+    enhancementBw: "黑白掃描",
     fillColor: "填充色",
     pdfName: "目標檔名",
     theme: "主題",
@@ -233,7 +242,7 @@ const copy = {
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
     infoTitle: "關於 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝傾斜的投影片相片快速矯正並整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片相片快速矯正並整理成清晰的 PDF。",
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
@@ -249,7 +258,11 @@ const copy = {
     height: "Height",
     heightAuto: "Auto",
     quality: "Export quality",
-    grayscale: "Grayscale",
+    enhancement: "Enhancement",
+    enhancementOriginal: "Original",
+    enhancementClean: "Clean",
+    enhancementHighContrast: "High contrast",
+    enhancementBw: "Black & white",
     fillColor: "Fill color",
     pdfName: "Target file name",
     theme: "Theme",
@@ -310,7 +323,11 @@ const copy = {
     height: "Alto",
     heightAuto: "Auto",
     quality: "Calidad",
-    grayscale: "Grises",
+    enhancement: "Mejora",
+    enhancementOriginal: "Original",
+    enhancementClean: "Nítido",
+    enhancementHighContrast: "Alto contraste",
+    enhancementBw: "Blanco y negro",
     fillColor: "Relleno",
     pdfName: "Nombre PDF",
     theme: "Tema",
@@ -371,7 +388,11 @@ const copy = {
     height: "Hauteur",
     heightAuto: "Auto",
     quality: "Qualité",
-    grayscale: "Niveaux de gris",
+    enhancement: "Amélioration",
+    enhancementOriginal: "Original",
+    enhancementClean: "Netteté",
+    enhancementHighContrast: "Contraste élevé",
+    enhancementBw: "Noir et blanc",
     fillColor: "Remplissage",
     pdfName: "Nom du PDF",
     theme: "Thème",
@@ -432,7 +453,11 @@ const copy = {
     height: "Höhe",
     heightAuto: "Auto",
     quality: "Qualität",
-    grayscale: "Graustufen",
+    enhancement: "Verbesserung",
+    enhancementOriginal: "Original",
+    enhancementClean: "Klar",
+    enhancementHighContrast: "Hoher Kontrast",
+    enhancementBw: "Schwarzweiß",
     fillColor: "Füllfarbe",
     pdfName: "PDF-Name",
     theme: "Design",
@@ -493,7 +518,11 @@ const copy = {
     height: "高さ",
     heightAuto: "自動",
     quality: "品質",
-    grayscale: "グレー",
+    enhancement: "補正",
+    enhancementOriginal: "オリジナル",
+    enhancementClean: "クリア",
+    enhancementHighContrast: "高コントラスト",
+    enhancementBw: "白黒スキャン",
     fillColor: "余白色",
     pdfName: "PDF名",
     theme: "テーマ",
@@ -554,7 +583,11 @@ const copy = {
     height: "높이",
     heightAuto: "자동",
     quality: "품질",
-    grayscale: "흑백",
+    enhancement: "향상",
+    enhancementOriginal: "원본",
+    enhancementClean: "선명",
+    enhancementHighContrast: "고대비",
+    enhancementBw: "흑백 스캔",
     fillColor: "채움색",
     pdfName: "PDF 이름",
     theme: "테마",
@@ -615,7 +648,11 @@ const copy = {
     height: "Altura",
     heightAuto: "Auto",
     quality: "Qualidade",
-    grayscale: "Cinza",
+    enhancement: "Melhoria",
+    enhancementOriginal: "Original",
+    enhancementClean: "Nítido",
+    enhancementHighContrast: "Alto contraste",
+    enhancementBw: "Preto e branco",
     fillColor: "Preenchimento",
     pdfName: "Nome do PDF",
     theme: "Tema",
@@ -914,6 +951,7 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
       }
     }
   }
+  applyEnhancement(output.data, outWidth, outHeight, settings.enhancement);
   outputCtx.putImageData(output, 0, 0);
   return outputCanvas.toDataURL("image/png");
 }
@@ -1160,7 +1198,7 @@ export function SlidesThiefApp() {
       window.clearTimeout(timeoutId);
       if (thumbnailRefreshTokenRef.current === token) thumbnailRefreshTokenRef.current += 1;
     };
-  }, [refreshSlideThumbnail, settings.fillColor, settings.height, settings.ratio, settings.width]);
+  }, [refreshSlideThumbnail, settings.enhancement, settings.fillColor, settings.height, settings.ratio, settings.width]);
 
   useEffect(() => {
     exportUrlRef.current = exportUrl;
@@ -1840,13 +1878,22 @@ export function SlidesThiefApp() {
                         }
                       />
                     </label>
-                    <label className="checks">
-                      <span>{text.grayscale}</span>
-                      <input
-                        type="checkbox"
-                        checked={settings.grayscale}
-                        onChange={(event) => setSettings((current) => ({ ...current, grayscale: event.target.checked }))}
-                      />
+                    <label>
+                      <span>{text.enhancement}</span>
+                      <select
+                        value={settings.enhancement}
+                        onChange={(event) =>
+                          setSettings((current) => ({
+                            ...current,
+                            enhancement: event.target.value as EnhancementMode,
+                          }))
+                        }
+                      >
+                        <option value="original">{text.enhancementOriginal}</option>
+                        <option value="clean">{text.enhancementClean}</option>
+                        <option value="high-contrast">{text.enhancementHighContrast}</option>
+                        <option value="bw">{text.enhancementBw}</option>
+                      </select>
                     </label>
                     <label className="colorSetting">
                       <span>{text.fillColor}</span>

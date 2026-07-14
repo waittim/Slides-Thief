@@ -385,7 +385,7 @@ a:hover {
 
 .morePanel label {
   display: grid;
-  grid-template-columns: 82px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   height: auto;

@@ -505,20 +505,57 @@ def perspective_coefficients(src: np.ndarray, dst: np.ndarray) -> list[float]:
     return coeffs.tolist()
 
 
-def enhance_slide(image: Image.Image, grayscale: bool = False) -> Image.Image:
+def _center_stats_region(arr: np.ndarray, inset: float = 0.1) -> np.ndarray:
+    """Return the centered inset box used for enhancement statistics."""
+    height, width = arr.shape[:2]
+    x0 = int(width * inset)
+    y0 = int(height * inset)
+    x1 = max(x0 + 1, int(np.ceil(width * (1.0 - inset))))
+    y1 = max(y0 + 1, int(np.ceil(height * (1.0 - inset))))
+    return arr[y0:y1, x0:x1]
+
+
+def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
     rgb = image.convert("RGB")
+    if mode == "original":
+        return rgb
+
     arr = np.asarray(rgb).astype(np.float32)
     # Neutralize projector color cast with a gentle gray-world correction.
-    means = arr.reshape(-1, 3).mean(axis=0)
+    # Stats use the centered 80% so edge fill / wall content does not skew correction.
+    sample = _center_stats_region(arr)
+    means = sample.reshape(-1, 3).mean(axis=0)
     target = means.mean()
     arr *= target / np.maximum(means, 1.0)
-    arr = np.clip(arr, 0, 255).astype(np.uint8)
-    rgb = Image.fromarray(arr, "RGB")
+    arr = np.clip(arr, 0, 255)
+
+    if mode == "bw":
+        gray = (arr[..., 0] * 0.299 + arr[..., 1] * 0.587 + arr[..., 2] * 0.114).astype(np.float32)
+        sample_gray = _center_stats_region(gray)
+        low, high = np.percentile(sample_gray, [2, 98])
+        span = max(float(high - low), 8.0)
+        gray = np.clip((gray - low) / span * 255.0, 0, 255)
+        rgb = Image.fromarray(np.stack([gray, gray, gray], axis=-1).astype(np.uint8), "RGB")
+        rgb = ImageEnhance.Contrast(rgb).enhance(1.28)
+        return ImageEnhance.Sharpness(rgb).enhance(1.45)
+
+    if mode == "high-contrast":
+        luma = arr[..., 0] * 0.299 + arr[..., 1] * 0.587 + arr[..., 2] * 0.114
+        sample_luma = _center_stats_region(luma)
+        low, high = np.percentile(sample_luma, [1.5, 98.5])
+        span = max(float(high - low), 8.0)
+        mapped = (luma - low) / span * 255.0
+        factor = np.where(luma > 1e-3, mapped / np.maximum(luma, 1e-3), 1.0)
+        arr = np.clip(arr * factor[..., None], 0, 255)
+        rgb = Image.fromarray(arr.astype(np.uint8), "RGB")
+        rgb = ImageEnhance.Contrast(rgb).enhance(1.3)
+        rgb = ImageEnhance.Color(rgb).enhance(0.9)
+        return ImageEnhance.Sharpness(rgb).enhance(1.5)
+
+    # clean
+    rgb = Image.fromarray(arr.astype(np.uint8), "RGB")
     rgb = ImageEnhance.Contrast(rgb).enhance(1.12)
-    rgb = ImageEnhance.Sharpness(rgb).enhance(1.35)
-    if grayscale:
-        return ImageOps.grayscale(rgb).convert("RGB")
-    return rgb
+    return ImageEnhance.Sharpness(rgb).enhance(1.35)
 
 
 def warp_slide(image: Image.Image, quad: np.ndarray, out_w: int, out_h: int) -> Image.Image:
@@ -1076,7 +1113,7 @@ def process(args: argparse.Namespace) -> dict:
             }
         )
         warped = warp_slide(image, quad, out_w, out_h)
-        enhanced = enhance_slide(warped, grayscale=args.grayscale)
+        enhanced = enhance_slide(warped, mode=resolve_enhancement_mode(args))
         out_image = corrected_dir / f"{idx:03d}_{src.stem}.jpg"
         enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
         corrected.append(out_image)
@@ -1135,6 +1172,13 @@ def process(args: argparse.Namespace) -> dict:
     }
 
 
+def resolve_enhancement_mode(args: argparse.Namespace) -> str:
+    if getattr(args, "grayscale", False):
+        return "bw"
+    mode = getattr(args, "enhancement", "original")
+    return mode if mode in {"original", "clean", "high-contrast", "bw"} else "original"
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Flatten photographed slides and save them as a PDF.")
     parser.add_argument("input", help="Folder containing source photos")
@@ -1146,7 +1190,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--pdf-name", default="flattened_slides.pdf", help="PDF filename")
     parser.add_argument("--manual", default=None, help="Optional JSON mapping filenames to four source points")
     parser.add_argument("--jpeg-quality", type=int, default=92)
-    parser.add_argument("--grayscale", action="store_true", help="Convert output slides to grayscale")
+    parser.add_argument(
+        "--enhancement",
+        choices=["original", "clean", "high-contrast", "bw"],
+        default="original",
+        help="Optional readability enhancement after perspective correction",
+    )
+    parser.add_argument(
+        "--grayscale",
+        action="store_true",
+        help="Deprecated alias for --enhancement bw",
+    )
     parser.add_argument("--clean-converted", action="store_true", help="Remove intermediate converted JPEGs")
     return parser
 

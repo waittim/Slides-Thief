@@ -57,7 +57,7 @@ JPEG batches.
 - Automatic slide boundary detection.
 - Manual four-corner correction.
 - 16:9 and 4:3 output ratios.
-- Custom output width, quality, grayscale mode, and fill color.
+- Custom output width, quality, optional readability enhancement, and fill color.
 - Light/dark themes and Chinese/English UI.
 - Browser-local PDF generation.
 

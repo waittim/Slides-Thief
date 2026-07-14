@@ -87,7 +87,13 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /normalizeImageFile/);
   assert.match(app, /downloadPdf: "下载 PDF"/);
   assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
-  assert.match(app, /fillColor: "#000000"/);
+  assert.match(app, /enhancement: "original"/);
+  assert.match(app, /enhancementOriginal: "Original"/);
+  assert.match(app, /enhancementClean: "清晰增强"/);
+  assert.match(worker, /applyEnhancement/);
+  assert.match(worker, /enhancement/);
+  assert.doesNotMatch(worker, /settings\.grayscale/);
+  assert.match(app, /settings\.enhancement/);
   assert.match(app, /type="color"/);
   assert.match(app, /const fitScale = Math\.min\(maxWidth \/ totalWidth, maxHeight \/ totalHeight, 1\)/);
   assert.doesNotMatch(app, /Math\.max\(320, stage\.client/);
