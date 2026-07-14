@@ -978,6 +978,7 @@ export function SlidesThiefApp() {
   const [displayZoom, setDisplayZoom] = useState(1);
   const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
@@ -1223,6 +1224,16 @@ export function SlidesThiefApp() {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
   }, [theme]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const ua = window.navigator.userAgent;
+      const isIOSDevice =
+        /iPad|iPhone|iPod/.test(ua) ||
+        (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+      setIsIOS(isIOSDevice);
+    }
+  }, []);
 
   useLayoutEffect(() => {
     const settingsMenu = settingsMenuRef.current;
@@ -1947,7 +1958,12 @@ export function SlidesThiefApp() {
             </div>
             <div className="links sidebarLinks">
               {exportUrl ? (
-                <a href={exportUrl} download={exportName} target="_blank" rel="noopener noreferrer">
+                <a
+                  href={exportUrl}
+                  download={isIOS ? undefined : exportName}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
                   {text.downloadPdf}
                 </a>
               ) : null}
