@@ -1043,8 +1043,8 @@ canvas {
   }
 
   .workspace {
-    height: clamp(480px, 72dvh, 680px);
-    min-height: 480px;
+    height: clamp(320px, 50dvh, 480px);
+    min-height: 320px;
     flex: none;
     width: 100%;
     max-width: 100%;
