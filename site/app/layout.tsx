@@ -25,11 +25,20 @@ export const metadata: Metadata = {
     locale: "en_US",
     alternateLocale: ["zh_CN"],
     type: "website",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1024,
+        height: 537,
+        alt: "Slides Thief - Turn photographed presentation slides into clean PDFs",
+      },
+    ],
   },
   twitter: {
-    card: "summary",
+    card: "summary_large_image",
     title,
     description,
+    images: ["/og-image.png"],
   },
   robots: {
     index: true,
