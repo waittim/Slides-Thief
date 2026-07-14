@@ -1231,6 +1231,7 @@ export function SlidesThiefApp() {
       const isIOSDevice =
         /iPad|iPhone|iPod/.test(ua) ||
         (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setIsIOS(isIOSDevice);
     }
   }, []);
