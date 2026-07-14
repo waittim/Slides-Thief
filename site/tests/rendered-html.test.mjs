@@ -69,6 +69,8 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /buildAdjustedThumbnail/);
   assert.match(app, /refreshSlideThumbnail/);
   assert.match(app, /x \/ scale - padX/);
+  assert.match(app, /clampQuadCoordinate/);
+  assert.match(app, /QUAD_OUTSIDE_RATIO/);
   assert.match(app, /className="sidebarActions"/);
   assert.doesNotMatch(app, /manual_quads\.json/);
   assert.match(app, /themeSetting/);
@@ -123,7 +125,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /canvas\s*\{[^}]*touch-action:\s*pan-x pan-y/s);
   assert.match(css, /\.cornerHandle\s*\{[^}]*touch-action:\s*none/s);
   assert.match(css, /@media \(max-width: 720px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
-  assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow:\s*visible/s);
+  assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow-x:\s*hidden/s);
   assert.match(css, /\.productInfo\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
   assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"\s*"prefs"/s);
   assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);

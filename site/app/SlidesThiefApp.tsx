@@ -747,6 +747,16 @@ function hasExtension(file: File, extensions: string[]) {
   return extensions.some((ext) => lower.endsWith(ext));
 }
 
+function stripFileExtension(name: string) {
+  const lastDot = name.lastIndexOf(".");
+  if (lastDot <= 0) return name;
+  return name.slice(0, lastDot);
+}
+
+function displayFileName(name: string, hideExtension: boolean) {
+  return hideExtension ? stripFileExtension(name) : name;
+}
+
 function isHeifImage(file: File) {
   return hasExtension(file, heifExtensions) || heifMimeTypes.has(file.type.toLowerCase());
 }
@@ -842,6 +852,16 @@ function quadHandlePositions(quad: Quad, padX: number, padY: number, scale: numb
     left: (padX + x) * scale,
     top: (padY + y) * scale,
   }));
+}
+
+const QUAD_OUTSIDE_RATIO = 0.3;
+
+function maxQuadOutside(size: number) {
+  return Math.round(size * QUAD_OUTSIDE_RATIO);
+}
+
+function clampQuadCoordinate(value: number, size: number, maxOutside: number) {
+  return Math.max(-maxOutside, Math.min(size + maxOutside, value));
 }
 
 function normalizePdfName(value: string) {
@@ -1249,9 +1269,11 @@ export function SlidesThiefApp() {
         settingsMenu.open = false;
         setSettingsOpen(false);
         if (moreSettings) moreSettings.open = true;
+        setInspectorCollapsed(true);
       } else {
         settingsMenu.open = true;
         setSettingsOpen(true);
+        setInspectorCollapsed(false);
       }
     };
 
@@ -1480,19 +1502,23 @@ export function SlidesThiefApp() {
           )
         : 0;
       const handleSourceGutter = 24 / imageFitScale;
+      const maxOutsideX = maxQuadOutside(image.naturalWidth);
+      const maxOutsideY = maxQuadOutside(image.naturalHeight);
       const padX = Math.min(
-        Math.round(image.naturalWidth * 0.3),
+        maxOutsideX,
         Math.max(
           compact ? 40 : 64,
           Math.round(desiredHandleGutter / imageFitScale),
+          Math.round(image.naturalWidth * 0.12),
           Math.ceil(quadOverflowX + handleSourceGutter),
         ),
       );
       const padY = Math.min(
-        Math.round(image.naturalHeight * 0.3),
+        maxOutsideY,
         Math.max(
           compact ? 40 : 64,
           Math.round(desiredHandleGutter / imageFitScale),
+          Math.round(image.naturalHeight * 0.12),
           Math.ceil(quadOverflowY + handleSourceGutter),
         ),
       );
@@ -1616,23 +1642,30 @@ export function SlidesThiefApp() {
     const scale = scaleRef.current || 1;
     const { padX, padY } = viewportRef.current;
     const next = cloneQuad(latest.quad);
-    const handleMargin = 24 / scale;
+    const imageWidth = render.image.naturalWidth;
+    const imageHeight = render.image.naturalHeight;
     next[handleIndex] = [
-      Math.max(
-        -padX + handleMargin,
-        Math.min(render.image.naturalWidth + padX - handleMargin, x / scale - padX),
-      ),
-      Math.max(
-        -padY + handleMargin,
-        Math.min(render.image.naturalHeight + padY - handleMargin, y / scale - padY),
-      ),
+      clampQuadCoordinate(x / scale - padX, imageWidth, maxQuadOutside(imageWidth)),
+      clampQuadCoordinate(y / scale - padY, imageHeight, maxQuadOutside(imageHeight)),
     ];
     latestDragQuadRef.current = { id: latest.id, quad: next };
     if (dragFrameRef.current === null) {
       dragFrameRef.current = window.requestAnimationFrame(() => {
         dragFrameRef.current = null;
         const pending = latestDragQuadRef.current;
-        if (pending) paintCanvas(pending.quad);
+        if (!pending) return;
+        const current = canvasRenderRef.current;
+        const needsMorePad =
+          !!current &&
+          pending.quad.some(
+            ([px, py]) =>
+              px < -current.padX ||
+              py < -current.padY ||
+              px > current.image.naturalWidth + current.padX ||
+              py > current.image.naturalHeight + current.padY,
+          );
+        if (needsMorePad) redrawCanvas();
+        else paintCanvas(pending.quad);
       });
     }
     event.preventDefault();
@@ -1678,25 +1711,25 @@ export function SlidesThiefApp() {
     const visualStep = event.shiftKey ? 10 : 1;
     const sourceStep = visualStep / (scaleRef.current || 1);
     const next = cloneQuad(selectedSlide.quad);
-    const handleMargin = 24 / (scaleRef.current || 1);
+    const imageWidth = render.image.naturalWidth;
+    const imageHeight = render.image.naturalHeight;
     next[index] = [
-      Math.max(
-        -render.padX + handleMargin,
-        Math.min(
-          render.image.naturalWidth + render.padX - handleMargin,
-          next[index][0] + delta[0] * sourceStep,
-        ),
-      ),
-      Math.max(
-        -render.padY + handleMargin,
-        Math.min(
-          render.image.naturalHeight + render.padY - handleMargin,
-          next[index][1] + delta[1] * sourceStep,
-        ),
-      ),
+      clampQuadCoordinate(next[index][0] + delta[0] * sourceStep, imageWidth, maxQuadOutside(imageWidth)),
+      clampQuadCoordinate(next[index][1] + delta[1] * sourceStep, imageHeight, maxQuadOutside(imageHeight)),
     ];
-    paintCanvas(next);
-    setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
+    const needsMorePad =
+      next[index][0] < -render.padX ||
+      next[index][1] < -render.padY ||
+      next[index][0] > imageWidth + render.padX ||
+      next[index][1] > imageHeight + render.padY;
+    latestDragQuadRef.current = { id: selectedSlide.id, quad: next };
+    if (needsMorePad) {
+      redrawCanvas();
+    } else {
+      paintCanvas(next);
+      setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
+    }
+    latestDragQuadRef.current = null;
     updateSlideQuad(selectedSlide.id, next);
     void refreshSlideThumbnail(selectedSlide.id, next);
   };
@@ -1957,8 +1990,8 @@ export function SlidesThiefApp() {
               <span className={`statusDot ${statusTone}`} aria-hidden="true" />
               <span className="statusLine">{statusText}</span>
             </div>
-            <div className="links sidebarLinks">
-              {exportUrl ? (
+            {exportUrl ? (
+              <div className="links sidebarLinks">
                 <a
                   href={exportUrl}
                   download={isIOS ? undefined : exportName}
@@ -1967,8 +2000,8 @@ export function SlidesThiefApp() {
                 >
                   {text.downloadPdf}
                 </a>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
           <div className="sectionHead">
             <h2>{text.images}</h2>
@@ -2032,7 +2065,9 @@ export function SlidesThiefApp() {
                       loading="lazy"
                       decoding="async"
                     />
-                    <div className="name">{slide.name}</div>
+                    <div className="name" title={slide.name}>
+                      {displayFileName(slide.name, isMobile)}
+                    </div>
                     {hasRun ? (
                       <div className={`badge ${slide.confidence < 0.65 ? "low" : ""}`}>
                         {slide.status === "ready" ? confidenceText(slide.confidence) : slide.status}
@@ -2069,8 +2104,10 @@ export function SlidesThiefApp() {
             >
               ›
             </button>
-            <div className="title">
-              {selectedSlide ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${selectedSlide.name}` : text.noSlide}
+            <div className="title" title={selectedSlide?.name}>
+              {selectedSlide
+                ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${displayFileName(selectedSlide.name, isMobile)}`
+                : text.noSlide}
             </div>
             <div className="zoomControls">
               <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
@@ -2080,7 +2117,7 @@ export function SlidesThiefApp() {
               <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
                 +
               </button>
-              <button type="button" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
+              <button type="button" className="fitButton" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
                 {text.fit}
               </button>
             </div>

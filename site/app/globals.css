@@ -444,6 +444,8 @@ a:hover {
 }
 
 .inspector.collapsed {
+  gap: 0;
+  grid-template-rows: auto;
   padding: 8px 6px;
 }
 
@@ -929,14 +931,20 @@ canvas {
   body {
     height: auto;
     min-height: 100dvh;
-    overflow: visible;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   .app {
     height: auto;
     min-height: 100dvh;
-    overflow: visible;
-    grid-template-columns: 1fr;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: visible;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto auto;
     grid-template-areas:
       "topbar"
@@ -951,10 +959,10 @@ canvas {
 
   .prefsBar {
     min-height: 0;
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr);
-    gap: 8px;
+    display: flex;
     align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
     padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
       max(12px, env(safe-area-inset-left));
     border-bottom: 0;
@@ -963,14 +971,19 @@ canvas {
     top: auto;
   }
 
+  .prefsBar .infoButton {
+    margin-right: auto;
+  }
+
   .prefsBar label {
-    width: 100%;
+    width: auto;
+    flex: 0 0 auto;
   }
 
   .prefsBar label > select {
-    flex: 1 1 auto;
-    width: 100%;
-    min-width: 0;
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 74px;
     max-width: none;
   }
 
@@ -978,22 +991,40 @@ canvas {
   .shell.inspectorCollapsed {
     display: flex;
     flex-direction: column;
-    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: visible;
   }
 
   .sidebar {
     flex: none;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: none;
-    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: visible;
     padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
   }
 
+  .sidebar > * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
   .sidebarActions {
+    width: 100%;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .files {
     max-height: none;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -1007,7 +1038,7 @@ canvas {
   .fileRow,
   .slideRow {
     width: auto;
-    flex: 0 0 min(78vw, 300px);
+    flex: 0 0 min(56vw, 200px);
     scroll-snap-align: start;
   }
 
@@ -1015,6 +1046,9 @@ canvas {
     height: clamp(480px, 72dvh, 680px);
     min-height: 480px;
     flex: none;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     border-bottom: 1px solid var(--line);
   }
 
@@ -1029,10 +1063,43 @@ canvas {
 
   .inspector {
     flex: none;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
-    overflow: visible;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+    overflow-y: visible;
     padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
     padding-bottom: 12px;
+  }
+
+  .inspector.collapsed {
+    gap: 0;
+    grid-template-rows: auto;
+    padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+  }
+
+  .inspector.collapsed .sectionHead {
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    justify-items: stretch;
+  }
+
+  .inspector.collapsed .sectionHead h2 {
+    display: block;
+  }
+
+  .inspector.collapsed .sectionHead .count {
+    display: grid;
+  }
+
+  .inspector.collapsed .inspectorBody {
+    display: none;
+  }
+
+  .inspector > * {
+    min-width: 0;
+    max-width: 100%;
   }
 
   .inspectorBody {
@@ -1166,36 +1233,37 @@ canvas {
 
   .reviewBar {
     min-height: 0;
-    display: grid;
-    grid-template-columns: 44px 44px minmax(0, 1fr) max-content;
-    grid-template-areas:
-      "previous next title reset"
-      "zoom zoom zoom zoom";
+    display: flex;
+    align-items: center;
     gap: 8px;
   }
 
-  .reviewPrevious {
-    grid-area: previous;
-  }
-
-  .reviewNext {
-    grid-area: next;
-  }
-
+  .reviewPrevious,
+  .reviewNext,
   .reviewBar .title {
-    grid-area: title;
+    display: none;
   }
 
   .reviewBar .zoomControls {
-    grid-area: zoom;
-    display: grid;
-    grid-template-columns: 44px 54px 44px minmax(80px, 1fr);
-    width: 100%;
+    display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .reviewBar .fitButton {
+    flex: 0 0 auto;
+    width: auto;
+    min-width: 0;
+    padding: 0 12px;
   }
 
   .reviewBar .resetButton {
-    grid-area: reset;
-    max-width: 112px;
+    flex: 0 0 auto;
+    margin-left: auto;
+    max-width: none;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -1233,11 +1301,6 @@ canvas {
   .settings label,
   .prefsBar label {
     height: 44px;
-  }
-
-  .infoButton {
-    height: 44px !important;
-    width: 44px !important;
   }
 
   .morePanel label,
@@ -1282,8 +1345,10 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px !important;
-  height: 34px !important;
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
   border-radius: 6px;
   color: var(--muted);
   background: var(--control-bg);
@@ -1301,6 +1366,15 @@ canvas {
 
 .infoButton svg {
   display: block;
+}
+
+@media (max-width: 720px), (pointer: coarse) {
+  .infoButton {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
 }
 
 /* Modal overlay with blur and fade-in animation */
