@@ -1059,6 +1059,14 @@ export function SlidesThiefApp() {
     setExportUrl((current) => (current === null ? current : null));
   }, []);
 
+  const updateSettings = useCallback(
+    (updater: (current: Settings) => Settings) => {
+      clearExport();
+      setSettings(updater);
+    },
+    [clearExport],
+  );
+
   const ensureWorker = useCallback(() => {
     if (workerRef.current) return workerRef.current;
     let worker: Worker;
@@ -1191,18 +1199,6 @@ export function SlidesThiefApp() {
   useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
-
-  useEffect(() => {
-    clearExport();
-  }, [
-    clearExport,
-    settings.enhancement,
-    settings.fillColor,
-    settings.height,
-    settings.quality,
-    settings.ratio,
-    settings.width,
-  ]);
 
   useEffect(() => {
     const token = thumbnailRefreshTokenRef.current + 1;
@@ -1830,7 +1826,7 @@ export function SlidesThiefApp() {
                   <span>{text.ratio}</span>
                   <select
                     value={settings.ratio}
-                    onChange={(event) => setSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
+                    onChange={(event) => updateSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
                   >
                     <option value="16:9">16:9</option>
                     <option value="4:3">4:3</option>
@@ -1856,7 +1852,7 @@ export function SlidesThiefApp() {
                         max={6000}
                         value={settings.width}
                         onChange={(event) =>
-                          setSettings((current) => ({
+                          updateSettings((current) => ({
                             ...current,
                             width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
                           }))
@@ -1872,7 +1868,7 @@ export function SlidesThiefApp() {
                         placeholder={text.heightAuto}
                         value={settings.height ?? ""}
                         onChange={(event) =>
-                          setSettings((current) => ({
+                          updateSettings((current) => ({
                             ...current,
                             height: event.target.value
                               ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
@@ -1889,7 +1885,7 @@ export function SlidesThiefApp() {
                         max={98}
                         value={Math.round(settings.quality * 100)}
                         onChange={(event) =>
-                          setSettings((current) => ({
+                          updateSettings((current) => ({
                             ...current,
                             quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
                           }))
@@ -1901,7 +1897,7 @@ export function SlidesThiefApp() {
                       <select
                         value={settings.enhancement}
                         onChange={(event) =>
-                          setSettings((current) => ({
+                          updateSettings((current) => ({
                             ...current,
                             enhancement: event.target.value as EnhancementMode,
                           }))
@@ -1918,7 +1914,7 @@ export function SlidesThiefApp() {
                       <input
                         type="color"
                         value={settings.fillColor}
-                        onChange={(event) => setSettings((current) => ({ ...current, fillColor: event.target.value }))}
+                        onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
                       />
                     </label>
                   </div>
