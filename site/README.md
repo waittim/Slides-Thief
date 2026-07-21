@@ -57,3 +57,12 @@ when testing a user or organization Pages site.
 Publishing is handled by `.github/workflows/deploy-pages.yml`. In the GitHub
 repository, keep Settings -> Pages -> Build and deployment -> Source set to
 GitHub Actions, then push to `main`.
+
+## Agent discovery
+
+GitHub Pages cannot set custom HTTP `Link` headers. Both builds instead advertise
+machine-readable surfaces with HTML `<link>` tags:
+
+- `describedby` → `/llms.txt`
+- `service-doc` → `/llms-full.txt`
+- `sitemap` → `/sitemap.xml`

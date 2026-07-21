@@ -20,6 +20,7 @@ For manual correction, edit corners in `manual_review.html`, export `manual_quad
 
 - https://slidesthief.com/schemas/slide-lens-report.schema.json
 - https://slidesthief.com/schemas/manual-quads.schema.json
+- Homepage HTML discovery: `describedby` → /llms.txt, `service-doc` → /llms-full.txt, `sitemap` → /sitemap.xml
 
 ## Project and citation
 

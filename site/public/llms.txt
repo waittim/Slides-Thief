@@ -16,6 +16,14 @@
 - Manual corner schema: https://slidesthief.com/schemas/manual-quads.schema.json
 - Citation metadata: https://slidesthief.com/citation.json
 
+## Discovery
+
+Homepage HTML `<link>` tags advertise:
+
+- `describedby` → `/llms.txt`
+- `service-doc` → `/llms-full.txt`
+- `sitemap` → `/sitemap.xml`
+
 ## Core facts
 
 - Browser processing is local; source photos are not uploaded.

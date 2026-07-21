@@ -40,6 +40,9 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\/"/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.doesNotMatch(html, /rel="manifest" href="https:\/\//i);
+  assert.match(html, /<link rel="describedby" href="\/llms\.txt"[^>]*type="text\/plain"/i);
+  assert.match(html, /<link rel="service-doc" href="\/llms-full\.txt"[^>]*type="text\/plain"/i);
+  assert.match(html, /<link rel="sitemap" href="\/sitemap\.xml"[^>]*type="application\/xml"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
   assert.match(html, /"@type":"WebApplication"/);
   assert.match(html, /"alternateName":\["PPT捕手"/);
