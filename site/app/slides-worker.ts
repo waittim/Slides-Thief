@@ -3,7 +3,13 @@
 import { PDFDocument } from "pdf-lib";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
 
-type RatioValue = "16:9" | "4:3";
+export type RatioValue =
+  | "16:9"
+  | "4:3"
+  | "A4-landscape"
+  | "A4-portrait"
+  | "letter-landscape"
+  | "letter-portrait";
 type Quad = [[number, number], [number, number], [number, number], [number, number]];
 
 type Settings = {
@@ -130,9 +136,25 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
   return ctx.getImageData(0, 0, width, height);
 }
 
-function parseRatio(value: RatioValue) {
-  const [w, h] = value.split(":").map(Number);
-  return w / h;
+const RATIO_PRESETS: Record<string, number> = {
+  "16:9": 16 / 9,
+  "4:3": 4 / 3,
+  "A4-landscape": 297 / 210,
+  "A4-portrait": 210 / 297,
+  "letter-landscape": 11 / 8.5,
+  "letter-portrait": 8.5 / 11,
+};
+
+export function parseRatio(value: string): number {
+  if (RATIO_PRESETS[value]) {
+    return RATIO_PRESETS[value];
+  }
+  if (value.includes(":")) {
+    const [w, h] = value.split(":").map(Number);
+    return w / h;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 16 / 9;
 }
 
 function detectQuad(imageData: ImageData, ratio: number): [Quad, DetectDiagnostics] {

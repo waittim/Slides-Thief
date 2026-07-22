@@ -16,7 +16,13 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
   }
 }
 
-type RatioValue = "16:9" | "4:3";
+export type RatioValue =
+  | "16:9"
+  | "4:3"
+  | "A4-landscape"
+  | "A4-portrait"
+  | "letter-landscape"
+  | "letter-portrait";
 type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
@@ -878,8 +884,26 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
+export function parseRatio(value: string): number {
+  const presets: Record<string, number> = {
+    "16:9": 16 / 9,
+    "4:3": 4 / 3,
+    "A4-landscape": 297 / 210,
+    "A4-portrait": 210 / 297,
+    "letter-landscape": 11 / 8.5,
+    "letter-portrait": 8.5 / 11,
+  };
+  if (presets[value]) return presets[value];
+  if (value.includes(":")) {
+    const [w, h] = value.split(":").map(Number);
+    return w / h;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) && num > 0 ? num : 16 / 9;
+}
+
 function outputRatio(settings: Settings) {
-  return settings.height ? settings.width / settings.height : settings.ratio === "4:3" ? 4 / 3 : 16 / 9;
+  return settings.height ? settings.width / settings.height : parseRatio(settings.ratio);
 }
 
 function solveLinearSystem(matrix: number[][], vector: number[]) {
@@ -1871,10 +1895,22 @@ export function SlidesThiefApp() {
                   <span>{text.ratio}</span>
                   <select
                     value={settings.ratio}
-                    onChange={(event) => updateSettings((current) => ({ ...current, ratio: event.target.value as RatioValue }))}
+                    onChange={(event) => {
+                      const nextRatio = event.target.value as RatioValue;
+                      const isPaper = nextRatio.startsWith("A4") || nextRatio.startsWith("letter");
+                      updateSettings((current) => ({
+                        ...current,
+                        ratio: nextRatio,
+                        fillColor: isPaper ? "#ffffff" : current.fillColor,
+                      }));
+                    }}
                   >
                     <option value="16:9">16:9</option>
                     <option value="4:3">4:3</option>
+                    <option value="A4-landscape">A4 / A3 (Landscape / 横向)</option>
+                    <option value="A4-portrait">A4 / A3 (Portrait / 纵向)</option>
+                    <option value="letter-landscape">Letter (Landscape / 横向)</option>
+                    <option value="letter-portrait">Letter (Portrait / 纵向)</option>
                   </select>
                 </label>
                 <details
