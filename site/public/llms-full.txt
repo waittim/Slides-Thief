@@ -6,15 +6,43 @@ Slides Thief corrects perspective distortion in photographs of projected or disp
 
 Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
 
+### Web features
+
+- Output ratios: 16:9, 4:3, A4/A3 landscape and portrait, Letter landscape and portrait. Paper presets fill margins with white.
+- Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
+- UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
+- Light and dark themes.
+
 ## Python CLI
 
 Install the package and run:
 
-    slides-thief INPUT_DIRECTORY --output-dir OUTPUT_DIRECTORY --ratio 16:9 --width 2400 --pdf-name slides.pdf
+    slides-thief INPUT_DIRECTORY --output-dir OUTPUT_DIRECTORY --ratio 16:9 --width 2400 --pdf-name flattened_slides.pdf
 
-A successful run creates the requested PDF, corrected images, detection overlays, contact sheets, `manual_review.html`, and `slide_lens_report.json`. Run `slides-thief --help` for all options.
+### CLI input formats
 
-For manual correction, edit corners in `manual_review.html`, export `manual_quads.json`, then run again with `--manual PATH`. Each quad is ordered top-left, top-right, bottom-right, bottom-left.
+JPEG, PNG, TIFF, HEIC, and HEIF. WebP is web-only. HEIC/HEIF conversion uses macOS `sips`.
+
+### CLI outputs
+
+The requested PDF, `corrected_images/`, `detection_overlays/`, contact sheets, `manual_review.html`, `manual_review_data.json`, and `slide_lens_report.json`.
+
+### CLI ratios
+
+Presentation: 16:9 (default), 4:3. Paper: A4, A3, A5, and Letter in landscape and portrait. Custom ratios such as 16:10 or 1.777 are also accepted. Paper presets fill margins with white.
+
+### Common CLI options
+
+- `--width` (default 2200), `--height`, `--jpeg-quality` (default 92)
+- `--enhancement {original,clean,high-contrast,bw}`
+- `--manual PATH` for a second pass with exported corner JSON
+- `--work-dir`, `--clean-converted`
+
+Run `slides-thief --help` for all options. Full contract: https://github.com/waittim/Slides-Thief/blob/main/docs/cli.md
+
+### Manual correction
+
+Edit corners in `manual_review.html`, export `manual_quads.json`, then run again with `--manual PATH`. Each quad is ordered top-left, top-right, bottom-right, bottom-left.
 
 ## Contracts
 
@@ -28,4 +56,3 @@ Repository: https://github.com/waittim/Slides-Thief
 License: MIT
 Author: Zekun Wang
 Citation: Wang, Z. Slides Thief: Convert photographed presentation slides into perspective-corrected PDFs. https://github.com/waittim/Slides-Thief
-

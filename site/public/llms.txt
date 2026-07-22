@@ -27,7 +27,9 @@ Homepage HTML `<link>` tags advertise:
 ## Core facts
 
 - Browser processing is local; source photos are not uploaded.
-- Web formats: JPEG, PNG, WebP, HEIC, HEIF.
+- Web formats: JPEG, PNG, WebP, HEIC, HEIF. CLI formats: JPEG, PNG, TIFF, HEIC, HEIF.
+- Web ratios: 16:9, 4:3, A4/A3, Letter. CLI also supports A5 and custom ratios.
+- Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR.
 - Corner order: top-left, top-right, bottom-right, bottom-left.
 - License: MIT.
 

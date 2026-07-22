@@ -32,16 +32,17 @@ your source photos to a server.
 
 ## Supported Files
 
-The web app supports:
+| Format | Web app | CLI |
+| --- | --- | --- |
+| JPEG / JPG | Yes | Yes |
+| PNG | Yes | Yes |
+| WebP | Yes | No |
+| TIFF | No | Yes |
+| HEIC / HEIF | Yes | Yes |
 
-- JPEG / JPG
-- PNG
-- WebP
-- HEIC / HEIF
-
-HEIC and HEIF files are converted to JPEG in the browser before the slide
-correction pipeline runs. Large HEIC/HEIF batches may take longer to start than
-JPEG batches.
+HEIC and HEIF files are converted to JPEG before processing. The web app does
+this in the browser; the CLI uses macOS `sips`. Large HEIC/HEIF batches may
+take longer to start than JPEG batches.
 
 ## Good Use Cases
 
@@ -56,10 +57,12 @@ JPEG batches.
 
 - Automatic slide boundary detection.
 - Manual four-corner correction.
-- 16:9, 4:3, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios with white margin fill.
+- 16:9, 4:3, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios. Paper presets fill margins with white.
 - Custom output width, quality, optional readability enhancement, and fill color.
-- Light/dark themes and Chinese/English UI.
+- Light/dark themes and UI in nine languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Browser-local PDF generation.
+
+The CLI additionally supports A5 paper presets and arbitrary custom ratios such as `16:10`.
 
 ## Local CLI
 
@@ -84,7 +87,19 @@ Important outputs:
 - `corrected_contact_sheet.jpg`: quick visual review of flattened pages.
 - `detection_contact_sheet.jpg`: quick visual review of detected corners.
 - `manual_review.html`: browser UI for dragging corner points.
+- `manual_review_data.json`: data backing the manual review page.
 - `slide_lens_report.json`: machine-readable report with points and confidence.
+
+Common CLI options beyond the example above:
+
+- `--enhancement {original,clean,high-contrast,bw}`: optional readability pass after correction.
+- `--height`: optional output height in pixels (overrides ratio-derived height).
+- `--jpeg-quality`: JPEG quality for corrected images (default `92`).
+- `--work-dir`: intermediate working directory (default `work/slide_lens_runtime`).
+- `--clean-converted`: remove intermediate converted JPEGs after the run.
+
+The default output width is `2200` pixels. Run `slides-thief --help` for the full option list.
+See [docs/cli.md](docs/cli.md) for the complete CLI contract.
 
 ### Manual Correction Pass
 
@@ -133,22 +148,29 @@ Run the Python test suite:
 python -m pytest
 ```
 
-Run the browser-only site tests:
+The web workspace requires Node.js 22.13 or newer:
 
 ```bash
 cd site
 npm ci
-npm test
+npm run dev          # Vinext/Cloudflare development server
+npm run build        # server-rendered app build
+npm run build:pages  # static GitHub Pages build (writes dist-pages/)
+npm test             # builds both targets and runs tests
 ```
+
+See [site/README.md](site/README.md) for Pages base-path and deployment details.
 
 ## Project Layout
 
 ```text
-src/slides_thief/
-  cli.py                  # local batch pipeline and command-line entry
-site/                     # browser-only workspace and static Pages build
-tests/                    # focused regression tests
-pyproject.toml            # build, runtime, and development configuration
+src/slides_thief/       # Python CLI and image-processing pipeline
+site/                   # React web app; browser-only workspace and Pages build
+docs/                   # stable Markdown documentation for humans and agents
+schemas/                # JSON Schema contracts for CLI inputs and reports
+tests/                  # Python regression tests
+site/tests/             # web build and rendering regression tests
+pyproject.toml          # Python build, runtime, and development configuration
 ```
 
 Generated jobs, intermediate files, and package build artifacts stay outside
