@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
+import { isPaperRatio, parseRatio, type RatioValue } from "./ratio";
 
 interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -15,14 +16,6 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
     }
   }
 }
-
-export type RatioValue =
-  | "16:9"
-  | "4:3"
-  | "A4-landscape"
-  | "A4-portrait"
-  | "letter-landscape"
-  | "letter-portrait";
 type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
@@ -882,24 +875,6 @@ function parseHexColor(value: string): [number, number, number] {
     Number.parseInt(clean.slice(2, 4), 16),
     Number.parseInt(clean.slice(4, 6), 16),
   ];
-}
-
-export function parseRatio(value: string): number {
-  const presets: Record<string, number> = {
-    "16:9": 16 / 9,
-    "4:3": 4 / 3,
-    "A4-landscape": 297 / 210,
-    "A4-portrait": 210 / 297,
-    "letter-landscape": 11 / 8.5,
-    "letter-portrait": 8.5 / 11,
-  };
-  if (presets[value]) return presets[value];
-  if (value.includes(":")) {
-    const [w, h] = value.split(":").map(Number);
-    return w / h;
-  }
-  const num = Number(value);
-  return Number.isFinite(num) && num > 0 ? num : 16 / 9;
 }
 
 function outputRatio(settings: Settings) {
@@ -1897,7 +1872,7 @@ export function SlidesThiefApp() {
                     value={settings.ratio}
                     onChange={(event) => {
                       const nextRatio = event.target.value as RatioValue;
-                      const isPaper = nextRatio.startsWith("A4") || nextRatio.startsWith("letter");
+                      const isPaper = isPaperRatio(nextRatio);
                       updateSettings((current) => ({
                         ...current,
                         ratio: nextRatio,

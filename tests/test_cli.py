@@ -1,7 +1,15 @@
 import numpy as np
 from PIL import Image
 
-from slides_thief.cli import enhance_slide, list_images, order_quad, parse_ratio, resolve_enhancement_mode
+from slides_thief.cli import (
+    enhance_slide,
+    is_paper_ratio,
+    list_images,
+    order_quad,
+    parse_ratio,
+    resolve_enhancement_mode,
+    warp_slide,
+)
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -15,6 +23,25 @@ def test_parse_ratio_accepts_named_paper_aliases() -> None:
     assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
     assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
     assert abs(parse_ratio("A3") - (297 / 210)) < 1e-5
+
+
+def test_is_paper_ratio_recognizes_paper_presets() -> None:
+    assert is_paper_ratio("A4") is True
+    assert is_paper_ratio("a4-landscape") is True
+    assert is_paper_ratio("Letter") is True
+    assert is_paper_ratio("letter-portrait") is True
+    assert is_paper_ratio("16:9") is False
+    assert is_paper_ratio("4:3") is False
+
+
+def test_warp_slide_uses_custom_fill_color() -> None:
+    img = Image.new("RGB", (50, 50), (0, 0, 255))
+    quad = np.array([[-50, -50], [25, -50], [25, 25], [-50, 25]], dtype=np.float64)
+    warped_white = warp_slide(img, quad, 100, 100, fill_color=(255, 255, 255))
+    assert warped_white.getpixel((0, 0)) == (255, 255, 255)
+
+    warped_black = warp_slide(img, quad, 100, 100, fill_color=(0, 0, 0))
+    assert warped_black.getpixel((0, 0)) == (0, 0, 0)
 
 
 def test_order_quad_returns_clockwise_from_top_left() -> None:

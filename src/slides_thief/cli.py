@@ -59,6 +59,24 @@ RATIO_PRESETS: dict[str, float] = {
     "letter-portrait": 8.5 / 11,
 }
 
+PAPER_PRESETS: set[str] = {
+    "a4",
+    "a4-landscape",
+    "a3",
+    "a3-landscape",
+    "a5",
+    "a4-portrait",
+    "a3-portrait",
+    "a5-portrait",
+    "letter",
+    "letter-landscape",
+    "letter-portrait",
+}
+
+
+def is_paper_ratio(value: str) -> bool:
+    return value.strip().lower() in PAPER_PRESETS
+
 
 def parse_ratio(value: str) -> float:
     key = value.strip().lower()
@@ -578,7 +596,13 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
     return ImageEnhance.Sharpness(rgb).enhance(1.35)
 
 
-def warp_slide(image: Image.Image, quad: np.ndarray, out_w: int, out_h: int) -> Image.Image:
+def warp_slide(
+    image: Image.Image,
+    quad: np.ndarray,
+    out_w: int,
+    out_h: int,
+    fill_color: tuple[int, int, int] = (0, 0, 0),
+) -> Image.Image:
     dst = np.array([[0, 0], [out_w, 0], [out_w, out_h], [0, out_h]], dtype=np.float64)
     coeffs = perspective_coefficients(quad, dst)
     warped = image.convert("RGB").transform(
@@ -586,6 +610,7 @@ def warp_slide(image: Image.Image, quad: np.ndarray, out_w: int, out_h: int) -> 
         Image.Transform.PERSPECTIVE,
         coeffs,
         Image.Resampling.BICUBIC,
+        fillcolor=fill_color,
     )
     return warped
 
@@ -1132,7 +1157,8 @@ def process(args: argparse.Namespace) -> dict:
                 "confidence": diagnostics["confidence"],
             }
         )
-        warped = warp_slide(image, quad, out_w, out_h)
+        fill_color = (255, 255, 255) if is_paper_ratio(args.ratio) else (0, 0, 0)
+        warped = warp_slide(image, quad, out_w, out_h, fill_color=fill_color)
         enhanced = enhance_slide(warped, mode=resolve_enhancement_mode(args))
         out_image = corrected_dir / f"{idx:03d}_{src.stem}.jpg"
         enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
