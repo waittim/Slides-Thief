@@ -121,6 +121,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief · PPT捕手",
     ratio: "比例",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (横向)",
+    ratioA4Portrait: "A4 / A3 (纵向)",
+    ratioLetterLandscape: "Letter (横向)",
+    ratioLetterPortrait: "Letter (纵向)",
     more: "更多设置",
     settings: "设置",
     width: "宽度",
@@ -186,6 +192,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief · PPT捕手",
     ratio: "比例",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (橫向)",
+    ratioA4Portrait: "A4 / A3 (縱向)",
+    ratioLetterLandscape: "Letter (橫向)",
+    ratioLetterPortrait: "Letter (縱向)",
     more: "更多設定",
     settings: "設定",
     width: "寬度",
@@ -251,6 +263,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Ratio",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (Landscape)",
+    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioLetterLandscape: "Letter (Landscape)",
+    ratioLetterPortrait: "Letter (Portrait)",
     more: "More settings",
     settings: "Settings",
     width: "Width",
@@ -316,6 +334,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Relación",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (Horizontal)",
+    ratioA4Portrait: "A4 / A3 (Vertical)",
+    ratioLetterLandscape: "Carta (Horizontal)",
+    ratioLetterPortrait: "Carta (Vertical)",
     more: "Más ajustes",
     settings: "Ajustes",
     width: "Ancho",
@@ -381,6 +405,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (Paysage)",
+    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioLetterLandscape: "Lettre (Paysage)",
+    ratioLetterPortrait: "Lettre (Portrait)",
     more: "Réglages",
     settings: "Réglages",
     width: "Largeur",
@@ -446,6 +476,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (Querformat)",
+    ratioA4Portrait: "A4 / A3 (Hochformat)",
+    ratioLetterLandscape: "US Letter (Querformat)",
+    ratioLetterPortrait: "US Letter (Hochformat)",
     more: "Mehr",
     settings: "Einstellungen",
     width: "Breite",
@@ -511,6 +547,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "比率",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (横)",
+    ratioA4Portrait: "A4 / A3 (縦)",
+    ratioLetterLandscape: "レター (横)",
+    ratioLetterPortrait: "レター (縦)",
     more: "詳細設定",
     settings: "設定",
     width: "幅",
@@ -576,6 +618,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "비율",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (가로)",
+    ratioA4Portrait: "A4 / A3 (세로)",
+    ratioLetterLandscape: "Letter (가로)",
+    ratioLetterPortrait: "Letter (세로)",
     more: "추가 설정",
     settings: "설정",
     width: "너비",
@@ -641,6 +689,12 @@ const copy = {
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Proporção",
+    ratio16x9: "16:9",
+    ratio4x3: "4:3",
+    ratioA4Landscape: "A4 / A3 (Paisagem)",
+    ratioA4Portrait: "A4 / A3 (Retrato)",
+    ratioLetterLandscape: "Carta (Paisagem)",
+    ratioLetterPortrait: "Carta (Retrato)",
     more: "Mais ajustes",
     settings: "Ajustes",
     width: "Largura",
@@ -1060,11 +1114,11 @@ export function SlidesThiefApp() {
     return "neutral";
   }, [detecting, exporting, exportUrl, hasRun, workerError]);
 
-  const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad) => {
+  const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
     const slide = slidesRef.current.find((item) => item.id === id);
     if (!slide) return;
     try {
-      const thumbnailUrl = await buildAdjustedThumbnail(slide, quad, settingsRef.current);
+      const thumbnailUrl = await buildAdjustedThumbnail(slide, quad, overrideSettings ?? settingsRef.current);
       setSlides((current) => current.map((item) => (item.id === id ? { ...item, thumbnailUrl } : item)));
     } catch {
       // Keep the original preview if thumbnail generation fails.
@@ -1733,30 +1787,38 @@ export function SlidesThiefApp() {
     void refreshSlideThumbnail(selectedSlide.id, next);
   };
 
-  const runAuto = () => {
-    if (!slides.length) return;
-    cancelActiveDrag();
-    const worker = ensureWorker();
-    if (!worker) return;
-    clearExport();
-    setWorkerError("");
-    setBusyText(text.stretching);
-    setSlides((current) =>
-      current.map((slide) => ({
-        ...slide,
-        status: "detecting",
-        method: "detecting",
-        quad: null,
-        thumbnailUrl: undefined,
-        error: undefined,
-      })),
-    );
-    worker.postMessage({
-      type: "detect",
-      files: slides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
-      settings,
-    });
-  };
+  const runAutoWithSettings = useCallback(
+    (overrideSettings?: Settings) => {
+      if (!slides.length) return;
+      cancelActiveDrag();
+      const worker = ensureWorker();
+      if (!worker) return;
+      clearExport();
+      setWorkerError("");
+      setBusyText(text.stretching);
+      const targetSettings = overrideSettings ?? settings;
+      setSlides((current) =>
+        current.map((slide) => ({
+          ...slide,
+          status: "detecting",
+          method: "detecting",
+          quad: null,
+          thumbnailUrl: undefined,
+          error: undefined,
+        })),
+      );
+      worker.postMessage({
+        type: "detect",
+        files: slides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+        settings: targetSettings,
+      });
+    },
+    [cancelActiveDrag, clearExport, ensureWorker, settings, slides, text.stretching],
+  );
+
+  const runAuto = useCallback(() => {
+    runAutoWithSettings();
+  }, [runAutoWithSettings]);
 
   const resetSelected = () => {
     if (!selectedSlide) return;
@@ -1873,19 +1935,24 @@ export function SlidesThiefApp() {
                     onChange={(event) => {
                       const nextRatio = event.target.value as RatioValue;
                       const isPaper = isPaperRatio(nextRatio);
-                      updateSettings((current) => ({
-                        ...current,
+                      const nextSettings: Settings = {
+                        ...settings,
                         ratio: nextRatio,
-                        fillColor: isPaper ? "#ffffff" : current.fillColor,
-                      }));
+                        height: null,
+                        fillColor: isPaper ? "#ffffff" : settings.fillColor,
+                      };
+                      updateSettings(() => nextSettings);
+                      if (hasRun) {
+                        runAutoWithSettings(nextSettings);
+                      }
                     }}
                   >
-                    <option value="16:9">16:9</option>
-                    <option value="4:3">4:3</option>
-                    <option value="A4-landscape">A4 / A3 (Landscape / 横向)</option>
-                    <option value="A4-portrait">A4 / A3 (Portrait / 纵向)</option>
-                    <option value="letter-landscape">Letter (Landscape / 横向)</option>
-                    <option value="letter-portrait">Letter (Portrait / 纵向)</option>
+                    <option value="16:9">{text.ratio16x9}</option>
+                    <option value="4:3">{text.ratio4x3}</option>
+                    <option value="A4-landscape">{text.ratioA4Landscape}</option>
+                    <option value="A4-portrait">{text.ratioA4Portrait}</option>
+                    <option value="letter-landscape">{text.ratioLetterLandscape}</option>
+                    <option value="letter-portrait">{text.ratioLetterPortrait}</option>
                   </select>
                 </label>
                 <details
