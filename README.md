@@ -56,7 +56,7 @@ JPEG batches.
 
 - Automatic slide boundary detection.
 - Manual four-corner correction.
-- 16:9 and 4:3 output ratios.
+- 16:9, 4:3, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios with white margin fill.
 - Custom output width, quality, optional readability enhancement, and fill color.
 - Light/dark themes and Chinese/English UI.
 - Browser-local PDF generation.
