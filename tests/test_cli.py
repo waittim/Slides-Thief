@@ -9,6 +9,14 @@ def test_parse_ratio_accepts_colon_and_float_values() -> None:
     assert parse_ratio("1.25") == 1.25
 
 
+def test_parse_ratio_accepts_named_paper_aliases() -> None:
+    assert abs(parse_ratio("A4") - (297 / 210)) < 1e-5
+    assert abs(parse_ratio("A4-portrait") - (210 / 297)) < 1e-5
+    assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
+    assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
+    assert abs(parse_ratio("A3") - (297 / 210)) < 1e-5
+
+
 def test_order_quad_returns_clockwise_from_top_left() -> None:
     points = np.array(
         [

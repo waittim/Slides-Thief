@@ -43,7 +43,27 @@ class Line:
         return -(self.b * y + self.c) / self.a
 
 
+RATIO_PRESETS: dict[str, float] = {
+    "16:9": 16 / 9,
+    "4:3": 4 / 3,
+    "a4": 297 / 210,
+    "a4-landscape": 297 / 210,
+    "a3": 297 / 210,
+    "a3-landscape": 297 / 210,
+    "a5": 297 / 210,
+    "a4-portrait": 210 / 297,
+    "a3-portrait": 210 / 297,
+    "a5-portrait": 210 / 297,
+    "letter": 11 / 8.5,
+    "letter-landscape": 11 / 8.5,
+    "letter-portrait": 8.5 / 11,
+}
+
+
 def parse_ratio(value: str) -> float:
+    key = value.strip().lower()
+    if key in RATIO_PRESETS:
+        return RATIO_PRESETS[key]
     if ":" in value:
         w, h = value.split(":", 1)
         return float(w) / float(h)
@@ -1184,7 +1204,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", help="Folder containing source photos")
     parser.add_argument("--output-dir", default="outputs/slide_lens_example", help="Output folder")
     parser.add_argument("--work-dir", default="work/slide_lens_runtime", help="Intermediate folder")
-    parser.add_argument("--ratio", default="16:9", help="Output slide ratio, e.g. 16:9 or 4:3")
+    parser.add_argument("--ratio", default="16:9", help="Output slide ratio, e.g. 16:9, 4:3, A4, A4-portrait, Letter, letter-portrait")
     parser.add_argument("--width", type=int, default=2200, help="Output image width in pixels")
     parser.add_argument("--height", type=int, default=None, help="Optional output image height in pixels")
     parser.add_argument("--pdf-name", default="flattened_slides.pdf", help="PDF filename")
