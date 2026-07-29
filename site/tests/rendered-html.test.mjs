@@ -175,6 +175,16 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
   assert.match(exportWorker, /fillColor/);
   assert.match(exportWorker, /parseHexColor/);
+  assert.match(
+    app,
+    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
+  );
+  assert.match(
+    exportWorker,
+    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
+  );
+  assert.doesNotMatch(app, /applyEnhancement\(output\.data/);
+  assert.doesNotMatch(exportWorker, /applyEnhancement\(output\.data/);
   assert.match(exportWorker, /OffscreenCanvas/);
   assert.match(worker, /detectQuad/);
   assert.match(detector, /contrast-lines/);

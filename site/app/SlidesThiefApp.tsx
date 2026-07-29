@@ -1274,42 +1274,75 @@ const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
  * Finds the dominant colour inside the corrected slide, deliberately skipping
  * its edge so a projector bezel or photographed screen border is not used.
  */
-function resolveFillColor(value: string, source: ImageData, target: Quad, coeffs: number[]) {
+function resolveFillColor(value: string, content: ImageData) {
   if (value !== "auto") return parseHexColor(value);
   const inset = 0.12;
-  const left = target[0][0] + (target[1][0] - target[0][0]) * inset;
-  const right = target[1][0] - (target[1][0] - target[0][0]) * inset;
-  const top = target[0][1] + (target[3][1] - target[0][1]) * inset;
-  const bottom = target[3][1] - (target[3][1] - target[0][1]) * inset;
-  const samples: Array<[number, number, number] | null> = [];
+  const left = content.width * inset;
+  const right = content.width * (1 - inset);
+  const top = content.height * inset;
+  const bottom = content.height * (1 - inset);
+  const samples: [number, number, number][] = [];
 
   for (let row = 0; row < 8; row += 1) {
     for (let column = 0; column < 12; column += 1) {
       const x = left + (right - left) * ((column + 0.5) / 12);
       const y = top + (bottom - top) * ((row + 0.5) / 8);
-      samples.push(sampleCorrectedRgb(source, coeffs, x, y));
+      const offset = (
+        Math.min(content.height - 1, Math.max(0, Math.round(y))) * content.width
+        + Math.min(content.width - 1, Math.max(0, Math.round(x)))
+      ) * 4;
+      samples.push([content.data[offset], content.data[offset + 1], content.data[offset + 2]]);
     }
   }
 
-  const valid = samples.filter((sample): sample is [number, number, number] => sample !== null);
-  if (valid.length < 24) return AUTO_FILL_FALLBACK;
   const buckets = new Map<string, [number, number, number][]>();
-  for (const sample of valid) {
+  for (const sample of samples) {
     const key = sample.map((value) => Math.floor(value / 32)).join(":");
     buckets.set(key, [...(buckets.get(key) ?? []), sample]);
   }
   const dominant = [...buckets.values()].reduce((largest, bucket) => bucket.length > largest.length ? bucket : largest, [] as [number, number, number][]);
-  if (dominant.length < valid.length * 0.14) return AUTO_FILL_FALLBACK;
+  if (dominant.length < samples.length * 0.14) return AUTO_FILL_FALLBACK;
   return [0, 1, 2].map((channel) => medianValue(dominant.map((sample) => sample[channel]))) as [number, number, number];
 }
 
-function sampleCorrectedRgb(source: ImageData, coeffs: number[], x: number, y: number): [number, number, number] | null {
-  const denominator = coeffs[6] * x + coeffs[7] * y + 1;
-  const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denominator;
-  const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denominator;
-  if (sx < 0 || sx >= source.width || sy < 0 || sy >= source.height) return null;
-  const offset = (Math.min(source.height - 1, Math.round(sy)) * source.width + Math.min(source.width - 1, Math.round(sx))) * 4;
-  return [source.data[offset], source.data[offset + 1], source.data[offset + 2]];
+function contentPixelBounds(target: Quad) {
+  const x = Math.ceil(target[0][0]);
+  const y = Math.ceil(target[0][1]);
+  return {
+    x,
+    y,
+    width: Math.max(1, Math.ceil(target[1][0]) - x),
+    height: Math.max(1, Math.ceil(target[3][1]) - y),
+  };
+}
+
+function extractContent(page: ImageData, bounds: ReturnType<typeof contentPixelBounds>) {
+  const content = new ImageData(bounds.width, bounds.height);
+  for (let y = 0; y < bounds.height; y += 1) {
+    const sourceStart = ((bounds.y + y) * page.width + bounds.x) * 4;
+    const targetStart = y * bounds.width * 4;
+    content.data.set(page.data.subarray(sourceStart, sourceStart + bounds.width * 4), targetStart);
+  }
+  return content;
+}
+
+function fillAndBlitContent(
+  page: ImageData,
+  content: ImageData,
+  bounds: ReturnType<typeof contentPixelBounds>,
+  fill: [number, number, number],
+) {
+  for (let offset = 0; offset < page.data.length; offset += 4) {
+    page.data[offset] = fill[0];
+    page.data[offset + 1] = fill[1];
+    page.data[offset + 2] = fill[2];
+    page.data[offset + 3] = 255;
+  }
+  for (let y = 0; y < bounds.height; y += 1) {
+    const sourceStart = y * bounds.width * 4;
+    const targetStart = ((bounds.y + y) * page.width + bounds.x) * 4;
+    page.data.set(content.data.subarray(sourceStart, sourceStart + bounds.width * 4), targetStart);
+  }
 }
 
 function medianValue(values: number[]) {
@@ -1410,9 +1443,11 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
   const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
-  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+  const provisionalFill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
     ? [255, 255, 255] as [number, number, number]
-    : resolveFillColor(settings.fillColor, new ImageData(source, sourceWidth, sourceHeight), dst, coeffs);
+    : settings.fillColor === "auto"
+      ? AUTO_FILL_FALLBACK
+      : parseHexColor(settings.fillColor);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -1430,14 +1465,20 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
         output.data[outIndex + 2] = source[srcIndex + 2];
         output.data[outIndex + 3] = 255;
       } else {
-        output.data[outIndex] = fill[0];
-        output.data[outIndex + 1] = fill[1];
-        output.data[outIndex + 2] = fill[2];
+        output.data[outIndex] = provisionalFill[0];
+        output.data[outIndex + 1] = provisionalFill[1];
+        output.data[outIndex + 2] = provisionalFill[2];
         output.data[outIndex + 3] = 255;
       }
     }
   }
-  applyEnhancement(output.data, outWidth, outHeight, settings.enhancement);
+  const contentBounds = contentPixelBounds(dst);
+  const content = extractContent(output, contentBounds);
+  applyEnhancement(content.data, content.width, content.height, settings.enhancement);
+  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+    ? [255, 255, 255] as [number, number, number]
+    : resolveFillColor(settings.fillColor, content);
+  fillAndBlitContent(output, content, contentBounds, fill);
   outputCtx.putImageData(output, 0, 0);
   return outputCanvas.toDataURL("image/png");
 }
