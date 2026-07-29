@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.0.1] - 2026-07-29
+## [2.1.0] - 2026-07-29
 
 ### Added
 
@@ -68,7 +68,7 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.0.1...HEAD
-[2.0.1]: https://github.com/waittim/Slides-Thief/compare/v2.0.0...v2.0.1
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/waittim/Slides-Thief/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/waittim/Slides-Thief/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/waittim/Slides-Thief/releases/tag/v0.1.0
