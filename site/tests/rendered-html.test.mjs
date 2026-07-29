@@ -84,7 +84,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /settings: "Settings"/);
   assert.match(app, /sourceFormat: "Source format"/);
   assert.match(app, /sourceFormat: "16:9"/);
-  assert.match(app, /recommended16x9: "16:9 \(recommended\)"/);
+  assert.doesNotMatch(app, /recommended16x9:/);
   assert.doesNotMatch(app, /autoDetect:/);
   assert.match(app, /pageLayout: "PDF page"/);
   assert.match(app, /matchSource: "Match source \(recommended\)"/);

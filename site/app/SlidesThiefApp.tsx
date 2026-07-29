@@ -152,7 +152,6 @@ const localeOptions: { value: LocaleValue; label: string }[] = [
 
 const ratioUiCopy: Record<LocaleValue, {
   sourceFormat: string;
-  recommended16x9: string;
   presentationGroup: string;
   documentGroup: string;
   custom: string;
@@ -165,7 +164,6 @@ const ratioUiCopy: Record<LocaleValue, {
 }> = {
   "zh-CN": {
     sourceFormat: "原稿格式",
-    recommended16x9: "16:9（推荐）",
     presentationGroup: "幻灯片",
     documentGroup: "文档",
     custom: "自定义比例",
@@ -178,7 +176,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   "zh-TW": {
     sourceFormat: "原稿格式",
-    recommended16x9: "16:9（建議）",
     presentationGroup: "投影片",
     documentGroup: "文件",
     custom: "自訂比例",
@@ -191,7 +188,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   en: {
     sourceFormat: "Source format",
-    recommended16x9: "16:9 (recommended)",
     presentationGroup: "Presentation",
     documentGroup: "Document",
     custom: "Custom ratio",
@@ -204,7 +200,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   es: {
     sourceFormat: "Formato original",
-    recommended16x9: "16:9 (recomendado)",
     presentationGroup: "Presentación",
     documentGroup: "Documento",
     custom: "Relación personalizada",
@@ -217,7 +212,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   fr: {
     sourceFormat: "Format de l’original",
-    recommended16x9: "16:9 (recommandé)",
     presentationGroup: "Présentation",
     documentGroup: "Document",
     custom: "Format personnalisé",
@@ -230,7 +224,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   de: {
     sourceFormat: "Vorlagenformat",
-    recommended16x9: "16:9 (empfohlen)",
     presentationGroup: "Präsentation",
     documentGroup: "Dokument",
     custom: "Eigenes Seitenverhältnis",
@@ -243,7 +236,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   ja: {
     sourceFormat: "原稿形式",
-    recommended16x9: "16:9（推奨）",
     presentationGroup: "プレゼンテーション",
     documentGroup: "文書",
     custom: "カスタム比率",
@@ -256,7 +248,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   ko: {
     sourceFormat: "원본 형식",
-    recommended16x9: "16:9(권장)",
     presentationGroup: "프레젠테이션",
     documentGroup: "문서",
     custom: "사용자 지정 비율",
@@ -269,7 +260,6 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   "pt-BR": {
     sourceFormat: "Formato original",
-    recommended16x9: "16:9 (recomendado)",
     presentationGroup: "Apresentação",
     documentGroup: "Documento",
     custom: "Proporção personalizada",
@@ -2319,7 +2309,7 @@ export function SlidesThiefApp() {
                     }}
                   >
                     <optgroup label={ratioUi.presentationGroup}>
-                      <option value="16:9">{ratioUi.recommended16x9}</option>
+                      <option value="16:9">{text.ratio16x9}</option>
                       <option value="4:3">{text.ratio4x3}</option>
                       <option value="16:10">16:10</option>
                     </optgroup>
