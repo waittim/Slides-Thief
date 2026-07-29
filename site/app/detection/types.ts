@@ -23,19 +23,36 @@ export type ImageDataLike = {
   height: number;
 };
 
+export type GradientMap = {
+  width: number;
+  height: number;
+  magnitude: Float64Array;
+  orientation: Float64Array;
+  sourceScale: Float32Array;
+  threshold: number;
+  scales: number[];
+};
+
 export type ImageFeatures = {
   width: number;
   height: number;
   rgb: ArrayLike<number>;
   gray: Float64Array;
   saturation: Float64Array;
+  gradient: GradientMap;
 };
 
 export type EdgeEvidence = {
   polarity: EdgePolarity;
+  meanStrength: number;
+  medianStrength: number;
   medianContrast: number;
   percentileContrast: number;
   supportRatio: number;
+  longestRunRatio: number;
+  largestGapRatio: number;
+  gradientAlignment: number;
+  signedContrast: number;
   continuity: number;
 };
 

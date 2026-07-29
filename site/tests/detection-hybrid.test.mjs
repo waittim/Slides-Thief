@@ -13,6 +13,12 @@ const { buildImageFeatures } = await import(
 const { maskLineDetector } = await import(
   new URL("../app/detection/mask-lines.ts", import.meta.url).href
 );
+const { houghLineDetector } = await import(
+  new URL("../app/detection/hough-lines.ts", import.meta.url).href
+);
+const { quadIoU } = await import(
+  new URL("../app/detection/geometry.ts", import.meta.url).href
+);
 
 function rectangleImage(width, height, background, inside, bounds) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -21,6 +27,27 @@ function rectangleImage(width, height, background, inside, bounds) {
       const value = x >= bounds[0] && x <= bounds[2] && y >= bounds[1] && y <= bounds[3]
         ? inside
         : background;
+      const offset = (y * width + x) * 4;
+      data[offset] = value;
+      data[offset + 1] = value;
+      data[offset + 2] = value;
+      data[offset + 3] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
+function polygonImage(width, height, background, inside, quad) {
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      let contained = false;
+      for (let index = 0, previous = quad.length - 1; index < quad.length; previous = index, index += 1) {
+        const [x1, y1] = quad[index];
+        const [x2, y2] = quad[previous];
+        if ((y1 > y) !== (y2 > y) && x < ((x2 - x1) * (y - y1)) / (y2 - y1) + x1) contained = !contained;
+      }
+      const value = contained ? inside : background;
       const offset = (y * width + x) * 4;
       data[offset] = value;
       data[offset + 1] = value;
@@ -94,4 +121,41 @@ test("candidate deduplication keeps the highest-scoring near-identical quad", ()
   };
 
   assert.deepEqual(deduplicateCandidates([second, first], 100, 70), [first]);
+});
+
+test("orientation-guided Hough recovers a freely rotated perspective quad", () => {
+  const expected = [[36, 15], [159, 38], [139, 111], [18, 83]];
+  const image = polygonImage(180, 125, 22, 225, expected);
+  const features = buildImageFeatures(image);
+  const candidates = houghLineDetector.detect(features, settings);
+
+  assert.ok(candidates.length > 0);
+  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected, 180, 125))) > 0.82);
+  assert.ok(candidates[0].diagnostics.familyAngleDegrees >= 35);
+});
+
+test("continuous boundary evidence reports a short largest gap", () => {
+  const image = buildImageFeatures(rectangleImage(180, 120, 20, 230, [20, 15, 160, 105]));
+  const evidence = evaluateEdgeEvidence([20, 15], [160, 15], image);
+
+  assert.ok(evidence.supportRatio > 0.8);
+  assert.ok(evidence.longestRunRatio > 0.8);
+  assert.ok(evidence.largestGapRatio < 0.2);
+  assert.ok(evidence.gradientAlignment > 0.8);
+});
+
+test("a strong but interrupted edge loses continuity support", () => {
+  const source = rectangleImage(180, 120, 20, 230, [20, 15, 160, 105]);
+  for (let y = 0; y < 28; y += 1) {
+    for (let x = 62; x < 118; x += 1) {
+      const offset = (y * source.width + x) * 4;
+      source.data[offset] = 230;
+      source.data[offset + 1] = 230;
+      source.data[offset + 2] = 230;
+    }
+  }
+  const evidence = evaluateEdgeEvidence([20, 15], [160, 15], buildImageFeatures(source));
+
+  assert.ok(evidence.largestGapRatio > 0.25);
+  assert.ok(evidence.longestRunRatio < 0.5);
 });

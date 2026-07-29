@@ -1,3 +1,4 @@
+import { buildGradientPyramid } from "./gradient-pyramid.ts";
 import type { ImageDataLike, ImageFeatures } from "./types.ts";
 
 export function buildImageFeatures(imageData: ImageDataLike): ImageFeatures {
@@ -19,6 +20,7 @@ export function buildImageFeatures(imageData: ImageDataLike): ImageFeatures {
     rgb: imageData.data,
     gray: boxBlur(gray, imageData.width, imageData.height, 2),
     saturation,
+    gradient: buildGradientPyramid(imageData),
   };
 }
 

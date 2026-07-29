@@ -2,6 +2,7 @@ import { scoreCandidate } from "./candidate-scorer.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
 import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { buildImageFeatures } from "./image-features.ts";
+import { houghLineDetector } from "./hough-lines.ts";
 import { maskLineDetector } from "./mask-lines.ts";
 import type {
   CandidateDetector,
@@ -16,6 +17,7 @@ import type {
 const detectors: CandidateDetector[] = [
   contrastLineDetector,
   maskLineDetector,
+  houghLineDetector,
 ];
 
 export function detectQuad(imageData: ImageDataLike, settings: DetectionSettings): DetectionResult {

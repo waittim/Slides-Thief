@@ -20,6 +20,8 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from .detection.gradient import build_gradient_pyramid
+from .detection.hough_lines import hough_quad_candidates
 from .detection.scoring import normalized_quad_distance, score_quad_candidate
 
 
@@ -403,6 +405,8 @@ def detect_quad(
     h, w = gray.shape
 
     contrast_result = contrast_quad(gray, ratio)
+    gradient = build_gradient_pyramid(rgb_small)
+    hough_candidates = hough_quad_candidates(gradient)
 
     # Projected slides/screens in this set are mostly neutral gray, while the
     # wall, curtains, and audience are either saturated or dark. Segmenting the
@@ -528,10 +532,18 @@ def detect_quad(
                     },
                 }
             )
+    raw_candidates.extend(
+        {
+            "quad": candidate["quad"],
+            "method": "hough-lines",
+            "detector_diagnostics": candidate["detector_diagnostics"],
+        }
+        for candidate in hough_candidates
+    )
 
     scored_candidates: list[dict] = []
     for candidate in raw_candidates:
-        scored = score_quad_candidate(gray, candidate["quad"], ratio)
+        scored = score_quad_candidate(gray, candidate["quad"], ratio, gradient)
         if scored is None:
             continue
         score, score_diagnostics = scored

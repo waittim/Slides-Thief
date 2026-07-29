@@ -25,10 +25,13 @@ export function scoreCandidate(
   const aspect = estimateAspect(candidate);
   const sourceRatio = settings.sourceRatioHint ?? 16 / 9;
   const features = {
-    edgeStrength: average(evidence.map((edge) => clamp(edge.percentileContrast / 42, 0, 1))),
+    edgeStrength: average(evidence.map((edge) =>
+      0.65 * clamp(edge.medianStrength / Math.max(0.05, image.gradient.threshold * 1.8), 0, 1) +
+      0.35 * clamp(edge.percentileContrast / 42, 0, 1)
+    )),
     edgeSupport: average(evidence.map((edge) => edge.supportRatio)),
-    edgeContinuity: average(evidence.map((edge) => edge.continuity)),
-    gradientAlignment: 0,
+    edgeContinuity: average(evidence.map((edge) => edge.longestRunRatio * (1 - edge.largestGapRatio * 0.35))),
+    gradientAlignment: average(evidence.map((edge) => edge.gradientAlignment)),
     insideOutsideDifference: average(evidence.map((edge) => clamp(edge.medianContrast / 32, 0, 1))),
     regionConsistency: evaluateRegionConsistency(candidate, image),
     normalizedArea: clamp(normalizedArea / 0.78, 0, 1),
@@ -37,8 +40,10 @@ export function scoreCandidate(
     batchConsistency: 0,
   };
   const rawScore =
-    0.3 * features.edgeStrength +
+    0.24 * features.edgeStrength +
     0.22 * features.edgeSupport +
+    0.03 * features.edgeContinuity +
+    0.03 * features.gradientAlignment +
     0.16 * features.insideOutsideDifference +
     0.12 * features.regionConsistency +
     0.1 * features.geometryValidity +
@@ -53,7 +58,7 @@ export function scoreCandidate(
     warnings: [
       ...candidate.warnings,
       ...(evidence.some((edge) => edge.polarity === "mixed") ? ["mixed_edge_polarity"] : []),
-      ...(evidence.some((edge) => edge.continuity < 0.12) ? ["weak_edge_continuity"] : []),
+      ...(evidence.some((edge) => edge.longestRunRatio < 0.12) ? ["weak_edge_continuity"] : []),
     ],
     diagnostics: {
       ...candidate.diagnostics,
@@ -66,13 +71,18 @@ export function scoreCandidate(
 
 export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatures): EdgeEvidence {
   const length = distance(start, end);
-  const samples = Math.max(64, Math.min(144, Math.round(length / 4)));
+  const samples = Math.max(96, Math.min(192, Math.round(length / 3)));
   const directionX = (end[0] - start[0]) / Math.max(1e-9, length);
   const directionY = (end[1] - start[1]) / Math.max(1e-9, length);
   const normalX = -directionY;
   const normalY = directionX;
+  const normalAngle = Math.atan2(normalY, normalX);
   const offset = Math.max(3, Math.min(8, Math.min(image.width, image.height) * 0.012));
   const diffs: number[] = [];
+  const gradientStrengths: number[] = [];
+  const gradientAlignments: number[] = [];
+  const gradientSupported: boolean[] = [];
+  const gradientThreshold = Math.max(0.025, image.gradient.threshold * 0.72);
 
   for (let index = 0; index < samples; index += 1) {
     const fraction = (index + 0.5) / samples;
@@ -81,6 +91,23 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
     const inner = sampleGray(image, x + normalX * offset, y + normalY * offset);
     const outer = sampleGray(image, x - normalX * offset, y - normalY * offset);
     diffs.push(inner - outer);
+
+    let bestStrength = 0;
+    let bestAlignment = 0;
+    let bestAlignedStrength = 0;
+    for (let normalOffset = -4; normalOffset <= 4; normalOffset += 1) {
+      const sample = sampleGradient(image, x + normalX * normalOffset, y + normalY * normalOffset);
+      const alignment = Math.abs(Math.cos(sample.orientation - normalAngle));
+      const alignedStrength = sample.magnitude * (0.35 + 0.65 * alignment);
+      if (alignedStrength > bestAlignedStrength) {
+        bestAlignedStrength = alignedStrength;
+        bestStrength = sample.magnitude;
+        bestAlignment = alignment;
+      }
+    }
+    gradientStrengths.push(bestStrength);
+    gradientAlignments.push(bestAlignment);
+    gradientSupported.push(bestStrength >= gradientThreshold && bestAlignment >= 0.45);
   }
 
   const positiveSupport = diffs.map((value) => value > 3);
@@ -89,17 +116,37 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
   const negativeRatio = negativeSupport.filter(Boolean).length / samples;
   const mixed = Math.abs(positiveRatio - negativeRatio) < 0.08 && Math.max(positiveRatio, negativeRatio) >= 0.18;
   const usePositive = positiveRatio >= negativeRatio;
-  const supported = usePositive ? positiveSupport : negativeSupport;
+  const contrastSupported = usePositive ? positiveSupport : negativeSupport;
+  const supported = gradientSupported.map((value, index) => value || contrastSupported[index]);
   const signed = diffs.map((value) => usePositive ? value : -value);
   const strengths = signed.filter((value) => value > 0).sort((a, b) => a - b);
   const polarity: EdgePolarity = mixed ? "mixed" : (usePositive ? "inside-brighter" : "inside-darker");
+  const supportRatio = supported.filter(Boolean).length / samples;
+  const longestRunRatio = longestRun(supported) / samples;
+  const largestGapRatio = longestRun(supported.map((value) => !value)) / samples;
 
   return {
     polarity,
+    meanStrength: average(gradientStrengths),
+    medianStrength: percentile(gradientStrengths, 0.5),
     medianContrast: percentile(strengths, 0.5),
     percentileContrast: percentile(strengths, 0.72),
-    supportRatio: Math.max(positiveRatio, negativeRatio) * (mixed ? 0.72 : 1),
-    continuity: longestRun(supported) / samples,
+    supportRatio: supportRatio * (mixed ? 0.82 : 1),
+    longestRunRatio,
+    largestGapRatio,
+    gradientAlignment: average(gradientAlignments),
+    signedContrast: percentile(signed, 0.5),
+    continuity: longestRunRatio,
+  };
+}
+
+function sampleGradient(image: ImageFeatures, x: number, y: number): { magnitude: number; orientation: number } {
+  const xi = clamp(Math.round(x), 0, image.width - 1);
+  const yi = clamp(Math.round(y), 0, image.height - 1);
+  const index = yi * image.width + xi;
+  return {
+    magnitude: image.gradient.magnitude[index],
+    orientation: image.gradient.orientation[index],
   };
 }
 

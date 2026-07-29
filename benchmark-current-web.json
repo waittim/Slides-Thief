@@ -6,8 +6,8 @@
   "quad_iou_mean": 0.9748294759290106,
   "all_corners_under_1_percent": 1,
   "all_corners_under_2_percent": 1,
-  "review_rate": 0,
+  "review_rate": 1,
   "high_confidence_failure_rate": 0,
-  "runtime_p50_ms": 80.014625,
-  "runtime_p95_ms": 118.87025
+  "runtime_p50_ms": 128.951584,
+  "runtime_p95_ms": 173.133083
 }

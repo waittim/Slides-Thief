@@ -1,5 +1,5 @@
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from slides_thief.cli import (
     enhance_slide,
@@ -12,6 +12,8 @@ from slides_thief.cli import (
     warp_slide_contained,
     detect_quad,
 )
+from slides_thief.detection.gradient import build_gradient_pyramid
+from slides_thief.detection.hough_lines import hough_quad_candidates
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -160,7 +162,33 @@ def test_hybrid_detector_reports_ranked_candidate_fields() -> None:
 
     _, diagnostics = detect_quad(image, 16 / 9)
 
-    assert diagnostics["method"] in {"contrast-lines", "mask-lines"}
+    assert diagnostics["method"] in {"contrast-lines", "mask-lines", "hough-lines"}
     assert diagnostics["best_score"] > 0
     assert "second_best_score" in diagnostics
     assert diagnostics["diagnostics"]["candidate_count_before_validation"] >= 2
+
+
+def test_orientation_guided_hough_recovers_rotated_perspective_quad() -> None:
+    expected = np.array([[36, 15], [159, 38], [139, 111], [18, 83]], dtype=np.float64)
+    image = Image.new("RGB", (180, 125), (22, 22, 22))
+    ImageDraw.Draw(image).polygon([tuple(point) for point in expected], fill=(225, 225, 225))
+    gradient = build_gradient_pyramid(np.asarray(image))
+
+    candidates = hough_quad_candidates(gradient)
+
+    assert candidates
+    corner_error = min(np.linalg.norm(candidate["quad"] - expected, axis=1).mean() for candidate in candidates)
+    assert corner_error < 5.0
+    assert candidates[0]["detector_diagnostics"]["family_angle_degrees"] >= 35
+
+
+def test_gradient_pyramid_retains_scale_diagnostics() -> None:
+    arr = np.full((80, 120, 3), 20, dtype=np.uint8)
+    arr[15:65, 20:100] = (220, 80, 40)
+
+    gradient = build_gradient_pyramid(arr)
+
+    assert gradient.magnitude.shape == (80, 120)
+    assert gradient.threshold >= 0.035
+    observed_scales = {round(float(value), 2) for value in np.unique(gradient.source_scale)}
+    assert observed_scales.issubset({0.0, 0.45, 0.67, 1.0})
