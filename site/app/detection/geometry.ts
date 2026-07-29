@@ -106,6 +106,13 @@ export function quadIoU(first: Quad, second: Quad, width: number, height: number
   return union ? intersection / union : 0;
 }
 
+export function convexQuadIoU(first: Quad, second: Quad): number {
+  const intersection = clipConvexPolygon(first, second);
+  const intersectionArea = polygonAreaPoints(intersection);
+  const unionArea = polygonArea(first) + polygonArea(second) - intersectionArea;
+  return unionArea > 0 ? intersectionArea / unionArea : 0;
+}
+
 export function scaleQuad(quad: Quad, factor: number): Quad {
   const center: Point = [
     quad.reduce((sum, point) => sum + point[0], 0) / 4,
@@ -115,4 +122,62 @@ export function scaleQuad(quad: Quad, factor: number): Quad {
     center[0] + (x - center[0]) * factor,
     center[1] + (y - center[1]) * factor,
   ]) as Quad;
+}
+
+function clipConvexPolygon(subject: Point[], clip: Point[]): Point[] {
+  let output = [...subject];
+  const orientation = signedPolygonArea(clip) >= 0 ? 1 : -1;
+  for (let edgeIndex = 0; edgeIndex < clip.length; edgeIndex += 1) {
+    const edgeStart = clip[edgeIndex];
+    const edgeEnd = clip[(edgeIndex + 1) % clip.length];
+    const input = output;
+    output = [];
+    if (!input.length) break;
+    let previous = input[input.length - 1];
+    let previousInside = halfPlane(previous, edgeStart, edgeEnd) * orientation >= -1e-7;
+    for (const current of input) {
+      const currentInside = halfPlane(current, edgeStart, edgeEnd) * orientation >= -1e-7;
+      if (currentInside) {
+        if (!previousInside) output.push(segmentLineIntersection(previous, current, edgeStart, edgeEnd));
+        output.push(current);
+      } else if (previousInside) {
+        output.push(segmentLineIntersection(previous, current, edgeStart, edgeEnd));
+      }
+      previous = current;
+      previousInside = currentInside;
+    }
+  }
+  return output;
+}
+
+function segmentLineIntersection(start: Point, end: Point, lineStart: Point, lineEnd: Point): Point {
+  const segmentX = end[0] - start[0];
+  const segmentY = end[1] - start[1];
+  const lineX = lineEnd[0] - lineStart[0];
+  const lineY = lineEnd[1] - lineStart[1];
+  const denominator = segmentX * lineY - segmentY * lineX;
+  if (Math.abs(denominator) < 1e-9) return end;
+  const offsetX = lineStart[0] - start[0];
+  const offsetY = lineStart[1] - start[1];
+  const fraction = (offsetX * lineY - offsetY * lineX) / denominator;
+  return [start[0] + segmentX * fraction, start[1] + segmentY * fraction];
+}
+
+function halfPlane(point: Point, start: Point, end: Point): number {
+  return (end[0] - start[0]) * (point[1] - start[1]) -
+    (end[1] - start[1]) * (point[0] - start[0]);
+}
+
+function polygonAreaPoints(points: Point[]): number {
+  return Math.abs(signedPolygonArea(points));
+}
+
+function signedPolygonArea(points: Point[]): number {
+  let area = 0;
+  for (let index = 0; index < points.length; index += 1) {
+    const current = points[index];
+    const next = points[(index + 1) % points.length];
+    area += current[0] * next[1] - current[1] * next[0];
+  }
+  return area * 0.5;
 }

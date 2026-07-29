@@ -12,8 +12,10 @@ const repoRoot = resolve(siteRoot, "..");
 const args = process.argv.slice(2);
 const outputFlag = args.indexOf("--output");
 const outputPath = outputFlag >= 0 ? resolve(args[outputFlag + 1]) : null;
+const predictionsFlag = args.indexOf("--predictions-output");
+const predictionsPath = predictionsFlag >= 0 ? resolve(args[predictionsFlag + 1]) : null;
 const positional = args.filter((value, index) =>
-  !value.startsWith("--") && index !== outputFlag + 1
+  !value.startsWith("--") && index !== outputFlag + 1 && index !== predictionsFlag + 1
 );
 const annotationsPath = resolve(
   positional[0] ?? join(repoRoot, "tests/fixtures/detection/annotations.json"),
@@ -106,6 +108,11 @@ for (const item of annotations.images) {
     quadIou: quadIou(result.quad, item.quad, image.width, image.height),
     confidence: result.confidence,
     needsReview: result.needsReview,
+    method: result.method,
+    reviewReasons: result.reviewReasons,
+    bestScore: result.bestScore,
+    secondBestScore: result.secondBestScore,
+    confidenceBreakdown: result.diagnostics.confidenceBreakdown,
   });
 }
 
@@ -129,4 +136,7 @@ const metrics = {
 
 const payload = `${JSON.stringify(metrics, null, 2)}\n`;
 if (outputPath) await writeFile(outputPath, payload);
+if (predictionsPath) {
+  await writeFile(predictionsPath, `${JSON.stringify({ images: rows }, null, 2)}\n`);
+}
 process.stdout.write(payload);

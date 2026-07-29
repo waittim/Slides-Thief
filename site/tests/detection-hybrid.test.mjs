@@ -22,6 +22,9 @@ const { quadIoU } = await import(
 const { refineCandidate } = await import(
   new URL("../app/detection/quad-refiner.ts", import.meta.url).href
 );
+const { calculateConfidence, isAmbiguousCandidate } = await import(
+  new URL("../app/detection/confidence.ts", import.meta.url).href
+);
 
 function rectangleImage(width, height, background, inside, bounds) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -207,4 +210,52 @@ test("local edge refinement improves a nearby initial quad", () => {
     JSON.stringify({ initialError: meanError(initial), refinedError: meanError(refined.quad), refined }),
   );
   assert.ok(refined.diagnostics.refinement.maximumCornerMovement < Math.hypot(180, 125) * 0.04);
+});
+
+test("cross-detector agreement increases calibrated confidence", () => {
+  const features = {
+    edgeStrength: 0.85,
+    edgeSupport: 0.9,
+    edgeContinuity: 0.85,
+    gradientAlignment: 0.9,
+    insideOutsideDifference: 0.8,
+    regionConsistency: 0.8,
+    normalizedArea: 0.8,
+    geometryValidity: 1,
+    aspectPrior: 0.9,
+    batchConsistency: 0,
+  };
+  const best = {
+    quad: [[10, 10], [90, 10], [90, 60], [10, 60]],
+    method: "contrast-lines",
+    polarity: [],
+    features,
+    rawScore: 0.82,
+    warnings: [],
+    diagnostics: {
+      edgeEvidence: Array.from({ length: 4 }, () => ({
+        supportRatio: 0.88,
+        longestRunRatio: 0.82,
+      })),
+    },
+  };
+  const second = {
+    ...best,
+    quad: [[18, 18], [82, 18], [82, 52], [18, 52]],
+    rawScore: 0.77,
+  };
+  const agreeing = {
+    ...best,
+    method: "mask-lines",
+    quad: [[10.2, 10], [90.2, 10], [90.2, 60], [10.2, 60]],
+  };
+
+  const withAgreement = calculateConfidence(best, second, [best, second, agreeing], 100, 70);
+  const withoutAgreement = calculateConfidence(best, second, [best, second], 100, 70);
+
+  assert.deepEqual(withAgreement.agreeingMethods, ["contrast-lines", "mask-lines"]);
+  assert.ok(withAgreement.confidence > withoutAgreement.confidence);
+  assert.equal(withAgreement.minimumEdgeSupport, 0.88);
+  assert.equal(isAmbiguousCandidate(0.5, withAgreement), false);
+  assert.equal(isAmbiguousCandidate(0.5, withoutAgreement), true);
 });

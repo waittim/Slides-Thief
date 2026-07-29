@@ -1,6 +1,7 @@
 import { scoreCandidate } from "./candidate-scorer.ts";
+import { calculateConfidence, isAmbiguousCandidate } from "./confidence.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
-import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
+import { convexQuadIoU, normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { buildImageFeatures } from "./image-features.ts";
 import { houghLineDetector } from "./hough-lines.ts";
 import { maskLineDetector } from "./mask-lines.ts";
@@ -57,12 +58,24 @@ export function detectQuad(imageData: ImageDataLike, settings: DetectionSettings
 
   const best = ranked[0];
   const second = ranked[1] ?? null;
-  const margin = second ? best.rawScore - second.rawScore : best.rawScore;
-  const confidence = clamp(best.rawScore * 0.88 + clamp(margin / 0.2, 0, 1) * 0.12, 0, 1);
+  const confidenceBreakdown = calculateConfidence(
+    best,
+    second,
+    [...scored, best],
+    image.width,
+    image.height,
+  );
+  const confidence = confidenceBreakdown.confidence;
   const reviewReasons: ReviewReason[] = [];
   if (confidence < 0.65) reviewReasons.push("low_confidence");
-  if (best.features.edgeSupport < 0.3) reviewReasons.push("weak_edge_support");
-  if (second && margin < 0.06 && quadIoU(best.quad, second.quad, image.width, image.height) < 0.75) {
+  if (confidenceBreakdown.minimumEdgeSupport < 0.25) reviewReasons.push("weak_edge_support");
+  if (
+    second &&
+    isAmbiguousCandidate(
+      convexQuadIoU(best.quad, second.quad),
+      confidenceBreakdown,
+    )
+  ) {
     reviewReasons.push("ambiguous_candidates");
   }
 
@@ -83,6 +96,17 @@ export function detectQuad(imageData: ImageDataLike, settings: DetectionSettings
       selectedPolarity: best.polarity,
       selectedWarnings: best.warnings,
       selectedDetectorDiagnostics: best.diagnostics,
+      confidenceBreakdown: {
+        ...confidenceBreakdown,
+        bestNormalizedScore: round(confidenceBreakdown.bestNormalizedScore, 4),
+        scoreMargin: round(confidenceBreakdown.scoreMargin, 4),
+        normalizedMargin: round(confidenceBreakdown.normalizedMargin, 4),
+        minimumEdgeSupport: round(confidenceBreakdown.minimumEdgeSupport, 4),
+        minimumContinuity: round(confidenceBreakdown.minimumContinuity, 4),
+        detectorAgreement: round(confidenceBreakdown.detectorAgreement, 4),
+        geometryValidity: round(confidenceBreakdown.geometryValidity, 4),
+        confidence: round(confidenceBreakdown.confidence, 4),
+      },
       rankedCandidates: ranked.slice(0, 5).map(candidateSummary),
     },
   };
@@ -140,10 +164,6 @@ function candidateSummary(candidate: QuadCandidate): Record<string, unknown> {
     warnings: candidate.warnings,
     features: candidate.features,
   };
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
 }
 
 function round(value: number, digits: number): number {

@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from .detection.confidence import calculate_confidence, is_ambiguous_candidate, quad_iou
 from .detection.gradient import build_gradient_pyramid
 from .detection.hough_lines import hough_quad_candidates
 from .detection.refine import refine_quad
@@ -618,14 +619,26 @@ def detect_quad(
 
     best = ranked[0]
     second = ranked[1] if len(ranked) > 1 else None
-    margin = best["score"] - second["score"] if second else best["score"]
-    confidence = min(1.0, max(0.0, best["score"] * 0.88 + min(1.0, max(0.0, margin / 0.2)) * 0.12))
+    confidence_breakdown = calculate_confidence(
+        best,
+        second,
+        [*scored_candidates, best],
+        w,
+        h,
+    )
+    confidence = confidence_breakdown["confidence"]
     review_reasons = []
     if confidence < 0.65:
         review_reasons.append("low_confidence")
-    if best["score_diagnostics"]["features"]["edge_support"] < 0.3:
+    if confidence_breakdown["minimum_edge_support"] < 0.25:
         review_reasons.append("weak_edge_support")
-    if second and margin < 0.06 and normalized_quad_distance(best["quad"], second["quad"], w, h) > 0.05:
+    if (
+        second
+        and is_ambiguous_candidate(
+            quad_iou(best["quad"], second["quad"], w, h),
+            confidence_breakdown,
+        )
+    ):
         review_reasons.append("ambiguous_candidates")
 
     return best["quad"] / scale, {
@@ -645,6 +658,14 @@ def detect_quad(
                 item["polarity"] for item in best["score_diagnostics"]["edge_evidence"]
             ],
             "selected_detector_diagnostics": best["detector_diagnostics"],
+            "confidence_breakdown": {
+                key: (
+                    round(float(value), 4)
+                    if isinstance(value, (int, float, np.floating))
+                    else value
+                )
+                for key, value in confidence_breakdown.items()
+            },
             "ranked_candidates": [
                 {
                     "method": candidate["method"],

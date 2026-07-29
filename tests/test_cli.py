@@ -17,6 +17,7 @@ from slides_thief.cli import (
 from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
+from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -215,3 +216,42 @@ def test_local_edge_refinement_improves_nearby_initial_quad() -> None:
     refined, diagnostics = result
     assert np.linalg.norm(refined - expected, axis=1).mean() < np.linalg.norm(initial - expected, axis=1).mean()
     assert diagnostics["maximum_corner_movement"] < math.hypot(180, 125) * 0.04
+
+
+def test_cross_detector_agreement_increases_calibrated_confidence() -> None:
+    features = {
+        "edge_support": 0.9,
+        "edge_continuity": 0.85,
+        "geometry_validity": 1.0,
+    }
+    best = {
+        "quad": np.array([[10, 10], [90, 10], [90, 60], [10, 60]], dtype=np.float64),
+        "method": "contrast-lines",
+        "score": 0.82,
+        "score_diagnostics": {
+            "features": features,
+            "edge_evidence": [
+                {"support_ratio": 0.88, "longest_run_ratio": 0.82}
+                for _ in range(4)
+            ],
+        },
+    }
+    second = {
+        **best,
+        "quad": np.array([[18, 18], [82, 18], [82, 52], [18, 52]], dtype=np.float64),
+        "score": 0.77,
+    }
+    agreeing = {
+        **best,
+        "method": "mask-lines",
+        "quad": np.array([[10.2, 10], [90.2, 10], [90.2, 60], [10.2, 60]], dtype=np.float64),
+    }
+
+    with_agreement = calculate_confidence(best, second, [best, second, agreeing], 100, 70)
+    without_agreement = calculate_confidence(best, second, [best, second], 100, 70)
+
+    assert with_agreement["agreeing_methods"] == ["contrast-lines", "mask-lines"]
+    assert with_agreement["confidence"] > without_agreement["confidence"]
+    assert with_agreement["minimum_edge_support"] == 0.88
+    assert is_ambiguous_candidate(0.5, with_agreement) is False
+    assert is_ambiguous_candidate(0.5, without_agreement) is True

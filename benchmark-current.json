@@ -7,7 +7,7 @@
   "mean_corner_error": 0.0027253671213544445,
   "median_corner_error": 0.0027131435091628012,
   "quad_iou_mean": 0.9865851712162869,
-  "review_rate": 0.3333333333333333,
-  "runtime_p50_ms": 964.207,
-  "runtime_p95_ms": 999.3375840000001
+  "review_rate": 0.0,
+  "runtime_p50_ms": 955.3063329999998,
+  "runtime_p95_ms": 987.6523749999999
 }
