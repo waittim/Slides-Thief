@@ -37,7 +37,7 @@ type Settings = {
   fillColor: string;
 };
 
-type SlideStatus = "queued" | "detecting" | "ready" | "error";
+type SlideStatus = "converting" | "queued" | "detecting" | "ready" | "error";
 
 type SlideItem = {
   id: string;
@@ -200,6 +200,7 @@ const copy = {
     dimensions: "尺寸",
     method: "方法",
     confidence: "置信度",
+    converting: "正在转换 HEIC/HEIF",
     pending: "待自动校正",
     noUpload: "浏览器本地处理",
     adjustCorners: "拖动四个编号角点以对齐幻灯片边缘",
@@ -271,6 +272,7 @@ const copy = {
     dimensions: "尺寸",
     method: "方法",
     confidence: "可信度",
+    converting: "正在轉換 HEIC/HEIF",
     pending: "待自動校正",
     noUpload: "瀏覽器本機處理",
     adjustCorners: "拖動四個編號角點以對齊投影片邊緣",
@@ -342,6 +344,7 @@ const copy = {
     dimensions: "Dimensions",
     method: "Method",
     confidence: "Confidence",
+    converting: "Converting HEIC/HEIF",
     pending: "Waiting for auto straighten",
     noUpload: "Browser-local processing",
     adjustCorners: "Drag the four numbered corners to align the slide edges",
@@ -413,6 +416,7 @@ const copy = {
     dimensions: "Dimensiones",
     method: "Método",
     confidence: "Confianza",
+    converting: "Convirtiendo HEIC/HEIF",
     pending: "Esperando enderezado",
     noUpload: "Proceso local",
     adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear la diapositiva",
@@ -484,6 +488,7 @@ const copy = {
     dimensions: "Dimensions",
     method: "Méthode",
     confidence: "Confiance",
+    converting: "Conversion HEIC/HEIF",
     pending: "En attente",
     noUpload: "Traitement local",
     adjustCorners: "Faites glisser les quatre coins numérotés pour aligner la diapositive",
@@ -555,6 +560,7 @@ const copy = {
     dimensions: "Größe",
     method: "Methode",
     confidence: "Sicherheit",
+    converting: "HEIC/HEIF wird konvertiert",
     pending: "Wartet auf Begradigung",
     noUpload: "Lokale Verarbeitung",
     adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Folienränder",
@@ -626,6 +632,7 @@ const copy = {
     dimensions: "サイズ",
     method: "方法",
     confidence: "信頼度",
+    converting: "HEIC/HEIF を変換中",
     pending: "自動補正待ち",
     noUpload: "ブラウザ内処理",
     adjustCorners: "4つの番号付きコーナーをドラッグしてスライドの端に合わせます",
@@ -697,6 +704,7 @@ const copy = {
     dimensions: "크기",
     method: "방법",
     confidence: "신뢰도",
+    converting: "HEIC/HEIF 변환 중",
     pending: "자동 보정 대기",
     noUpload: "브라우저 내 처리",
     adjustCorners: "번호가 표시된 네 모서리를 끌어 슬라이드 가장자리에 맞추세요",
@@ -768,6 +776,7 @@ const copy = {
     dimensions: "Dimensões",
     method: "Método",
     confidence: "Confiança",
+    converting: "Convertendo HEIC/HEIF",
     pending: "Aguardando correção",
     noUpload: "Processamento local",
     adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do slide",
@@ -1134,7 +1143,12 @@ export function SlidesThiefApp() {
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
-  const hasRun = slides.some((slide) => slide.status === "ready" || slide.status === "detecting" || slide.status === "error");
+  const hasRun = slides.some(
+    (slide) =>
+      slide.status === "ready" ||
+      slide.status === "detecting" ||
+      (slide.status === "error" && slide.method !== "conversion-error"),
+  );
   const detecting = slides.some((slide) => slide.status === "detecting");
   const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
@@ -1499,53 +1513,76 @@ export function SlidesThiefApp() {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
       }
-      setSlides([]);
-      setSelectedId(null);
+      const nextSlides: SlideItem[] = inputFiles.map((file, index) => {
+        const converting = isHeifImage(file);
+        return {
+          id: makeId(file, index),
+          file,
+          name: file.name,
+          url: converting ? "" : URL.createObjectURL(file),
+          width: 0,
+          height: 0,
+          quad: null,
+          autoQuad: null,
+          method: converting ? "converting" : "queued",
+          confidence: 0,
+          needsReview: false,
+          reviewReasons: [],
+          status: converting ? "converting" : "queued",
+        };
+      });
+
+      setSlides(nextSlides);
+      setSelectedId(nextSlides[0]?.id ?? null);
       setHandlePositions([]);
       setExportUrl(null);
       setExportName(normalizePdfName(pdfBaseName));
       setZoomMode("fit");
       setWorkerError("");
-      setBusyText(hasHeif ? (localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF") : "");
+      setBusyText(hasHeif ? copy[localeRef.current].converting : "");
 
-      const files: File[] = [];
-      try {
-        for (let index = 0; index < inputFiles.length; index += 1) {
-          if (loadTokenRef.current !== token) return;
-          const file = inputFiles[index];
-          if (isHeifImage(file)) {
-            const prefix = localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF";
-            setBusyText(`${prefix} ${index + 1}/${inputFiles.length}`);
-          }
-          files.push(await normalizeImageFile(file));
-        }
-      } catch (error) {
+      let firstConversionError = "";
+      for (let index = 0; index < inputFiles.length; index += 1) {
         if (loadTokenRef.current !== token) return;
-        setBusyText("");
-        setWorkerError(messageFromError(error));
-        return;
+        const file = inputFiles[index];
+        if (!isHeifImage(file)) continue;
+
+        setBusyText(`${copy[localeRef.current].converting} ${index + 1}/${inputFiles.length}`);
+        const id = nextSlides[index].id;
+        try {
+          const normalizedFile = await normalizeImageFile(file);
+          if (loadTokenRef.current !== token) return;
+          const url = URL.createObjectURL(normalizedFile);
+          setSlides((current) =>
+            current.map((slide) =>
+              slide.id === id
+                ? {
+                    ...slide,
+                    file: normalizedFile,
+                    name: normalizedFile.name,
+                    url,
+                    method: "queued",
+                    status: "queued",
+                  }
+                : slide,
+            ),
+          );
+        } catch (error) {
+          if (loadTokenRef.current !== token) return;
+          const message = messageFromError(error);
+          if (!firstConversionError) firstConversionError = message;
+          setSlides((current) =>
+            current.map((slide) =>
+              slide.id === id
+                ? { ...slide, method: "conversion-error", status: "error", error: message }
+                : slide,
+            ),
+          );
+        }
       }
-      if (loadTokenRef.current !== token) return;
 
-      const nextSlides: SlideItem[] = files.map((file, index) => ({
-        id: makeId(file, index),
-        file,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        width: 0,
-        height: 0,
-        quad: null,
-        autoQuad: null,
-        method: "queued",
-        confidence: 0,
-        needsReview: false,
-        reviewReasons: [],
-        status: "queued",
-      }));
-
-      setSlides(nextSlides);
-      setSelectedId(nextSlides[0]?.id ?? null);
       setBusyText("");
+      if (firstConversionError) setWorkerError(firstConversionError);
     },
     [cancelActiveDrag, pdfBaseName],
   );
@@ -1610,6 +1647,12 @@ export function SlidesThiefApp() {
     const stage = stageRef.current;
     const slide = selectedSlide;
     if (!canvas || !stage || !slide) return;
+    if (!slide.url) {
+      imageCacheRef.current = null;
+      canvasRenderRef.current = null;
+      setHandlePositions([]);
+      return;
+    }
 
     const renderImage = (image: HTMLImageElement) => {
       if (imageCacheRef.current?.image !== image) return;
@@ -1886,7 +1929,10 @@ export function SlidesThiefApp() {
 
   const runAutoWithSettings = useCallback(
     (overrideSettings?: Settings) => {
-      if (!slides.length) return;
+      const processableSlides = slides.filter(
+        (slide) => slide.status !== "converting" && slide.method !== "conversion-error" && slide.url,
+      );
+      if (!processableSlides.length) return;
       cancelActiveDrag();
       const worker = ensureWorker();
       if (!worker) return;
@@ -1895,19 +1941,24 @@ export function SlidesThiefApp() {
       setBusyText(text.stretching);
       autoReviewSelectedRef.current = false;
       const targetSettings = overrideSettings ?? settings;
+      const processableIds = new Set(processableSlides.map((slide) => slide.id));
       setSlides((current) =>
-        current.map((slide) => ({
-          ...slide,
-          status: "detecting",
-          method: "detecting",
-          quad: null,
-          thumbnailUrl: undefined,
-          error: undefined,
-        })),
+        current.map((slide) =>
+          processableIds.has(slide.id)
+            ? {
+                ...slide,
+                status: "detecting",
+                method: "detecting",
+                quad: null,
+                thumbnailUrl: undefined,
+                error: undefined,
+              }
+            : slide,
+        ),
       );
       worker.postMessage({
         type: "detect",
-        files: slides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+        files: processableSlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
         settings: targetSettings,
       });
     },
@@ -2000,7 +2051,14 @@ export function SlidesThiefApp() {
   const metrics = selectedSlide
     ? [
         [text.file, selectedSlide.name],
-        [text.status, selectedSlide.status === "queued" ? text.pending : selectedSlide.status],
+        [
+          text.status,
+          selectedSlide.status === "converting"
+            ? text.converting
+            : selectedSlide.status === "queued"
+              ? text.pending
+              : selectedSlide.status,
+        ],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
         [text.method, selectedSlide.method],
         [text.confidence, confidenceText(selectedSlide.confidence)],
@@ -2285,14 +2343,20 @@ export function SlidesThiefApp() {
                     onClick={() => selectAt(index)}
                   >
                     <div className="idx">{String(index + 1).padStart(2, "0")}</div>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */}
-                    <img
-                      className="thumb"
-                      src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {slide.url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
+                      <img
+                        className="thumb"
+                        src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="thumb thumbPlaceholder" aria-hidden="true">
+                        HEIC
+                      </div>
+                    )}
                     <div className="name" title={slide.name}>
                       {displayFileName(slide.name, isMobile)}
                     </div>
@@ -2307,7 +2371,13 @@ export function SlidesThiefApp() {
                             : slide.status}
                       </div>
                     ) : (
-                      <div className="sub">{formatBytes(slide.file.size)}</div>
+                      <div className="sub">
+                        {slide.status === "converting"
+                          ? text.converting
+                          : slide.status === "error"
+                            ? text.failed
+                            : formatBytes(slide.file.size)}
+                      </div>
                     )}
                   </button>
                 );
@@ -2361,7 +2431,7 @@ export function SlidesThiefApp() {
           </div>
           <div className="stage" ref={stageRef}>
             <div className="canvasShell">
-              {selectedSlide ? (
+              {selectedSlide?.url ? (
                 <div className="canvasWrap">
                   <canvas ref={canvasRef} aria-label={text.adjustCorners}>
                     {text.adjustCorners}
@@ -2392,7 +2462,11 @@ export function SlidesThiefApp() {
                     : null}
                 </div>
               ) : (
-                <div className="empty">{text.empty}</div>
+                <div className="empty">
+                  {selectedSlide?.status === "converting"
+                    ? text.converting
+                    : selectedSlide?.error ?? text.empty}
+                </div>
               )}
             </div>
           </div>

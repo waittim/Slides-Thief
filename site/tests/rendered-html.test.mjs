@@ -115,8 +115,11 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);
   assert.match(app, /loading="lazy"/);
   assert.match(app, /decoding="async"/);
+  assert.match(app, /status:\s*converting \? "converting" : "queued"/);
+  assert.match(app, /className="thumb thumbPlaceholder"/);
+  assert.match(app, /slide\.status === "converting"\s*\?\s*text\.converting/s);
   assert.doesNotMatch(app, /Promise\.all\(inputFiles\.map\(normalizeImageFile\)\)/);
-  assert.match(app, /files\.push\(await normalizeImageFile\(file\)\)/);
+  assert.match(app, /const normalizedFile = await normalizeImageFile\(file\)/);
   assert.match(worker, /PDFDocument\.create/);
   assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
   assert.match(worker, /fillColor/);
