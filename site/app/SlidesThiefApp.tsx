@@ -1148,33 +1148,36 @@ function parseHexColor(value: string): [number, number, number] {
 const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
 
 /**
- * Uses the corrected slide's edge pixels so letterboxing follows the slide's
- * visual theme, rather than the wall or screen in the original photo.
+ * Finds the dominant colour inside the corrected slide, deliberately skipping
+ * its edge so a projector bezel or photographed screen border is not used.
  */
 function resolveFillColor(value: string, source: ImageData, target: Quad, coeffs: number[]) {
   if (value !== "auto") return parseHexColor(value);
-  const inset = Math.max(2, Math.min(12, Math.min(target[1][0] - target[0][0], target[3][1] - target[0][1]) * 0.035));
-  const left = target[0][0] + inset;
-  const right = target[1][0] - inset;
-  const top = target[0][1] + inset;
-  const bottom = target[3][1] - inset;
+  const inset = 0.12;
+  const left = target[0][0] + (target[1][0] - target[0][0]) * inset;
+  const right = target[1][0] - (target[1][0] - target[0][0]) * inset;
+  const top = target[0][1] + (target[3][1] - target[0][1]) * inset;
+  const bottom = target[3][1] - (target[3][1] - target[0][1]) * inset;
   const samples: Array<[number, number, number] | null> = [];
 
-  for (let index = 0; index < 12; index += 1) {
-    const progress = (index + 0.5) / 12;
-    const x = left + (right - left) * progress;
-    const y = top + (bottom - top) * progress;
-    samples.push(sampleCorrectedRgb(source, coeffs, x, top));
-    samples.push(sampleCorrectedRgb(source, coeffs, x, bottom));
-    samples.push(sampleCorrectedRgb(source, coeffs, left, y));
-    samples.push(sampleCorrectedRgb(source, coeffs, right, y));
+  for (let row = 0; row < 8; row += 1) {
+    for (let column = 0; column < 12; column += 1) {
+      const x = left + (right - left) * ((column + 0.5) / 12);
+      const y = top + (bottom - top) * ((row + 0.5) / 8);
+      samples.push(sampleCorrectedRgb(source, coeffs, x, y));
+    }
   }
 
   const valid = samples.filter((sample): sample is [number, number, number] => sample !== null);
-  if (valid.length < 12) return AUTO_FILL_FALLBACK;
-  const median = [0, 1, 2].map((channel) => medianValue(valid.map((sample) => sample[channel]))) as [number, number, number];
-  const deviations = valid.map((sample) => Math.hypot(sample[0] - median[0], sample[1] - median[1], sample[2] - median[2]));
-  return medianValue(deviations) > 42 ? AUTO_FILL_FALLBACK : median;
+  if (valid.length < 24) return AUTO_FILL_FALLBACK;
+  const buckets = new Map<string, [number, number, number][]>();
+  for (const sample of valid) {
+    const key = sample.map((value) => Math.floor(value / 32)).join(":");
+    buckets.set(key, [...(buckets.get(key) ?? []), sample]);
+  }
+  const dominant = [...buckets.values()].reduce((largest, bucket) => bucket.length > largest.length ? bucket : largest, [] as [number, number, number][]);
+  if (dominant.length < valid.length * 0.14) return AUTO_FILL_FALLBACK;
+  return [0, 1, 2].map((channel) => medianValue(dominant.map((sample) => sample[channel]))) as [number, number, number];
 }
 
 function sampleCorrectedRgb(source: ImageData, coeffs: number[], x: number, y: number): [number, number, number] | null {
@@ -2657,8 +2660,12 @@ export function SlidesThiefApp() {
                         <option value="bw">{text.enhancementBw}</option>
                       </select>
                     </label>
-                    <div className="colorSetting">
-                      <span>{text.fillColor}</span>
+                    <div
+                      className="colorSetting"
+                      role="group"
+                      aria-labelledby="fill-color-label"
+                    >
+                      <span id="fill-color-label">{text.fillColor}</span>
                       <div className="colorControls">
                         <button
                           type="button"
@@ -2669,6 +2676,8 @@ export function SlidesThiefApp() {
                         </button>
                         <input
                           type="color"
+                          className={settings.fillColor === "auto" ? undefined : "isActive"}
+                          aria-label={text.fillColor}
                           value={settings.fillColor === "auto" ? "#111111" : settings.fillColor}
                           onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
                         />
