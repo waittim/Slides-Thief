@@ -195,6 +195,7 @@ const copy = {
     generating: "生成中",
     generated: "已生成",
     failed: "失败",
+    manualAdjusted: "已手动调整",
     previewError: "无法显示此照片的预览",
     downloadPdf: "下载 PDF",
     file: "文件",
@@ -268,6 +269,7 @@ const copy = {
     generating: "產生中",
     generated: "已產生",
     failed: "失敗",
+    manualAdjusted: "已手動調整",
     previewError: "無法顯示此照片的預覽",
     downloadPdf: "下載 PDF",
     file: "檔案",
@@ -341,6 +343,7 @@ const copy = {
     generating: "Generating",
     generated: "Generated",
     failed: "Failed",
+    manualAdjusted: "Manually adjusted",
     previewError: "Couldn’t display this photo preview",
     downloadPdf: "Download PDF",
     file: "File",
@@ -414,6 +417,7 @@ const copy = {
     generating: "Generando",
     generated: "Generado",
     failed: "Error",
+    manualAdjusted: "Ajustado manualmente",
     previewError: "No se pudo mostrar la vista previa de esta foto",
     downloadPdf: "Descargar PDF",
     file: "Archivo",
@@ -487,6 +491,7 @@ const copy = {
     generating: "Création",
     generated: "Créé",
     failed: "Échec",
+    manualAdjusted: "Ajusté manuellement",
     previewError: "Impossible d’afficher l’aperçu de cette photo",
     downloadPdf: "Télécharger PDF",
     file: "Fichier",
@@ -560,6 +565,7 @@ const copy = {
     generating: "Erstellen",
     generated: "Erstellt",
     failed: "Fehlgeschlagen",
+    manualAdjusted: "Manuell angepasst",
     previewError: "Die Vorschau dieses Fotos konnte nicht angezeigt werden",
     downloadPdf: "PDF herunterladen",
     file: "Datei",
@@ -633,6 +639,7 @@ const copy = {
     generating: "生成中",
     generated: "生成済み",
     failed: "失敗",
+    manualAdjusted: "手動調整済み",
     previewError: "この写真のプレビューを表示できません",
     downloadPdf: "PDFを保存",
     file: "ファイル",
@@ -706,6 +713,7 @@ const copy = {
     generating: "생성 중",
     generated: "생성됨",
     failed: "실패",
+    manualAdjusted: "수동 조정됨",
     previewError: "이 사진의 미리보기를 표시할 수 없습니다",
     downloadPdf: "PDF 저장",
     file: "파일",
@@ -779,6 +787,7 @@ const copy = {
     generating: "Gerando",
     generated: "Gerado",
     failed: "Falhou",
+    manualAdjusted: "Ajustado manualmente",
     previewError: "Não foi possível exibir a prévia desta foto",
     downloadPdf: "Baixar PDF",
     file: "Arquivo",
@@ -2413,7 +2422,9 @@ export function SlidesThiefApp() {
                         {slide.status === "ready"
                           ? slide.needsReview
                             ? `! ${locale === "zh-CN" ? "建议复查" : "Review suggested"}`
-                            : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
+                            : slide.method === "manual"
+                              ? `✓ ${text.manualAdjusted}`
+                              : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
                           : slide.status === "error"
                             ? `× ${text.failed}`
                             : slideStatusText(slide)}
