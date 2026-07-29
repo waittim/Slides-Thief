@@ -31,5 +31,10 @@ test("emits a GitHub Pages compatible static app", async () => {
   assert.ok(assets.some((name) => name.endsWith(".js")), "expected static JavaScript output");
   assert.ok(assets.some((name) => name.endsWith(".css")), "expected static CSS output");
   assert.ok(assets.some((name) => /slides-worker/i.test(name) && name.endsWith(".js")), "expected bundled worker");
+  assert.ok(
+    assets.some((name) => /slides-export-worker/i.test(name) && name.endsWith(".js")),
+    "expected bundled PDF export worker",
+  );
   assert.match(mainScript, /\/assets\/slides-worker-[A-Za-z0-9_-]+\.js/);
+  assert.match(mainScript, /\/assets\/slides-export-worker-[A-Za-z0-9_-]+\.js/);
 });

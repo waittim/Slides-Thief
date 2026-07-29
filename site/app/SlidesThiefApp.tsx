@@ -339,6 +339,7 @@ const copy = {
     noUpload: "浏览器本地处理",
     adjustCorners: "拖动四个编号角点以对齐原稿边缘",
     cornerHandle: "角点",
+    cornerKeyboardHelp: "使用方向键微调角点；按住 Shift 可一次移动十个屏幕像素。",
     collapse: "缩小详情栏",
     expand: "展开详情栏",
     infoTitle: "关于 Slides Thief · PPT捕手",
@@ -346,6 +347,7 @@ const copy = {
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
+    close: "关闭",
   },
   "zh-TW": {
     appTitle: "Slides Thief · PPT捕手",
@@ -413,6 +415,7 @@ const copy = {
     noUpload: "瀏覽器本機處理",
     adjustCorners: "拖動四個編號角點以對齊原稿邊緣",
     cornerHandle: "角點",
+    cornerKeyboardHelp: "使用方向鍵微調角點；按住 Shift 可一次移動十個畫面像素。",
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
     infoTitle: "關於 Slides Thief · PPT捕手",
@@ -420,6 +423,7 @@ const copy = {
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
+    close: "關閉",
   },
   en: {
     appTitle: "Slides Thief - Straighten Slide & Document Photos into PDFs",
@@ -487,6 +491,7 @@ const copy = {
     noUpload: "Browser-local processing",
     adjustCorners: "Drag the four numbered corners to align the source edges",
     cornerHandle: "Corner",
+    cornerKeyboardHelp: "Use the arrow keys to fine-tune this corner. Hold Shift to move ten screen pixels.",
     collapse: "Collapse details",
     expand: "Expand details",
     infoTitle: "About Slides Thief",
@@ -494,6 +499,7 @@ const copy = {
     infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
     infoRepo: "Open Source Repo",
     infoBlog: "Introductory Blog",
+    close: "Close",
   },
   es: {
     appTitle: "Slides Thief - Corrige fotos de diapositivas y documentos",
@@ -561,6 +567,7 @@ const copy = {
     noUpload: "Proceso local",
     adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear el original",
     cornerHandle: "Esquina",
+    cornerKeyboardHelp: "Usa las flechas para ajustar esta esquina. Mantén Mayús para mover diez píxeles de pantalla.",
     collapse: "Contraer detalles",
     expand: "Expandir detalles",
     infoTitle: "Sobre Slides Thief",
@@ -568,6 +575,7 @@ const copy = {
     infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
     infoRepo: "Repositorio de Código",
     infoBlog: "Blog de Introducción",
+    close: "Cerrar",
   },
   fr: {
     appTitle: "Slides Thief - Redresser des photos de diapositives et de documents",
@@ -635,6 +643,7 @@ const copy = {
     noUpload: "Traitement local",
     adjustCorners: "Faites glisser les quatre coins numérotés pour aligner l’original",
     cornerHandle: "Coin",
+    cornerKeyboardHelp: "Utilisez les flèches pour ajuster ce coin. Maintenez Maj pour déplacer dix pixels à l’écran.",
     collapse: "Réduire détails",
     expand: "Afficher détails",
     infoTitle: "À propos de Slides Thief",
@@ -642,6 +651,7 @@ const copy = {
     infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
     infoRepo: "Dépôt de Code",
     infoBlog: "Blog d'Introduction",
+    close: "Fermer",
   },
   de: {
     appTitle: "Slides Thief - Folien- und Dokumentfotos begradigen",
@@ -709,6 +719,7 @@ const copy = {
     noUpload: "Lokale Verarbeitung",
     adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Vorlagenränder",
     cornerHandle: "Ecke",
+    cornerKeyboardHelp: "Mit den Pfeiltasten lässt sich diese Ecke feinjustieren. Umschalt bewegt zehn Bildschirmpixel.",
     collapse: "Details einklappen",
     expand: "Details ausklappen",
     infoTitle: "Über Slides Thief",
@@ -716,6 +727,7 @@ const copy = {
     infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
     infoRepo: "Code-Repository",
     infoBlog: "Einführungs-Blog",
+    close: "Schließen",
   },
   ja: {
     appTitle: "Slides Thief - スライドや文書の写真を補正してPDF化",
@@ -783,6 +795,7 @@ const copy = {
     noUpload: "ブラウザ内処理",
     adjustCorners: "4つの番号付きコーナーをドラッグして原稿の端に合わせます",
     cornerHandle: "コーナー",
+    cornerKeyboardHelp: "矢印キーでコーナーを微調整します。Shift キーを押しながら操作すると画面上で10ピクセル移動します。",
     collapse: "詳細を閉じる",
     expand: "詳細を開く",
     infoTitle: "Slides Thief について",
@@ -790,6 +803,7 @@ const copy = {
     infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
     infoRepo: "オープンソースリポジトリ",
     infoBlog: "紹介ブログ",
+    close: "閉じる",
   },
   ko: {
     appTitle: "Slides Thief - 슬라이드와 문서 사진을 PDF로 보정",
@@ -857,6 +871,7 @@ const copy = {
     noUpload: "브라우저 내 처리",
     adjustCorners: "번호가 표시된 네 모서리를 끌어 원본 가장자리에 맞추세요",
     cornerHandle: "모서리",
+    cornerKeyboardHelp: "화살표 키로 모서리를 미세 조정하세요. Shift를 누르면 화면에서 10픽셀씩 이동합니다.",
     collapse: "상세 접기",
     expand: "상세 펼치기",
     infoTitle: "Slides Thief 정보",
@@ -864,6 +879,7 @@ const copy = {
     infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
     infoRepo: "오픈 소스 저장소",
     infoBlog: "소개 블로그",
+    close: "닫기",
   },
   "pt-BR": {
     appTitle: "Slides Thief - Corrigir fotos de slides e documentos",
@@ -931,6 +947,7 @@ const copy = {
     noUpload: "Processamento local",
     adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do original",
     cornerHandle: "Canto",
+    cornerKeyboardHelp: "Use as setas para ajustar este canto. Segure Shift para mover dez pixels na tela.",
     collapse: "Recolher detalhes",
     expand: "Expandir detalhes",
     infoTitle: "Sobre o Slides Thief",
@@ -938,6 +955,7 @@ const copy = {
     infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
     infoRepo: "Repositório de Código",
     infoBlog: "Blog de Introdução",
+    close: "Fechar",
   },
 };
 
@@ -1272,11 +1290,13 @@ export function SlidesThiefApp() {
   const [zoom, setZoom] = useState(1);
   const [displayZoom, setDisplayZoom] = useState(1);
   const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
+  const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const exportWorkerRef = useRef<Worker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slidesRef = useRef<SlideItem[]>([]);
@@ -1299,6 +1319,9 @@ export function SlidesThiefApp() {
   const scaleRef = useRef(1);
   const fitZoomRef = useRef(1);
   const maxZoomRef = useRef(3);
+  const infoButtonRef = useRef<HTMLButtonElement | null>(null);
+  const infoModalRef = useRef<HTMLDivElement | null>(null);
+  const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const text = copy[locale];
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
@@ -1469,23 +1492,6 @@ export function SlidesThiefApp() {
         );
         setBusyText("");
       }
-      if (message.type === "export-progress") {
-        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
-      }
-      if (message.type === "export-complete") {
-        trackEvent("pdf_export_success", {
-          page_count: slidesRef.current.length,
-          file_size_bytes: message.pdf.byteLength,
-        });
-        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-        const blob = new Blob([message.pdf], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        exportUrlRef.current = url;
-        setExportUrl(url);
-        setExportName(message.filename);
-        setExporting(false);
-        setBusyText("");
-      }
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "worker_error",
@@ -1525,10 +1531,76 @@ export function SlidesThiefApp() {
     return worker;
   }, [refreshSlideThumbnail]);
 
+  const ensureExportWorker = useCallback(() => {
+    if (exportWorkerRef.current) return exportWorkerRef.current;
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL("./slides-export-worker.ts", import.meta.url), {
+        type: "module",
+      });
+    } catch (error) {
+      setWorkerError(messageFromError(error));
+      setExporting(false);
+      setBusyText("");
+      return null;
+    }
+    const releaseWorker = () => {
+      worker.terminate();
+      if (exportWorkerRef.current === worker) exportWorkerRef.current = null;
+    };
+    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      const message = event.data;
+      if (message.type === "export-progress") {
+        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
+      }
+      if (message.type === "export-complete") {
+        trackEvent("pdf_export_success", {
+          page_count: slidesRef.current.length,
+          file_size_bytes: message.pdf.byteLength,
+        });
+        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
+        const blob = new Blob([message.pdf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        exportUrlRef.current = url;
+        setExportUrl(url);
+        setExportName(message.filename);
+        setExporting(false);
+        setBusyText("");
+        releaseWorker();
+      }
+      if (message.type === "error") {
+        trackEvent("processing_error", {
+          error_type: "export_worker_error",
+          error_message: message.error || "PDF export error",
+        });
+        setWorkerError(message.error);
+        setExporting(false);
+        setBusyText("");
+        releaseWorker();
+      }
+    };
+    const handleWorkerFailure = (message: string) => {
+      trackEvent("processing_error", {
+        error_type: "export_worker_failure",
+        error_message: message || "PDF worker terminated unexpectedly",
+      });
+      setWorkerError(message);
+      setExporting(false);
+      setBusyText("");
+      releaseWorker();
+    };
+    worker.onerror = (event) => handleWorkerFailure(event.message || "The PDF worker stopped unexpectedly.");
+    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the PDF worker.");
+    exportWorkerRef.current = worker;
+    return worker;
+  }, []);
+
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
       workerRef.current = null;
+      exportWorkerRef.current?.terminate();
+      exportWorkerRef.current = null;
       if (dragFrameRef.current !== null) window.cancelAnimationFrame(dragFrameRef.current);
     };
   }, []);
@@ -1657,6 +1729,46 @@ export function SlidesThiefApp() {
   }, [locale, text.appTitle]);
 
   useEffect(() => {
+    if (!isInfoOpen) return;
+    const fallbackFocus = infoButtonRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : fallbackFocus;
+    const focusFrame = window.requestAnimationFrame(() => closeInfoButtonRef.current?.focus());
+    const handleModalKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsInfoOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const modal = infoModalRef.current;
+      if (!modal) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hidden && element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleModalKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleModalKeyDown);
+      (previousFocus?.isConnected ? previousFocus : fallbackFocus)?.focus();
+    };
+  }, [isInfoOpen]);
+
+  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const browserLocale = detectBrowserLocale();
       setLocale((current) => (current === browserLocale ? current : browserLocale));
@@ -1689,6 +1801,8 @@ export function SlidesThiefApp() {
 
       workerRef.current?.terminate();
       workerRef.current = null;
+      exportWorkerRef.current?.terminate();
+      exportWorkerRef.current = null;
       cancelActiveDrag();
       slidesRef.current.forEach((slide) => URL.revokeObjectURL(slide.url));
       if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
@@ -2065,12 +2179,17 @@ export function SlidesThiefApp() {
       dragFrameRef.current = null;
     }
     const latest = latestDragQuadRef.current;
+    const handleIndex = dragHandleRef.current;
     if (latest) {
       paintCanvas(latest.quad);
       const render = canvasRenderRef.current;
       if (render) setHandlePositions(quadHandlePositions(latest.quad, render.padX, render.padY, render.scale));
       updateSlideQuad(latest.id, latest.quad);
       void refreshSlideThumbnail(latest.id, latest.quad);
+      if (handleIndex !== null) {
+        const [x, y] = latest.quad[handleIndex];
+        setCornerAnnouncement(`${text.cornerHandle} ${handleIndex + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`);
+      }
     }
     latestDragQuadRef.current = null;
     activePointerRef.current = null;
@@ -2119,6 +2238,9 @@ export function SlidesThiefApp() {
     latestDragQuadRef.current = null;
     updateSlideQuad(selectedSlide.id, next);
     void refreshSlideThumbnail(selectedSlide.id, next);
+    setCornerAnnouncement(
+      `${text.cornerHandle} ${index + 1}: X ${Math.round(next[index][0])}, Y ${Math.round(next[index][1])}`,
+    );
   };
 
   const runAutoWithSettings = useCallback(
@@ -2200,7 +2322,7 @@ export function SlidesThiefApp() {
         return;
       }
     }
-    const worker = ensureWorker();
+    const worker = ensureExportWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
     clearExport();
@@ -2263,7 +2385,7 @@ export function SlidesThiefApp() {
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
-      <header className="topbar">
+      <header className="topbar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
         <div className="brand">
           <div className="mark" aria-label={text.brandMark} role="img">
             <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -2515,7 +2637,11 @@ export function SlidesThiefApp() {
         </div>
       </header>
 
-      <main className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}>
+      <main
+        className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}
+        aria-hidden={isInfoOpen || undefined}
+        inert={isInfoOpen ? true : undefined}
+      >
         <aside className="sidebar">
           <div className="sidebarActions">
             <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
@@ -2692,8 +2818,11 @@ export function SlidesThiefApp() {
                   <canvas ref={canvasRef} aria-label={text.adjustCorners}>
                     {text.adjustCorners}
                   </canvas>
+                  <span id="cornerKeyboardHelp" className="srOnly">
+                    {text.cornerKeyboardHelp}
+                  </span>
                   {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
-                    ? selectedSlide.quad.map((_, index) => {
+                    ? selectedSlide.quad.map(([x, y], index) => {
                         const position = handlePositions[index] ?? { left: 0, top: 0 };
                         return (
                           <button
@@ -2704,7 +2833,8 @@ export function SlidesThiefApp() {
                             }}
                             className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
                             style={{ left: position.left, top: position.top }}
-                            aria-label={`${text.cornerHandle} ${index + 1}`}
+                            aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
+                            aria-describedby="cornerKeyboardHelp"
                             title={text.adjustCorners}
                             onPointerDown={(event) => onHandlePointerDown(index, event)}
                             onPointerMove={onHandlePointerMove}
@@ -2772,8 +2902,13 @@ export function SlidesThiefApp() {
         </aside>
       </main>
 
-      <footer className="prefsBar">
+      <p className="srOnly" aria-live="polite" aria-atomic="true">
+        {cornerAnnouncement}
+      </p>
+
+      <footer className="prefsBar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
         <button
+          ref={infoButtonRef}
           type="button"
           className="icon infoButton"
           title={text.infoTitle}
@@ -2808,10 +2943,23 @@ export function SlidesThiefApp() {
 
       {isInfoOpen && (
         <div className="modalOverlay" onClick={() => setIsInfoOpen(false)}>
-          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={infoModalRef}
+            className="modalCard"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="info-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modalHeader">
-              <h3>{text.infoTitle}</h3>
-              <button className="closeButton" type="button" onClick={() => setIsInfoOpen(false)} aria-label="Close">
+              <h3 id="info-modal-title">{text.infoTitle}</h3>
+              <button
+                ref={closeInfoButtonRef}
+                className="closeButton"
+                type="button"
+                onClick={() => setIsInfoOpen(false)}
+                aria-label={text.close}
+              >
                 &times;
               </button>
             </div>
