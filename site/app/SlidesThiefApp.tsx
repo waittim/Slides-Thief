@@ -930,6 +930,15 @@ function confidenceText(value: number) {
   return value ? value.toFixed(2) : "-";
 }
 
+function detectionMethodText(method: string, locale: LocaleValue) {
+  if (method === "manual") return locale === "zh-CN" ? "手动调整" : "Manual adjustment";
+  if (method === "fallback-frame") return locale === "zh-CN" ? "备用边框" : "Fallback frame";
+  if (["contrast-lines", "mask-lines", "hough-lines", "batch-prior"].includes(method)) {
+    return locale === "zh-CN" ? "自动检测" : "Automatic detection";
+  }
+  return "-";
+}
+
 function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
@@ -1186,6 +1195,15 @@ export function SlidesThiefApp() {
     if (hasRun || exportUrl) return "good";
     return "neutral";
   }, [detecting, exporting, exportUrl, hasRun, workerError]);
+
+  const slideStatusText = (slide: SlideItem) => {
+    if (slide.status === "converting") return text.converting;
+    if (slide.status === "queued") return text.pending;
+    if (slide.status === "detecting") return text.stretching;
+    if (slide.status === "error") return text.failed;
+    if (slide.needsReview) return locale === "zh-CN" ? "建议复查" : "Review suggested";
+    return locale === "zh-CN" ? "已校正" : text.reviewReady;
+  };
 
   const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
     const slide = slidesRef.current.find((item) => item.id === id);
@@ -2056,14 +2074,10 @@ export function SlidesThiefApp() {
         [text.file, selectedSlide.name],
         [
           text.status,
-          selectedSlide.status === "converting"
-            ? text.converting
-            : selectedSlide.status === "queued"
-              ? text.pending
-              : selectedSlide.status,
+          slideStatusText(selectedSlide),
         ],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
-        [text.method, selectedSlide.method],
+        [text.method, detectionMethodText(selectedSlide.method, locale)],
         [text.confidence, confidenceText(selectedSlide.confidence)],
         ["Privacy", text.noUpload],
       ]
@@ -2371,7 +2385,7 @@ export function SlidesThiefApp() {
                             : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
                           : slide.status === "error"
                             ? `× ${text.failed}`
-                            : slide.status}
+                            : slideStatusText(slide)}
                       </div>
                     ) : (
                       <div className="sub">
