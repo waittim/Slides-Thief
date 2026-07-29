@@ -352,11 +352,13 @@ a:hover {
   gap: 6px;
   height: 34px;
   min-width: 0;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > span,
 .prefsBar label > span {
   flex: 0 0 auto;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > select,
@@ -366,6 +368,7 @@ a:hover {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > select,
@@ -373,16 +376,18 @@ a:hover {
   flex: 0 0 auto;
   min-width: 74px;
   width: auto;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > input[type="number"] {
   flex: 0 0 74px;
   width: 74px;
+  font-size: 13px;
 }
 
 .settings .fileSuffix {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   margin-left: -2px;
 }
 
@@ -403,6 +408,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   list-style: none;
+  font-size: 13px;
 }
 
 .moreSettings summary::-webkit-details-marker {
@@ -430,6 +436,13 @@ a:hover {
   align-items: center;
   gap: 8px;
   height: auto;
+  font-size: 13px;
+}
+
+.morePanel select,
+.morePanel input[type="number"],
+.morePanel input[type="text"] {
+  font-size: 13px;
 }
 
 .morePanel .checks {
@@ -457,7 +470,7 @@ a:hover {
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.45;
 }
@@ -1397,6 +1410,18 @@ canvas {
     font-size: 16px;
   }
 
+  .settings label,
+  .prefsBar label,
+  .morePanel label,
+  .settings select,
+  .prefsBar select,
+  .morePanel select,
+  .settings input,
+  .morePanel input,
+  .moreSettings summary {
+    font-size: 13px;
+  }
+
   .empty {
     min-width: min(100%, 460px);
   }
@@ -1418,6 +1443,18 @@ canvas {
   input[type="text"] {
     height: 44px;
     font-size: 16px;
+  }
+
+  .settings label,
+  .prefsBar label,
+  .morePanel label,
+  .settings select,
+  .prefsBar select,
+  .morePanel select,
+  .settings input,
+  .morePanel input,
+  .moreSettings summary {
+    font-size: 13px;
   }
 
   .settings label,
