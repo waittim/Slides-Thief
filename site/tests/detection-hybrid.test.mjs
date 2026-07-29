@@ -19,6 +19,9 @@ const { houghLineDetector } = await import(
 const { quadIoU } = await import(
   new URL("../app/detection/geometry.ts", import.meta.url).href
 );
+const { refineCandidate } = await import(
+  new URL("../app/detection/quad-refiner.ts", import.meta.url).href
+);
 
 function rectangleImage(width, height, background, inside, bounds) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -158,4 +161,50 @@ test("a strong but interrupted edge loses continuity support", () => {
 
   assert.ok(evidence.largestGapRatio > 0.25);
   assert.ok(evidence.longestRunRatio < 0.5);
+});
+
+test("local edge refinement improves a nearby initial quad", () => {
+  const expected = [[36, 15], [159, 38], [139, 111], [18, 83]];
+  const image = buildImageFeatures(polygonImage(180, 125, 22, 225, expected));
+  const center = expected.reduce(
+    (sum, point) => [sum[0] + point[0] / 4, sum[1] + point[1] / 4],
+    [0, 0],
+  );
+  const initial = expected.map((point) => [
+    center[0] + (point[0] - center[0]) * 0.98,
+    center[1] + (point[1] - center[1]) * 0.98,
+  ]);
+  const candidate = {
+    quad: initial,
+    method: "hough-lines",
+    polarity: [],
+    features: {
+      edgeStrength: 0,
+      edgeSupport: 0,
+      edgeContinuity: 0,
+      gradientAlignment: 0,
+      insideOutsideDifference: 0,
+      regionConsistency: 0,
+      normalizedArea: 0,
+      geometryValidity: 0,
+      aspectPrior: 0,
+      batchConsistency: 0,
+    },
+    rawScore: 0,
+    warnings: [],
+    diagnostics: {},
+  };
+
+  const refined = refineCandidate(candidate, image);
+  const meanError = (quad) =>
+    quad.reduce((sum, point, index) =>
+      sum + Math.hypot(point[0] - expected[index][0], point[1] - expected[index][1])
+    , 0) / 4;
+
+  assert.ok(refined);
+  assert.ok(
+    meanError(refined.quad) < meanError(initial),
+    JSON.stringify({ initialError: meanError(initial), refinedError: meanError(refined.quad), refined }),
+  );
+  assert.ok(refined.diagnostics.refinement.maximumCornerMovement < Math.hypot(180, 125) * 0.04);
 });

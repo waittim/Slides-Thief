@@ -1,5 +1,7 @@
+import math
+
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
     enhance_slide,
@@ -14,6 +16,7 @@ from slides_thief.cli import (
 )
 from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
+from slides_thief.detection.refine import refine_quad
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -192,3 +195,23 @@ def test_gradient_pyramid_retains_scale_diagnostics() -> None:
     assert gradient.threshold >= 0.035
     observed_scales = {round(float(value), 2) for value in np.unique(gradient.source_scale)}
     assert observed_scales.issubset({0.0, 0.45, 0.67, 1.0})
+
+
+def test_local_edge_refinement_improves_nearby_initial_quad() -> None:
+    expected = np.array([[36, 15], [159, 38], [139, 111], [18, 83]], dtype=np.float64)
+    image = Image.new("RGB", (180, 125), (22, 22, 22))
+    ImageDraw.Draw(image).polygon([tuple(point) for point in expected], fill=(225, 225, 225))
+    gradient = build_gradient_pyramid(np.asarray(image))
+    gray = np.asarray(
+        ImageOps.grayscale(image).filter(ImageFilter.GaussianBlur(radius=2.0)),
+        dtype=np.float64,
+    )
+    center = expected.mean(axis=0)
+    initial = center + (expected - center) * 0.98
+
+    result = refine_quad(initial, gray, gradient)
+
+    assert result is not None
+    refined, diagnostics = result
+    assert np.linalg.norm(refined - expected, axis=1).mean() < np.linalg.norm(initial - expected, axis=1).mean()
+    assert diagnostics["maximum_corner_movement"] < math.hypot(180, 125) * 0.04

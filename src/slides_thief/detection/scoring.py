@@ -61,7 +61,7 @@ def _longest_true_run(values: np.ndarray) -> int:
     return longest
 
 
-def _edge_evidence(
+def evaluate_edge_evidence(
     gray: np.ndarray,
     start: np.ndarray,
     end: np.ndarray,
@@ -94,10 +94,12 @@ def _edge_evidence(
     if gradient is None:
         gradient_strengths = np.zeros(count, dtype=np.float64)
         gradient_alignments = np.zeros(count, dtype=np.float64)
+        gradient_offsets = np.zeros(count, dtype=np.float64)
         gradient_supported = np.zeros(count, dtype=bool)
     else:
         gradient_strengths = np.zeros(count, dtype=np.float64)
         gradient_alignments = np.zeros(count, dtype=np.float64)
+        gradient_offsets = np.zeros(count, dtype=np.float64)
         best_aligned = np.zeros(count, dtype=np.float64)
         for normal_offset in range(-4, 5):
             xs = points[:, 0] + normal[0] * normal_offset
@@ -110,6 +112,7 @@ def _edge_evidence(
             best_aligned[replace] = aligned_strength[replace]
             gradient_strengths[replace] = sampled_strength[replace]
             gradient_alignments[replace] = alignment[replace]
+            gradient_offsets[replace] = normal_offset
         gradient_threshold = max(0.025, gradient.threshold * 0.72)
         gradient_supported = (gradient_strengths >= gradient_threshold) & (gradient_alignments >= 0.45)
 
@@ -126,6 +129,7 @@ def _edge_evidence(
         "longest_run_ratio": longest_run_ratio,
         "largest_gap_ratio": largest_gap_ratio,
         "gradient_alignment": float(gradient_alignments.mean()),
+        "localization_offset": float(np.percentile(np.abs(gradient_offsets), 50)),
         "signed_contrast": float(np.percentile(signed, 50)),
         "continuity": longest_run_ratio,
     }
@@ -146,7 +150,7 @@ def score_quad_candidate(
     height, width = gray.shape
     if not _geometry_is_valid(quad, width, height):
         return None
-    evidence = [_edge_evidence(gray, quad[index], quad[(index + 1) % 4], gradient) for index in range(4)]
+    evidence = [evaluate_edge_evidence(gray, quad[index], quad[(index + 1) % 4], gradient) for index in range(4)]
     if any(item["support_ratio"] < 0.18 for item in evidence):
         return None
 

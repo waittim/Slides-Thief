@@ -4,6 +4,7 @@ import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { buildImageFeatures } from "./image-features.ts";
 import { houghLineDetector } from "./hough-lines.ts";
 import { maskLineDetector } from "./mask-lines.ts";
+import { refineCandidate } from "./quad-refiner.ts";
 import type {
   CandidateDetector,
   DetectionResult,
@@ -26,10 +27,33 @@ export function detectQuad(imageData: ImageDataLike, settings: DetectionSettings
   const scored = candidates
     .map((candidate) => scoreCandidate(candidate, image, settings))
     .filter((candidate): candidate is QuadCandidate => candidate !== null);
-  const ranked = deduplicateCandidates(scored, image.width, image.height)
+  let ranked = deduplicateCandidates(scored, image.width, image.height)
     .sort((first, second) => second.rawScore - first.rawScore);
 
   if (!ranked.length) return fallbackResult(image.width, image.height, candidates.length);
+
+  const initialBest = ranked[0];
+  const refinementAttempt = refineCandidate(initialBest, image);
+  const refined = refinementAttempt
+    ? scoreCandidate(refinementAttempt, image, settings)
+    : null;
+  if (refined && refined.rawScore >= initialBest.rawScore) {
+    refined.diagnostics = {
+      ...refined.diagnostics,
+      refinementAccepted: true,
+      scoreBeforeRefinement: round(initialBest.rawScore, 4),
+      scoreAfterRefinement: round(refined.rawScore, 4),
+    };
+    ranked = deduplicateCandidates([refined, ...ranked.slice(1)], image.width, image.height)
+      .sort((first, second) => second.rawScore - first.rawScore);
+  } else {
+    initialBest.diagnostics = {
+      ...initialBest.diagnostics,
+      refinementAccepted: false,
+      scoreBeforeRefinement: round(initialBest.rawScore, 4),
+      scoreAfterRefinement: refined ? round(refined.rawScore, 4) : null,
+    };
+  }
 
   const best = ranked[0];
   const second = ranked[1] ?? null;

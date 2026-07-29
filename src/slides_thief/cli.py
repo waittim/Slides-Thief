@@ -22,6 +22,7 @@ from reportlab.pdfgen import canvas
 
 from .detection.gradient import build_gradient_pyramid
 from .detection.hough_lines import hough_quad_candidates
+from .detection.refine import refine_quad
 from .detection.scoring import normalized_quad_distance, score_quad_candidate
 
 
@@ -581,6 +582,38 @@ def detect_quad(
                 "candidate_count_before_validation": len(raw_candidates),
                 "candidate_count_after_validation": len(scored_candidates),
             },
+        }
+
+    initial_best = ranked[0]
+    refinement_attempt = refine_quad(initial_best["quad"], gray, gradient)
+    refined_candidate = None
+    if refinement_attempt is not None:
+        refined_quad, refinement_diagnostics = refinement_attempt
+        refined_score = score_quad_candidate(gray, refined_quad, ratio, gradient)
+        if refined_score is not None:
+            score, score_diagnostics = refined_score
+            if score >= initial_best["score"]:
+                refined_candidate = {
+                    **initial_best,
+                    "quad": refined_quad,
+                    "score": score,
+                    "score_diagnostics": score_diagnostics,
+                    "detector_diagnostics": {
+                        **initial_best["detector_diagnostics"],
+                        "refinement": refinement_diagnostics,
+                        "refinement_accepted": True,
+                        "score_before_refinement": round(float(initial_best["score"]), 4),
+                        "score_after_refinement": round(float(score), 4),
+                    },
+                }
+    if refined_candidate is not None:
+        ranked = [refined_candidate, *ranked[1:]]
+        ranked.sort(key=lambda candidate: candidate["score"], reverse=True)
+    else:
+        initial_best["detector_diagnostics"] = {
+            **initial_best["detector_diagnostics"],
+            "refinement_accepted": False,
+            "score_before_refinement": round(float(initial_best["score"]), 4),
         }
 
     best = ranked[0]

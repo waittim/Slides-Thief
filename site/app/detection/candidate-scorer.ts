@@ -81,6 +81,7 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
   const diffs: number[] = [];
   const gradientStrengths: number[] = [];
   const gradientAlignments: number[] = [];
+  const gradientOffsets: number[] = [];
   const gradientSupported: boolean[] = [];
   const gradientThreshold = Math.max(0.025, image.gradient.threshold * 0.72);
 
@@ -95,6 +96,7 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
     let bestStrength = 0;
     let bestAlignment = 0;
     let bestAlignedStrength = 0;
+    let bestOffset = 0;
     for (let normalOffset = -4; normalOffset <= 4; normalOffset += 1) {
       const sample = sampleGradient(image, x + normalX * normalOffset, y + normalY * normalOffset);
       const alignment = Math.abs(Math.cos(sample.orientation - normalAngle));
@@ -103,10 +105,12 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
         bestAlignedStrength = alignedStrength;
         bestStrength = sample.magnitude;
         bestAlignment = alignment;
+        bestOffset = normalOffset;
       }
     }
     gradientStrengths.push(bestStrength);
     gradientAlignments.push(bestAlignment);
+    gradientOffsets.push(bestOffset);
     gradientSupported.push(bestStrength >= gradientThreshold && bestAlignment >= 0.45);
   }
 
@@ -135,6 +139,7 @@ export function evaluateEdgeEvidence(start: Point, end: Point, image: ImageFeatu
     longestRunRatio,
     largestGapRatio,
     gradientAlignment: average(gradientAlignments),
+    localizationOffset: percentile(gradientOffsets.map((value) => Math.abs(value)), 0.5),
     signedContrast: percentile(signed, 0.5),
     continuity: longestRunRatio,
   };

@@ -1,13 +1,13 @@
 {
   "fixture_count": 3,
-  "mean_corner_error": 0.005662386978797029,
-  "median_corner_error": 0.006453796532810205,
-  "max_corner_error_mean": 0.006746096146341254,
-  "quad_iou_mean": 0.9748294759290106,
+  "mean_corner_error": 0.004866634396806407,
+  "median_corner_error": 0.004066538786838339,
+  "max_corner_error_mean": 0.005675745537821023,
+  "quad_iou_mean": 0.9777716764503609,
   "all_corners_under_1_percent": 1,
   "all_corners_under_2_percent": 1,
   "review_rate": 1,
   "high_confidence_failure_rate": 0,
-  "runtime_p50_ms": 128.951584,
-  "runtime_p95_ms": 173.133083
+  "runtime_p50_ms": 161.82658299999997,
+  "runtime_p95_ms": 195.929167
 }

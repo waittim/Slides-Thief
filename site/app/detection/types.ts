@@ -52,6 +52,7 @@ export type EdgeEvidence = {
   longestRunRatio: number;
   largestGapRatio: number;
   gradientAlignment: number;
+  localizationOffset: number;
   signedContrast: number;
   continuity: number;
 };
