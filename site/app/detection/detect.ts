@@ -1,6 +1,10 @@
 import { scoreCandidate } from "./candidate-scorer.ts";
 import { batchPriorCandidates } from "./batch-prior.ts";
-import { calculateConfidence, isAmbiguousCandidate } from "./confidence.ts";
+import {
+  AUTO_REVIEW_CONFIDENCE,
+  calculateConfidence,
+  isAmbiguousCandidate,
+} from "./confidence.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
 import { convexQuadIoU, normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { buildImageFeatures } from "./image-features.ts";
@@ -83,7 +87,7 @@ export function detectQuad(
   );
   const confidence = confidenceBreakdown.confidence;
   const reviewReasons: ReviewReason[] = [];
-  if (confidence < 0.65) reviewReasons.push("low_confidence");
+  if (confidence < AUTO_REVIEW_CONFIDENCE) reviewReasons.push("low_confidence");
   if (confidenceBreakdown.minimumEdgeSupport < 0.25) reviewReasons.push("weak_edge_support");
   if (
     second &&

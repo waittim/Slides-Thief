@@ -5,6 +5,7 @@ import { applyEnhancement, type EnhancementMode } from "./enhance";
 import { buildBatchPriors, normalizeResult } from "./detection/batch-prior";
 import { detectQuad } from "./detection/detect";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
+import { constrainedImageSize } from "./image-sizing";
 import {
   outputPageRatioValue,
   sourceSlideRatioValue,
@@ -36,6 +37,8 @@ type ExportSlide = {
 };
 
 const scope = self as DedicatedWorkerGlobalScope;
+const DETECTION_MAX_PIXELS = 1_200_000;
+const EXPORT_SOURCE_MAX_PIXELS = 8_000_000;
 
 scope.onmessage = async (event) => {
   const data = event.data;
@@ -81,7 +84,14 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       };
       const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
       const detection = detectQuad(imageData, detectionSettings);
-      const result = workerDetectionResult(item.id, bitmap.width, bitmap.height, imageData.width, detection);
+      const result = workerDetectionResult(
+        item.id,
+        bitmap.width,
+        bitmap.height,
+        imageData.width,
+        imageData.height,
+        detection,
+      );
       preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
       scope.postMessage({
         type: "detect-result",
@@ -148,6 +158,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
         bitmap.width,
         bitmap.height,
         imageData.width,
+        imageData.height,
         detection,
       );
       scope.postMessage({ type: "detect-result", phase: "final", result });
@@ -176,14 +187,16 @@ function workerDetectionResult(
   width: number,
   height: number,
   detectionWidth: number,
+  detectionHeight: number,
   detection: DetectionResult,
 ) {
-  const scale = width / detectionWidth;
+  const scaleX = width / detectionWidth;
+  const scaleY = height / detectionHeight;
   return {
     id,
     width,
     height,
-    quad: detection.quad.map(([x, y]) => [x * scale, y * scale]) as Quad,
+    quad: detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad,
     method: detection.method,
     confidence: detection.confidence,
     needsReview: detection.needsReview,
@@ -220,9 +233,12 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
 }
 
 function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
-  const scale = Math.min(1, maxWidth / bitmap.width);
-  const width = Math.max(1, Math.round(bitmap.width * scale));
-  const height = Math.max(1, Math.round(bitmap.height * scale));
+  const { width, height } = constrainedImageSize(
+    bitmap.width,
+    bitmap.height,
+    maxWidth,
+    DETECTION_MAX_PIXELS,
+  );
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("This browser cannot process canvas image data.");
@@ -233,9 +249,16 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
 
 async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHeight: number, settings: Settings) {
   const bitmap = await createImageBitmap(file);
-  const sourceScale = Math.min(1, 3000 / bitmap.width);
-  const sourceWidth = Math.max(1, Math.round(bitmap.width * sourceScale));
-  const sourceHeight = Math.max(1, Math.round(bitmap.height * sourceScale));
+  const sourceSize = constrainedImageSize(
+    bitmap.width,
+    bitmap.height,
+    3000,
+    EXPORT_SOURCE_MAX_PIXELS,
+  );
+  const sourceWidth = sourceSize.width;
+  const sourceHeight = sourceSize.height;
+  const sourceScaleX = sourceWidth / bitmap.width;
+  const sourceScaleY = sourceHeight / bitmap.height;
   const sourceCanvas = new OffscreenCanvas(sourceWidth, sourceHeight);
   const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
   if (!sourceCtx) {
@@ -250,7 +273,7 @@ async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHei
 
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
   const fill = parseHexColor(settings.fillColor);
-  const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
+  const scaledQuad = quad.map(([x, y]) => [x * sourceScaleX, y * sourceScaleY]) as Quad;
   const output = new ImageData(outWidth, outHeight);
   const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
   const target = containedRect(outWidth, outHeight, sourceRatio);

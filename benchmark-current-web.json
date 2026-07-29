@@ -8,6 +8,6 @@
   "all_corners_under_2_percent": 1,
   "review_rate": 0,
   "high_confidence_failure_rate": 0,
-  "runtime_p50_ms": 182.60220900000002,
-  "runtime_p95_ms": 187.234417
+  "runtime_p50_ms": 163.46720799999997,
+  "runtime_p95_ms": 195.05400000000003
 }

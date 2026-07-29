@@ -1761,10 +1761,13 @@ export function SlidesThiefApp() {
   }, [paintCanvas, selectedSlide, zoom, zoomMode]);
 
   useEffect(() => {
-    redrawCanvas();
+    const initialFrame = window.requestAnimationFrame(redrawCanvas);
     const observer = new ResizeObserver(redrawCanvas);
     if (stageRef.current) observer.observe(stageRef.current);
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      observer.disconnect();
+    };
   }, [redrawCanvas]);
 
   const updateSlideQuad = useCallback((id: string, nextQuad: Quad) => {

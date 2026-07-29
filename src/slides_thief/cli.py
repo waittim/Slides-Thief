@@ -21,7 +21,12 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 from .detection.batch_prior import batch_prior_candidates, build_batch_priors, normalize_result
-from .detection.confidence import calculate_confidence, is_ambiguous_candidate, quad_iou
+from .detection.confidence import (
+    AUTO_REVIEW_CONFIDENCE,
+    calculate_confidence,
+    is_ambiguous_candidate,
+    quad_iou,
+)
 from .detection.gradient import build_gradient_pyramid
 from .detection.hough_lines import hough_quad_candidates
 from .detection.refine import refine_quad
@@ -670,7 +675,7 @@ def detect_quad(
     )
     confidence = confidence_breakdown["confidence"]
     review_reasons = []
-    if confidence < 0.65:
+    if confidence < AUTO_REVIEW_CONFIDENCE:
         review_reasons.append("low_confidence")
     if confidence_breakdown["minimum_edge_support"] < 0.25:
         review_reasons.append("weak_edge_support")

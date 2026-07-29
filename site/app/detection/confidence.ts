@@ -1,6 +1,8 @@
 import { convexQuadIoU, normalizedCornerDistance } from "./geometry.ts";
 import type { QuadCandidate } from "./types.ts";
 
+export const AUTO_REVIEW_CONFIDENCE = 0.68;
+
 export type ConfidenceBreakdown = {
   bestNormalizedScore: number;
   scoreMargin: number;

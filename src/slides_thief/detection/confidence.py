@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import numpy as np
 
+AUTO_REVIEW_CONFIDENCE = 0.68
+
 
 def calculate_confidence(
     best: dict,
