@@ -103,6 +103,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /slide\.status === "detecting"\) return text\.stretching/);
   assert.match(app, /detectionMethodText\(selectedSlide\.method, locale\)/);
   assert.doesNotMatch(app, /:\s*slide\.status\}/);
+  assert.match(app, /previewError: "无法显示此照片的预览"/);
+  assert.match(app, /setPreviewErrorSlideId\(slide\.id\)/);
+  assert.doesNotMatch(app, /setWorkerError\("Cannot render this image in the browser\."\)/);
   assert.match(app, /enhancement: "original"/);
   assert.match(app, /enhancementOriginal: "Original"/);
   assert.match(app, /enhancementClean: "清晰增强"/);

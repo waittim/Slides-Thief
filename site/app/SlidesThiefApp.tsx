@@ -194,6 +194,7 @@ const copy = {
     generating: "生成中",
     generated: "已生成",
     failed: "失败",
+    previewError: "无法显示此照片的预览",
     downloadPdf: "下载 PDF",
     file: "文件",
     status: "状态",
@@ -266,6 +267,7 @@ const copy = {
     generating: "產生中",
     generated: "已產生",
     failed: "失敗",
+    previewError: "無法顯示此照片的預覽",
     downloadPdf: "下載 PDF",
     file: "檔案",
     status: "狀態",
@@ -338,6 +340,7 @@ const copy = {
     generating: "Generating",
     generated: "Generated",
     failed: "Failed",
+    previewError: "Couldn’t display this photo preview",
     downloadPdf: "Download PDF",
     file: "File",
     status: "Status",
@@ -410,6 +413,7 @@ const copy = {
     generating: "Generando",
     generated: "Generado",
     failed: "Error",
+    previewError: "No se pudo mostrar la vista previa de esta foto",
     downloadPdf: "Descargar PDF",
     file: "Archivo",
     status: "Estado",
@@ -482,6 +486,7 @@ const copy = {
     generating: "Création",
     generated: "Créé",
     failed: "Échec",
+    previewError: "Impossible d’afficher l’aperçu de cette photo",
     downloadPdf: "Télécharger PDF",
     file: "Fichier",
     status: "État",
@@ -554,6 +559,7 @@ const copy = {
     generating: "Erstellen",
     generated: "Erstellt",
     failed: "Fehlgeschlagen",
+    previewError: "Die Vorschau dieses Fotos konnte nicht angezeigt werden",
     downloadPdf: "PDF herunterladen",
     file: "Datei",
     status: "Status",
@@ -626,6 +632,7 @@ const copy = {
     generating: "生成中",
     generated: "生成済み",
     failed: "失敗",
+    previewError: "この写真のプレビューを表示できません",
     downloadPdf: "PDFを保存",
     file: "ファイル",
     status: "状態",
@@ -698,6 +705,7 @@ const copy = {
     generating: "생성 중",
     generated: "생성됨",
     failed: "실패",
+    previewError: "이 사진의 미리보기를 표시할 수 없습니다",
     downloadPdf: "PDF 저장",
     file: "파일",
     status: "상태",
@@ -770,6 +778,7 @@ const copy = {
     generating: "Gerando",
     generated: "Gerado",
     failed: "Falhou",
+    previewError: "Não foi possível exibir a prévia desta foto",
     downloadPdf: "Baixar PDF",
     file: "Arquivo",
     status: "Status",
@@ -1115,6 +1124,7 @@ export function SlidesThiefApp() {
   const [exportName, setExportName] = useState("flattened_slides.pdf");
   const [exporting, setExporting] = useState(false);
   const [workerError, setWorkerError] = useState("");
+  const [previewErrorSlideId, setPreviewErrorSlideId] = useState<string | null>(null);
   const [dragHandle, setDragHandle] = useState<number | null>(null);
   const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
   const [zoom, setZoom] = useState(1);
@@ -1527,6 +1537,7 @@ export function SlidesThiefApp() {
       exportUrlRef.current = null;
       imageCacheRef.current = null;
       canvasRenderRef.current = null;
+      setPreviewErrorSlideId(null);
       if (canvasRef.current) {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
@@ -1674,6 +1685,7 @@ export function SlidesThiefApp() {
 
     const renderImage = (image: HTMLImageElement) => {
       if (imageCacheRef.current?.image !== image) return;
+      setPreviewErrorSlideId((current) => (current === slide.id ? null : current));
       if (!slide.width || !slide.height) {
         setSlides((current) =>
           current.map((item) =>
@@ -1762,7 +1774,7 @@ export function SlidesThiefApp() {
       } else {
         cached.image.onload = () => renderImage(cached.image);
         cached.image.onerror = () => {
-          if (imageCacheRef.current?.image === cached.image) setWorkerError("Cannot render this image in the browser.");
+          if (imageCacheRef.current?.image === cached.image) setPreviewErrorSlideId(slide.id);
         };
       }
       return;
@@ -1773,7 +1785,7 @@ export function SlidesThiefApp() {
     imageCacheRef.current = { id: slide.id, url: slide.url, image };
     image.onload = () => renderImage(image);
     image.onerror = () => {
-      if (imageCacheRef.current?.image === image) setWorkerError("Cannot render this image in the browser.");
+      if (imageCacheRef.current?.image === image) setPreviewErrorSlideId(slide.id);
     };
     image.src = slide.url;
   }, [paintCanvas, selectedSlide, zoom, zoomMode]);
@@ -2448,7 +2460,7 @@ export function SlidesThiefApp() {
           </div>
           <div className="stage" ref={stageRef}>
             <div className="canvasShell">
-              {selectedSlide?.url ? (
+              {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
                 <div className="canvasWrap">
                   <canvas ref={canvasRef} aria-label={text.adjustCorners}>
                     {text.adjustCorners}
@@ -2480,7 +2492,9 @@ export function SlidesThiefApp() {
                 </div>
               ) : (
                 <div className="empty">
-                  {selectedSlide?.status === "converting"
+                  {selectedSlide && previewErrorSlideId === selectedSlide.id
+                    ? text.previewError
+                    : selectedSlide?.status === "converting"
                     ? text.converting
                     : selectedSlide?.error ?? text.empty}
                 </div>
