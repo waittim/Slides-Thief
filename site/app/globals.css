@@ -304,6 +304,12 @@ a:hover {
   --settings-columns: max-content max-content max-content minmax(240px, 1fr);
 }
 
+.pdfNameSetting {
+  width: min(100%, 320px);
+  max-width: 320px;
+  justify-self: start;
+}
+
 .settings:has(.moreSettings[open]) {
   overflow: visible;
 }
@@ -1209,6 +1215,9 @@ canvas {
 
   .settingsMenuBody > .pdfNameSetting {
     grid-template-columns: 82px minmax(0, 1fr) auto;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
   }
 
   .settingsMenuBody > .ratioSetting > select,

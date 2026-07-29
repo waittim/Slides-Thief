@@ -4,6 +4,11 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { applyEnhancement, type EnhancementMode } from "./enhance";
 import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
 import {
+  normalizePdfName,
+  PDF_BASENAME_MAX_LENGTH,
+  sanitizePdfBaseName,
+} from "./filename";
+import {
   isPaperRatio,
   outputPageRatioValue,
   pageLayoutMode,
@@ -1089,11 +1094,6 @@ function maxQuadOutside(size: number) {
 
 function clampQuadCoordinate(value: number, size: number, maxOutside: number) {
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
-}
-
-function normalizePdfName(value: string) {
-  const base = value.trim().replace(/\.pdf$/i, "") || "flattened_slides";
-  return `${base}.pdf`;
 }
 
 function parseHexColor(value: string): [number, number, number] {
@@ -2453,7 +2453,12 @@ export function SlidesThiefApp() {
                 </details>
                 <label className="pdfNameSetting">
                   <span>{text.pdfName}</span>
-                  <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
+                  <input
+                    value={pdfBaseName}
+                    maxLength={PDF_BASENAME_MAX_LENGTH}
+                    onChange={(event) => setPdfBaseName(sanitizePdfBaseName(event.target.value))}
+                    type="text"
+                  />
                   <span className="fileSuffix">.pdf</span>
                 </label>
               </div>
