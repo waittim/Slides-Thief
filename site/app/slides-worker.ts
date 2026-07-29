@@ -7,6 +7,7 @@ import { detectQuad } from "./detection/detect";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
 import {
+  consensusSourceFormatRatio,
   nearestSourceFormatRatio,
   outputPageRatioValue,
   pdfPageDimensions,
@@ -18,6 +19,7 @@ import {
 type Settings = {
   sourceFormat: SourceFormat;
   sourceCustomRatio?: number;
+  batchSourceRatio?: number;
   outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
@@ -74,7 +76,9 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     result: ReturnType<typeof workerDetectionResult>;
   }> = [];
   const sourceRatioHint = settings.sourceFormat === "auto"
-    ? undefined
+    ? validRatio(settings.batchSourceRatio)
+      ? settings.batchSourceRatio
+      : undefined
     : sourceFormatRatioValue(settings.sourceFormat, settings.sourceCustomRatio);
 
   for (const item of files) {
@@ -99,11 +103,6 @@ async function detectFiles(files: JobFile[], settings: Settings) {
         settings,
       );
       preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
-      scope.postMessage({
-        type: "detect-result",
-        phase: "preliminary",
-        result,
-      });
     } catch (error) {
       scope.postMessage({
         type: "slide-error",
@@ -114,6 +113,12 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       bitmap?.close();
     }
   }
+
+  postBatchResults(
+    preliminary.map(({ result }) => result),
+    "preliminary",
+    settings,
+  );
 
   const priors = buildBatchPriors(preliminary.map(({ item, width, height, result }) =>
     normalizeResult(
@@ -137,43 +142,38 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       priors,
     },
   });
+  const finalResults: Array<ReturnType<typeof workerDetectionResult>> = [];
   if (!priors.length) {
     for (const entry of preliminary) {
-      scope.postMessage({ type: "detect-result", phase: "final", result: entry.result });
+      finalResults.push(entry.result);
     }
-    return;
-  }
-
-  for (const entry of preliminary) {
-    if (!(entry.result.confidence < 0.72 && entry.result.needsReview)) {
-      scope.postMessage({ type: "detect-result", phase: "final", result: entry.result });
-      continue;
-    }
-    let bitmap: ImageBitmap | null = null;
-    try {
-      bitmap = await createImageBitmap(entry.item.file);
-      const detectionSettings: DetectionSettings = {
-        maxDetectionWidth: 900,
-        sourceRatioHint,
-        enableBatchPrior: true,
-      };
-      const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
-      const detection = detectQuad(imageData, detectionSettings, priors);
-      const result = workerDetectionResult(
-        entry.item.id,
-        bitmap.width,
-        bitmap.height,
-        imageData.width,
-        imageData.height,
-        detection,
-        settings,
-      );
-      scope.postMessage({ type: "detect-result", phase: "final", result });
-    } catch (error) {
-      scope.postMessage({
-        type: "detect-result",
-        phase: "final",
-        result: {
+  } else {
+    for (const entry of preliminary) {
+      if (!(entry.result.confidence < 0.72 && entry.result.needsReview)) {
+        finalResults.push(entry.result);
+        continue;
+      }
+      let bitmap: ImageBitmap | null = null;
+      try {
+        bitmap = await createImageBitmap(entry.item.file);
+        const detectionSettings: DetectionSettings = {
+          maxDetectionWidth: 900,
+          sourceRatioHint,
+          enableBatchPrior: true,
+        };
+        const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
+        const detection = detectQuad(imageData, detectionSettings, priors);
+        finalResults.push(workerDetectionResult(
+          entry.item.id,
+          bitmap.width,
+          bitmap.height,
+          imageData.width,
+          imageData.height,
+          detection,
+          settings,
+        ));
+      } catch (error) {
+        finalResults.push({
           ...entry.result,
           diagnostics: {
             ...entry.result.diagnostics,
@@ -181,11 +181,55 @@ async function detectFiles(files: JobFile[], settings: Settings) {
               ? error.message
               : "Could not apply the batch geometry prior.",
           },
-        },
-      });
-    } finally {
-      bitmap?.close();
+        });
+      } finally {
+        bitmap?.close();
+      }
     }
+  }
+
+  postBatchResults(finalResults, "final", settings);
+}
+
+function validRatio(value: number | undefined): value is number {
+  return Number.isFinite(value) && (value ?? 0) > 0;
+}
+
+function batchSourceRatio(
+  results: Array<ReturnType<typeof workerDetectionResult>>,
+  settings: Settings,
+) {
+  if (settings.sourceFormat !== "auto") {
+    return sourceFormatRatioValue(settings.sourceFormat, settings.sourceCustomRatio);
+  }
+  if (validRatio(settings.batchSourceRatio)) return settings.batchSourceRatio;
+  return consensusSourceFormatRatio(results.map((result) => ({
+    ratio: result.sourceRatio,
+    confidence: result.confidence,
+    reliable: result.method !== "fallback-frame" && result.confidence >= 0.55,
+  })));
+}
+
+function postBatchResults(
+  results: Array<ReturnType<typeof workerDetectionResult>>,
+  phase: "preliminary" | "final",
+  settings: Settings,
+) {
+  const sourceRatio = batchSourceRatio(results, settings);
+  for (const result of results) {
+    scope.postMessage({
+      type: "detect-result",
+      phase,
+      result: {
+        ...result,
+        sourceRatio,
+        diagnostics: {
+          ...result.diagnostics,
+          sourceRatio,
+          batchSourceRatio: sourceRatio,
+        },
+      },
+    });
   }
 }
 
@@ -209,7 +253,9 @@ function workerDetectionResult(
   const scaleX = width / detectionWidth;
   const scaleY = height / detectionHeight;
   const quad = detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad;
-  const detectedRatio = nearestSourceFormatRatio(estimateQuadAspect(quad));
+  const detectedRatio = validRatio(settings.batchSourceRatio)
+    ? settings.batchSourceRatio
+    : nearestSourceFormatRatio(estimateQuadAspect(quad));
   const sourceRatio = sourceFormatRatioValue(
     settings.sourceFormat,
     settings.sourceCustomRatio,

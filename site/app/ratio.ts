@@ -85,12 +85,41 @@ const AUTO_SOURCE_RATIOS = [
   RATIO_PRESETS["a4-portrait"],
 ];
 
+export type BatchSourceRatioCandidate = {
+  ratio: number;
+  confidence?: number;
+  reliable?: boolean;
+};
+
 export function nearestSourceFormatRatio(estimatedRatio: number): number {
   if (!Number.isFinite(estimatedRatio) || estimatedRatio <= 0) return RATIO_PRESETS["16:9"];
   return AUTO_SOURCE_RATIOS.reduce((nearest, candidate) =>
     Math.abs(Math.log(estimatedRatio / candidate)) < Math.abs(Math.log(estimatedRatio / nearest))
       ? candidate
       : nearest
+  );
+}
+
+export function consensusSourceFormatRatio(
+  candidates: BatchSourceRatioCandidate[],
+): number {
+  const valid = candidates.filter(({ ratio }) => Number.isFinite(ratio) && ratio > 0);
+  if (!valid.length) return RATIO_PRESETS["16:9"];
+
+  const reliable = valid.filter((candidate) => candidate.reliable !== false);
+  const pool = reliable.length ? reliable : valid;
+  const votes = new Map<number, number>();
+
+  for (const candidate of pool) {
+    const ratio = nearestSourceFormatRatio(candidate.ratio);
+    const confidence = Number.isFinite(candidate.confidence)
+      ? Math.max(0.1, Math.min(1, candidate.confidence!))
+      : 0.5;
+    votes.set(ratio, (votes.get(ratio) ?? 0) + confidence);
+  }
+
+  return AUTO_SOURCE_RATIOS.reduce((winner, ratio) =>
+    (votes.get(ratio) ?? 0) > (votes.get(winner) ?? 0) ? ratio : winner
   );
 }
 

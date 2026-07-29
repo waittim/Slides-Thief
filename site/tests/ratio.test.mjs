@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
+  consensusSourceFormatRatio,
   isPaperRatio,
   nearestSourceFormatRatio,
   outputPageRatioValue,
@@ -74,6 +75,20 @@ test("automatic source format chooses the nearest supported ratio", () => {
   assert.equal(nearestSourceFormatRatio(1.76), 16 / 9);
   assert.equal(nearestSourceFormatRatio(1.42), 297 / 210);
   assert.equal(nearestSourceFormatRatio(0.71), 210 / 297);
+});
+
+test("automatic source format uses one reliable consensus ratio for the batch", () => {
+  assert.equal(consensusSourceFormatRatio([
+    { ratio: 1.76, confidence: 0.92, reliable: true },
+    { ratio: 1.78, confidence: 0.81, reliable: true },
+    { ratio: 1.41, confidence: 0.7, reliable: true },
+  ]), 16 / 9);
+
+  assert.equal(consensusSourceFormatRatio([
+    { ratio: 4 / 3, confidence: 0.9, reliable: true },
+    { ratio: 16 / 9, confidence: 0.99, reliable: false },
+    { ratio: 16 / 9, confidence: 0.99, reliable: false },
+  ]), 4 / 3);
 });
 
 test("standard paper outputs use physical PDF point dimensions", () => {

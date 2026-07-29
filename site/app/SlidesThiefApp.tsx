@@ -10,7 +10,6 @@ import {
 } from "./filename";
 import {
   isPaperRatio,
-  nearestSourceFormatRatio,
   outputPageRatioValue,
   pageLayoutMode,
   sourceFormatRatioValue,
@@ -1104,14 +1103,6 @@ function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
 
-function estimateQuadAspect(quad: Quad): number {
-  const edgeLength = (start: Quad[number], end: Quad[number]) =>
-    Math.hypot(end[0] - start[0], end[1] - start[1]);
-  const horizontal = (edgeLength(quad[0], quad[1]) + edgeLength(quad[3], quad[2])) / 2;
-  const vertical = (edgeLength(quad[0], quad[3]) + edgeLength(quad[1], quad[2])) / 2;
-  return horizontal / Math.max(1, vertical);
-}
-
 function quadsMatch(first: Quad | null, second: Quad | null, tolerance = 0.01): boolean {
   if (!first || !second) return first === second;
   return first.every(([x, y], index) =>
@@ -1152,14 +1143,11 @@ function outputRatio(settings: Settings, sourceRatio: number) {
     : outputPageRatioValue(settings.outputPageRatio, sourceRatio);
 }
 
-function resolvedSlideRatio(slide: SlideItem, settings: Settings, quad?: Quad) {
-  const detectedRatio = settings.sourceFormat === "auto" && quad
-    ? nearestSourceFormatRatio(estimateQuadAspect(quad))
-    : slide.sourceRatio;
+function resolvedSlideRatio(slide: SlideItem, settings: Settings) {
   return sourceFormatRatioValue(
     settings.sourceFormat,
     settings.sourceCustomRatio,
-    detectedRatio,
+    slide.sourceRatio,
   );
 }
 
@@ -1231,7 +1219,7 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   sourceCtx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
 
-  const sourceRatio = resolvedSlideRatio(slide, settings, quad);
+  const sourceRatio = resolvedSlideRatio(slide, settings);
   const outWidth = 160;
   const outHeight = Math.max(1, Math.round(outWidth / outputRatio(settings, sourceRatio)));
   const outputCanvas = document.createElement("canvas");
@@ -1996,9 +1984,6 @@ export function SlidesThiefApp() {
           return {
             ...slide,
             quad: nextQuad,
-            sourceRatio: settingsRef.current.sourceFormat === "auto"
-              ? nearestSourceFormatRatio(estimateQuadAspect(nextQuad))
-              : slide.sourceRatio,
             method: "manual",
             confidence: 1,
             needsReview: false,
@@ -2207,7 +2192,9 @@ export function SlidesThiefApp() {
     worker.postMessage({
       type: "detect",
       files: [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
-      settings,
+      settings: settings.sourceFormat === "auto"
+        ? { ...settings, batchSourceRatio: selectedSlide.sourceRatio }
+        : settings,
     });
   };
 

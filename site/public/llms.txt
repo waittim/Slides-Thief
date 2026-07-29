@@ -28,8 +28,8 @@ Homepage HTML `<link>` tags advertise:
 
 - Browser processing is local; source photos are not uploaded.
 - Web formats: JPEG, PNG, WebP, HEIC, HEIF. CLI formats: JPEG, PNG, TIFF, HEIC, HEIF.
-- Web source formats: automatic per-page detection, 16:9, 4:3, 16:10, A4, Letter, and custom ratios.
-- Web PDF layouts: match each source, physical A4 or Letter paper, or a custom page size.
+- Web source formats: automatic batch detection, 16:9, 4:3, 16:10, A4, Letter, and custom ratios.
+- Web PDF layouts: match the batch source format, physical A4 or Letter paper, or a custom page size.
 - Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR.
 - Corner order: top-left, top-right, bottom-right, bottom-left.
 - License: MIT.
