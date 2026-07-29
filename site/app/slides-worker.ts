@@ -7,8 +7,6 @@ import { detectQuad } from "./detection/detect";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
 import {
-  consensusSourceFormatRatio,
-  nearestSourceFormatRatio,
   outputPageRatioValue,
   pdfPageDimensions,
   sourceFormatRatioValue,
@@ -19,7 +17,6 @@ import {
 type Settings = {
   sourceFormat: SourceFormat;
   sourceCustomRatio?: number;
-  batchSourceRatio?: number;
   outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
@@ -75,11 +72,10 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     height: number;
     result: ReturnType<typeof workerDetectionResult>;
   }> = [];
-  const sourceRatioHint = settings.sourceFormat === "auto"
-    ? validRatio(settings.batchSourceRatio)
-      ? settings.batchSourceRatio
-      : undefined
-    : sourceFormatRatioValue(settings.sourceFormat, settings.sourceCustomRatio);
+  const sourceRatioHint = sourceFormatRatioValue(
+    settings.sourceFormat,
+    settings.sourceCustomRatio,
+  );
 
   for (const item of files) {
     let bitmap: ImageBitmap | null = null;
@@ -114,10 +110,9 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     }
   }
 
-  postBatchResults(
+  postDetectionResults(
     preliminary.map(({ result }) => result),
     "preliminary",
-    settings,
   );
 
   const priors = buildBatchPriors(preliminary.map(({ item, width, height, result }) =>
@@ -188,57 +183,20 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     }
   }
 
-  postBatchResults(finalResults, "final", settings);
+  postDetectionResults(finalResults, "final");
 }
 
-function validRatio(value: number | undefined): value is number {
-  return Number.isFinite(value) && (value ?? 0) > 0;
-}
-
-function batchSourceRatio(
-  results: Array<ReturnType<typeof workerDetectionResult>>,
-  settings: Settings,
-) {
-  if (settings.sourceFormat !== "auto") {
-    return sourceFormatRatioValue(settings.sourceFormat, settings.sourceCustomRatio);
-  }
-  if (validRatio(settings.batchSourceRatio)) return settings.batchSourceRatio;
-  return consensusSourceFormatRatio(results.map((result) => ({
-    ratio: result.sourceRatio,
-    confidence: result.confidence,
-    reliable: result.method !== "fallback-frame" && result.confidence >= 0.55,
-  })));
-}
-
-function postBatchResults(
+function postDetectionResults(
   results: Array<ReturnType<typeof workerDetectionResult>>,
   phase: "preliminary" | "final",
-  settings: Settings,
 ) {
-  const sourceRatio = batchSourceRatio(results, settings);
   for (const result of results) {
     scope.postMessage({
       type: "detect-result",
       phase,
-      result: {
-        ...result,
-        sourceRatio,
-        diagnostics: {
-          ...result.diagnostics,
-          sourceRatio,
-          batchSourceRatio: sourceRatio,
-        },
-      },
+      result,
     });
   }
-}
-
-function estimateQuadAspect(quad: Quad): number {
-  const edgeLength = (start: Quad[number], end: Quad[number]) =>
-    Math.hypot(end[0] - start[0], end[1] - start[1]);
-  const horizontal = (edgeLength(quad[0], quad[1]) + edgeLength(quad[3], quad[2])) / 2;
-  const vertical = (edgeLength(quad[0], quad[3]) + edgeLength(quad[1], quad[2])) / 2;
-  return horizontal / Math.max(1, vertical);
 }
 
 function workerDetectionResult(
@@ -253,13 +211,9 @@ function workerDetectionResult(
   const scaleX = width / detectionWidth;
   const scaleY = height / detectionHeight;
   const quad = detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad;
-  const detectedRatio = validRatio(settings.batchSourceRatio)
-    ? settings.batchSourceRatio
-    : nearestSourceFormatRatio(estimateQuadAspect(quad));
   const sourceRatio = sourceFormatRatioValue(
     settings.sourceFormat,
     settings.sourceCustomRatio,
-    detectedRatio,
   );
   return {
     id,

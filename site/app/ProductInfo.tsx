@@ -12,7 +12,7 @@ export function ProductInfo() {
       <div className="productInfoGrid">
         <article>
           <h3>Supported images</h3>
-          <p>JPEG, PNG, WebP, HEIC, and HEIF, with automatic, presentation, A4, Letter, and custom formats.</p>
+          <p>JPEG, PNG, WebP, HEIC, and HEIF. The source format defaults to 16:9, with 4:3, 16:10, A4, Letter, and custom alternatives.</p>
         </article>
         <article>
           <h3>Automatic and manual correction</h3>

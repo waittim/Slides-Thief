@@ -116,7 +116,7 @@ type WorkerMessage =
   | { type: "error"; error: string };
 
 const defaultSettings: Settings = {
-  sourceFormat: "auto",
+  sourceFormat: "16:9",
   outputPageRatio: "match-source",
   width: 2400,
   height: null,
@@ -152,7 +152,7 @@ const localeOptions: { value: LocaleValue; label: string }[] = [
 
 const ratioUiCopy: Record<LocaleValue, {
   sourceFormat: string;
-  autoDetect: string;
+  recommended16x9: string;
   presentationGroup: string;
   documentGroup: string;
   custom: string;
@@ -165,7 +165,7 @@ const ratioUiCopy: Record<LocaleValue, {
 }> = {
   "zh-CN": {
     sourceFormat: "原稿格式",
-    autoDetect: "自动识别（推荐）",
+    recommended16x9: "16:9（推荐）",
     presentationGroup: "幻灯片",
     documentGroup: "文档",
     custom: "自定义比例",
@@ -178,7 +178,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   "zh-TW": {
     sourceFormat: "原稿格式",
-    autoDetect: "自動識別（建議）",
+    recommended16x9: "16:9（建議）",
     presentationGroup: "投影片",
     documentGroup: "文件",
     custom: "自訂比例",
@@ -191,7 +191,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   en: {
     sourceFormat: "Source format",
-    autoDetect: "Auto-detect (recommended)",
+    recommended16x9: "16:9 (recommended)",
     presentationGroup: "Presentation",
     documentGroup: "Document",
     custom: "Custom ratio",
@@ -204,7 +204,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   es: {
     sourceFormat: "Formato original",
-    autoDetect: "Detección automática (recomendado)",
+    recommended16x9: "16:9 (recomendado)",
     presentationGroup: "Presentación",
     documentGroup: "Documento",
     custom: "Relación personalizada",
@@ -217,7 +217,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   fr: {
     sourceFormat: "Format de l’original",
-    autoDetect: "Détection automatique (recommandé)",
+    recommended16x9: "16:9 (recommandé)",
     presentationGroup: "Présentation",
     documentGroup: "Document",
     custom: "Format personnalisé",
@@ -230,7 +230,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   de: {
     sourceFormat: "Vorlagenformat",
-    autoDetect: "Automatisch erkennen (empfohlen)",
+    recommended16x9: "16:9 (empfohlen)",
     presentationGroup: "Präsentation",
     documentGroup: "Dokument",
     custom: "Eigenes Seitenverhältnis",
@@ -243,7 +243,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   ja: {
     sourceFormat: "原稿形式",
-    autoDetect: "自動検出（推奨）",
+    recommended16x9: "16:9（推奨）",
     presentationGroup: "プレゼンテーション",
     documentGroup: "文書",
     custom: "カスタム比率",
@@ -256,7 +256,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   ko: {
     sourceFormat: "원본 형식",
-    autoDetect: "자동 감지(권장)",
+    recommended16x9: "16:9(권장)",
     presentationGroup: "프레젠테이션",
     documentGroup: "문서",
     custom: "사용자 지정 비율",
@@ -269,7 +269,7 @@ const ratioUiCopy: Record<LocaleValue, {
   },
   "pt-BR": {
     sourceFormat: "Formato original",
-    autoDetect: "Detecção automática (recomendado)",
+    recommended16x9: "16:9 (recomendado)",
     presentationGroup: "Apresentação",
     documentGroup: "Documento",
     custom: "Proporção personalizada",
@@ -1147,7 +1147,6 @@ function resolvedSlideRatio(slide: SlideItem, settings: Settings) {
   return sourceFormatRatioValue(
     settings.sourceFormat,
     settings.sourceCustomRatio,
-    slide.sourceRatio,
   );
 }
 
@@ -2192,9 +2191,7 @@ export function SlidesThiefApp() {
     worker.postMessage({
       type: "detect",
       files: [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
-      settings: settings.sourceFormat === "auto"
-        ? { ...settings, batchSourceRatio: selectedSlide.sourceRatio }
-        : settings,
+      settings,
     });
   };
 
@@ -2321,9 +2318,8 @@ export function SlidesThiefApp() {
                       }
                     }}
                   >
-                    <option value="auto">{ratioUi.autoDetect}</option>
                     <optgroup label={ratioUi.presentationGroup}>
-                      <option value="16:9">{text.ratio16x9}</option>
+                      <option value="16:9">{ratioUi.recommended16x9}</option>
                       <option value="4:3">{text.ratio4x3}</option>
                       <option value="16:10">16:10</option>
                     </optgroup>

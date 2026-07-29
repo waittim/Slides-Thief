@@ -8,8 +8,8 @@ Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run
 
 ### Web features
 
-- Source formats: automatic batch detection, 16:9, 4:3, 16:10, A4 portrait/landscape, Letter portrait/landscape, and custom ratios.
-- PDF layouts: match the detected batch source format, physical A4 or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
+- Source formats: 16:9 by default, with explicit 4:3, 16:10, A4 portrait/landscape, Letter portrait/landscape, and custom ratios.
+- PDF layouts: match the selected source format, physical A4 or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
 - Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
 - UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Light and dark themes.

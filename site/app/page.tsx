@@ -27,7 +27,7 @@ const structuredData = {
   author: { "@type": "Person", name: "Zekun Wang", url: "https://github.com/waittim" },
   featureList: [
     "Automatic slide and document boundary detection",
-    "Automatic batch source format detection",
+    "16:9 recommended source format with explicit alternatives",
     "Manual four-corner correction",
     "Perspective correction",
     "HEIC and HEIF support",
