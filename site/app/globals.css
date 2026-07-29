@@ -484,15 +484,15 @@ a:hover {
 }
 
 .colorControls button[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--accent-2), var(--line) 35%);
+  border-color: var(--accent-2);
   background: var(--control-bg);
   color: var(--muted);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 72%);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 50%);
 }
 
 .morePanel input[type="color"].isActive {
-  border-color: color-mix(in srgb, var(--accent-2), var(--line) 35%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 72%);
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 50%);
 }
 
 .shell {
@@ -615,11 +615,19 @@ a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-decoration: none;
+  transition:
+    filter 0.08s ease,
+    transform 0.08s ease;
 }
 
 .links a:hover {
   border-color: var(--primary-bg);
   text-decoration: none;
+}
+
+.links a:active {
+  filter: brightness(0.9);
+  transform: translateY(1px);
 }
 
 .sectionHead {
@@ -1650,7 +1658,8 @@ canvas {
 
 @media (prefers-reduced-motion: reduce) {
   button:not(:disabled):not(.cornerHandle):active,
-  .moreSettings summary:active {
+  .moreSettings summary:active,
+  .links a:active {
     transform: none;
   }
 
