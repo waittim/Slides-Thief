@@ -2212,7 +2212,7 @@ export function SlidesThiefApp() {
             <h2>{text.images}</h2>
             <span className="count">{slides.length}</span>
           </div>
-          <div>
+          <div className="sidebarFilePicker">
             <input
               ref={inputRef}
               className="fileInput"

@@ -603,9 +603,14 @@ a:hover {
   font-size: 12px;
 }
 
+.sidebarFilePicker {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .files {
   min-height: 0;
-  max-height: calc(100vh - 270px);
   overflow: auto;
   display: grid;
   gap: 7px;
@@ -1026,7 +1031,6 @@ canvas {
   }
 
   .files {
-    max-height: none;
     width: 100%;
     max-width: 100%;
     min-width: 0;

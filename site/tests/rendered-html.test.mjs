@@ -135,6 +135,8 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"\s*"prefs"/s);
   assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);
   assert.match(css, /\.settingsMenuToggle/);
+  assert.match(css, /\.sidebarFilePicker\s*\{[^}]*min-height:\s*0;[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/s);
+  assert.doesNotMatch(css, /\.files\s*\{[^}]*max-height:\s*calc\(100vh/s);
   assert.match(css, /font-size:\s*16px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /safe-area-inset-bottom/);
