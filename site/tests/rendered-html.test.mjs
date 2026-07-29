@@ -181,6 +181,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /font-size:\s*16px/);
   assert.match(css, /min-height:\s*44px/);
   assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
+  assert.match(css, /button:not\(:disabled\):not\(\.cornerHandle\):active/);
+  assert.match(css, /transform:\s*translateY\(1px\)/);
+  assert.match(css, /button\.primary:not\(:disabled\):active/);
+  assert.match(css, /filter:\s*brightness\(0\.9\)/);
   assert.doesNotMatch(css, /cubic-bezier\(0\.34,\s*1\.56,\s*0\.64,\s*1\)/);
   assert.doesNotMatch(css, /border-left:\s*4px solid var\(--accent-2\)/);
   assert.match(css, /safe-area-inset-bottom/);

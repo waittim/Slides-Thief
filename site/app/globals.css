@@ -148,11 +148,29 @@ button,
   padding: 0 11px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    filter 0.08s ease,
+    transform 0.08s ease;
 }
 
 button:hover,
 .moreSettings summary:hover {
   border-color: var(--control-hover);
+}
+
+button:not(:disabled):not(.cornerHandle):active,
+.moreSettings summary:active {
+  border-color: var(--control-hover);
+  background: var(--panel-strong);
+  transform: translateY(1px);
+}
+
+button.primary:not(:disabled):active,
+button.green:not(:disabled):active {
+  filter: brightness(0.9);
 }
 
 button:disabled {
@@ -431,6 +449,24 @@ a:hover {
   border-radius: 6px;
   background: var(--control-bg);
   padding: 2px;
+}
+
+.colorSetting {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+}
+
+.colorControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorControls button[aria-pressed="true"] {
+  border-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2), transparent 84%);
 }
 
 .shell {
@@ -1581,6 +1617,11 @@ canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):not(.cornerHandle):active,
+  .moreSettings summary:active {
+    transform: none;
+  }
+
   .modalOverlay,
   .modalCard {
     animation: none;

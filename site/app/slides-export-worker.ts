@@ -7,6 +7,7 @@ import { constrainedImageSize } from "./image-sizing";
 import {
   outputPageRatioValue,
   pdfPageDimensions,
+  isPaperRatio,
   sourceFormatRatioValue,
   type OutputPageRatio,
   type SourceFormat,
@@ -129,11 +130,13 @@ async function renderWarpedJpeg(
   }
 
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
-  const fill = parseHexColor(settings.fillColor);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScaleX, y * sourceScaleY]) as Quad;
   const output = new ImageData(outWidth, outHeight);
   const target = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, target);
+  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+    ? [255, 255, 255] as [number, number, number]
+    : resolveFillColor(settings.fillColor, source, target, coeffs);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -210,12 +213,54 @@ function solveLinearSystem(matrix: number[][], vector: number[]) {
 }
 
 function parseHexColor(value: string): [number, number, number] {
-  const clean = /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1) : "000000";
+  const clean = /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1) : "111111";
   return [
     Number.parseInt(clean.slice(0, 2), 16),
     Number.parseInt(clean.slice(2, 4), 16),
     Number.parseInt(clean.slice(4, 6), 16),
   ];
+}
+
+const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
+
+function resolveFillColor(value: string, source: ImageData, target: Quad, coeffs: number[]) {
+  if (value !== "auto") return parseHexColor(value);
+  const inset = Math.max(2, Math.min(12, Math.min(target[1][0] - target[0][0], target[3][1] - target[0][1]) * 0.035));
+  const left = target[0][0] + inset;
+  const right = target[1][0] - inset;
+  const top = target[0][1] + inset;
+  const bottom = target[3][1] - inset;
+  const samples: Array<[number, number, number] | null> = [];
+
+  for (let index = 0; index < 12; index += 1) {
+    const progress = (index + 0.5) / 12;
+    const x = left + (right - left) * progress;
+    const y = top + (bottom - top) * progress;
+    samples.push(sampleCorrectedRgb(source, coeffs, x, top));
+    samples.push(sampleCorrectedRgb(source, coeffs, x, bottom));
+    samples.push(sampleCorrectedRgb(source, coeffs, left, y));
+    samples.push(sampleCorrectedRgb(source, coeffs, right, y));
+  }
+
+  const valid = samples.filter((sample): sample is [number, number, number] => sample !== null);
+  if (valid.length < 12) return AUTO_FILL_FALLBACK;
+  const median = [0, 1, 2].map((channel) => medianValue(valid.map((sample) => sample[channel]))) as [number, number, number];
+  const deviations = valid.map((sample) => Math.hypot(sample[0] - median[0], sample[1] - median[1], sample[2] - median[2]));
+  return medianValue(deviations) > 42 ? AUTO_FILL_FALLBACK : median;
+}
+
+function sampleCorrectedRgb(source: ImageData, coeffs: number[], x: number, y: number): [number, number, number] | null {
+  const denominator = coeffs[6] * x + coeffs[7] * y + 1;
+  const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denominator;
+  const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denominator;
+  if (sx < 0 || sx >= source.width || sy < 0 || sy >= source.height) return null;
+  const offset = (Math.min(source.height - 1, Math.round(sy)) * source.width + Math.min(source.width - 1, Math.round(sx))) * 4;
+  return [source.data[offset], source.data[offset + 1], source.data[offset + 2]];
+}
+
+function medianValue(values: number[]) {
+  const sorted = [...values].sort((first, second) => first - second);
+  return sorted[Math.floor(sorted.length / 2)];
 }
 
 function sampleRgb(
