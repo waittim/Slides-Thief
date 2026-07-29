@@ -53,6 +53,7 @@ type SlideItem = {
   confidence: number;
   needsReview: boolean;
   reviewReasons: ReviewReason[];
+  reviewedByUser: boolean;
   status: SlideStatus;
   error?: string;
 };
@@ -1263,7 +1264,14 @@ export function SlidesThiefApp() {
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.id
-              ? { ...slide, status: "detecting", method: "detecting", thumbnailUrl: undefined, error: undefined }
+              ? {
+                  ...slide,
+                  status: "detecting",
+                  method: "detecting",
+                  reviewedByUser: false,
+                  thumbnailUrl: undefined,
+                  error: undefined,
+                }
               : slide,
           ),
         );
@@ -1271,28 +1279,36 @@ export function SlidesThiefApp() {
       if (message.type === "detect-result") {
         const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
         const preserveManualQuad = message.phase === "final"
-          && Boolean(existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad));
+          && Boolean(
+            existing?.reviewedByUser
+            || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
+          );
         const displayedQuad = preserveManualQuad && existing?.quad
           ? existing.quad
           : message.result.quad;
         setSlides((current) =>
-          current.map((slide) =>
-            slide.id === message.result.id
-              ? {
-                  ...slide,
-                  width: message.result.width,
-                  height: message.result.height,
-                  quad: preserveManualQuad ? slide.quad : message.result.quad,
-                  autoQuad: message.result.quad,
-                  method: message.result.method,
-                  confidence: message.result.confidence,
-                  needsReview: message.result.needsReview,
-                  reviewReasons: message.result.reviewReasons,
-                  status: message.phase === "final" ? "ready" : "detecting",
-                  error: undefined,
-                }
-              : slide,
-          ),
+          current.map((slide) => {
+            if (slide.id !== message.result.id) return slide;
+            const preserveManualReview = message.phase === "final"
+              && (
+                slide.reviewedByUser
+                || Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
+              );
+            return {
+              ...slide,
+              width: message.result.width,
+              height: message.result.height,
+              quad: preserveManualReview ? slide.quad : message.result.quad,
+              autoQuad: message.result.quad,
+              method: preserveManualReview ? "manual" : message.result.method,
+              confidence: preserveManualReview ? 1 : message.result.confidence,
+              needsReview: preserveManualReview ? false : message.result.needsReview,
+              reviewReasons: preserveManualReview ? [] : message.result.reviewReasons,
+              reviewedByUser: preserveManualReview,
+              status: message.phase === "final" ? "ready" : "detecting",
+              error: undefined,
+            };
+          }),
         );
         void refreshSlideThumbnail(message.result.id, displayedQuad);
         if (message.phase === "final") setBusyText("");
@@ -1557,6 +1573,7 @@ export function SlidesThiefApp() {
           confidence: 0,
           needsReview: false,
           reviewReasons: [],
+          reviewedByUser: false,
           status: converting ? "converting" : "queued",
         };
       });
@@ -1817,6 +1834,7 @@ export function SlidesThiefApp() {
             confidence: 1,
             needsReview: false,
             reviewReasons: [],
+            reviewedByUser: true,
           };
         }
         return slide;
@@ -1982,6 +2000,7 @@ export function SlidesThiefApp() {
                 ...slide,
                 status: "detecting",
                 method: "detecting",
+                reviewedByUser: false,
                 quad: null,
                 thumbnailUrl: undefined,
                 error: undefined,

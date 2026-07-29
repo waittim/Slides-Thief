@@ -106,6 +106,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /previewError: "无法显示此照片的预览"/);
   assert.match(app, /setPreviewErrorSlideId\(slide\.id\)/);
   assert.doesNotMatch(app, /setWorkerError\("Cannot render this image in the browser\."\)/);
+  assert.match(app, /reviewedByUser: true/);
+  assert.match(app, /method: preserveManualReview \? "manual" : message\.result\.method/);
+  assert.match(app, /needsReview: preserveManualReview \? false : message\.result\.needsReview/);
   assert.match(app, /enhancement: "original"/);
   assert.match(app, /enhancementOriginal: "Original"/);
   assert.match(app, /enhancementClean: "清晰增强"/);
