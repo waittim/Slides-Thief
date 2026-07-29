@@ -611,6 +611,8 @@ a:hover {
 
 .files {
   min-height: 0;
+  max-height: calc(100% - 10px);
+  align-self: start;
   overflow: auto;
   display: grid;
   gap: 7px;
