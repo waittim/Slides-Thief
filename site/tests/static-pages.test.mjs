@@ -13,14 +13,14 @@ test("emits a GitHub Pages compatible static app", async () => {
 
   assert.match(html, /<html lang="en">/i);
   assert.match(html, /name="viewport" content="width=device-width, initial-scale=1\.0, viewport-fit=cover"/i);
-  assert.match(html, /<title>Slides Thief - Straighten Slide Photos into PDFs<\/title>/i);
+  assert.match(html, /<title>Slides Thief - Straighten Slide &amp; Document Photos into PDFs<\/title>/i);
   assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\/"/i);
   assert.match(html, /<link rel="describedby" href="\.\/llms\.txt"[^>]*type="text\/plain"/i);
   assert.match(html, /<link rel="service-doc" href="\.\/llms-full\.txt"[^>]*type="text\/plain"/i);
   assert.match(html, /<link rel="sitemap" href="\.\/sitemap\.xml"[^>]*type="application\/xml"/i);
-  assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide Photos into PDFs"/i);
+  assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide &amp; Document Photos into PDFs"/i);
   assert.match(html, /"alternateName": \["PPT捕手"/);
-  assert.match(html, /<h1>Slides Thief — Convert Angled Slide Photos to PDF<\/h1>/i);
+  assert.match(html, /<h1>Slides Thief — Convert Angled Slide or Document Photos to PDF<\/h1>/i);
   assert.match(html, /\/assets\//);
   assert.match(html, /type="module"/);
   assert.doesNotMatch(html, /_next|__next|vinext/i);

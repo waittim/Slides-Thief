@@ -7,14 +7,16 @@ import { detectQuad } from "./detection/detect";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
 import {
+  nearestSourceFormatRatio,
   outputPageRatioValue,
-  sourceSlideRatioValue,
+  pdfPageDimensions,
+  sourceFormatRatioValue,
   type OutputPageRatio,
-  type SourceSlideRatio,
+  type SourceFormat,
 } from "./ratio";
 
 type Settings = {
-  sourceSlideRatio: SourceSlideRatio;
+  sourceFormat: SourceFormat;
   sourceCustomRatio?: number;
   outputPageRatio: OutputPageRatio;
   width: number;
@@ -34,6 +36,7 @@ type ExportSlide = {
   id: string;
   name: string;
   quad: Quad;
+  sourceRatio: number;
 };
 
 const scope = self as DedicatedWorkerGlobalScope;
@@ -70,7 +73,9 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     height: number;
     result: ReturnType<typeof workerDetectionResult>;
   }> = [];
-  const sourceRatioHint = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
+  const sourceRatioHint = settings.sourceFormat === "auto"
+    ? undefined
+    : sourceFormatRatioValue(settings.sourceFormat, settings.sourceCustomRatio);
 
   for (const item of files) {
     let bitmap: ImageBitmap | null = null;
@@ -91,6 +96,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
         imageData.width,
         imageData.height,
         detection,
+        settings,
       );
       preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
       scope.postMessage({
@@ -160,6 +166,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
         imageData.width,
         imageData.height,
         detection,
+        settings,
       );
       scope.postMessage({ type: "detect-result", phase: "final", result });
     } catch (error) {
@@ -182,6 +189,14 @@ async function detectFiles(files: JobFile[], settings: Settings) {
   }
 }
 
+function estimateQuadAspect(quad: Quad): number {
+  const edgeLength = (start: Quad[number], end: Quad[number]) =>
+    Math.hypot(end[0] - start[0], end[1] - start[1]);
+  const horizontal = (edgeLength(quad[0], quad[1]) + edgeLength(quad[3], quad[2])) / 2;
+  const vertical = (edgeLength(quad[0], quad[3]) + edgeLength(quad[1], quad[2])) / 2;
+  return horizontal / Math.max(1, vertical);
+}
+
 function workerDetectionResult(
   id: string,
   width: number,
@@ -189,14 +204,23 @@ function workerDetectionResult(
   detectionWidth: number,
   detectionHeight: number,
   detection: DetectionResult,
+  settings: Settings,
 ) {
   const scaleX = width / detectionWidth;
   const scaleY = height / detectionHeight;
+  const quad = detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad;
+  const detectedRatio = nearestSourceFormatRatio(estimateQuadAspect(quad));
+  const sourceRatio = sourceFormatRatioValue(
+    settings.sourceFormat,
+    settings.sourceCustomRatio,
+    detectedRatio,
+  );
   return {
     id,
     width,
     height,
-    quad: detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad,
+    quad,
+    sourceRatio,
     method: detection.method,
     confidence: detection.confidence,
     needsReview: detection.needsReview,
@@ -204,27 +228,47 @@ function workerDetectionResult(
     bestScore: detection.bestScore,
     secondBestScore: detection.secondBestScore,
     candidatesEvaluated: detection.candidatesEvaluated,
-    diagnostics: detection.diagnostics,
+    diagnostics: {
+      ...detection.diagnostics,
+      sourceRatio,
+      sourceFormat: settings.sourceFormat,
+    },
   };
 }
 
 async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
   const fileById = new Map(files.map((item) => [item.id, item]));
   const pdf = await PDFDocument.create();
-  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
-  const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
   const outputWidth = settings.width;
-  const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
 
   for (let index = 0; index < slides.length; index += 1) {
     const slide = slides[index];
     const item = fileById.get(slide.id);
     if (!item) continue;
+    const sourceRatio = sourceFormatRatioValue(
+      settings.sourceFormat,
+      settings.sourceCustomRatio,
+      slide.sourceRatio,
+    );
+    const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+    const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({ type: "export-progress", current: index + 1, total: slides.length, name: item.name });
-    const jpgBytes = await renderWarpedJpeg(item.file, slide.quad, outputWidth, outputHeight, settings);
+    const jpgBytes = await renderWarpedJpeg(
+      item.file,
+      slide.quad,
+      outputWidth,
+      outputHeight,
+      sourceRatio,
+      settings,
+    );
     const image = await pdf.embedJpg(jpgBytes);
-    const page = pdf.addPage([outputWidth, outputHeight]);
-    page.drawImage(image, { x: 0, y: 0, width: outputWidth, height: outputHeight });
+    const [pageWidth, pageHeight] = pdfPageDimensions(
+      settings.outputPageRatio,
+      outputWidth,
+      outputHeight,
+    );
+    const page = pdf.addPage([pageWidth, pageHeight]);
+    page.drawImage(image, { x: 0, y: 0, width: pageWidth, height: pageHeight });
   }
 
   const pdfBytes = await pdf.save();
@@ -247,7 +291,14 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
 }
 
 
-async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHeight: number, settings: Settings) {
+async function renderWarpedJpeg(
+  file: File,
+  quad: Quad,
+  outWidth: number,
+  outHeight: number,
+  sourceRatio: number,
+  settings: Settings,
+) {
   const bitmap = await createImageBitmap(file);
   const sourceSize = constrainedImageSize(
     bitmap.width,
@@ -275,7 +326,6 @@ async function renderWarpedJpeg(file: File, quad: Quad, outWidth: number, outHei
   const fill = parseHexColor(settings.fillColor);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScaleX, y * sourceScaleY]) as Quad;
   const output = new ImageData(outWidth, outHeight);
-  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
   const target = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, target);
 

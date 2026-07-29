@@ -1,11 +1,16 @@
-export type SourceSlideRatio =
+export type SourceFormat =
+  | "auto"
   | "16:9"
   | "4:3"
   | "16:10"
+  | "A4-landscape"
+  | "A4-portrait"
+  | "letter-landscape"
+  | "letter-portrait"
   | "custom";
 
 export type OutputPageRatio =
-  | "match-slide"
+  | "match-source"
   | "16:9"
   | "4:3"
   | "A4-landscape"
@@ -13,10 +18,10 @@ export type OutputPageRatio =
   | "letter-landscape"
   | "letter-portrait";
 
-export type PageLayoutMode = "fit-slide" | "paper" | "custom-size";
+export type PageLayoutMode = "match-source" | "paper" | "custom-size";
 
-/** @deprecated Use SourceSlideRatio or OutputPageRatio at the appropriate boundary. */
-export type RatioValue = Exclude<OutputPageRatio, "match-slide">;
+/** @deprecated Use SourceFormat or OutputPageRatio at the appropriate boundary. */
+export type RatioValue = Exclude<OutputPageRatio, "match-source">;
 
 export const RATIO_PRESETS: Record<string, number> = {
   "16:9": 16 / 9,
@@ -70,7 +75,35 @@ export function parseRatio(value: string): number {
   return Number.isFinite(num) && num > 0 ? num : 16 / 9;
 }
 
-export function sourceSlideRatioValue(value: SourceSlideRatio, customRatio?: number): number {
+const AUTO_SOURCE_RATIOS = [
+  RATIO_PRESETS["16:9"],
+  RATIO_PRESETS["16:10"],
+  RATIO_PRESETS["a4-landscape"],
+  RATIO_PRESETS["4:3"],
+  RATIO_PRESETS["letter-landscape"],
+  RATIO_PRESETS["letter-portrait"],
+  RATIO_PRESETS["a4-portrait"],
+];
+
+export function nearestSourceFormatRatio(estimatedRatio: number): number {
+  if (!Number.isFinite(estimatedRatio) || estimatedRatio <= 0) return RATIO_PRESETS["16:9"];
+  return AUTO_SOURCE_RATIOS.reduce((nearest, candidate) =>
+    Math.abs(Math.log(estimatedRatio / candidate)) < Math.abs(Math.log(estimatedRatio / nearest))
+      ? candidate
+      : nearest
+  );
+}
+
+export function sourceFormatRatioValue(
+  value: SourceFormat,
+  customRatio?: number,
+  detectedRatio?: number,
+): number {
+  if (value === "auto") {
+    return Number.isFinite(detectedRatio) && (detectedRatio ?? 0) > 0
+      ? detectedRatio!
+      : RATIO_PRESETS["16:9"];
+  }
   if (value === "custom") {
     return Number.isFinite(customRatio) && (customRatio ?? 0) > 0 ? customRatio! : 16 / 9;
   }
@@ -81,7 +114,19 @@ export function outputPageRatioValue(
   value: OutputPageRatio,
   sourceRatio: number,
 ): number {
-  return value === "match-slide" ? sourceRatio : parseRatio(value);
+  return value === "match-source" ? sourceRatio : parseRatio(value);
+}
+
+export function pdfPageDimensions(
+  value: OutputPageRatio,
+  fallbackWidth: number,
+  fallbackHeight: number,
+): [number, number] {
+  if (value === "A4-landscape") return [841.89, 595.28];
+  if (value === "A4-portrait") return [595.28, 841.89];
+  if (value === "letter-landscape") return [792, 612];
+  if (value === "letter-portrait") return [612, 792];
+  return [fallbackWidth, fallbackHeight];
 }
 
 export function pageLayoutMode(
@@ -89,5 +134,5 @@ export function pageLayoutMode(
   outputHeight: number | null,
 ): PageLayoutMode {
   if (outputHeight !== null) return "custom-size";
-  return isPaperRatio(outputPageRatio) ? "paper" : "fit-slide";
+  return isPaperRatio(outputPageRatio) ? "paper" : "match-source";
 }

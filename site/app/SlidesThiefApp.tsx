@@ -10,12 +10,13 @@ import {
 } from "./filename";
 import {
   isPaperRatio,
+  nearestSourceFormatRatio,
   outputPageRatioValue,
   pageLayoutMode,
-  sourceSlideRatioValue,
+  sourceFormatRatioValue,
   type OutputPageRatio,
   type PageLayoutMode,
-  type SourceSlideRatio,
+  type SourceFormat,
 } from "./ratio";
 
 interface GtagWindow extends Window {
@@ -34,7 +35,7 @@ type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
 type Settings = {
-  sourceSlideRatio: SourceSlideRatio;
+  sourceFormat: SourceFormat;
   sourceCustomRatio?: number;
   outputPageRatio: OutputPageRatio;
   width: number;
@@ -61,6 +62,7 @@ type SlideItem = {
   needsReview: boolean;
   reviewReasons: ReviewReason[];
   reviewedByUser: boolean;
+  sourceRatio: number;
   status: SlideStatus;
   error?: string;
 };
@@ -70,6 +72,7 @@ type DetectResult = {
   width: number;
   height: number;
   quad: Quad;
+  sourceRatio: number;
   method: string;
   confidence: number;
   needsReview: boolean;
@@ -114,8 +117,8 @@ type WorkerMessage =
   | { type: "error"; error: string };
 
 const defaultSettings: Settings = {
-  sourceSlideRatio: "16:9",
-  outputPageRatio: "match-slide",
+  sourceFormat: "auto",
+  outputPageRatio: "match-source",
   width: 2400,
   height: null,
   quality: 0.92,
@@ -149,103 +152,133 @@ const localeOptions: { value: LocaleValue; label: string }[] = [
 ];
 
 const ratioUiCopy: Record<LocaleValue, {
-  slideRatio: string;
+  sourceFormat: string;
+  autoDetect: string;
+  presentationGroup: string;
+  documentGroup: string;
   custom: string;
   customRatio: string;
   pageLayout: string;
-  fitSlide: string;
-  paperLayout: string;
-  customSize: string;
+  matchSource: string;
+  standardPaper: string;
+  customPage: string;
   paperFormat: string;
 }> = {
   "zh-CN": {
-    slideRatio: "幻灯片比例",
-    custom: "自定义",
+    sourceFormat: "原稿格式",
+    autoDetect: "自动识别（推荐）",
+    presentationGroup: "幻灯片",
+    documentGroup: "文档",
+    custom: "自定义比例",
     customRatio: "自定义比例",
-    pageLayout: "页面版式",
-    fitSlide: "紧贴幻灯片（推荐）",
-    paperLayout: "纸张版式",
-    customSize: "自定义尺寸",
+    pageLayout: "PDF 页面",
+    matchSource: "与原稿一致（推荐）",
+    standardPaper: "标准纸张",
+    customPage: "自定义页面",
     paperFormat: "纸张规格",
   },
   "zh-TW": {
-    slideRatio: "投影片比例",
-    custom: "自訂",
+    sourceFormat: "原稿格式",
+    autoDetect: "自動識別（建議）",
+    presentationGroup: "投影片",
+    documentGroup: "文件",
+    custom: "自訂比例",
     customRatio: "自訂比例",
-    pageLayout: "頁面版式",
-    fitSlide: "貼合投影片（建議）",
-    paperLayout: "紙張版式",
-    customSize: "自訂尺寸",
+    pageLayout: "PDF 頁面",
+    matchSource: "與原稿一致（建議）",
+    standardPaper: "標準紙張",
+    customPage: "自訂頁面",
     paperFormat: "紙張規格",
   },
   en: {
-    slideRatio: "Slide ratio",
-    custom: "Custom",
+    sourceFormat: "Source format",
+    autoDetect: "Auto-detect (recommended)",
+    presentationGroup: "Presentation",
+    documentGroup: "Document",
+    custom: "Custom ratio",
     customRatio: "Custom ratio",
-    pageLayout: "Page layout",
-    fitSlide: "Fit to slide (recommended)",
-    paperLayout: "Paper layout",
-    customSize: "Custom size",
+    pageLayout: "PDF page",
+    matchSource: "Match source (recommended)",
+    standardPaper: "Standard paper",
+    customPage: "Custom page",
     paperFormat: "Paper format",
   },
   es: {
-    slideRatio: "Relación de diapositiva",
-    custom: "Personalizada",
+    sourceFormat: "Formato original",
+    autoDetect: "Detección automática (recomendado)",
+    presentationGroup: "Presentación",
+    documentGroup: "Documento",
+    custom: "Relación personalizada",
     customRatio: "Relación personalizada",
-    pageLayout: "Diseño de página",
-    fitSlide: "Ajustar a la diapositiva (recomendado)",
-    paperLayout: "Formato de papel",
-    customSize: "Tamaño personalizado",
+    pageLayout: "Página PDF",
+    matchSource: "Igual al original (recomendado)",
+    standardPaper: "Papel estándar",
+    customPage: "Página personalizada",
     paperFormat: "Papel",
   },
   fr: {
-    slideRatio: "Format de la diapositive",
-    custom: "Personnalisé",
+    sourceFormat: "Format de l’original",
+    autoDetect: "Détection automatique (recommandé)",
+    presentationGroup: "Présentation",
+    documentGroup: "Document",
+    custom: "Format personnalisé",
     customRatio: "Format personnalisé",
-    pageLayout: "Mise en page",
-    fitSlide: "Ajuster à la diapositive (recommandé)",
-    paperLayout: "Format papier",
-    customSize: "Taille personnalisée",
+    pageLayout: "Page PDF",
+    matchSource: "Identique à l’original (recommandé)",
+    standardPaper: "Papier standard",
+    customPage: "Page personnalisée",
     paperFormat: "Papier",
   },
   de: {
-    slideRatio: "Folienformat",
-    custom: "Benutzerdefiniert",
+    sourceFormat: "Vorlagenformat",
+    autoDetect: "Automatisch erkennen (empfohlen)",
+    presentationGroup: "Präsentation",
+    documentGroup: "Dokument",
+    custom: "Eigenes Seitenverhältnis",
     customRatio: "Eigenes Seitenverhältnis",
-    pageLayout: "Seitenlayout",
-    fitSlide: "An Folie anpassen (empfohlen)",
-    paperLayout: "Papierformat",
-    customSize: "Eigene Größe",
+    pageLayout: "PDF-Seite",
+    matchSource: "Wie Vorlage (empfohlen)",
+    standardPaper: "Standardpapier",
+    customPage: "Eigene Seite",
     paperFormat: "Papier",
   },
   ja: {
-    slideRatio: "スライド比率",
-    custom: "カスタム",
+    sourceFormat: "原稿形式",
+    autoDetect: "自動検出（推奨）",
+    presentationGroup: "プレゼンテーション",
+    documentGroup: "文書",
+    custom: "カスタム比率",
     customRatio: "カスタム比率",
-    pageLayout: "ページレイアウト",
-    fitSlide: "スライドに合わせる（推奨）",
-    paperLayout: "用紙レイアウト",
-    customSize: "カスタムサイズ",
+    pageLayout: "PDF ページ",
+    matchSource: "原稿に合わせる（推奨）",
+    standardPaper: "標準用紙",
+    customPage: "カスタムページ",
     paperFormat: "用紙サイズ",
   },
   ko: {
-    slideRatio: "슬라이드 비율",
-    custom: "사용자 지정",
+    sourceFormat: "원본 형식",
+    autoDetect: "자동 감지(권장)",
+    presentationGroup: "프레젠테이션",
+    documentGroup: "문서",
+    custom: "사용자 지정 비율",
     customRatio: "사용자 지정 비율",
-    pageLayout: "페이지 레이아웃",
-    fitSlide: "슬라이드에 맞춤(권장)",
-    paperLayout: "용지 레이아웃",
-    customSize: "사용자 지정 크기",
+    pageLayout: "PDF 페이지",
+    matchSource: "원본에 맞춤(권장)",
+    standardPaper: "표준 용지",
+    customPage: "사용자 지정 페이지",
     paperFormat: "용지 규격",
   },
   "pt-BR": {
-    slideRatio: "Proporção do slide",
-    custom: "Personalizada",
+    sourceFormat: "Formato original",
+    autoDetect: "Detecção automática (recomendado)",
+    presentationGroup: "Apresentação",
+    documentGroup: "Documento",
+    custom: "Proporção personalizada",
     customRatio: "Proporção personalizada",
-    pageLayout: "Layout da página",
-    fitSlide: "Ajustar ao slide (recomendado)",
-    paperLayout: "Layout de papel",
-    customSize: "Tamanho personalizado",
+    pageLayout: "Página PDF",
+    matchSource: "Igual ao original (recomendado)",
+    standardPaper: "Papel padrão",
+    customPage: "Página personalizada",
     paperFormat: "Papel",
   },
 };
@@ -258,8 +291,8 @@ const copy = {
     ratio: "比例",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (横向)",
-    ratioA4Portrait: "A4 / A3 (纵向)",
+    ratioA4Landscape: "A4（横向）",
+    ratioA4Portrait: "A4（纵向）",
     ratioLetterLandscape: "Letter (横向)",
     ratioLetterPortrait: "Letter (纵向)",
     more: "更多设置",
@@ -315,12 +348,12 @@ const copy = {
     converting: "正在转换 HEIC/HEIF",
     pending: "待自动校正",
     noUpload: "浏览器本地处理",
-    adjustCorners: "拖动四个编号角点以对齐幻灯片边缘",
+    adjustCorners: "拖动四个编号角点以对齐原稿边缘",
     cornerHandle: "角点",
     collapse: "缩小详情栏",
     expand: "展开详情栏",
     infoTitle: "关于 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片照片快速矫正并整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片或文档快速矫正并整理成清晰的 PDF。",
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
@@ -332,8 +365,8 @@ const copy = {
     ratio: "比例",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (橫向)",
-    ratioA4Portrait: "A4 / A3 (縱向)",
+    ratioA4Landscape: "A4（橫向）",
+    ratioA4Portrait: "A4（縱向）",
     ratioLetterLandscape: "Letter (橫向)",
     ratioLetterPortrait: "Letter (縱向)",
     more: "更多設定",
@@ -389,25 +422,25 @@ const copy = {
     converting: "正在轉換 HEIC/HEIF",
     pending: "待自動校正",
     noUpload: "瀏覽器本機處理",
-    adjustCorners: "拖動四個編號角點以對齊投影片邊緣",
+    adjustCorners: "拖動四個編號角點以對齊原稿邊緣",
     cornerHandle: "角點",
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
     infoTitle: "關於 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片相片快速矯正並整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片或文件快速矯正並整理成清晰的 PDF。",
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
   },
   en: {
-    appTitle: "Slides Thief - Straighten Slide Photos into PDFs",
+    appTitle: "Slides Thief - Straighten Slide & Document Photos into PDFs",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Ratio",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Landscape)",
-    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioA4Landscape: "A4 (Landscape)",
+    ratioA4Portrait: "A4 (Portrait)",
     ratioLetterLandscape: "Letter (Landscape)",
     ratioLetterPortrait: "Letter (Portrait)",
     more: "More settings",
@@ -463,25 +496,25 @@ const copy = {
     converting: "Converting HEIC/HEIF",
     pending: "Waiting for auto straighten",
     noUpload: "Browser-local processing",
-    adjustCorners: "Drag the four numbered corners to align the slide edges",
+    adjustCorners: "Drag the four numbered corners to align the source edges",
     cornerHandle: "Corner",
     collapse: "Collapse details",
     expand: "Expand details",
     infoTitle: "About Slides Thief",
-    infoDesc: "Slides Thief is a browser-local tool that quickly straightens skewed presentation slide photos and organizes them into a clear PDF.",
+    infoDesc: "Slides Thief is a browser-local tool that straightens skewed slide or document photos and organizes them into a clear PDF.",
     infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
     infoRepo: "Open Source Repo",
     infoBlog: "Introductory Blog",
   },
   es: {
-    appTitle: "Slides Thief - Endereza fotos de diapositivas en PDF",
+    appTitle: "Slides Thief - Corrige fotos de diapositivas y documentos",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Relación",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Horizontal)",
-    ratioA4Portrait: "A4 / A3 (Vertical)",
+    ratioA4Landscape: "A4 (Horizontal)",
+    ratioA4Portrait: "A4 (Vertical)",
     ratioLetterLandscape: "Carta (Horizontal)",
     ratioLetterPortrait: "Carta (Vertical)",
     more: "Más ajustes",
@@ -537,25 +570,25 @@ const copy = {
     converting: "Convirtiendo HEIC/HEIF",
     pending: "Esperando enderezado",
     noUpload: "Proceso local",
-    adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear la diapositiva",
+    adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear el original",
     cornerHandle: "Esquina",
     collapse: "Contraer detalles",
     expand: "Expandir detalles",
     infoTitle: "Sobre Slides Thief",
-    infoDesc: "Slides Thief es una herramienta local del navegador que corrige rápidamente las fotos torcidas de las diapositivas y las organiza en un PDF claro.",
+    infoDesc: "Slides Thief corrige localmente fotos inclinadas de diapositivas o documentos y las organiza en un PDF claro.",
     infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
     infoRepo: "Repositorio de Código",
     infoBlog: "Blog de Introducción",
   },
   fr: {
-    appTitle: "Slides Thief - Redresser des photos de diapositives en PDF",
+    appTitle: "Slides Thief - Redresser des photos de diapositives et de documents",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Paysage)",
-    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioA4Landscape: "A4 (Paysage)",
+    ratioA4Portrait: "A4 (Portrait)",
     ratioLetterLandscape: "Lettre (Paysage)",
     ratioLetterPortrait: "Lettre (Portrait)",
     more: "Réglages",
@@ -611,25 +644,25 @@ const copy = {
     converting: "Conversion HEIC/HEIF",
     pending: "En attente",
     noUpload: "Traitement local",
-    adjustCorners: "Faites glisser les quatre coins numérotés pour aligner la diapositive",
+    adjustCorners: "Faites glisser les quatre coins numérotés pour aligner l’original",
     cornerHandle: "Coin",
     collapse: "Réduire détails",
     expand: "Afficher détails",
     infoTitle: "À propos de Slides Thief",
-    infoDesc: "Slides Thief est un outil local dans le navigateur qui redresse rapidement les photos inclinées des diapositives et les organise dans un PDF propre.",
+    infoDesc: "Slides Thief redresse localement les photos inclinées de diapositives ou de documents et les organise dans un PDF propre.",
     infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
     infoRepo: "Dépôt de Code",
     infoBlog: "Blog d'Introduction",
   },
   de: {
-    appTitle: "Slides Thief - Folienfotos als PDF begradigen",
+    appTitle: "Slides Thief - Folien- und Dokumentfotos begradigen",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Querformat)",
-    ratioA4Portrait: "A4 / A3 (Hochformat)",
+    ratioA4Landscape: "A4 (Querformat)",
+    ratioA4Portrait: "A4 (Hochformat)",
     ratioLetterLandscape: "US Letter (Querformat)",
     ratioLetterPortrait: "US Letter (Hochformat)",
     more: "Mehr",
@@ -685,25 +718,25 @@ const copy = {
     converting: "HEIC/HEIF wird konvertiert",
     pending: "Wartet auf Begradigung",
     noUpload: "Lokale Verarbeitung",
-    adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Folienränder",
+    adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Vorlagenränder",
     cornerHandle: "Ecke",
     collapse: "Details einklappen",
     expand: "Details ausklappen",
     infoTitle: "Über Slides Thief",
-    infoDesc: "Slides Thief ist ein browserlokales Tool, das schiefe Folienfotos schnell begradigt und sie in einer übersichtlichen PDF-Datei organisiert.",
+    infoDesc: "Slides Thief begradigt Folien- oder Dokumentfotos lokal im Browser und organisiert sie in einer übersichtlichen PDF-Datei.",
     infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
     infoRepo: "Code-Repository",
     infoBlog: "Einführungs-Blog",
   },
   ja: {
-    appTitle: "Slides Thief - スライド写真を補正してPDF化",
+    appTitle: "Slides Thief - スライドや文書の写真を補正してPDF化",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "比率",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (横)",
-    ratioA4Portrait: "A4 / A3 (縦)",
+    ratioA4Landscape: "A4（横）",
+    ratioA4Portrait: "A4（縦）",
     ratioLetterLandscape: "レター (横)",
     ratioLetterPortrait: "レター (縦)",
     more: "詳細設定",
@@ -759,25 +792,25 @@ const copy = {
     converting: "HEIC/HEIF を変換中",
     pending: "自動補正待ち",
     noUpload: "ブラウザ内処理",
-    adjustCorners: "4つの番号付きコーナーをドラッグしてスライドの端に合わせます",
+    adjustCorners: "4つの番号付きコーナーをドラッグして原稿の端に合わせます",
     cornerHandle: "コーナー",
     collapse: "詳細を閉じる",
     expand: "詳細を開く",
     infoTitle: "Slides Thief について",
-    infoDesc: "Slides Thiefは、斜めに撮影されたスライド写真をすばやく補正し、綺麗なPDFとして整理するローカルブラウザツールです。",
+    infoDesc: "Slides Thiefは、斜めに撮影されたスライドや文書をブラウザ内で補正し、綺麗なPDFとして整理します。",
     infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
     infoRepo: "オープンソースリポジトリ",
     infoBlog: "紹介ブログ",
   },
   ko: {
-    appTitle: "Slides Thief - 슬라이드 사진을 PDF로 보정",
+    appTitle: "Slides Thief - 슬라이드와 문서 사진을 PDF로 보정",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "비율",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (가로)",
-    ratioA4Portrait: "A4 / A3 (세로)",
+    ratioA4Landscape: "A4(가로)",
+    ratioA4Portrait: "A4(세로)",
     ratioLetterLandscape: "Letter (가로)",
     ratioLetterPortrait: "Letter (세로)",
     more: "추가 설정",
@@ -833,25 +866,25 @@ const copy = {
     converting: "HEIC/HEIF 변환 중",
     pending: "자동 보정 대기",
     noUpload: "브라우저 내 처리",
-    adjustCorners: "번호가 표시된 네 모서리를 끌어 슬라이드 가장자리에 맞추세요",
+    adjustCorners: "번호가 표시된 네 모서리를 끌어 원본 가장자리에 맞추세요",
     cornerHandle: "모서리",
     collapse: "상세 접기",
     expand: "상세 펼치기",
     infoTitle: "Slides Thief 정보",
-    infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드 사진을 빠르게 교정하고 깔끔한 PDF로 정리해 주는 브라우저 로컬 도구입니다.",
+    infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드나 문서를 브라우저에서 교정하고 깔끔한 PDF로 정리합니다.",
     infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
     infoRepo: "오픈 소스 저장소",
     infoBlog: "소개 블로그",
   },
   "pt-BR": {
-    appTitle: "Slides Thief - Corrigir fotos de slides em PDF",
+    appTitle: "Slides Thief - Corrigir fotos de slides e documentos",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Proporção",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Paisagem)",
-    ratioA4Portrait: "A4 / A3 (Retrato)",
+    ratioA4Landscape: "A4 (Paisagem)",
+    ratioA4Portrait: "A4 (Retrato)",
     ratioLetterLandscape: "Carta (Paisagem)",
     ratioLetterPortrait: "Carta (Retrato)",
     more: "Mais ajustes",
@@ -907,12 +940,12 @@ const copy = {
     converting: "Convertendo HEIC/HEIF",
     pending: "Aguardando correção",
     noUpload: "Processamento local",
-    adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do slide",
+    adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do original",
     cornerHandle: "Canto",
     collapse: "Recolher detalhes",
     expand: "Expandir detalhes",
     infoTitle: "Sobre o Slides Thief",
-    infoDesc: "O Slides Thief é uma ferramenta local no navegador que corrige rapidamente fotos inclinadas de slides de apresentação e as organiza em um PDF limpo.",
+    infoDesc: "O Slides Thief corrige localmente fotos inclinadas de slides ou documentos e as organiza em um PDF limpo.",
     infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
     infoRepo: "Repositório de Código",
     infoBlog: "Blog de Introdução",
@@ -1071,6 +1104,14 @@ function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
 
+function estimateQuadAspect(quad: Quad): number {
+  const edgeLength = (start: Quad[number], end: Quad[number]) =>
+    Math.hypot(end[0] - start[0], end[1] - start[1]);
+  const horizontal = (edgeLength(quad[0], quad[1]) + edgeLength(quad[3], quad[2])) / 2;
+  const vertical = (edgeLength(quad[0], quad[3]) + edgeLength(quad[1], quad[2])) / 2;
+  return horizontal / Math.max(1, vertical);
+}
+
 function quadsMatch(first: Quad | null, second: Quad | null, tolerance = 0.01): boolean {
   if (!first || !second) return first === second;
   return first.every(([x, y], index) =>
@@ -1105,11 +1146,21 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
-function outputRatio(settings: Settings) {
-  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
+function outputRatio(settings: Settings, sourceRatio: number) {
   return settings.height
     ? settings.width / settings.height
     : outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+}
+
+function resolvedSlideRatio(slide: SlideItem, settings: Settings, quad?: Quad) {
+  const detectedRatio = settings.sourceFormat === "auto" && quad
+    ? nearestSourceFormatRatio(estimateQuadAspect(quad))
+    : slide.sourceRatio;
+  return sourceFormatRatioValue(
+    settings.sourceFormat,
+    settings.sourceCustomRatio,
+    detectedRatio,
+  );
 }
 
 function solveLinearSystem(matrix: number[][], vector: number[]) {
@@ -1180,8 +1231,9 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   sourceCtx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
 
+  const sourceRatio = resolvedSlideRatio(slide, settings, quad);
   const outWidth = 160;
-  const outHeight = Math.max(1, Math.round(outWidth / outputRatio(settings)));
+  const outHeight = Math.max(1, Math.round(outWidth / outputRatio(settings, sourceRatio)));
   const outputCanvas = document.createElement("canvas");
   outputCanvas.width = outWidth;
   outputCanvas.height = outHeight;
@@ -1190,7 +1242,6 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const output = outputCtx.createImageData(outWidth, outHeight);
   const fill = parseHexColor(settings.fillColor);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
-  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
   const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
 
@@ -1418,6 +1469,7 @@ export function SlidesThiefApp() {
               needsReview: preserveManualReview ? false : message.result.needsReview,
               reviewReasons: preserveManualReview ? [] : message.result.reviewReasons,
               reviewedByUser: preserveManualReview,
+              sourceRatio: message.result.sourceRatio,
               status: message.phase === "final" ? "ready" : "detecting",
               error: undefined,
             };
@@ -1533,7 +1585,7 @@ export function SlidesThiefApp() {
     settings.height,
     settings.outputPageRatio,
     settings.sourceCustomRatio,
-    settings.sourceSlideRatio,
+    settings.sourceFormat,
     settings.width,
   ]);
 
@@ -1687,6 +1739,7 @@ export function SlidesThiefApp() {
           needsReview: false,
           reviewReasons: [],
           reviewedByUser: false,
+          sourceRatio: 16 / 9,
           status: converting ? "converting" : "queued",
         };
       });
@@ -1943,6 +1996,9 @@ export function SlidesThiefApp() {
           return {
             ...slide,
             quad: nextQuad,
+            sourceRatio: settingsRef.current.sourceFormat === "auto"
+              ? nearestSourceFormatRatio(estimateQuadAspect(nextQuad))
+              : slide.sourceRatio,
             method: "manual",
             confidence: 1,
             needsReview: false,
@@ -2184,6 +2240,7 @@ export function SlidesThiefApp() {
         id: slide.id,
         name: slide.name,
         quad: slide.quad,
+        sourceRatio: slide.sourceRatio,
       })),
       settings,
       filename,
@@ -2221,6 +2278,7 @@ export function SlidesThiefApp() {
           slideStatusText(selectedSlide),
         ],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
+        [text.ratio, `${resolvedSlideRatio(selectedSlide, settings).toFixed(3)} : 1`],
         [text.method, detectionMethodText(selectedSlide.method, locale)],
         [text.confidence, confidenceText(selectedSlide.confidence)],
         ["Privacy", text.noUpload],
@@ -2261,14 +2319,14 @@ export function SlidesThiefApp() {
             {settingsOpen && (
               <div className="settingsMenuBody">
                 <label className="ratioSetting">
-                  <span>{ratioUi.slideRatio}</span>
+                  <span>{ratioUi.sourceFormat}</span>
                   <select
-                    value={settings.sourceSlideRatio}
+                    value={settings.sourceFormat}
                     onChange={(event) => {
-                      const nextRatio = event.target.value as SourceSlideRatio;
+                      const sourceFormat = event.target.value as SourceFormat;
                       const nextSettings: Settings = {
                         ...settings,
-                        sourceSlideRatio: nextRatio,
+                        sourceFormat,
                       };
                       updateSettings(() => nextSettings);
                       if (hasRun) {
@@ -2276,13 +2334,22 @@ export function SlidesThiefApp() {
                       }
                     }}
                   >
-                    <option value="16:9">{text.ratio16x9}</option>
-                    <option value="4:3">{text.ratio4x3}</option>
-                    <option value="16:10">16:10</option>
+                    <option value="auto">{ratioUi.autoDetect}</option>
+                    <optgroup label={ratioUi.presentationGroup}>
+                      <option value="16:9">{text.ratio16x9}</option>
+                      <option value="4:3">{text.ratio4x3}</option>
+                      <option value="16:10">16:10</option>
+                    </optgroup>
+                    <optgroup label={ratioUi.documentGroup}>
+                      <option value="A4-portrait">{text.ratioA4Portrait}</option>
+                      <option value="A4-landscape">{text.ratioA4Landscape}</option>
+                      <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+                      <option value="letter-landscape">{text.ratioLetterLandscape}</option>
+                    </optgroup>
                     <option value="custom">{ratioUi.custom}</option>
                   </select>
                 </label>
-                {settings.sourceSlideRatio === "custom" && (
+                {settings.sourceFormat === "custom" && (
                   <label className="sourceCustomSetting">
                     <span>{ratioUi.customRatio}</span>
                     <input
@@ -2320,9 +2387,16 @@ export function SlidesThiefApp() {
                           const nextLayout = event.target.value as PageLayoutMode;
                           updateSettings((current) => {
                             if (nextLayout === "paper") {
+                              const sourceRatio = sourceFormatRatioValue(
+                                current.sourceFormat,
+                                current.sourceCustomRatio,
+                                selectedSlide?.sourceRatio,
+                              );
                               const outputPageRatio = isPaperRatio(current.outputPageRatio)
                                 ? current.outputPageRatio
-                                : "A4-landscape";
+                                : sourceRatio >= 1
+                                  ? "A4-landscape"
+                                  : "A4-portrait";
                               return {
                                 ...current,
                                 outputPageRatio,
@@ -2331,28 +2405,29 @@ export function SlidesThiefApp() {
                               };
                             }
                             if (nextLayout === "custom-size") {
-                              const sourceRatio = sourceSlideRatioValue(
-                                current.sourceSlideRatio,
+                              const sourceRatio = sourceFormatRatioValue(
+                                current.sourceFormat,
                                 current.sourceCustomRatio,
+                                selectedSlide?.sourceRatio,
                               );
                               const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
                               return {
                                 ...current,
-                                outputPageRatio: "match-slide",
+                                outputPageRatio: "match-source",
                                 height: Math.max(600, Math.min(6000, Math.round(current.width / ratio))),
                               };
                             }
                             return {
                               ...current,
-                              outputPageRatio: "match-slide",
+                              outputPageRatio: "match-source",
                               height: null,
                             };
                           });
                         }}
                       >
-                        <option value="fit-slide">{ratioUi.fitSlide}</option>
-                        <option value="paper">{ratioUi.paperLayout}</option>
-                        <option value="custom-size">{ratioUi.customSize}</option>
+                        <option value="match-source">{ratioUi.matchSource}</option>
+                        <option value="paper">{ratioUi.standardPaper}</option>
+                        <option value="custom-size">{ratioUi.customPage}</option>
                       </select>
                     </label>
                     {currentPageLayout === "paper" && (

@@ -4,7 +4,7 @@ import test from "node:test";
 const { detectQuad } = await import(
   new URL("../app/detection/detect.ts", import.meta.url).href
 );
-const { outputPageRatioValue, sourceSlideRatioValue } = await import(
+const { outputPageRatioValue, sourceFormatRatioValue } = await import(
   new URL("../app/ratio.ts", import.meta.url).href
 );
 
@@ -36,13 +36,13 @@ test("fallback detections are always marked for review", () => {
 test("output page choices do not enter the detection settings contract", () => {
   const detectionSettings = {
     maxDetectionWidth: 900,
-    sourceRatioHint: sourceSlideRatioValue("16:9"),
+    sourceRatioHint: sourceFormatRatioValue("16:9"),
     enableBatchPrior: false,
   };
   const image = solidImage(120, 80);
   const baseline = detectQuad(image, detectionSettings);
 
-  for (const pageRatio of ["match-slide", "16:9", "4:3", "A4-landscape", "letter-portrait"]) {
+  for (const pageRatio of ["match-source", "16:9", "4:3", "A4-landscape", "letter-portrait"]) {
     assert.ok(outputPageRatioValue(pageRatio, detectionSettings.sourceRatioHint) > 0);
     assert.deepEqual(detectQuad(image, detectionSettings).quad, baseline.quad);
   }

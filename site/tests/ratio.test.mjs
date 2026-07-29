@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { parseRatio, isPaperRatio, pageLayoutMode } = await import(
+const {
+  isPaperRatio,
+  nearestSourceFormatRatio,
+  outputPageRatioValue,
+  pageLayoutMode,
+  parseRatio,
+  pdfPageDimensions,
+  sourceFormatRatioValue,
+} = await import(
   new URL("../app/ratio.ts", import.meta.url).href
 );
 
@@ -45,10 +53,31 @@ test("isPaperRatio recognizes paper ratios case-insensitively", () => {
 });
 
 test("pageLayoutMode progressively discloses paper and custom page settings", () => {
-  assert.equal(pageLayoutMode("match-slide", null), "fit-slide");
-  assert.equal(pageLayoutMode("16:9", null), "fit-slide");
+  assert.equal(pageLayoutMode("match-source", null), "match-source");
+  assert.equal(pageLayoutMode("16:9", null), "match-source");
   assert.equal(pageLayoutMode("A4-landscape", null), "paper");
   assert.equal(pageLayoutMode("letter-portrait", null), "paper");
-  assert.equal(pageLayoutMode("match-slide", 1350), "custom-size");
+  assert.equal(pageLayoutMode("match-source", 1350), "custom-size");
   assert.equal(pageLayoutMode("A4-landscape", 1350), "custom-size");
+});
+
+test("source formats support automatic, presentation, document, and custom ratios", () => {
+  assert.equal(sourceFormatRatioValue("16:9"), 16 / 9);
+  assert.equal(sourceFormatRatioValue("A4-portrait"), 210 / 297);
+  assert.equal(sourceFormatRatioValue("letter-landscape"), 11 / 8.5);
+  assert.equal(sourceFormatRatioValue("custom", 1.5), 1.5);
+  assert.equal(sourceFormatRatioValue("auto", undefined, 4 / 3), 4 / 3);
+  assert.equal(outputPageRatioValue("match-source", 4 / 3), 4 / 3);
+});
+
+test("automatic source format chooses the nearest supported ratio", () => {
+  assert.equal(nearestSourceFormatRatio(1.76), 16 / 9);
+  assert.equal(nearestSourceFormatRatio(1.42), 297 / 210);
+  assert.equal(nearestSourceFormatRatio(0.71), 210 / 297);
+});
+
+test("standard paper outputs use physical PDF point dimensions", () => {
+  assert.deepEqual(pdfPageDimensions("A4-portrait", 2400, 3394), [595.28, 841.89]);
+  assert.deepEqual(pdfPageDimensions("letter-landscape", 2400, 1855), [792, 612]);
+  assert.deepEqual(pdfPageDimensions("match-source", 2400, 1350), [2400, 1350]);
 });

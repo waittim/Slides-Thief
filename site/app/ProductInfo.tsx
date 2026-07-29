@@ -2,17 +2,17 @@ export function ProductInfo() {
   return (
     <section className="productInfo" aria-hidden="true" inert>
       <div>
-        <p className="productInfoEyebrow">Browser-local slide photo correction</p>
-        <h2 id="product-info-title">Convert angled presentation photos into a clean PDF</h2>
+        <p className="productInfoEyebrow">Browser-local slide and document correction</p>
+        <h2 id="product-info-title">Convert angled slide or document photos into a clean PDF</h2>
         <p>
-          Slides Thief detects slide boundaries, corrects perspective distortion, and combines the corrected
-          images into one PDF. Photos stay on your device while you use the web app.
+          Slides Thief detects source boundaries, corrects perspective distortion, and combines the corrected
+          slides or document pages into one PDF. Photos stay on your device while you use the web app.
         </p>
       </div>
       <div className="productInfoGrid">
         <article>
           <h3>Supported images</h3>
-          <p>JPEG, PNG, WebP, HEIC, and HEIF, with 16:9, 4:3, ISO A4/A3, and US Letter output.</p>
+          <p>JPEG, PNG, WebP, HEIC, and HEIF, with automatic, presentation, A4, Letter, and custom formats.</p>
         </article>
         <article>
           <h3>Automatic and manual correction</h3>

@@ -23,7 +23,7 @@ export function scoreCandidate(
 
   const normalizedArea = polygonArea(candidate.quad) / (image.width * image.height);
   const aspect = estimateAspect(candidate);
-  const sourceRatio = settings.sourceRatioHint ?? 16 / 9;
+  const sourceRatio = settings.sourceRatioHint;
   const features = {
     edgeStrength: average(evidence.map((edge) =>
       0.65 * clamp(edge.medianStrength / Math.max(0.05, image.gradient.threshold * 1.8), 0, 1) +
@@ -36,7 +36,9 @@ export function scoreCandidate(
     regionConsistency: evaluateRegionConsistency(candidate, image),
     normalizedArea: clamp(normalizedArea / 0.78, 0, 1),
     geometryValidity: 1,
-    aspectPrior: Math.exp(-Math.abs(Math.log(Math.max(0.05, aspect / sourceRatio)))),
+    aspectPrior: sourceRatio
+      ? Math.exp(-Math.abs(Math.log(Math.max(0.05, aspect / sourceRatio))))
+      : 1,
     batchConsistency: candidate.features.batchConsistency,
   };
   const rawScore =

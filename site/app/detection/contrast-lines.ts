@@ -32,7 +32,7 @@ export const contrastLineDetector: CandidateDetector = {
     const rights = verticalEdgeCandidates(features, "right", 8);
     if (!tops.length || !bottoms.length || !lefts.length || !rights.length) return [];
 
-    const ratio = settings.sourceRatioHint ?? 16 / 9;
+    const ratio = settings.sourceRatioHint;
     const candidates: Array<{ quad: Quad; detectorScore: number; diagnostics: Record<string, unknown> }> = [];
     for (const [top, topScore] of tops) {
       for (const [bottom, bottomScore] of bottoms) {
@@ -53,7 +53,11 @@ export const contrastLineDetector: CandidateDetector = {
             const rightLength = distance(quad[2], quad[1]);
             const aspect = ((topLength + bottomLength) / 2) / Math.max(1, (leftLength + rightLength) / 2);
             const area = polygonArea(quad) / (width * height);
-            if (area < 0.08 || aspect < ratio * 0.45 || aspect > ratio * 1.85) continue;
+            if (
+              area < 0.08
+              || (ratio !== undefined && (aspect < ratio * 0.45 || aspect > ratio * 1.85))
+              || (ratio === undefined && (aspect < 0.3 || aspect > 3.4))
+            ) continue;
             const edgeScores = [topScore, bottomScore, leftScore, rightScore];
             candidates.push({
               quad,

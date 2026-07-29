@@ -3,9 +3,9 @@ import { ProductInfo } from "./ProductInfo";
 import { SlidesThiefApp } from "./SlidesThiefApp";
 
 const siteUrl = "https://slidesthief.com/";
-const title = "Slides Thief - Straighten Slide Photos into PDFs";
+const title = "Slides Thief - Straighten Slide & Document Photos into PDFs";
 const description =
-  "Straighten skewed photos of presentation slides and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
+  "Straighten skewed photos of slides or documents and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
 
 export const metadata: Metadata = {
   title,
@@ -17,7 +17,7 @@ const structuredData = {
   "@type": "WebApplication",
   "@id": `${siteUrl}#software`,
   name: "Slides Thief",
-  alternateName: ["PPT捕手", "Slide Photo Straightener", "Presentation Photo to PDF Tool"],
+  alternateName: ["PPT捕手", "Slide Photo Straightener", "Document Photo Straightener"],
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Web",
   url: siteUrl,
@@ -26,7 +26,8 @@ const structuredData = {
   license: "https://opensource.org/license/mit",
   author: { "@type": "Person", name: "Zekun Wang", url: "https://github.com/waittim" },
   featureList: [
-    "Automatic slide boundary detection",
+    "Automatic slide and document boundary detection",
+    "Automatic per-page source format detection",
     "Manual four-corner correction",
     "Perspective correction",
     "HEIC and HEIF support",
