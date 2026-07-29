@@ -1,13 +1,13 @@
 {
-  "all_corners_under_1_percent": 0.3333333333333333,
-  "all_corners_under_2_percent": 0.3333333333333333,
+  "all_corners_under_1_percent": 1.0,
+  "all_corners_under_2_percent": 1.0,
   "fixture_count": 3,
-  "high_confidence_failure_rate": 0.3333333333333333,
-  "max_corner_error_mean": 0.10482705339900585,
-  "mean_corner_error": 0.06832629001137695,
-  "median_corner_error": 0.0340638437419747,
-  "quad_iou_mean": 0.7257625886696436,
+  "high_confidence_failure_rate": 0.0,
+  "max_corner_error_mean": 0.004173660875815834,
+  "mean_corner_error": 0.002939747825844684,
+  "median_corner_error": 0.002672729565751779,
+  "quad_iou_mean": 0.9811425577069505,
   "review_rate": 0.0,
-  "runtime_p50_ms": 398.129458,
-  "runtime_p95_ms": 626.233042
+  "runtime_p50_ms": 662.905125,
+  "runtime_p95_ms": 690.884708
 }

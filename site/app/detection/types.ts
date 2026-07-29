@@ -17,6 +17,28 @@ export type DetectionSettings = {
   enableBatchPrior: boolean;
 };
 
+export type ImageDataLike = {
+  data: ArrayLike<number>;
+  width: number;
+  height: number;
+};
+
+export type ImageFeatures = {
+  width: number;
+  height: number;
+  rgb: ArrayLike<number>;
+  gray: Float64Array;
+  saturation: Float64Array;
+};
+
+export type EdgeEvidence = {
+  polarity: EdgePolarity;
+  medianContrast: number;
+  percentileContrast: number;
+  supportRatio: number;
+  continuity: number;
+};
+
 export type CandidateFeatures = {
   edgeStrength: number;
   edgeSupport: number;
@@ -59,3 +81,8 @@ export type DetectionResult = {
   candidatesEvaluated: number;
   diagnostics: Record<string, unknown>;
 };
+
+export interface CandidateDetector {
+  name: DetectionMethod;
+  detect(features: ImageFeatures, settings: DetectionSettings): QuadCandidate[];
+}

@@ -20,6 +20,8 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from .detection.scoring import normalized_quad_distance, score_quad_candidate
+
 
 SUPPORTED = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".heif"}
 
@@ -201,10 +203,14 @@ def sample_nearest(gray: np.ndarray, xs: np.ndarray, ys: np.ndarray) -> np.ndarr
 def contrast_score(diff: np.ndarray) -> float:
     if len(diff) == 0:
         return 0.0
-    positive = diff[diff > 0]
-    if len(positive) < max(8, len(diff) * 0.12):
-        return 0.0
-    return float(np.percentile(positive, 72) + positive.mean() * 0.35)
+    scores = []
+    for signed in (diff, -diff):
+        positive = signed[signed > 0]
+        if len(positive) < max(8, len(diff) * 0.12):
+            scores.append(0.0)
+        else:
+            scores.append(float(np.percentile(positive, 72) + positive.mean() * 0.35))
+    return max(scores)
 
 
 def horizontal_edge_candidates(gray: np.ndarray, kind: str, limit: int = 12) -> list[tuple[Line, float]]:
@@ -344,14 +350,11 @@ def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | N
                         - np.dot(quad[:, 1], np.roll(quad[:, 0], -1))
                     )
                     area_norm = area / (w * h)
-                    if area_norm < 0.12 or not (ratio * 0.52 <= aspect_est <= ratio * 1.62):
+                    if area_norm < 0.08 or not (ratio * 0.45 <= aspect_est <= ratio * 1.85):
                         continue
                     aspect_error = abs(math.log(max(0.05, aspect_est / ratio)))
                     edge_score = float(np.mean([top_score, bottom_score, left_score, right_score]))
-                    # The outer slide boundary is usually the largest plausible
-                    # 16:9 quadrilateral; this keeps inner chart/table lines
-                    # from beating a slightly weaker real screen edge.
-                    total = edge_score + 82.0 * area_norm - 72.0 * aspect_error
+                    total = edge_score + 10.0 * area_norm - aspect_error
                     if best is None or total > best[0]:
                         best = (total, quad, [top_score, bottom_score, left_score, right_score], aspect_est, area_norm)
 
@@ -400,25 +403,6 @@ def detect_quad(
     h, w = gray.shape
 
     contrast_result = contrast_quad(gray, ratio)
-    if contrast_result is not None:
-        quad, diagnostics = contrast_result
-        quad /= scale
-        details = {
-            key: value
-            for key, value in diagnostics.items()
-            if key not in {"method", "confidence"}
-        }
-        diagnostics.update(
-            {
-                "needs_review": diagnostics["confidence"] < 0.65,
-                "review_reasons": ["low_confidence"] if diagnostics["confidence"] < 0.65 else [],
-                "best_score": diagnostics["confidence"],
-                "second_best_score": None,
-                "candidates_evaluated": 1,
-                "diagnostics": details,
-            }
-        )
-        return quad, diagnostics
 
     # Projected slides/screens in this set are mostly neutral gray, while the
     # wall, curtains, and audience are either saturated or dark. Segmenting the
@@ -510,61 +494,122 @@ def detect_quad(
             dtype=np.float64,
         )
 
-    # The right and bottom edges are sometimes outside the photo. Re-fit a
-    # plausible 16:9 quadrilateral when detection produces a wild aspect ratio.
-    top_len = float(np.linalg.norm(quad[1] - quad[0]))
-    bottom_len = float(np.linalg.norm(quad[2] - quad[3]))
-    left_len = float(np.linalg.norm(quad[3] - quad[0]))
-    right_len = float(np.linalg.norm(quad[2] - quad[1]))
-    aspect_est = ((top_len + bottom_len) / 2.0) / max(1.0, (left_len + right_len) / 2.0)
-    if aspect_est < ratio * 0.70 or aspect_est > ratio * 1.35:
-        method = f"{method}+ratio-guard"
-        # Keep the strongest top-left evidence and infer the missing extent.
-        tl = quad[0]
-        tr = quad[1]
-        bl = quad[3]
-        top_vec = tr - tl
-        left_vec = bl - tl
-        top_len = max(float(np.linalg.norm(top_vec)), w * 0.65)
-        height = top_len / ratio
-        if np.linalg.norm(left_vec) < h * 0.25:
-            left_vec = np.array([0.0, height])
-        left_unit = left_vec / max(1.0, np.linalg.norm(left_vec))
-        bl = tl + left_unit * height
-        br = bl + top_vec
-        quad = order_quad(np.vstack([tl, tr, br, bl]))
+    raw_candidates: list[dict] = []
+    if contrast_result is not None:
+        contrast_quad_value, contrast_diagnostics = contrast_result
+        raw_candidates.append(
+            {
+                "quad": contrast_quad_value,
+                "method": "contrast-lines",
+                "detector_diagnostics": {
+                    key: value
+                    for key, value in contrast_diagnostics.items()
+                    if key not in {"method", "confidence"}
+                },
+            }
+        )
+    if method == "mask-lines":
+        center = quad.mean(axis=0)
+        for factor, variant in ((1.0, "fitted"), (0.985, "inset"), (1.015, "outset")):
+            raw_candidates.append(
+                {
+                    "quad": center + (quad - center) * factor,
+                    "method": "mask-lines",
+                    "detector_diagnostics": {
+                        "variant": variant,
+                        "threshold": round(float(threshold), 2),
+                        "sat_threshold": round(float(sat_threshold), 2),
+                        "points": {
+                            "left": len(left_pts),
+                            "right": len(right_pts),
+                            "top": len(top_pts),
+                            "bottom": len(bottom_pts),
+                        },
+                    },
+                }
+            )
 
-    confidence = max(0.0, min(1.0, len(left_pts) / max(1.0, h * 0.25))) * 0.25
-    confidence += max(0.0, min(1.0, len(top_pts) / max(1.0, w * 0.25))) * 0.25
-    confidence += 0.35 if method.startswith("mask-lines") else 0.12
-    confidence += 0.15 if ratio * 0.65 <= aspect_est <= ratio * 1.40 else 0.0
+    scored_candidates: list[dict] = []
+    for candidate in raw_candidates:
+        scored = score_quad_candidate(gray, candidate["quad"], ratio)
+        if scored is None:
+            continue
+        score, score_diagnostics = scored
+        scored_candidates.append({**candidate, "score": score, "score_diagnostics": score_diagnostics})
+    scored_candidates.sort(key=lambda candidate: candidate["score"], reverse=True)
 
-    quad /= scale
-    is_fallback = method.startswith("fallback-frame")
-    reported_confidence = 0.0 if is_fallback else round(float(min(1.0, confidence)), 3)
-    diagnostics = {
-        "method": method,
-        "threshold": float(threshold),
-        "sat_threshold": float(sat_threshold),
-        "confidence": reported_confidence,
-        "points": {
-            "left": len(left_pts),
-            "right": len(right_pts),
-            "top": len(top_pts),
-            "bottom": len(bottom_pts),
+    ranked: list[dict] = []
+    for candidate in scored_candidates:
+        if any(normalized_quad_distance(candidate["quad"], kept["quad"], w, h) < 0.012 for kept in ranked):
+            continue
+        ranked.append(candidate)
+
+    if not ranked:
+        margin_x = w * 0.045
+        margin_y = h * 0.055
+        fallback_quad = np.array(
+            [
+                [margin_x, margin_y],
+                [w - margin_x, margin_y],
+                [w - margin_x, h - margin_y],
+                [margin_x, h - margin_y],
+            ],
+            dtype=np.float64,
+        )
+        return fallback_quad / scale, {
+            "method": "fallback-frame",
+            "confidence": 0.0,
+            "needs_review": True,
+            "review_reasons": ["fallback_used"],
+            "best_score": 0.0,
+            "second_best_score": None,
+            "candidates_evaluated": len(raw_candidates),
+            "diagnostics": {
+                "message": "No supported slide boundary was detected.",
+                "candidate_count_before_validation": len(raw_candidates),
+                "candidate_count_after_validation": len(scored_candidates),
+            },
+        }
+
+    best = ranked[0]
+    second = ranked[1] if len(ranked) > 1 else None
+    margin = best["score"] - second["score"] if second else best["score"]
+    confidence = min(1.0, max(0.0, best["score"] * 0.88 + min(1.0, max(0.0, margin / 0.2)) * 0.12))
+    review_reasons = []
+    if confidence < 0.65:
+        review_reasons.append("low_confidence")
+    if best["score_diagnostics"]["features"]["edge_support"] < 0.3:
+        review_reasons.append("weak_edge_support")
+    if second and margin < 0.06 and normalized_quad_distance(best["quad"], second["quad"], w, h) > 0.05:
+        review_reasons.append("ambiguous_candidates")
+
+    return best["quad"] / scale, {
+        "method": best["method"],
+        "confidence": round(float(confidence), 3),
+        "needs_review": bool(review_reasons),
+        "review_reasons": review_reasons,
+        "best_score": round(float(best["score"]), 4),
+        "second_best_score": round(float(second["score"]), 4) if second else None,
+        "candidates_evaluated": len(raw_candidates),
+        "features": best["score_diagnostics"]["features"],
+        "diagnostics": {
+            "candidate_count_before_validation": len(raw_candidates),
+            "candidate_count_after_validation": len(scored_candidates),
+            "candidate_count_after_deduplication": len(ranked),
+            "selected_polarity": [
+                item["polarity"] for item in best["score_diagnostics"]["edge_evidence"]
+            ],
+            "selected_detector_diagnostics": best["detector_diagnostics"],
+            "ranked_candidates": [
+                {
+                    "method": candidate["method"],
+                    "score": round(float(candidate["score"]), 4),
+                    "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in candidate["quad"]],
+                }
+                for candidate in ranked[:5]
+            ],
         },
-        "needs_review": is_fallback or reported_confidence < 0.65,
-        "review_reasons": ["fallback_used"] if is_fallback else (["low_confidence"] if reported_confidence < 0.65 else []),
-        "best_score": reported_confidence,
-        "second_best_score": None,
-        "candidates_evaluated": 0 if is_fallback else 1,
     }
-    diagnostics["diagnostics"] = {
-        "threshold": diagnostics["threshold"],
-        "sat_threshold": diagnostics["sat_threshold"],
-        "points": diagnostics["points"],
-    }
-    return quad, diagnostics
 
 
 def perspective_coefficients(src: np.ndarray, dst: np.ndarray) -> list[float]:

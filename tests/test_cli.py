@@ -139,3 +139,28 @@ def test_contained_warp_preserves_source_ratio_on_paper_page() -> None:
 
     assert page.getpixel((148, 0)) == (255, 255, 255)
     assert page.getpixel((148, 105))[2] > 180
+
+
+def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
+    arr = np.full((100, 160, 3), 230, dtype=np.uint8)
+    arr[12:88, 15:145] = 20
+    image = Image.fromarray(arr, "RGB")
+
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"] != "fallback-frame"
+    assert "inside-darker" in diagnostics["diagnostics"]["selected_polarity"]
+    assert diagnostics["candidates_evaluated"] >= 1
+
+
+def test_hybrid_detector_reports_ranked_candidate_fields() -> None:
+    arr = np.full((100, 160, 3), 20, dtype=np.uint8)
+    arr[12:88, 15:145] = 230
+    image = Image.fromarray(arr, "RGB")
+
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"] in {"contrast-lines", "mask-lines"}
+    assert diagnostics["best_score"] > 0
+    assert "second_best_score" in diagnostics
+    assert diagnostics["diagnostics"]["candidate_count_before_validation"] >= 2

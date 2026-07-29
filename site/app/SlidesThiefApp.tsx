@@ -1106,6 +1106,7 @@ export function SlidesThiefApp() {
   const activePointerRef = useRef<number | null>(null);
   const dragFrameRef = useRef<number | null>(null);
   const thumbnailRefreshTokenRef = useRef(0);
+  const autoReviewSelectedRef = useRef(false);
   const loadTokenRef = useRef(0);
   const viewportRef = useRef({ padX: 0, padY: 0 });
   const scaleRef = useRef(1);
@@ -1345,6 +1346,18 @@ export function SlidesThiefApp() {
   useEffect(() => {
     exportUrlRef.current = exportUrl;
   }, [exportUrl]);
+
+  useEffect(() => {
+    if (detecting || !reviewCount || autoReviewSelectedRef.current) return;
+    const firstReview = slides.find((slide) => slide.status === "ready" && slide.needsReview);
+    if (!firstReview) return;
+    const timeoutId = window.setTimeout(() => {
+      autoReviewSelectedRef.current = true;
+      setSelectedId(firstReview.id);
+      setZoomMode("fit");
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [detecting, reviewCount, slides]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1698,7 +1711,14 @@ export function SlidesThiefApp() {
               slide_id: id,
             });
           }
-          return { ...slide, quad: nextQuad, method: "manual" };
+          return {
+            ...slide,
+            quad: nextQuad,
+            method: "manual",
+            confidence: 1,
+            needsReview: false,
+            reviewReasons: [],
+          };
         }
         return slide;
       }),
@@ -1850,6 +1870,7 @@ export function SlidesThiefApp() {
       clearExport();
       setWorkerError("");
       setBusyText(text.stretching);
+      autoReviewSelectedRef.current = false;
       const targetSettings = overrideSettings ?? settings;
       setSlides((current) =>
         current.map((slide) => ({
@@ -1897,6 +1918,19 @@ export function SlidesThiefApp() {
 
   const exportPdf = () => {
     if (!readySlides.length) return;
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (pagesNeedingReview.length) {
+      const shouldContinue = window.confirm(
+        locale === "zh-CN"
+          ? `仍有 ${pagesNeedingReview.length} 张图片使用了默认边框或低置信度结果。\n\n确定：继续导出\n取消：检查图片`
+          : `${pagesNeedingReview.length} image${pagesNeedingReview.length === 1 ? "" : "s"} still use a default frame or low-confidence result.\n\nOK: continue export\nCancel: review images`,
+      );
+      if (!shouldContinue) {
+        setSelectedId(pagesNeedingReview[0].id);
+        setZoomMode("fit");
+        return;
+      }
+    }
     const worker = ensureWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
@@ -2240,8 +2274,14 @@ export function SlidesThiefApp() {
                       {displayFileName(slide.name, isMobile)}
                     </div>
                     {hasRun ? (
-                      <div className={`badge ${slide.confidence < 0.65 ? "low" : ""}`}>
-                        {slide.status === "ready" ? confidenceText(slide.confidence) : slide.status}
+                      <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
+                        {slide.status === "ready"
+                          ? slide.needsReview
+                            ? `! ${locale === "zh-CN" ? "建议检查" : "Review"}`
+                            : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
+                          : slide.status === "error"
+                            ? `× ${text.failed}`
+                            : slide.status}
                       </div>
                     ) : (
                       <div className="sub">{formatBytes(slide.file.size)}</div>

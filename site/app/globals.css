@@ -684,6 +684,11 @@ a:hover {
   color: var(--low-text);
 }
 
+.badge.error {
+  background: color-mix(in srgb, var(--accent), transparent 82%);
+  color: var(--accent);
+}
+
 .workspace {
   min-height: 0;
   display: grid;
