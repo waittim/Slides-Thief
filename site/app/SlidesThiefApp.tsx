@@ -272,6 +272,128 @@ const ratioUiCopy: Record<LocaleValue, {
   },
 };
 
+type ReviewUiCopy = {
+  reviewSuggested: string;
+  corrected: string;
+  manualAdjustment: string;
+  fallbackFrame: string;
+  automaticDetection: string;
+  automaticRecognized: string;
+  privacy: string;
+  reviewSummary: (count: number) => string;
+  reviewConfirmation: (count: number) => string;
+};
+
+const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
+  "zh-CN": {
+    reviewSuggested: "建议复查",
+    corrected: "已校正",
+    manualAdjustment: "手动调整",
+    fallbackFrame: "备用边框",
+    automaticDetection: "自动检测",
+    automaticRecognized: "自动识别",
+    privacy: "隐私",
+    reviewSummary: (count) => `${count} 张照片建议复查`,
+    reviewConfirmation: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+  },
+  "zh-TW": {
+    reviewSuggested: "建議檢查",
+    corrected: "已校正",
+    manualAdjustment: "手動調整",
+    fallbackFrame: "備用邊框",
+    automaticDetection: "自動偵測",
+    automaticRecognized: "自動辨識",
+    privacy: "隱私",
+    reviewSummary: (count) => `${count} 張相片建議檢查`,
+    reviewConfirmation: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+  },
+  en: {
+    reviewSuggested: "Review suggested",
+    corrected: "Corrected",
+    manualAdjustment: "Manual adjustment",
+    fallbackFrame: "Fallback frame",
+    automaticDetection: "Automatic detection",
+    automaticRecognized: "Automatically detected",
+    privacy: "Privacy",
+    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} may need review`,
+    reviewConfirmation: (count) =>
+      `${count} photo${count === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
+  },
+  es: {
+    reviewSuggested: "Revisión recomendada",
+    corrected: "Corregido",
+    manualAdjustment: "Ajuste manual",
+    fallbackFrame: "Marco alternativo",
+    automaticDetection: "Detección automática",
+    automaticRecognized: "Detectado automáticamente",
+    privacy: "Privacidad",
+    reviewSummary: (count) =>
+      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión`,
+    reviewConfirmation: (count) =>
+      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión. ¿Generar el PDF de todos modos?`,
+  },
+  fr: {
+    reviewSuggested: "Vérification conseillée",
+    corrected: "Corrigé",
+    manualAdjustment: "Ajustement manuel",
+    fallbackFrame: "Cadre de secours",
+    automaticDetection: "Détection automatique",
+    automaticRecognized: "Détecté automatiquement",
+    privacy: "Confidentialité",
+    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} à vérifier`,
+    reviewConfirmation: (count) =>
+      `${count} photo${count === 1 ? "" : "s"} à vérifier. Générer quand même le PDF ?`,
+  },
+  de: {
+    reviewSuggested: "Prüfung empfohlen",
+    corrected: "Korrigiert",
+    manualAdjustment: "Manuelle Anpassung",
+    fallbackFrame: "Ersatzrahmen",
+    automaticDetection: "Automatische Erkennung",
+    automaticRecognized: "Automatisch erkannt",
+    privacy: "Datenschutz",
+    reviewSummary: (count) =>
+      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden`,
+    reviewConfirmation: (count) =>
+      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden. PDF trotzdem erstellen?`,
+  },
+  ja: {
+    reviewSuggested: "要確認",
+    corrected: "補正済み",
+    manualAdjustment: "手動調整",
+    fallbackFrame: "代替フレーム",
+    automaticDetection: "自動検出",
+    automaticRecognized: "自動認識",
+    privacy: "プライバシー",
+    reviewSummary: (count) => `${count}枚の写真を確認してください`,
+    reviewConfirmation: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+  },
+  ko: {
+    reviewSuggested: "검토 권장",
+    corrected: "보정됨",
+    manualAdjustment: "수동 조정",
+    fallbackFrame: "대체 프레임",
+    automaticDetection: "자동 감지",
+    automaticRecognized: "자동 인식",
+    privacy: "개인정보 보호",
+    reviewSummary: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
+    reviewConfirmation: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+  },
+  "pt-BR": {
+    reviewSuggested: "Revisão recomendada",
+    corrected: "Corrigido",
+    manualAdjustment: "Ajuste manual",
+    fallbackFrame: "Quadro alternativo",
+    automaticDetection: "Detecção automática",
+    automaticRecognized: "Detectado automaticamente",
+    privacy: "Privacidade",
+    reviewSummary: (count) =>
+      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão`,
+    reviewConfirmation: (count) =>
+      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão. Gerar o PDF mesmo assim?`,
+  },
+};
+
 const copy = {
   "zh-CN": {
     appTitle: "Slides Thief · PPT捕手",
@@ -1099,10 +1221,11 @@ function confidenceText(value: number) {
 }
 
 function detectionMethodText(method: string, locale: LocaleValue) {
-  if (method === "manual") return locale === "zh-CN" ? "手动调整" : "Manual adjustment";
-  if (method === "fallback-frame") return locale === "zh-CN" ? "备用边框" : "Fallback frame";
+  const reviewText = reviewUiCopy[locale];
+  if (method === "manual") return reviewText.manualAdjustment;
+  if (method === "fallback-frame") return reviewText.fallbackFrame;
   if (["contrast-lines", "mask-lines", "hough-lines", "batch-prior"].includes(method)) {
-    return locale === "zh-CN" ? "自动检测" : "Automatic detection";
+    return reviewText.automaticDetection;
   }
   return "-";
 }
@@ -1375,6 +1498,7 @@ export function SlidesThiefApp() {
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const text = copy[locale];
+  const reviewText = reviewUiCopy[locale];
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
@@ -1406,14 +1530,10 @@ export function SlidesThiefApp() {
     if (detecting) return text.stretching;
     if (exporting) return text.generating;
     if (exportUrl) return text.generated;
-    if (reviewCount) {
-      return locale === "zh-CN"
-        ? `${reviewCount} 张照片建议复查`
-        : `${reviewCount} photo${reviewCount === 1 ? "" : "s"} may need review`;
-    }
+    if (reviewCount) return reviewText.reviewSummary(reviewCount);
     if (hasRun) return text.reviewReady;
-    return locale === "zh-CN" ? `${slides.length} ${text.waiting}` : `${slides.length} ${text.waiting}`;
-  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, reviewCount, slides.length, text, workerError]);
+    return `${slides.length} ${text.waiting}`;
+  }, [busyText, detecting, exporting, exportUrl, hasRun, reviewCount, reviewText, slides.length, text, workerError]);
 
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
@@ -1427,8 +1547,8 @@ export function SlidesThiefApp() {
     if (slide.status === "queued") return text.pending;
     if (slide.status === "detecting") return text.stretching;
     if (slide.status === "error") return text.failed;
-    if (slide.needsReview) return locale === "zh-CN" ? "建议复查" : "Review suggested";
-    return locale === "zh-CN" ? "已校正" : text.reviewReady;
+    if (slide.needsReview) return reviewText.reviewSuggested;
+    return reviewText.corrected;
   };
 
   const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
@@ -2362,11 +2482,7 @@ export function SlidesThiefApp() {
     if (!readySlides.length) return;
     const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
     if (pagesNeedingReview.length) {
-      const shouldContinue = window.confirm(
-        locale === "zh-CN"
-          ? `有 ${pagesNeedingReview.length} 张照片建议复查。仍要生成 PDF 吗？`
-          : `${pagesNeedingReview.length} photo${pagesNeedingReview.length === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
-      );
+      const shouldContinue = window.confirm(reviewText.reviewConfirmation(pagesNeedingReview.length));
       if (!shouldContinue) {
         setSelectedId(pagesNeedingReview[0].id);
         setZoomMode("fit");
@@ -2428,7 +2544,7 @@ export function SlidesThiefApp() {
         [text.ratio, `${resolvedSlideRatio(selectedSlide, settings).toFixed(3)} : 1`],
         [text.method, detectionMethodText(selectedSlide.method, locale)],
         [text.confidence, confidenceText(selectedSlide.confidence)],
-        ["Privacy", text.noUpload],
+        [reviewText.privacy, text.noUpload],
       ]
     : [];
   const ratioUi = ratioUiCopy[locale];
@@ -2808,10 +2924,10 @@ export function SlidesThiefApp() {
                       <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
                         {slide.status === "ready"
                           ? slide.needsReview
-                            ? `! ${locale === "zh-CN" ? "建议复查" : "Review suggested"}`
+                            ? `! ${reviewText.reviewSuggested}`
                             : slide.method === "manual"
                               ? `✓ ${text.manualAdjusted}`
-                              : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
+                              : `✓ ${reviewText.automaticRecognized}`
                           : slide.status === "error"
                             ? `× ${text.failed}`
                             : slideStatusText(slide)}
