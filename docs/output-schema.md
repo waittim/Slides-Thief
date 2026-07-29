@@ -2,7 +2,11 @@
 
 ## Detection report
 
-The CLI writes `slide_lens_report.json`, containing the input directory, PDF path, output ratio and dimensions, plus one detection record per slide. Each record includes its source and output path, detection method, confidence, and four source-image corner coordinates.
+The CLI writes `slide_lens_report.json`, containing the input directory, PDF
+path, separate `source_slide_ratio` and `output_page_ratio` values, output
+dimensions, and one detection record per slide. Each record includes its source
+and output path, detection method, confidence, review state, and four
+source-image corner coordinates.
 
 ## Manual review data
 

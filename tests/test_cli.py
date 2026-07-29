@@ -1,5 +1,7 @@
+import math
+
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
     enhance_slide,
@@ -9,7 +11,14 @@ from slides_thief.cli import (
     parse_ratio,
     resolve_enhancement_mode,
     warp_slide,
+    warp_slide_contained,
+    detect_quad,
 )
+from slides_thief.detection.batch_prior import build_batch_priors
+from slides_thief.detection.gradient import build_gradient_pyramid
+from slides_thief.detection.hough_lines import hough_quad_candidates
+from slides_thief.detection.refine import refine_quad
+from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -111,3 +120,230 @@ def test_resolve_enhancement_mode_prefers_grayscale_alias() -> None:
         grayscale = True
 
     assert resolve_enhancement_mode(Args()) == "bw"
+
+
+def test_fallback_detection_is_always_marked_for_review() -> None:
+    image = Image.new("RGB", (160, 100), (0, 0, 0))
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"].startswith("fallback-frame")
+    assert diagnostics["confidence"] == 0
+    assert diagnostics["needs_review"] is True
+    assert diagnostics["review_reasons"] == ["fallback_used"]
+
+
+def test_contained_warp_preserves_source_ratio_on_paper_page() -> None:
+    image = Image.new("RGB", (160, 90), (20, 40, 220))
+    quad = np.array([[0, 0], [159, 0], [159, 89], [0, 89]], dtype=np.float64)
+    page = warp_slide_contained(
+        image,
+        quad,
+        page_w=297,
+        page_h=210,
+        source_ratio=16 / 9,
+        fill_color=(255, 255, 255),
+    )
+
+    assert page.getpixel((148, 0)) == (255, 255, 255)
+    assert page.getpixel((148, 105))[2] > 180
+
+
+def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
+    arr = np.full((100, 160, 3), 230, dtype=np.uint8)
+    arr[12:88, 15:145] = 20
+    image = Image.fromarray(arr, "RGB")
+
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"] != "fallback-frame"
+    assert "inside-darker" in diagnostics["diagnostics"]["selected_polarity"]
+    assert diagnostics["candidates_evaluated"] >= 1
+
+
+def test_hybrid_detector_reports_ranked_candidate_fields() -> None:
+    arr = np.full((100, 160, 3), 20, dtype=np.uint8)
+    arr[12:88, 15:145] = 230
+    image = Image.fromarray(arr, "RGB")
+
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"] in {"contrast-lines", "mask-lines", "hough-lines"}
+    assert diagnostics["best_score"] > 0
+    assert "second_best_score" in diagnostics
+    assert diagnostics["diagnostics"]["candidate_count_before_validation"] >= 2
+
+
+def test_orientation_guided_hough_recovers_rotated_perspective_quad() -> None:
+    expected = np.array([[36, 15], [159, 38], [139, 111], [18, 83]], dtype=np.float64)
+    image = Image.new("RGB", (180, 125), (22, 22, 22))
+    ImageDraw.Draw(image).polygon([tuple(point) for point in expected], fill=(225, 225, 225))
+    gradient = build_gradient_pyramid(np.asarray(image))
+
+    candidates = hough_quad_candidates(gradient)
+
+    assert candidates
+    corner_error = min(np.linalg.norm(candidate["quad"] - expected, axis=1).mean() for candidate in candidates)
+    assert corner_error < 5.0
+    assert candidates[0]["detector_diagnostics"]["family_angle_degrees"] >= 35
+
+
+def test_gradient_pyramid_retains_scale_diagnostics() -> None:
+    arr = np.full((80, 120, 3), 20, dtype=np.uint8)
+    arr[15:65, 20:100] = (220, 80, 40)
+
+    gradient = build_gradient_pyramid(arr)
+
+    assert gradient.magnitude.shape == (80, 120)
+    assert gradient.threshold >= 0.035
+    observed_scales = {round(float(value), 2) for value in np.unique(gradient.source_scale)}
+    assert observed_scales.issubset({0.0, 0.45, 0.67, 1.0})
+
+
+def test_local_edge_refinement_improves_nearby_initial_quad() -> None:
+    expected = np.array([[36, 15], [159, 38], [139, 111], [18, 83]], dtype=np.float64)
+    image = Image.new("RGB", (180, 125), (22, 22, 22))
+    ImageDraw.Draw(image).polygon([tuple(point) for point in expected], fill=(225, 225, 225))
+    gradient = build_gradient_pyramid(np.asarray(image))
+    gray = np.asarray(
+        ImageOps.grayscale(image).filter(ImageFilter.GaussianBlur(radius=2.0)),
+        dtype=np.float64,
+    )
+    center = expected.mean(axis=0)
+    initial = center + (expected - center) * 0.98
+
+    result = refine_quad(initial, gray, gradient)
+
+    assert result is not None
+    refined, diagnostics = result
+    assert np.linalg.norm(refined - expected, axis=1).mean() < np.linalg.norm(initial - expected, axis=1).mean()
+    assert diagnostics["maximum_corner_movement"] < math.hypot(180, 125) * 0.04
+
+
+def test_cross_detector_agreement_increases_calibrated_confidence() -> None:
+    features = {
+        "edge_support": 0.9,
+        "edge_continuity": 0.85,
+        "geometry_validity": 1.0,
+    }
+    best = {
+        "quad": np.array([[10, 10], [90, 10], [90, 60], [10, 60]], dtype=np.float64),
+        "method": "contrast-lines",
+        "score": 0.82,
+        "score_diagnostics": {
+            "features": features,
+            "edge_evidence": [
+                {"support_ratio": 0.88, "longest_run_ratio": 0.82}
+                for _ in range(4)
+            ],
+        },
+    }
+    second = {
+        **best,
+        "quad": np.array([[18, 18], [82, 18], [82, 52], [18, 52]], dtype=np.float64),
+        "score": 0.77,
+    }
+    agreeing = {
+        **best,
+        "method": "mask-lines",
+        "quad": np.array([[10.2, 10], [90.2, 10], [90.2, 60], [10.2, 60]], dtype=np.float64),
+    }
+
+    with_agreement = calculate_confidence(best, second, [best, second, agreeing], 100, 70)
+    without_agreement = calculate_confidence(best, second, [best, second], 100, 70)
+
+    assert with_agreement["agreeing_methods"] == ["contrast-lines", "mask-lines"]
+    assert with_agreement["confidence"] > without_agreement["confidence"]
+    assert with_agreement["minimum_edge_support"] == 0.88
+    assert is_ambiguous_candidate(0.5, with_agreement) is False
+    assert is_ambiguous_candidate(0.5, without_agreement) is True
+
+
+def test_batch_priors_require_three_consistent_high_confidence_results() -> None:
+    normalized_quad = np.array(
+        [[0.08, 0.12], [0.92, 0.1], [0.9, 0.88], [0.1, 0.9]],
+        dtype=np.float64,
+    )
+
+    def result(image_id: str, confidence: float, delta: float = 0.0) -> dict:
+        quad = normalized_quad.copy()
+        quad[:, 0] += delta
+        return {
+            "image_id": image_id,
+            "width": 160,
+            "height": 100,
+            "normalized_quad": quad,
+            "confidence": confidence,
+            "method": "contrast-lines",
+            "needs_review": False,
+        }
+
+    assert build_batch_priors([result("a", 0.9), result("b", 0.88)]) == []
+    priors = build_batch_priors(
+        [
+            result("a", 0.9),
+            result("b", 0.88, 0.004),
+            result("c", 0.84, -0.003),
+            result("low", 0.6, 0.2),
+        ]
+    )
+
+    assert len(priors) == 1
+    assert priors[0]["member_count"] == 3
+    assert priors[0]["rms_deviation"] < 0.01
+    assert priors[0]["consistency"] > 0.8
+
+
+def test_batch_prior_cannot_replace_missing_image_evidence() -> None:
+    image = Image.new("RGB", (160, 100), (30, 30, 30))
+    prior = {
+        "id": "camera-position-cluster-1",
+        "orientation": "landscape",
+        "normalized_quad": np.array(
+            [[0.08, 0.12], [0.92, 0.1], [0.9, 0.88], [0.1, 0.9]],
+            dtype=np.float64,
+        ),
+        "member_count": 3,
+        "rms_deviation": 0.004,
+        "consistency": 0.9,
+    }
+
+    _, diagnostics = detect_quad(
+        image,
+        16 / 9,
+        batch_priors=[prior],
+        enable_batch_prior=True,
+    )
+
+    assert diagnostics["method"] == "fallback-frame"
+    assert diagnostics["needs_review"] is True
+
+
+def test_batch_prior_can_win_when_current_image_supports_its_edges() -> None:
+    image = Image.new("RGB", (320, 200), (35, 35, 35))
+    source_quad = np.array(
+        [[28, 28], [294, 22], [286, 176], [34, 181]],
+        dtype=np.float64,
+    )
+    ImageDraw.Draw(image).polygon(
+        [tuple(point) for point in source_quad.astype(int)],
+        fill=(235, 235, 235),
+    )
+    prior = {
+        "id": "camera-position-cluster-1",
+        "orientation": "landscape",
+        "normalized_quad": source_quad / np.array([320, 200], dtype=np.float64),
+        "member_count": 4,
+        "rms_deviation": 0.003,
+        "consistency": 0.91,
+    }
+
+    _, diagnostics = detect_quad(
+        image,
+        16 / 9,
+        batch_priors=[prior],
+        enable_batch_prior=True,
+    )
+
+    assert diagnostics["method"] == "batch-prior"
+    assert diagnostics["confidence"] >= 0.78
+    assert diagnostics["needs_review"] is False

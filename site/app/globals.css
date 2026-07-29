@@ -104,6 +104,19 @@
   display: none !important;
 }
 
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
 html,
 body {
   height: 100%;
@@ -135,11 +148,29 @@ button,
   padding: 0 11px;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease,
+    color 0.12s ease,
+    filter 0.08s ease,
+    transform 0.08s ease;
 }
 
 button:hover,
 .moreSettings summary:hover {
   border-color: var(--control-hover);
+}
+
+button:not(:disabled):not(.cornerHandle):active,
+.moreSettings summary:active {
+  border-color: var(--control-hover);
+  background: var(--panel-strong);
+  transform: translateY(1px);
+}
+
+button.primary:not(:disabled):active,
+button.green:not(:disabled):active {
+  filter: brightness(0.9);
 }
 
 button:disabled {
@@ -292,12 +323,22 @@ a:hover {
 }
 
 .settingsMenuBody {
-  --settings-columns: max-content max-content 284px minmax(16px, 1fr);
+  --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
   grid-template-columns: var(--settings-columns);
   gap: 8px;
   align-items: center;
   min-width: 0;
+}
+
+.settingsMenuBody:has(> .sourceCustomSetting) {
+  --settings-columns: max-content max-content max-content minmax(240px, 1fr);
+}
+
+.pdfNameSetting {
+  width: min(100%, 320px);
+  max-width: 320px;
+  justify-self: start;
 }
 
 .settings:has(.moreSettings[open]) {
@@ -408,6 +449,50 @@ a:hover {
   border-radius: 6px;
   background: var(--control-bg);
   padding: 2px;
+}
+
+.morePanel .colorSetting {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.morePanel .colorSetting > span {
+  color: var(--muted);
+  font: inherit;
+}
+
+.colorControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.colorControls button {
+  min-width: 44px;
+  height: 28px;
+  padding: 0 8px;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.colorControls button[aria-pressed="true"] {
+  border-color: var(--accent-2);
+  background: var(--control-bg);
+  color: var(--muted);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 50%);
+}
+
+.morePanel input[type="color"].isActive {
+  border-color: var(--accent-2);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-2), transparent 50%);
 }
 
 .shell {
@@ -530,11 +615,19 @@ a:hover {
   text-overflow: ellipsis;
   white-space: nowrap;
   text-decoration: none;
+  transition:
+    filter 0.08s ease,
+    transform 0.08s ease;
 }
 
 .links a:hover {
   border-color: var(--primary-bg);
   text-decoration: none;
+}
+
+.links a:active {
+  filter: brightness(0.9);
+  transform: translateY(1px);
 }
 
 .sectionHead {
@@ -603,9 +696,16 @@ a:hover {
   font-size: 12px;
 }
 
+.sidebarFilePicker {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .files {
   min-height: 0;
-  max-height: calc(100vh - 270px);
+  max-height: calc(100% - 10px);
+  align-self: start;
   overflow: auto;
   display: grid;
   gap: 7px;
@@ -651,6 +751,15 @@ a:hover {
   background: var(--panel-strong);
 }
 
+.thumbPlaceholder {
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 760;
+  letter-spacing: 0.04em;
+}
+
 .name {
   min-width: 0;
   overflow: hidden;
@@ -682,6 +791,11 @@ a:hover {
 .badge.low {
   background: var(--low-bg);
   color: var(--low-text);
+}
+
+.badge.error {
+  background: color-mix(in srgb, var(--accent), transparent 82%);
+  color: var(--accent);
 }
 
 .workspace {
@@ -1021,7 +1135,6 @@ canvas {
   }
 
   .files {
-    max-height: none;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1162,6 +1275,10 @@ canvas {
     box-shadow: var(--shadow);
   }
 
+  .settingsMenuBody:has(> .sourceCustomSetting) {
+    --settings-columns: none;
+  }
+
   .settingsMenu[open] > .settingsMenuBody {
     display: grid;
     max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 80px);
@@ -1169,6 +1286,7 @@ canvas {
   }
 
   .settingsMenuBody > .ratioSetting,
+  .settingsMenuBody > .sourceCustomSetting,
   .settingsMenuBody > .pdfNameSetting {
     display: grid;
     grid-template-columns: 82px minmax(0, 1fr);
@@ -1180,9 +1298,13 @@ canvas {
 
   .settingsMenuBody > .pdfNameSetting {
     grid-template-columns: 82px minmax(0, 1fr) auto;
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
   }
 
   .settingsMenuBody > .ratioSetting > select,
+  .settingsMenuBody > .sourceCustomSetting > input[type="number"],
   .settingsMenuBody > .pdfNameSetting > input[type="text"] {
     flex: none;
     width: 100%;
@@ -1316,7 +1438,13 @@ canvas {
 
   .morePanel input[type="color"] {
     width: 52px;
-    height: 38px;
+    height: 44px;
+  }
+
+  .colorControls button {
+    min-width: 52px;
+    height: 44px;
+    font-size: 16px;
   }
 
   .links a {
@@ -1354,7 +1482,7 @@ canvas {
   background: var(--control-bg);
   border: 1px solid var(--line);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
   padding: 0;
 }
 
@@ -1403,7 +1531,7 @@ canvas {
   max-width: 440px;
   box-shadow: var(--shadow);
   overflow: hidden;
-  animation: modalScaleIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: modalScaleIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   display: flex;
   flex-direction: column;
 }
@@ -1467,8 +1595,8 @@ canvas {
   line-height: 1.5;
   padding: 12px 16px;
   background: color-mix(in srgb, var(--accent-2), transparent 92%);
-  border-left: 4px solid var(--accent-2);
-  border-radius: 4px;
+  border: 1px solid color-mix(in srgb, var(--accent-2), transparent 62%);
+  border-radius: 8px;
   color: var(--text);
 }
 
@@ -1495,7 +1623,7 @@ canvas {
   font-size: 14px;
   font-weight: 600;
   color: var(--text);
-  transition: all 0.2s ease;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   text-decoration: none;
 }
 
@@ -1526,4 +1654,29 @@ canvas {
 @keyframes modalScaleIn {
   from { transform: scale(0.95); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):not(.cornerHandle):active,
+  .moreSettings summary:active,
+  .links a:active {
+    transform: none;
+  }
+
+  .modalOverlay,
+  .modalCard {
+    animation: none;
+  }
+
+  .infoButton,
+  .modalHeader .closeButton,
+  .modalLink,
+  .modalLink::after {
+    transition: none;
+  }
+
+  .modalLink:hover,
+  .modalLink:hover::after {
+    transform: none;
+  }
 }

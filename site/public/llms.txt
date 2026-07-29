@@ -1,6 +1,6 @@
 # Slides Thief
 
-> Browser-local web app and Python CLI that turn angled photos of presentation slides into perspective-corrected images and a clean PDF.
+> Browser-local web app and Python CLI that turn angled photos of slides or documents into perspective-corrected images and a clean PDF.
 
 ## Use and documentation
 
@@ -28,7 +28,8 @@ Homepage HTML `<link>` tags advertise:
 
 - Browser processing is local; source photos are not uploaded.
 - Web formats: JPEG, PNG, WebP, HEIC, HEIF. CLI formats: JPEG, PNG, TIFF, HEIC, HEIF.
-- Web ratios: 16:9, 4:3, A4/A3, Letter. CLI also supports A5 and custom ratios.
+- Web source formats: 16:9 by default, with explicit 4:3, 16:10, A4, Letter, and custom ratios.
+- Web PDF layouts: match the selected source format, physical A4 or Letter paper, or a custom page size.
 - Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR.
 - Corner order: top-left, top-right, bottom-right, bottom-left.
 - License: MIT.
@@ -38,4 +39,3 @@ Homepage HTML `<link>` tags advertise:
 Preferred name: Slides Thief
 Author: Zekun Wang
 Source: https://github.com/waittim/Slides-Thief
-

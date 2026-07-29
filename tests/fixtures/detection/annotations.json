@@ -1,0 +1,19 @@
+{
+  "images": [
+    {
+      "file": "synthetic/light-slide-dark-wall.png",
+      "quad": [[36, 35], [286, 48], [270, 201], [45, 190]],
+      "tags": ["light-slide", "dark-background", "perspective"]
+    },
+    {
+      "file": "synthetic/dark-slide-light-wall.png",
+      "quad": [[38, 30], [282, 24], [296, 210], [25, 202]],
+      "tags": ["dark-slide", "light-background", "reverse-polarity"]
+    },
+    {
+      "file": "synthetic/neutral-slide-color-wall.png",
+      "quad": [[52, 44], [276, 33], [288, 198], [40, 210]],
+      "tags": ["neutral-slide", "color-background", "internal-lines"]
+    }
+  ]
+}

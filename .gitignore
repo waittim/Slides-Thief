@@ -13,3 +13,4 @@ htmlcov/
 outputs/
 work/
 manual_quads.json
+benchmark-private/

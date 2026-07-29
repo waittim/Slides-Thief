@@ -7,7 +7,8 @@ Convert every supported image in one directory into corrected JPEG images and a 
 ```bash
 slides-thief INPUT_DIRECTORY \
   --output-dir OUTPUT_DIRECTORY \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
+  --output-ratio match-slide \
   --width 2400 \
   --pdf-name flattened_slides.pdf
 ```
@@ -36,14 +37,19 @@ The web app additionally accepts WebP but does not accept TIFF. See [FAQ](faq.md
 
 ## Ratios
 
-The `--ratio` option controls output aspect ratio and paper size formatting:
+`--source-ratio` describes the photographed slide. `--output-ratio` controls
+the PDF page. Detection only receives the source ratio; changing the PDF page
+does not change detected corners.
 
-- Presentation ratios: `16:9` (default), `4:3`
+- Source presentation ratios: `16:9` (default), `4:3`, `16:10`, or a numeric custom ratio
+- Output presentation ratios: `match-slide` (default), `16:9`, `4:3`
 - ISO paper sizes: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5`, `A5-portrait`
 - US Letter paper sizes: `Letter` / `letter-landscape`, `letter-portrait`
 - Custom ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
 
-When standard paper sizes (A4, A3, A5, Letter) are selected, margins are automatically filled with white to fit paper geometry. Non-paper ratios use black fill by default.
+The corrected slide keeps its source ratio and is contained on the output page.
+Standard paper sizes use white margins. `--ratio` remains as a deprecated
+compatibility option that sets both ratios.
 
 The web app exposes 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscape and portrait. A5 and arbitrary custom ratios are CLI-only.
 
@@ -54,7 +60,9 @@ The web app exposes 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscap
 | `input` | — | Folder containing source photos |
 | `--output-dir` | `outputs/slide_lens_example` | Output folder |
 | `--work-dir` | `work/slide_lens_runtime` | Intermediate working directory |
-| `--ratio` | `16:9` | Output slide ratio (see above) |
+| `--source-ratio` | `16:9` | Original slide ratio used for correction and detection |
+| `--output-ratio` | `match-slide` | PDF page ratio (see above) |
+| `--ratio` | — | Deprecated compatibility option that sets both ratios |
 | `--width` | `2200` | Output image width in pixels |
 | `--height` | — | Optional output height in pixels |
 | `--pdf-name` | `flattened_slides.pdf` | PDF filename |
@@ -72,7 +80,7 @@ When automatic detection needs correction, edit corners in `manual_review.html`,
 slides-thief INPUT_DIRECTORY \
   --output-dir OUTPUT_DIRECTORY_REFINED \
   --manual OUTPUT_DIRECTORY/manual_quads.json \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
   --width 2400
 ```
 

@@ -1,0 +1,13 @@
+{
+  "all_corners_under_1_percent": 1.0,
+  "all_corners_under_2_percent": 1.0,
+  "fixture_count": 3,
+  "high_confidence_failure_rate": 0.0,
+  "max_corner_error_mean": 0.003581687309886434,
+  "mean_corner_error": 0.0027253671213544445,
+  "median_corner_error": 0.0027131435091628012,
+  "quad_iou_mean": 0.9865851712162869,
+  "review_rate": 0.0,
+  "runtime_p50_ms": 1021.9207920000002,
+  "runtime_p95_ms": 1033.2930000000001
+}

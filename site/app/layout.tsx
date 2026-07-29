@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 const siteUrl = "https://slidesthief.com/";
-const title = "Slides Thief - Straighten Slide Photos into PDFs";
+const title = "Slides Thief - Straighten Slide & Document Photos into PDFs";
 const description =
-  "Straighten skewed photos of presentation slides and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
+  "Straighten skewed photos of slides or documents and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
  
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1024,
         height: 537,
-        alt: "Slides Thief - Turn photographed presentation slides into clean PDFs",
+        alt: "Slides Thief - Turn photographed slides or documents into clean PDFs",
       },
     ],
   },

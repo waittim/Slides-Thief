@@ -1,6 +1,6 @@
 # Slides Thief agent reference
 
-Slides Thief corrects perspective distortion in photographs of projected or displayed presentation slides and exports corrected images as one PDF. It is useful for conferences, classrooms, lectures, meeting rooms, and trade shows.
+Slides Thief corrects perspective distortion in photographs of projected slides or paper documents and exports corrected images as one PDF. It is useful for conferences, classrooms, lectures, meeting rooms, trade shows, and document capture.
 
 ## Browser application
 
@@ -8,7 +8,8 @@ Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run
 
 ### Web features
 
-- Output ratios: 16:9, 4:3, A4/A3 landscape and portrait, Letter landscape and portrait. Paper presets fill margins with white.
+- Source formats: 16:9 by default, with explicit 4:3, 16:10, A4 portrait/landscape, Letter portrait/landscape, and custom ratios.
+- PDF layouts: match the selected source format, physical A4 or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
 - Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
 - UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Light and dark themes.
@@ -55,4 +56,4 @@ Edit corners in `manual_review.html`, export `manual_quads.json`, then run again
 Repository: https://github.com/waittim/Slides-Thief
 License: MIT
 Author: Zekun Wang
-Citation: Wang, Z. Slides Thief: Convert photographed presentation slides into perspective-corrected PDFs. https://github.com/waittim/Slides-Thief
+Citation: Wang, Z. Slides Thief: Convert photographed slides and documents into perspective-corrected PDFs. https://github.com/waittim/Slides-Thief

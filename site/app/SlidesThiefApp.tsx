@@ -2,7 +2,21 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
-import { isPaperRatio, parseRatio, type RatioValue } from "./ratio";
+import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
+import {
+  normalizePdfName,
+  PDF_BASENAME_MAX_LENGTH,
+  sanitizePdfBaseName,
+} from "./filename";
+import {
+  isPaperRatio,
+  outputPageRatioValue,
+  pageLayoutMode,
+  sourceFormatRatioValue,
+  type OutputPageRatio,
+  type PageLayoutMode,
+  type SourceFormat,
+} from "./ratio";
 
 interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -20,7 +34,9 @@ type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
 type Settings = {
-  ratio: RatioValue;
+  sourceFormat: SourceFormat;
+  sourceCustomRatio?: number;
+  outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
   quality: number;
@@ -28,9 +44,7 @@ type Settings = {
   fillColor: string;
 };
 
-type Quad = [[number, number], [number, number], [number, number], [number, number]];
-
-type SlideStatus = "queued" | "detecting" | "ready" | "error";
+type SlideStatus = "converting" | "queued" | "detecting" | "ready" | "error";
 
 type SlideItem = {
   id: string;
@@ -44,6 +58,10 @@ type SlideItem = {
   thumbnailUrl?: string;
   method: string;
   confidence: number;
+  needsReview: boolean;
+  reviewReasons: ReviewReason[];
+  reviewedByUser: boolean;
+  sourceRatio: number;
   status: SlideStatus;
   error?: string;
 };
@@ -53,8 +71,15 @@ type DetectResult = {
   width: number;
   height: number;
   quad: Quad;
+  sourceRatio: number;
   method: string;
   confidence: number;
+  needsReview: boolean;
+  reviewReasons: ReviewReason[];
+  bestScore: number;
+  secondBestScore: number | null;
+  candidatesEvaluated: number;
+  diagnostics: Record<string, unknown>;
 };
 
 type HandlePosition = {
@@ -75,19 +100,29 @@ type CanvasRenderState = {
 
 type WorkerMessage =
   | { type: "detect-start"; id: string }
-  | { type: "detect-result"; result: DetectResult }
+  | { type: "detect-result"; phase: "preliminary" | "final"; result: DetectResult }
+  | {
+      type: "detect-batch-summary";
+      summary: {
+        preliminaryCount: number;
+        reliableCount: number;
+        priorCount: number;
+        priors: BatchPrior[];
+      };
+    }
   | { type: "slide-error"; id: string; error: string }
   | { type: "export-progress"; current: number; total: number; name: string }
   | { type: "export-complete"; pdf: ArrayBuffer; filename: string }
   | { type: "error"; error: string };
 
 const defaultSettings: Settings = {
-  ratio: "16:9",
+  sourceFormat: "16:9",
+  outputPageRatio: "match-source",
   width: 2400,
   height: null,
   quality: 0.92,
   enhancement: "original",
-  fillColor: "#000000",
+  fillColor: "auto",
 };
 
 const heifExtensions = [".heic", ".heif"];
@@ -115,6 +150,250 @@ const localeOptions: { value: LocaleValue; label: string }[] = [
   { value: "pt-BR", label: "Português" },
 ];
 
+const ratioUiCopy: Record<LocaleValue, {
+  sourceFormat: string;
+  presentationGroup: string;
+  documentGroup: string;
+  custom: string;
+  customRatio: string;
+  pageLayout: string;
+  matchSource: string;
+  standardPaper: string;
+  customPage: string;
+  paperFormat: string;
+}> = {
+  "zh-CN": {
+    sourceFormat: "原稿格式",
+    presentationGroup: "幻灯片",
+    documentGroup: "文档",
+    custom: "自定义比例",
+    customRatio: "自定义比例",
+    pageLayout: "PDF 页面",
+    matchSource: "与原稿一致（推荐）",
+    standardPaper: "标准纸张",
+    customPage: "自定义页面",
+    paperFormat: "纸张规格",
+  },
+  "zh-TW": {
+    sourceFormat: "原稿格式",
+    presentationGroup: "投影片",
+    documentGroup: "文件",
+    custom: "自訂比例",
+    customRatio: "自訂比例",
+    pageLayout: "PDF 頁面",
+    matchSource: "與原稿一致（建議）",
+    standardPaper: "標準紙張",
+    customPage: "自訂頁面",
+    paperFormat: "紙張規格",
+  },
+  en: {
+    sourceFormat: "Source format",
+    presentationGroup: "Presentation",
+    documentGroup: "Document",
+    custom: "Custom ratio",
+    customRatio: "Custom ratio",
+    pageLayout: "PDF page",
+    matchSource: "Match source (recommended)",
+    standardPaper: "Standard paper",
+    customPage: "Custom page",
+    paperFormat: "Paper format",
+  },
+  es: {
+    sourceFormat: "Formato original",
+    presentationGroup: "Presentación",
+    documentGroup: "Documento",
+    custom: "Relación personalizada",
+    customRatio: "Relación personalizada",
+    pageLayout: "Página PDF",
+    matchSource: "Igual al original (recomendado)",
+    standardPaper: "Papel estándar",
+    customPage: "Página personalizada",
+    paperFormat: "Papel",
+  },
+  fr: {
+    sourceFormat: "Format de l’original",
+    presentationGroup: "Présentation",
+    documentGroup: "Document",
+    custom: "Format personnalisé",
+    customRatio: "Format personnalisé",
+    pageLayout: "Page PDF",
+    matchSource: "Identique à l’original (recommandé)",
+    standardPaper: "Papier standard",
+    customPage: "Page personnalisée",
+    paperFormat: "Papier",
+  },
+  de: {
+    sourceFormat: "Vorlagenformat",
+    presentationGroup: "Präsentation",
+    documentGroup: "Dokument",
+    custom: "Eigenes Seitenverhältnis",
+    customRatio: "Eigenes Seitenverhältnis",
+    pageLayout: "PDF-Seite",
+    matchSource: "Wie Vorlage (empfohlen)",
+    standardPaper: "Standardpapier",
+    customPage: "Eigene Seite",
+    paperFormat: "Papier",
+  },
+  ja: {
+    sourceFormat: "原稿形式",
+    presentationGroup: "プレゼンテーション",
+    documentGroup: "文書",
+    custom: "カスタム比率",
+    customRatio: "カスタム比率",
+    pageLayout: "PDF ページ",
+    matchSource: "原稿に合わせる（推奨）",
+    standardPaper: "標準用紙",
+    customPage: "カスタムページ",
+    paperFormat: "用紙サイズ",
+  },
+  ko: {
+    sourceFormat: "원본 형식",
+    presentationGroup: "프레젠테이션",
+    documentGroup: "문서",
+    custom: "사용자 지정 비율",
+    customRatio: "사용자 지정 비율",
+    pageLayout: "PDF 페이지",
+    matchSource: "원본에 맞춤(권장)",
+    standardPaper: "표준 용지",
+    customPage: "사용자 지정 페이지",
+    paperFormat: "용지 규격",
+  },
+  "pt-BR": {
+    sourceFormat: "Formato original",
+    presentationGroup: "Apresentação",
+    documentGroup: "Documento",
+    custom: "Proporção personalizada",
+    customRatio: "Proporção personalizada",
+    pageLayout: "Página PDF",
+    matchSource: "Igual ao original (recomendado)",
+    standardPaper: "Papel padrão",
+    customPage: "Página personalizada",
+    paperFormat: "Papel",
+  },
+};
+
+type ReviewUiCopy = {
+  reviewSuggested: string;
+  corrected: string;
+  manualAdjustment: string;
+  fallbackFrame: string;
+  automaticDetection: string;
+  automaticRecognized: string;
+  privacy: string;
+  reviewSummary: (count: number) => string;
+  reviewConfirmation: (count: number) => string;
+};
+
+const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
+  "zh-CN": {
+    reviewSuggested: "建议复查",
+    corrected: "已校正",
+    manualAdjustment: "手动调整",
+    fallbackFrame: "备用边框",
+    automaticDetection: "自动检测",
+    automaticRecognized: "自动识别",
+    privacy: "隐私",
+    reviewSummary: (count) => `${count} 张照片建议复查`,
+    reviewConfirmation: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+  },
+  "zh-TW": {
+    reviewSuggested: "建議檢查",
+    corrected: "已校正",
+    manualAdjustment: "手動調整",
+    fallbackFrame: "備用邊框",
+    automaticDetection: "自動偵測",
+    automaticRecognized: "自動辨識",
+    privacy: "隱私",
+    reviewSummary: (count) => `${count} 張相片建議檢查`,
+    reviewConfirmation: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+  },
+  en: {
+    reviewSuggested: "Review suggested",
+    corrected: "Corrected",
+    manualAdjustment: "Manual adjustment",
+    fallbackFrame: "Fallback frame",
+    automaticDetection: "Automatic detection",
+    automaticRecognized: "Automatically detected",
+    privacy: "Privacy",
+    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} may need review`,
+    reviewConfirmation: (count) =>
+      `${count} photo${count === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
+  },
+  es: {
+    reviewSuggested: "Revisión recomendada",
+    corrected: "Corregido",
+    manualAdjustment: "Ajuste manual",
+    fallbackFrame: "Marco alternativo",
+    automaticDetection: "Detección automática",
+    automaticRecognized: "Detectado automáticamente",
+    privacy: "Privacidad",
+    reviewSummary: (count) =>
+      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión`,
+    reviewConfirmation: (count) =>
+      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión. ¿Generar el PDF de todos modos?`,
+  },
+  fr: {
+    reviewSuggested: "Vérification conseillée",
+    corrected: "Corrigé",
+    manualAdjustment: "Ajustement manuel",
+    fallbackFrame: "Cadre de secours",
+    automaticDetection: "Détection automatique",
+    automaticRecognized: "Détecté automatiquement",
+    privacy: "Confidentialité",
+    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} à vérifier`,
+    reviewConfirmation: (count) =>
+      `${count} photo${count === 1 ? "" : "s"} à vérifier. Générer quand même le PDF ?`,
+  },
+  de: {
+    reviewSuggested: "Prüfung empfohlen",
+    corrected: "Korrigiert",
+    manualAdjustment: "Manuelle Anpassung",
+    fallbackFrame: "Ersatzrahmen",
+    automaticDetection: "Automatische Erkennung",
+    automaticRecognized: "Automatisch erkannt",
+    privacy: "Datenschutz",
+    reviewSummary: (count) =>
+      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden`,
+    reviewConfirmation: (count) =>
+      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden. PDF trotzdem erstellen?`,
+  },
+  ja: {
+    reviewSuggested: "要確認",
+    corrected: "補正済み",
+    manualAdjustment: "手動調整",
+    fallbackFrame: "代替フレーム",
+    automaticDetection: "自動検出",
+    automaticRecognized: "自動認識",
+    privacy: "プライバシー",
+    reviewSummary: (count) => `${count}枚の写真を確認してください`,
+    reviewConfirmation: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+  },
+  ko: {
+    reviewSuggested: "검토 권장",
+    corrected: "보정됨",
+    manualAdjustment: "수동 조정",
+    fallbackFrame: "대체 프레임",
+    automaticDetection: "자동 감지",
+    automaticRecognized: "자동 인식",
+    privacy: "개인정보 보호",
+    reviewSummary: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
+    reviewConfirmation: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+  },
+  "pt-BR": {
+    reviewSuggested: "Revisão recomendada",
+    corrected: "Corrigido",
+    manualAdjustment: "Ajuste manual",
+    fallbackFrame: "Quadro alternativo",
+    automaticDetection: "Detecção automática",
+    automaticRecognized: "Detectado automaticamente",
+    privacy: "Privacidade",
+    reviewSummary: (count) =>
+      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão`,
+    reviewConfirmation: (count) =>
+      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão. Gerar o PDF mesmo assim?`,
+  },
+};
+
 const copy = {
   "zh-CN": {
     appTitle: "Slides Thief · PPT捕手",
@@ -123,8 +402,8 @@ const copy = {
     ratio: "比例",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (横向)",
-    ratioA4Portrait: "A4 / A3 (纵向)",
+    ratioA4Landscape: "A4（横向）",
+    ratioA4Portrait: "A4（纵向）",
     ratioLetterLandscape: "Letter (横向)",
     ratioLetterPortrait: "Letter (纵向)",
     more: "更多设置",
@@ -169,23 +448,28 @@ const copy = {
     generating: "生成中",
     generated: "已生成",
     failed: "失败",
+    manualAdjusted: "已手动调整",
+    previewError: "无法显示此照片的预览",
     downloadPdf: "下载 PDF",
     file: "文件",
     status: "状态",
     dimensions: "尺寸",
     method: "方法",
     confidence: "置信度",
+    converting: "正在转换 HEIC/HEIF",
     pending: "待自动校正",
     noUpload: "浏览器本地处理",
-    adjustCorners: "拖动四个编号角点以对齐幻灯片边缘",
+    adjustCorners: "拖动四个编号角点以对齐原稿边缘",
     cornerHandle: "角点",
+    cornerKeyboardHelp: "使用方向键微调角点；按住 Shift 可一次移动十个屏幕像素。",
     collapse: "缩小详情栏",
     expand: "展开详情栏",
     infoTitle: "关于 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片照片快速矫正并整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片或文档快速矫正并整理成清晰的 PDF。",
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
+    close: "关闭",
   },
   "zh-TW": {
     appTitle: "Slides Thief · PPT捕手",
@@ -194,8 +478,8 @@ const copy = {
     ratio: "比例",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (橫向)",
-    ratioA4Portrait: "A4 / A3 (縱向)",
+    ratioA4Landscape: "A4（橫向）",
+    ratioA4Portrait: "A4（縱向）",
     ratioLetterLandscape: "Letter (橫向)",
     ratioLetterPortrait: "Letter (縱向)",
     more: "更多設定",
@@ -240,33 +524,38 @@ const copy = {
     generating: "產生中",
     generated: "已產生",
     failed: "失敗",
+    manualAdjusted: "已手動調整",
+    previewError: "無法顯示此照片的預覽",
     downloadPdf: "下載 PDF",
     file: "檔案",
     status: "狀態",
     dimensions: "尺寸",
     method: "方法",
     confidence: "可信度",
+    converting: "正在轉換 HEIC/HEIF",
     pending: "待自動校正",
     noUpload: "瀏覽器本機處理",
-    adjustCorners: "拖動四個編號角點以對齊投影片邊緣",
+    adjustCorners: "拖動四個編號角點以對齊原稿邊緣",
     cornerHandle: "角點",
+    cornerKeyboardHelp: "使用方向鍵微調角點；按住 Shift 可一次移動十個畫面像素。",
     collapse: "收合詳情欄",
     expand: "展開詳情欄",
     infoTitle: "關於 Slides Thief · PPT捕手",
-    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片相片快速矯正並整理成清晰的 PDF。",
+    infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片或文件快速矯正並整理成清晰的 PDF。",
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
+    close: "關閉",
   },
   en: {
-    appTitle: "Slides Thief - Straighten Slide Photos into PDFs",
+    appTitle: "Slides Thief - Straighten Slide & Document Photos into PDFs",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Ratio",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Landscape)",
-    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioA4Landscape: "A4 (Landscape)",
+    ratioA4Portrait: "A4 (Portrait)",
     ratioLetterLandscape: "Letter (Landscape)",
     ratioLetterPortrait: "Letter (Portrait)",
     more: "More settings",
@@ -311,33 +600,38 @@ const copy = {
     generating: "Generating",
     generated: "Generated",
     failed: "Failed",
+    manualAdjusted: "Manually adjusted",
+    previewError: "Couldn’t display this photo preview",
     downloadPdf: "Download PDF",
     file: "File",
     status: "Status",
     dimensions: "Dimensions",
     method: "Method",
     confidence: "Confidence",
+    converting: "Converting HEIC/HEIF",
     pending: "Waiting for auto straighten",
     noUpload: "Browser-local processing",
-    adjustCorners: "Drag the four numbered corners to align the slide edges",
+    adjustCorners: "Drag the four numbered corners to align the source edges",
     cornerHandle: "Corner",
+    cornerKeyboardHelp: "Use the arrow keys to fine-tune this corner. Hold Shift to move ten screen pixels.",
     collapse: "Collapse details",
     expand: "Expand details",
     infoTitle: "About Slides Thief",
-    infoDesc: "Slides Thief is a browser-local tool that quickly straightens skewed presentation slide photos and organizes them into a clear PDF.",
+    infoDesc: "Slides Thief is a browser-local tool that straightens skewed slide or document photos and organizes them into a clear PDF.",
     infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
     infoRepo: "Open Source Repo",
     infoBlog: "Introductory Blog",
+    close: "Close",
   },
   es: {
-    appTitle: "Slides Thief - Endereza fotos de diapositivas en PDF",
+    appTitle: "Slides Thief - Corrige fotos de diapositivas y documentos",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Relación",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Horizontal)",
-    ratioA4Portrait: "A4 / A3 (Vertical)",
+    ratioA4Landscape: "A4 (Horizontal)",
+    ratioA4Portrait: "A4 (Vertical)",
     ratioLetterLandscape: "Carta (Horizontal)",
     ratioLetterPortrait: "Carta (Vertical)",
     more: "Más ajustes",
@@ -382,33 +676,38 @@ const copy = {
     generating: "Generando",
     generated: "Generado",
     failed: "Error",
+    manualAdjusted: "Ajustado manualmente",
+    previewError: "No se pudo mostrar la vista previa de esta foto",
     downloadPdf: "Descargar PDF",
     file: "Archivo",
     status: "Estado",
     dimensions: "Dimensiones",
     method: "Método",
     confidence: "Confianza",
+    converting: "Convirtiendo HEIC/HEIF",
     pending: "Esperando enderezado",
     noUpload: "Proceso local",
-    adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear la diapositiva",
+    adjustCorners: "Arrastra las cuatro esquinas numeradas para alinear el original",
     cornerHandle: "Esquina",
+    cornerKeyboardHelp: "Usa las flechas para ajustar esta esquina. Mantén Mayús para mover diez píxeles de pantalla.",
     collapse: "Contraer detalles",
     expand: "Expandir detalles",
     infoTitle: "Sobre Slides Thief",
-    infoDesc: "Slides Thief es una herramienta local del navegador que corrige rápidamente las fotos torcidas de las diapositivas y las organiza en un PDF claro.",
+    infoDesc: "Slides Thief corrige localmente fotos inclinadas de diapositivas o documentos y las organiza en un PDF claro.",
     infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
     infoRepo: "Repositorio de Código",
     infoBlog: "Blog de Introducción",
+    close: "Cerrar",
   },
   fr: {
-    appTitle: "Slides Thief - Redresser des photos de diapositives en PDF",
+    appTitle: "Slides Thief - Redresser des photos de diapositives et de documents",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Paysage)",
-    ratioA4Portrait: "A4 / A3 (Portrait)",
+    ratioA4Landscape: "A4 (Paysage)",
+    ratioA4Portrait: "A4 (Portrait)",
     ratioLetterLandscape: "Lettre (Paysage)",
     ratioLetterPortrait: "Lettre (Portrait)",
     more: "Réglages",
@@ -453,33 +752,38 @@ const copy = {
     generating: "Création",
     generated: "Créé",
     failed: "Échec",
+    manualAdjusted: "Ajusté manuellement",
+    previewError: "Impossible d’afficher l’aperçu de cette photo",
     downloadPdf: "Télécharger PDF",
     file: "Fichier",
     status: "État",
     dimensions: "Dimensions",
     method: "Méthode",
     confidence: "Confiance",
+    converting: "Conversion HEIC/HEIF",
     pending: "En attente",
     noUpload: "Traitement local",
-    adjustCorners: "Faites glisser les quatre coins numérotés pour aligner la diapositive",
+    adjustCorners: "Faites glisser les quatre coins numérotés pour aligner l’original",
     cornerHandle: "Coin",
+    cornerKeyboardHelp: "Utilisez les flèches pour ajuster ce coin. Maintenez Maj pour déplacer dix pixels à l’écran.",
     collapse: "Réduire détails",
     expand: "Afficher détails",
     infoTitle: "À propos de Slides Thief",
-    infoDesc: "Slides Thief est un outil local dans le navigateur qui redresse rapidement les photos inclinées des diapositives et les organise dans un PDF propre.",
+    infoDesc: "Slides Thief redresse localement les photos inclinées de diapositives ou de documents et les organise dans un PDF propre.",
     infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
     infoRepo: "Dépôt de Code",
     infoBlog: "Blog d'Introduction",
+    close: "Fermer",
   },
   de: {
-    appTitle: "Slides Thief - Folienfotos als PDF begradigen",
+    appTitle: "Slides Thief - Folien- und Dokumentfotos begradigen",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Format",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Querformat)",
-    ratioA4Portrait: "A4 / A3 (Hochformat)",
+    ratioA4Landscape: "A4 (Querformat)",
+    ratioA4Portrait: "A4 (Hochformat)",
     ratioLetterLandscape: "US Letter (Querformat)",
     ratioLetterPortrait: "US Letter (Hochformat)",
     more: "Mehr",
@@ -524,33 +828,38 @@ const copy = {
     generating: "Erstellen",
     generated: "Erstellt",
     failed: "Fehlgeschlagen",
+    manualAdjusted: "Manuell angepasst",
+    previewError: "Die Vorschau dieses Fotos konnte nicht angezeigt werden",
     downloadPdf: "PDF herunterladen",
     file: "Datei",
     status: "Status",
     dimensions: "Größe",
     method: "Methode",
     confidence: "Sicherheit",
+    converting: "HEIC/HEIF wird konvertiert",
     pending: "Wartet auf Begradigung",
     noUpload: "Lokale Verarbeitung",
-    adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Folienränder",
+    adjustCorners: "Ziehen Sie die vier nummerierten Ecken an die Vorlagenränder",
     cornerHandle: "Ecke",
+    cornerKeyboardHelp: "Mit den Pfeiltasten lässt sich diese Ecke feinjustieren. Umschalt bewegt zehn Bildschirmpixel.",
     collapse: "Details einklappen",
     expand: "Details ausklappen",
     infoTitle: "Über Slides Thief",
-    infoDesc: "Slides Thief ist ein browserlokales Tool, das schiefe Folienfotos schnell begradigt und sie in einer übersichtlichen PDF-Datei organisiert.",
+    infoDesc: "Slides Thief begradigt Folien- oder Dokumentfotos lokal im Browser und organisiert sie in einer übersichtlichen PDF-Datei.",
     infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
     infoRepo: "Code-Repository",
     infoBlog: "Einführungs-Blog",
+    close: "Schließen",
   },
   ja: {
-    appTitle: "Slides Thief - スライド写真を補正してPDF化",
+    appTitle: "Slides Thief - スライドや文書の写真を補正してPDF化",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "比率",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (横)",
-    ratioA4Portrait: "A4 / A3 (縦)",
+    ratioA4Landscape: "A4（横）",
+    ratioA4Portrait: "A4（縦）",
     ratioLetterLandscape: "レター (横)",
     ratioLetterPortrait: "レター (縦)",
     more: "詳細設定",
@@ -595,33 +904,38 @@ const copy = {
     generating: "生成中",
     generated: "生成済み",
     failed: "失敗",
+    manualAdjusted: "手動調整済み",
+    previewError: "この写真のプレビューを表示できません",
     downloadPdf: "PDFを保存",
     file: "ファイル",
     status: "状態",
     dimensions: "サイズ",
     method: "方法",
     confidence: "信頼度",
+    converting: "HEIC/HEIF を変換中",
     pending: "自動補正待ち",
     noUpload: "ブラウザ内処理",
-    adjustCorners: "4つの番号付きコーナーをドラッグしてスライドの端に合わせます",
+    adjustCorners: "4つの番号付きコーナーをドラッグして原稿の端に合わせます",
     cornerHandle: "コーナー",
+    cornerKeyboardHelp: "矢印キーでコーナーを微調整します。Shift キーを押しながら操作すると画面上で10ピクセル移動します。",
     collapse: "詳細を閉じる",
     expand: "詳細を開く",
     infoTitle: "Slides Thief について",
-    infoDesc: "Slides Thiefは、斜めに撮影されたスライド写真をすばやく補正し、綺麗なPDFとして整理するローカルブラウザツールです。",
+    infoDesc: "Slides Thiefは、斜めに撮影されたスライドや文書をブラウザ内で補正し、綺麗なPDFとして整理します。",
     infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
     infoRepo: "オープンソースリポジトリ",
     infoBlog: "紹介ブログ",
+    close: "閉じる",
   },
   ko: {
-    appTitle: "Slides Thief - 슬라이드 사진을 PDF로 보정",
+    appTitle: "Slides Thief - 슬라이드와 문서 사진을 PDF로 보정",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "비율",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (가로)",
-    ratioA4Portrait: "A4 / A3 (세로)",
+    ratioA4Landscape: "A4(가로)",
+    ratioA4Portrait: "A4(세로)",
     ratioLetterLandscape: "Letter (가로)",
     ratioLetterPortrait: "Letter (세로)",
     more: "추가 설정",
@@ -666,33 +980,38 @@ const copy = {
     generating: "생성 중",
     generated: "생성됨",
     failed: "실패",
+    manualAdjusted: "수동 조정됨",
+    previewError: "이 사진의 미리보기를 표시할 수 없습니다",
     downloadPdf: "PDF 저장",
     file: "파일",
     status: "상태",
     dimensions: "크기",
     method: "방법",
     confidence: "신뢰도",
+    converting: "HEIC/HEIF 변환 중",
     pending: "자동 보정 대기",
     noUpload: "브라우저 내 처리",
-    adjustCorners: "번호가 표시된 네 모서리를 끌어 슬라이드 가장자리에 맞추세요",
+    adjustCorners: "번호가 표시된 네 모서리를 끌어 원본 가장자리에 맞추세요",
     cornerHandle: "모서리",
+    cornerKeyboardHelp: "화살표 키로 모서리를 미세 조정하세요. Shift를 누르면 화면에서 10픽셀씩 이동합니다.",
     collapse: "상세 접기",
     expand: "상세 펼치기",
     infoTitle: "Slides Thief 정보",
-    infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드 사진을 빠르게 교정하고 깔끔한 PDF로 정리해 주는 브라우저 로컬 도구입니다.",
+    infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드나 문서를 브라우저에서 교정하고 깔끔한 PDF로 정리합니다.",
     infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
     infoRepo: "오픈 소스 저장소",
     infoBlog: "소개 블로그",
+    close: "닫기",
   },
   "pt-BR": {
-    appTitle: "Slides Thief - Corrigir fotos de slides em PDF",
+    appTitle: "Slides Thief - Corrigir fotos de slides e documentos",
     brandMark: "ST",
     brandName: "Slides Thief",
     ratio: "Proporção",
     ratio16x9: "16:9",
     ratio4x3: "4:3",
-    ratioA4Landscape: "A4 / A3 (Paisagem)",
-    ratioA4Portrait: "A4 / A3 (Retrato)",
+    ratioA4Landscape: "A4 (Paisagem)",
+    ratioA4Portrait: "A4 (Retrato)",
     ratioLetterLandscape: "Carta (Paisagem)",
     ratioLetterPortrait: "Carta (Retrato)",
     more: "Mais ajustes",
@@ -737,23 +1056,28 @@ const copy = {
     generating: "Gerando",
     generated: "Gerado",
     failed: "Falhou",
+    manualAdjusted: "Ajustado manualmente",
+    previewError: "Não foi possível exibir a prévia desta foto",
     downloadPdf: "Baixar PDF",
     file: "Arquivo",
     status: "Status",
     dimensions: "Dimensões",
     method: "Método",
     confidence: "Confiança",
+    converting: "Convertendo HEIC/HEIF",
     pending: "Aguardando correção",
     noUpload: "Processamento local",
-    adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do slide",
+    adjustCorners: "Arraste os quatro cantos numerados para alinhar as bordas do original",
     cornerHandle: "Canto",
+    cornerKeyboardHelp: "Use as setas para ajustar este canto. Segure Shift para mover dez pixels na tela.",
     collapse: "Recolher detalhes",
     expand: "Expandir detalhes",
     infoTitle: "Sobre o Slides Thief",
-    infoDesc: "O Slides Thief é uma ferramenta local no navegador que corrige rapidamente fotos inclinadas de slides de apresentação e as organiza em um PDF limpo.",
+    infoDesc: "O Slides Thief corrige localmente fotos inclinadas de slides ou documentos e as organiza em um PDF limpo.",
     infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
     infoRepo: "Repositório de Código",
     infoBlog: "Blog de Introdução",
+    close: "Fechar",
   },
 };
 
@@ -896,8 +1220,26 @@ function confidenceText(value: number) {
   return value ? value.toFixed(2) : "-";
 }
 
+function detectionMethodText(method: string, locale: LocaleValue) {
+  const reviewText = reviewUiCopy[locale];
+  if (method === "manual") return reviewText.manualAdjustment;
+  if (method === "fallback-frame") return reviewText.fallbackFrame;
+  if (["contrast-lines", "mask-lines", "hough-lines", "batch-prior"].includes(method)) {
+    return reviewText.automaticDetection;
+  }
+  return "-";
+}
+
 function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
+}
+
+function quadsMatch(first: Quad | null, second: Quad | null, tolerance = 0.01): boolean {
+  if (!first || !second) return first === second;
+  return first.every(([x, y], index) =>
+    Math.abs(x - second[index][0]) <= tolerance
+    && Math.abs(y - second[index][1]) <= tolerance
+  );
 }
 
 function quadHandlePositions(quad: Quad, padX: number, padY: number, scale: number): HandlePosition[] {
@@ -917,13 +1259,8 @@ function clampQuadCoordinate(value: number, size: number, maxOutside: number) {
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
 }
 
-function normalizePdfName(value: string) {
-  const base = value.trim().replace(/\.pdf$/i, "") || "flattened_slides";
-  return `${base}.pdf`;
-}
-
 function parseHexColor(value: string): [number, number, number] {
-  const clean = /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1) : "000000";
+  const clean = /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1) : "111111";
   return [
     Number.parseInt(clean.slice(0, 2), 16),
     Number.parseInt(clean.slice(2, 4), 16),
@@ -931,8 +1268,66 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
-function outputRatio(settings: Settings) {
-  return settings.height ? settings.width / settings.height : parseRatio(settings.ratio);
+const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
+
+/**
+ * Finds the dominant colour inside the corrected slide, deliberately skipping
+ * its edge so a projector bezel or photographed screen border is not used.
+ */
+function resolveFillColor(value: string, source: ImageData, target: Quad, coeffs: number[]) {
+  if (value !== "auto") return parseHexColor(value);
+  const inset = 0.12;
+  const left = target[0][0] + (target[1][0] - target[0][0]) * inset;
+  const right = target[1][0] - (target[1][0] - target[0][0]) * inset;
+  const top = target[0][1] + (target[3][1] - target[0][1]) * inset;
+  const bottom = target[3][1] - (target[3][1] - target[0][1]) * inset;
+  const samples: Array<[number, number, number] | null> = [];
+
+  for (let row = 0; row < 8; row += 1) {
+    for (let column = 0; column < 12; column += 1) {
+      const x = left + (right - left) * ((column + 0.5) / 12);
+      const y = top + (bottom - top) * ((row + 0.5) / 8);
+      samples.push(sampleCorrectedRgb(source, coeffs, x, y));
+    }
+  }
+
+  const valid = samples.filter((sample): sample is [number, number, number] => sample !== null);
+  if (valid.length < 24) return AUTO_FILL_FALLBACK;
+  const buckets = new Map<string, [number, number, number][]>();
+  for (const sample of valid) {
+    const key = sample.map((value) => Math.floor(value / 32)).join(":");
+    buckets.set(key, [...(buckets.get(key) ?? []), sample]);
+  }
+  const dominant = [...buckets.values()].reduce((largest, bucket) => bucket.length > largest.length ? bucket : largest, [] as [number, number, number][]);
+  if (dominant.length < valid.length * 0.14) return AUTO_FILL_FALLBACK;
+  return [0, 1, 2].map((channel) => medianValue(dominant.map((sample) => sample[channel]))) as [number, number, number];
+}
+
+function sampleCorrectedRgb(source: ImageData, coeffs: number[], x: number, y: number): [number, number, number] | null {
+  const denominator = coeffs[6] * x + coeffs[7] * y + 1;
+  const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denominator;
+  const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denominator;
+  if (sx < 0 || sx >= source.width || sy < 0 || sy >= source.height) return null;
+  const offset = (Math.min(source.height - 1, Math.round(sy)) * source.width + Math.min(source.width - 1, Math.round(sx))) * 4;
+  return [source.data[offset], source.data[offset + 1], source.data[offset + 2]];
+}
+
+function medianValue(values: number[]) {
+  const sorted = [...values].sort((first, second) => first - second);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
+function outputRatio(settings: Settings, sourceRatio: number) {
+  return settings.height
+    ? settings.width / settings.height
+    : outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+}
+
+function resolvedSlideRatio(slide: SlideItem, settings: Settings) {
+  return sourceFormatRatioValue(
+    settings.sourceFormat,
+    settings.sourceCustomRatio,
+  );
 }
 
 function solveLinearSystem(matrix: number[][], vector: number[]) {
@@ -967,6 +1362,20 @@ function perspectiveCoefficients(src: Quad, dst: Quad) {
   return solveLinearSystem(matrix, vector);
 }
 
+function containedRect(width: number, height: number, ratio: number): Quad {
+  const pageRatio = width / height;
+  const contentWidth = pageRatio > ratio ? height * ratio : width;
+  const contentHeight = pageRatio > ratio ? height : width / ratio;
+  const left = (width - contentWidth) / 2;
+  const top = (height - contentHeight) / 2;
+  return [
+    [left, top],
+    [left + contentWidth, top],
+    [left + contentWidth, top + contentHeight],
+    [left, top + contentHeight],
+  ];
+}
+
 function loadImage(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -989,18 +1398,21 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   sourceCtx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
 
+  const sourceRatio = resolvedSlideRatio(slide, settings);
   const outWidth = 160;
-  const outHeight = Math.max(1, Math.round(outWidth / outputRatio(settings)));
+  const outHeight = Math.max(1, Math.round(outWidth / outputRatio(settings, sourceRatio)));
   const outputCanvas = document.createElement("canvas");
   outputCanvas.width = outWidth;
   outputCanvas.height = outHeight;
   const outputCtx = outputCanvas.getContext("2d");
   if (!outputCtx) throw new Error("Cannot render thumbnail in this browser.");
   const output = outputCtx.createImageData(outWidth, outHeight);
-  const fill = parseHexColor(settings.fillColor);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
-  const dst: Quad = [[0, 0], [outWidth, 0], [outWidth, outHeight], [0, outHeight]];
+  const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
+  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+    ? [255, 255, 255] as [number, number, number]
+    : resolveFillColor(settings.fillColor, new ImageData(source, sourceWidth, sourceHeight), dst, coeffs);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -1008,7 +1420,8 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
       const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / den;
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
       const outIndex = (y * outWidth + x) * 4;
-      if (sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
+      const insideContent = x >= dst[0][0] && x < dst[1][0] && y >= dst[0][1] && y < dst[3][1];
+      if (insideContent && sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
         const ix = Math.max(0, Math.min(sourceWidth - 1, Math.round(sx)));
         const iy = Math.max(0, Math.min(sourceHeight - 1, Math.round(sy)));
         const srcIndex = (iy * sourceWidth + ix) * 4;
@@ -1045,16 +1458,19 @@ export function SlidesThiefApp() {
   const [exportName, setExportName] = useState("flattened_slides.pdf");
   const [exporting, setExporting] = useState(false);
   const [workerError, setWorkerError] = useState("");
+  const [previewErrorSlideId, setPreviewErrorSlideId] = useState<string | null>(null);
   const [dragHandle, setDragHandle] = useState<number | null>(null);
   const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
   const [zoom, setZoom] = useState(1);
   const [displayZoom, setDisplayZoom] = useState(1);
   const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
+  const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const exportWorkerRef = useRef<Worker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slidesRef = useRef<SlideItem[]>([]);
@@ -1071,18 +1487,29 @@ export function SlidesThiefApp() {
   const activePointerRef = useRef<number | null>(null);
   const dragFrameRef = useRef<number | null>(null);
   const thumbnailRefreshTokenRef = useRef(0);
+  const autoReviewSelectedRef = useRef(false);
   const loadTokenRef = useRef(0);
   const viewportRef = useRef({ padX: 0, padY: 0 });
   const scaleRef = useRef(1);
   const fitZoomRef = useRef(1);
   const maxZoomRef = useRef(3);
+  const infoButtonRef = useRef<HTMLButtonElement | null>(null);
+  const infoModalRef = useRef<HTMLDivElement | null>(null);
+  const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const text = copy[locale];
+  const reviewText = reviewUiCopy[locale];
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
-  const hasRun = slides.some((slide) => slide.status === "ready" || slide.status === "detecting" || slide.status === "error");
+  const hasRun = slides.some(
+    (slide) =>
+      slide.status === "ready" ||
+      slide.status === "detecting" ||
+      (slide.status === "error" && slide.method !== "conversion-error"),
+  );
   const detecting = slides.some((slide) => slide.status === "detecting");
+  const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
 
   const cancelActiveDrag = useCallback(() => {
@@ -1103,9 +1530,10 @@ export function SlidesThiefApp() {
     if (detecting) return text.stretching;
     if (exporting) return text.generating;
     if (exportUrl) return text.generated;
+    if (reviewCount) return reviewText.reviewSummary(reviewCount);
     if (hasRun) return text.reviewReady;
-    return locale === "zh-CN" ? `${slides.length} ${text.waiting}` : `${slides.length} ${text.waiting}`;
-  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, slides.length, text, workerError]);
+    return `${slides.length} ${text.waiting}`;
+  }, [busyText, detecting, exporting, exportUrl, hasRun, reviewCount, reviewText, slides.length, text, workerError]);
 
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
@@ -1113,6 +1541,15 @@ export function SlidesThiefApp() {
     if (hasRun || exportUrl) return "good";
     return "neutral";
   }, [detecting, exporting, exportUrl, hasRun, workerError]);
+
+  const slideStatusText = (slide: SlideItem) => {
+    if (slide.status === "converting") return text.converting;
+    if (slide.status === "queued") return text.pending;
+    if (slide.status === "detecting") return text.stretching;
+    if (slide.status === "error") return text.failed;
+    if (slide.needsReview) return reviewText.reviewSuggested;
+    return reviewText.corrected;
+  };
 
   const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
     const slide = slidesRef.current.find((item) => item.id === id);
@@ -1162,31 +1599,55 @@ export function SlidesThiefApp() {
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.id
-              ? { ...slide, status: "detecting", method: "detecting", thumbnailUrl: undefined, error: undefined }
-              : slide,
-          ),
-        );
-      }
-      if (message.type === "detect-result") {
-        setSlides((current) =>
-          current.map((slide) =>
-            slide.id === message.result.id
               ? {
                   ...slide,
-                  width: message.result.width,
-                  height: message.result.height,
-                  quad: message.result.quad,
-                  autoQuad: message.result.quad,
-                  method: message.result.method,
-                  confidence: message.result.confidence,
-                  status: "ready",
+                  status: "detecting",
+                  method: "detecting",
+                  reviewedByUser: false,
+                  thumbnailUrl: undefined,
                   error: undefined,
                 }
               : slide,
           ),
         );
-        void refreshSlideThumbnail(message.result.id, message.result.quad);
-        setBusyText("");
+      }
+      if (message.type === "detect-result") {
+        const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
+        const preserveManualQuad = message.phase === "final"
+          && Boolean(
+            existing?.reviewedByUser
+            || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
+          );
+        const displayedQuad = preserveManualQuad && existing?.quad
+          ? existing.quad
+          : message.result.quad;
+        setSlides((current) =>
+          current.map((slide) => {
+            if (slide.id !== message.result.id) return slide;
+            const preserveManualReview = message.phase === "final"
+              && (
+                slide.reviewedByUser
+                || Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
+              );
+            return {
+              ...slide,
+              width: message.result.width,
+              height: message.result.height,
+              quad: preserveManualReview ? slide.quad : message.result.quad,
+              autoQuad: message.result.quad,
+              method: preserveManualReview ? "manual" : message.result.method,
+              confidence: preserveManualReview ? 1 : message.result.confidence,
+              needsReview: preserveManualReview ? false : message.result.needsReview,
+              reviewReasons: preserveManualReview ? [] : message.result.reviewReasons,
+              reviewedByUser: preserveManualReview,
+              sourceRatio: message.result.sourceRatio,
+              status: message.phase === "final" ? "ready" : "detecting",
+              error: undefined,
+            };
+          }),
+        );
+        void refreshSlideThumbnail(message.result.id, displayedQuad);
+        if (message.phase === "final") setBusyText("");
       }
       if (message.type === "slide-error") {
         trackEvent("processing_error", {
@@ -1200,23 +1661,6 @@ export function SlidesThiefApp() {
               : slide,
           ),
         );
-        setBusyText("");
-      }
-      if (message.type === "export-progress") {
-        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
-      }
-      if (message.type === "export-complete") {
-        trackEvent("pdf_export_success", {
-          page_count: slidesRef.current.length,
-          file_size_bytes: message.pdf.byteLength,
-        });
-        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-        const blob = new Blob([message.pdf], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        exportUrlRef.current = url;
-        setExportUrl(url);
-        setExportName(message.filename);
-        setExporting(false);
         setBusyText("");
       }
       if (message.type === "error") {
@@ -1258,10 +1702,76 @@ export function SlidesThiefApp() {
     return worker;
   }, [refreshSlideThumbnail]);
 
+  const ensureExportWorker = useCallback(() => {
+    if (exportWorkerRef.current) return exportWorkerRef.current;
+    let worker: Worker;
+    try {
+      worker = new Worker(new URL("./slides-export-worker.ts", import.meta.url), {
+        type: "module",
+      });
+    } catch (error) {
+      setWorkerError(messageFromError(error));
+      setExporting(false);
+      setBusyText("");
+      return null;
+    }
+    const releaseWorker = () => {
+      worker.terminate();
+      if (exportWorkerRef.current === worker) exportWorkerRef.current = null;
+    };
+    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+      const message = event.data;
+      if (message.type === "export-progress") {
+        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
+      }
+      if (message.type === "export-complete") {
+        trackEvent("pdf_export_success", {
+          page_count: slidesRef.current.length,
+          file_size_bytes: message.pdf.byteLength,
+        });
+        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
+        const blob = new Blob([message.pdf], { type: "application/pdf" });
+        const url = URL.createObjectURL(blob);
+        exportUrlRef.current = url;
+        setExportUrl(url);
+        setExportName(message.filename);
+        setExporting(false);
+        setBusyText("");
+        releaseWorker();
+      }
+      if (message.type === "error") {
+        trackEvent("processing_error", {
+          error_type: "export_worker_error",
+          error_message: message.error || "PDF export error",
+        });
+        setWorkerError(message.error);
+        setExporting(false);
+        setBusyText("");
+        releaseWorker();
+      }
+    };
+    const handleWorkerFailure = (message: string) => {
+      trackEvent("processing_error", {
+        error_type: "export_worker_failure",
+        error_message: message || "PDF worker terminated unexpectedly",
+      });
+      setWorkerError(message);
+      setExporting(false);
+      setBusyText("");
+      releaseWorker();
+    };
+    worker.onerror = (event) => handleWorkerFailure(event.message || "The PDF worker stopped unexpectedly.");
+    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the PDF worker.");
+    exportWorkerRef.current = worker;
+    return worker;
+  }, []);
+
   useEffect(() => {
     return () => {
       workerRef.current?.terminate();
       workerRef.current = null;
+      exportWorkerRef.current?.terminate();
+      exportWorkerRef.current = null;
       if (dragFrameRef.current !== null) window.cancelAnimationFrame(dragFrameRef.current);
     };
   }, []);
@@ -1288,11 +1798,32 @@ export function SlidesThiefApp() {
       window.clearTimeout(timeoutId);
       if (thumbnailRefreshTokenRef.current === token) thumbnailRefreshTokenRef.current += 1;
     };
-  }, [refreshSlideThumbnail, settings.enhancement, settings.fillColor, settings.height, settings.ratio, settings.width]);
+  }, [
+    refreshSlideThumbnail,
+    settings.enhancement,
+    settings.fillColor,
+    settings.height,
+    settings.outputPageRatio,
+    settings.sourceCustomRatio,
+    settings.sourceFormat,
+    settings.width,
+  ]);
 
   useEffect(() => {
     exportUrlRef.current = exportUrl;
   }, [exportUrl]);
+
+  useEffect(() => {
+    if (detecting || !reviewCount || autoReviewSelectedRef.current) return;
+    const firstReview = slides.find((slide) => slide.status === "ready" && slide.needsReview);
+    if (!firstReview) return;
+    const timeoutId = window.setTimeout(() => {
+      autoReviewSelectedRef.current = true;
+      setSelectedId(firstReview.id);
+      setZoomMode("fit");
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [detecting, reviewCount, slides]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -1369,6 +1900,46 @@ export function SlidesThiefApp() {
   }, [locale, text.appTitle]);
 
   useEffect(() => {
+    if (!isInfoOpen) return;
+    const fallbackFocus = infoButtonRef.current;
+    const previousFocus = document.activeElement instanceof HTMLElement
+      ? document.activeElement
+      : fallbackFocus;
+    const focusFrame = window.requestAnimationFrame(() => closeInfoButtonRef.current?.focus());
+    const handleModalKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setIsInfoOpen(false);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const modal = infoModalRef.current;
+      if (!modal) return;
+      const focusable = Array.from(
+        modal.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hidden && element.getClientRects().length > 0);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", handleModalKeyDown);
+    return () => {
+      window.cancelAnimationFrame(focusFrame);
+      document.removeEventListener("keydown", handleModalKeyDown);
+      (previousFocus?.isConnected ? previousFocus : fallbackFocus)?.focus();
+    };
+  }, [isInfoOpen]);
+
+  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const browserLocale = detectBrowserLocale();
       setLocale((current) => (current === browserLocale ? current : browserLocale));
@@ -1401,61 +1972,91 @@ export function SlidesThiefApp() {
 
       workerRef.current?.terminate();
       workerRef.current = null;
+      exportWorkerRef.current?.terminate();
+      exportWorkerRef.current = null;
       cancelActiveDrag();
       slidesRef.current.forEach((slide) => URL.revokeObjectURL(slide.url));
       if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
       exportUrlRef.current = null;
       imageCacheRef.current = null;
       canvasRenderRef.current = null;
+      setPreviewErrorSlideId(null);
       if (canvasRef.current) {
         canvasRef.current.width = 1;
         canvasRef.current.height = 1;
       }
-      setSlides([]);
-      setSelectedId(null);
+      const nextSlides: SlideItem[] = inputFiles.map((file, index) => {
+        const converting = isHeifImage(file);
+        return {
+          id: makeId(file, index),
+          file,
+          name: file.name,
+          url: converting ? "" : URL.createObjectURL(file),
+          width: 0,
+          height: 0,
+          quad: null,
+          autoQuad: null,
+          method: converting ? "converting" : "queued",
+          confidence: 0,
+          needsReview: false,
+          reviewReasons: [],
+          reviewedByUser: false,
+          sourceRatio: 16 / 9,
+          status: converting ? "converting" : "queued",
+        };
+      });
+
+      setSlides(nextSlides);
+      setSelectedId(nextSlides[0]?.id ?? null);
       setHandlePositions([]);
       setExportUrl(null);
       setExportName(normalizePdfName(pdfBaseName));
       setZoomMode("fit");
       setWorkerError("");
-      setBusyText(hasHeif ? (localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF") : "");
+      setBusyText(hasHeif ? copy[localeRef.current].converting : "");
 
-      const files: File[] = [];
-      try {
-        for (let index = 0; index < inputFiles.length; index += 1) {
-          if (loadTokenRef.current !== token) return;
-          const file = inputFiles[index];
-          if (isHeifImage(file)) {
-            const prefix = localeRef.current === "zh-CN" ? "正在转换 HEIC/HEIF" : "Converting HEIC/HEIF";
-            setBusyText(`${prefix} ${index + 1}/${inputFiles.length}`);
-          }
-          files.push(await normalizeImageFile(file));
-        }
-      } catch (error) {
+      let firstConversionError = "";
+      for (let index = 0; index < inputFiles.length; index += 1) {
         if (loadTokenRef.current !== token) return;
-        setBusyText("");
-        setWorkerError(messageFromError(error));
-        return;
+        const file = inputFiles[index];
+        if (!isHeifImage(file)) continue;
+
+        setBusyText(`${copy[localeRef.current].converting} ${index + 1}/${inputFiles.length}`);
+        const id = nextSlides[index].id;
+        try {
+          const normalizedFile = await normalizeImageFile(file);
+          if (loadTokenRef.current !== token) return;
+          const url = URL.createObjectURL(normalizedFile);
+          setSlides((current) =>
+            current.map((slide) =>
+              slide.id === id
+                ? {
+                    ...slide,
+                    file: normalizedFile,
+                    name: normalizedFile.name,
+                    url,
+                    method: "queued",
+                    status: "queued",
+                  }
+                : slide,
+            ),
+          );
+        } catch (error) {
+          if (loadTokenRef.current !== token) return;
+          const message = messageFromError(error);
+          if (!firstConversionError) firstConversionError = message;
+          setSlides((current) =>
+            current.map((slide) =>
+              slide.id === id
+                ? { ...slide, method: "conversion-error", status: "error", error: message }
+                : slide,
+            ),
+          );
+        }
       }
-      if (loadTokenRef.current !== token) return;
 
-      const nextSlides: SlideItem[] = files.map((file, index) => ({
-        id: makeId(file, index),
-        file,
-        name: file.name,
-        url: URL.createObjectURL(file),
-        width: 0,
-        height: 0,
-        quad: null,
-        autoQuad: null,
-        method: "queued",
-        confidence: 0,
-        status: "queued",
-      }));
-
-      setSlides(nextSlides);
-      setSelectedId(nextSlides[0]?.id ?? null);
       setBusyText("");
+      if (firstConversionError) setWorkerError(firstConversionError);
     },
     [cancelActiveDrag, pdfBaseName],
   );
@@ -1520,9 +2121,16 @@ export function SlidesThiefApp() {
     const stage = stageRef.current;
     const slide = selectedSlide;
     if (!canvas || !stage || !slide) return;
+    if (!slide.url) {
+      imageCacheRef.current = null;
+      canvasRenderRef.current = null;
+      setHandlePositions([]);
+      return;
+    }
 
     const renderImage = (image: HTMLImageElement) => {
       if (imageCacheRef.current?.image !== image) return;
+      setPreviewErrorSlideId((current) => (current === slide.id ? null : current));
       if (!slide.width || !slide.height) {
         setSlides((current) =>
           current.map((item) =>
@@ -1611,7 +2219,7 @@ export function SlidesThiefApp() {
       } else {
         cached.image.onload = () => renderImage(cached.image);
         cached.image.onerror = () => {
-          if (imageCacheRef.current?.image === cached.image) setWorkerError("Cannot render this image in the browser.");
+          if (imageCacheRef.current?.image === cached.image) setPreviewErrorSlideId(slide.id);
         };
       }
       return;
@@ -1622,16 +2230,19 @@ export function SlidesThiefApp() {
     imageCacheRef.current = { id: slide.id, url: slide.url, image };
     image.onload = () => renderImage(image);
     image.onerror = () => {
-      if (imageCacheRef.current?.image === image) setWorkerError("Cannot render this image in the browser.");
+      if (imageCacheRef.current?.image === image) setPreviewErrorSlideId(slide.id);
     };
     image.src = slide.url;
   }, [paintCanvas, selectedSlide, zoom, zoomMode]);
 
   useEffect(() => {
-    redrawCanvas();
+    const initialFrame = window.requestAnimationFrame(redrawCanvas);
     const observer = new ResizeObserver(redrawCanvas);
     if (stageRef.current) observer.observe(stageRef.current);
-    return () => observer.disconnect();
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      observer.disconnect();
+    };
   }, [redrawCanvas]);
 
   const updateSlideQuad = useCallback((id: string, nextQuad: Quad) => {
@@ -1644,7 +2255,15 @@ export function SlidesThiefApp() {
               slide_id: id,
             });
           }
-          return { ...slide, quad: nextQuad, method: "manual" };
+          return {
+            ...slide,
+            quad: nextQuad,
+            method: "manual",
+            confidence: 1,
+            needsReview: false,
+            reviewReasons: [],
+            reviewedByUser: true,
+          };
         }
         return slide;
       }),
@@ -1731,12 +2350,17 @@ export function SlidesThiefApp() {
       dragFrameRef.current = null;
     }
     const latest = latestDragQuadRef.current;
+    const handleIndex = dragHandleRef.current;
     if (latest) {
       paintCanvas(latest.quad);
       const render = canvasRenderRef.current;
       if (render) setHandlePositions(quadHandlePositions(latest.quad, render.padX, render.padY, render.scale));
       updateSlideQuad(latest.id, latest.quad);
       void refreshSlideThumbnail(latest.id, latest.quad);
+      if (handleIndex !== null) {
+        const [x, y] = latest.quad[handleIndex];
+        setCornerAnnouncement(`${text.cornerHandle} ${handleIndex + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`);
+      }
     }
     latestDragQuadRef.current = null;
     activePointerRef.current = null;
@@ -1785,31 +2409,44 @@ export function SlidesThiefApp() {
     latestDragQuadRef.current = null;
     updateSlideQuad(selectedSlide.id, next);
     void refreshSlideThumbnail(selectedSlide.id, next);
+    setCornerAnnouncement(
+      `${text.cornerHandle} ${index + 1}: X ${Math.round(next[index][0])}, Y ${Math.round(next[index][1])}`,
+    );
   };
 
   const runAutoWithSettings = useCallback(
     (overrideSettings?: Settings) => {
-      if (!slides.length) return;
+      const processableSlides = slides.filter(
+        (slide) => slide.status !== "converting" && slide.method !== "conversion-error" && slide.url,
+      );
+      if (!processableSlides.length) return;
       cancelActiveDrag();
       const worker = ensureWorker();
       if (!worker) return;
       clearExport();
       setWorkerError("");
       setBusyText(text.stretching);
+      autoReviewSelectedRef.current = false;
       const targetSettings = overrideSettings ?? settings;
+      const processableIds = new Set(processableSlides.map((slide) => slide.id));
       setSlides((current) =>
-        current.map((slide) => ({
-          ...slide,
-          status: "detecting",
-          method: "detecting",
-          quad: null,
-          thumbnailUrl: undefined,
-          error: undefined,
-        })),
+        current.map((slide) =>
+          processableIds.has(slide.id)
+            ? {
+                ...slide,
+                status: "detecting",
+                method: "detecting",
+                reviewedByUser: false,
+                quad: null,
+                thumbnailUrl: undefined,
+                error: undefined,
+              }
+            : slide,
+        ),
       );
       worker.postMessage({
         type: "detect",
-        files: slides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+        files: processableSlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
         settings: targetSettings,
       });
     },
@@ -1843,7 +2480,16 @@ export function SlidesThiefApp() {
 
   const exportPdf = () => {
     if (!readySlides.length) return;
-    const worker = ensureWorker();
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (pagesNeedingReview.length) {
+      const shouldContinue = window.confirm(reviewText.reviewConfirmation(pagesNeedingReview.length));
+      if (!shouldContinue) {
+        setSelectedId(pagesNeedingReview[0].id);
+        setZoomMode("fit");
+        return;
+      }
+    }
+    const worker = ensureExportWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
     clearExport();
@@ -1857,6 +2503,7 @@ export function SlidesThiefApp() {
         id: slide.id,
         name: slide.name,
         quad: slide.quad,
+        sourceRatio: slide.sourceRatio,
       })),
       settings,
       filename,
@@ -1889,17 +2536,23 @@ export function SlidesThiefApp() {
   const metrics = selectedSlide
     ? [
         [text.file, selectedSlide.name],
-        [text.status, selectedSlide.status === "queued" ? text.pending : selectedSlide.status],
+        [
+          text.status,
+          slideStatusText(selectedSlide),
+        ],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
-        [text.method, selectedSlide.method],
+        [text.ratio, `${resolvedSlideRatio(selectedSlide, settings).toFixed(3)} : 1`],
+        [text.method, detectionMethodText(selectedSlide.method, locale)],
         [text.confidence, confidenceText(selectedSlide.confidence)],
-        ["Privacy", text.noUpload],
+        [reviewText.privacy, text.noUpload],
       ]
     : [];
+  const ratioUi = ratioUiCopy[locale];
+  const currentPageLayout = pageLayoutMode(settings.outputPageRatio, settings.height);
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
-      <header className="topbar">
+      <header className="topbar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
         <div className="brand">
           <div className="mark" aria-label={text.brandMark} role="img">
             <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1929,17 +2582,14 @@ export function SlidesThiefApp() {
             {settingsOpen && (
               <div className="settingsMenuBody">
                 <label className="ratioSetting">
-                  <span>{text.ratio}</span>
+                  <span>{ratioUi.sourceFormat}</span>
                   <select
-                    value={settings.ratio}
+                    value={settings.sourceFormat}
                     onChange={(event) => {
-                      const nextRatio = event.target.value as RatioValue;
-                      const isPaper = isPaperRatio(nextRatio);
+                      const sourceFormat = event.target.value as SourceFormat;
                       const nextSettings: Settings = {
                         ...settings,
-                        ratio: nextRatio,
-                        height: null,
-                        fillColor: isPaper ? "#ffffff" : settings.fillColor,
+                        sourceFormat,
                       };
                       updateSettings(() => nextSettings);
                       if (hasRun) {
@@ -1947,14 +2597,38 @@ export function SlidesThiefApp() {
                       }
                     }}
                   >
-                    <option value="16:9">{text.ratio16x9}</option>
-                    <option value="4:3">{text.ratio4x3}</option>
-                    <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                    <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                    <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                    <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+                    <optgroup label={ratioUi.presentationGroup}>
+                      <option value="16:9">{text.ratio16x9}</option>
+                      <option value="4:3">{text.ratio4x3}</option>
+                      <option value="16:10">16:10</option>
+                    </optgroup>
+                    <optgroup label={ratioUi.documentGroup}>
+                      <option value="A4-portrait">{text.ratioA4Portrait}</option>
+                      <option value="A4-landscape">{text.ratioA4Landscape}</option>
+                      <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+                      <option value="letter-landscape">{text.ratioLetterLandscape}</option>
+                    </optgroup>
+                    <option value="custom">{ratioUi.custom}</option>
                   </select>
                 </label>
+                {settings.sourceFormat === "custom" && (
+                  <label className="sourceCustomSetting">
+                    <span>{ratioUi.customRatio}</span>
+                    <input
+                      type="number"
+                      min={0.2}
+                      max={5}
+                      step={0.01}
+                      value={settings.sourceCustomRatio ?? 16 / 9}
+                      onChange={(event) => {
+                        const sourceCustomRatio = Math.max(0.2, Math.min(5, Number(event.target.value) || 16 / 9));
+                        const nextSettings = { ...settings, sourceCustomRatio };
+                        updateSettings(() => nextSettings);
+                        if (hasRun) runAutoWithSettings(nextSettings);
+                      }}
+                    />
+                  </label>
+                )}
                 <details
                   className="moreSettings"
                   ref={moreSettingsRef}
@@ -1967,6 +2641,77 @@ export function SlidesThiefApp() {
                 >
                   <summary>{text.more}</summary>
                   <div className="morePanel">
+                    <label>
+                      <span>{ratioUi.pageLayout}</span>
+                      <select
+                        value={currentPageLayout}
+                        onChange={(event) => {
+                          const nextLayout = event.target.value as PageLayoutMode;
+                          updateSettings((current) => {
+                            if (nextLayout === "paper") {
+                              const sourceRatio = sourceFormatRatioValue(
+                                current.sourceFormat,
+                                current.sourceCustomRatio,
+                                selectedSlide?.sourceRatio,
+                              );
+                              const outputPageRatio = isPaperRatio(current.outputPageRatio)
+                                ? current.outputPageRatio
+                                : sourceRatio >= 1
+                                  ? "A4-landscape"
+                                  : "A4-portrait";
+                              return {
+                                ...current,
+                                outputPageRatio,
+                                height: null,
+                              };
+                            }
+                            if (nextLayout === "custom-size") {
+                              const sourceRatio = sourceFormatRatioValue(
+                                current.sourceFormat,
+                                current.sourceCustomRatio,
+                                selectedSlide?.sourceRatio,
+                              );
+                              const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
+                              return {
+                                ...current,
+                                outputPageRatio: "match-source",
+                                height: Math.max(600, Math.min(6000, Math.round(current.width / ratio))),
+                              };
+                            }
+                            return {
+                              ...current,
+                              outputPageRatio: "match-source",
+                              height: null,
+                            };
+                          });
+                        }}
+                      >
+                        <option value="match-source">{ratioUi.matchSource}</option>
+                        <option value="paper">{ratioUi.standardPaper}</option>
+                        <option value="custom-size">{ratioUi.customPage}</option>
+                      </select>
+                    </label>
+                    {currentPageLayout === "paper" && (
+                      <label>
+                        <span>{ratioUi.paperFormat}</span>
+                        <select
+                          value={settings.outputPageRatio}
+                          onChange={(event) => {
+                            const outputPageRatio = event.target.value as OutputPageRatio;
+                            updateSettings((current) => ({
+                              ...current,
+                              outputPageRatio,
+                              height: null,
+                            }));
+                          }}
+                        >
+                          <option value="A4-landscape">{text.ratioA4Landscape}</option>
+                          <option value="A4-portrait">{text.ratioA4Portrait}</option>
+                          <option value="letter-landscape">{text.ratioLetterLandscape}</option>
+                          <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+                        </select>
+                      </label>
+                    )}
                     <label>
                       <span>{text.width}</span>
                       <input
@@ -1982,24 +2727,23 @@ export function SlidesThiefApp() {
                         }
                       />
                     </label>
-                    <label>
-                      <span>{text.height}</span>
-                      <input
-                        type="number"
-                        min={600}
-                        max={6000}
-                        placeholder={text.heightAuto}
-                        value={settings.height ?? ""}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            height: event.target.value
-                              ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
-                              : null,
-                          }))
-                        }
-                      />
-                    </label>
+                    {currentPageLayout === "custom-size" && (
+                      <label>
+                        <span>{text.height}</span>
+                        <input
+                          type="number"
+                          min={600}
+                          max={6000}
+                          value={settings.height ?? 1350}
+                          onChange={(event) =>
+                            updateSettings((current) => ({
+                              ...current,
+                              height: Math.max(600, Math.min(6000, Number(event.target.value) || 600)),
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
                     <label>
                       <span>{text.quality}</span>
                       <input
@@ -2032,19 +2776,39 @@ export function SlidesThiefApp() {
                         <option value="bw">{text.enhancementBw}</option>
                       </select>
                     </label>
-                    <label className="colorSetting">
-                      <span>{text.fillColor}</span>
-                      <input
-                        type="color"
-                        value={settings.fillColor}
-                        onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
-                      />
-                    </label>
+                    <div
+                      className="colorSetting"
+                      role="group"
+                      aria-labelledby="fill-color-label"
+                    >
+                      <span id="fill-color-label">{text.fillColor}</span>
+                      <div className="colorControls">
+                        <button
+                          type="button"
+                          aria-pressed={settings.fillColor === "auto"}
+                          onClick={() => updateSettings((current) => ({ ...current, fillColor: "auto" }))}
+                        >
+                          {text.auto}
+                        </button>
+                        <input
+                          type="color"
+                          className={settings.fillColor === "auto" ? undefined : "isActive"}
+                          aria-label={text.fillColor}
+                          value={settings.fillColor === "auto" ? "#111111" : settings.fillColor}
+                          onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
+                        />
+                      </div>
+                    </div>
                   </div>
                 </details>
                 <label className="pdfNameSetting">
                   <span>{text.pdfName}</span>
-                  <input value={pdfBaseName} onChange={(event) => setPdfBaseName(event.target.value)} type="text" />
+                  <input
+                    value={pdfBaseName}
+                    maxLength={PDF_BASENAME_MAX_LENGTH}
+                    onChange={(event) => setPdfBaseName(sanitizePdfBaseName(event.target.value))}
+                    type="text"
+                  />
                   <span className="fileSuffix">.pdf</span>
                 </label>
               </div>
@@ -2053,7 +2817,11 @@ export function SlidesThiefApp() {
         </div>
       </header>
 
-      <main className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}>
+      <main
+        className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}
+        aria-hidden={isInfoOpen || undefined}
+        inert={isInfoOpen ? true : undefined}
+      >
         <aside className="sidebar">
           <div className="sidebarActions">
             <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
@@ -2085,7 +2853,7 @@ export function SlidesThiefApp() {
             <h2>{text.images}</h2>
             <span className="count">{slides.length}</span>
           </div>
-          <div>
+          <div className="sidebarFilePicker">
             <input
               ref={inputRef}
               className="fileInput"
@@ -2135,23 +2903,43 @@ export function SlidesThiefApp() {
                     onClick={() => selectAt(index)}
                   >
                     <div className="idx">{String(index + 1).padStart(2, "0")}</div>
-                    {/* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */}
-                    <img
-                      className="thumb"
-                      src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                    />
+                    {slide.url ? (
+                      /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
+                      <img
+                        className="thumb"
+                        src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
+                        alt=""
+                        loading="lazy"
+                        decoding="async"
+                      />
+                    ) : (
+                      <div className="thumb thumbPlaceholder" aria-hidden="true">
+                        HEIC
+                      </div>
+                    )}
                     <div className="name" title={slide.name}>
                       {displayFileName(slide.name, isMobile)}
                     </div>
                     {hasRun ? (
-                      <div className={`badge ${slide.confidence < 0.65 ? "low" : ""}`}>
-                        {slide.status === "ready" ? confidenceText(slide.confidence) : slide.status}
+                      <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
+                        {slide.status === "ready"
+                          ? slide.needsReview
+                            ? `! ${reviewText.reviewSuggested}`
+                            : slide.method === "manual"
+                              ? `✓ ${text.manualAdjusted}`
+                              : `✓ ${reviewText.automaticRecognized}`
+                          : slide.status === "error"
+                            ? `× ${text.failed}`
+                            : slideStatusText(slide)}
                       </div>
                     ) : (
-                      <div className="sub">{formatBytes(slide.file.size)}</div>
+                      <div className="sub">
+                        {slide.status === "converting"
+                          ? text.converting
+                          : slide.status === "error"
+                            ? text.failed
+                            : formatBytes(slide.file.size)}
+                      </div>
                     )}
                   </button>
                 );
@@ -2205,13 +2993,16 @@ export function SlidesThiefApp() {
           </div>
           <div className="stage" ref={stageRef}>
             <div className="canvasShell">
-              {selectedSlide ? (
+              {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
                 <div className="canvasWrap">
                   <canvas ref={canvasRef} aria-label={text.adjustCorners}>
                     {text.adjustCorners}
                   </canvas>
+                  <span id="cornerKeyboardHelp" className="srOnly">
+                    {text.cornerKeyboardHelp}
+                  </span>
                   {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
-                    ? selectedSlide.quad.map((_, index) => {
+                    ? selectedSlide.quad.map(([x, y], index) => {
                         const position = handlePositions[index] ?? { left: 0, top: 0 };
                         return (
                           <button
@@ -2222,7 +3013,8 @@ export function SlidesThiefApp() {
                             }}
                             className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
                             style={{ left: position.left, top: position.top }}
-                            aria-label={`${text.cornerHandle} ${index + 1}`}
+                            aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
+                            aria-describedby="cornerKeyboardHelp"
                             title={text.adjustCorners}
                             onPointerDown={(event) => onHandlePointerDown(index, event)}
                             onPointerMove={onHandlePointerMove}
@@ -2236,7 +3028,13 @@ export function SlidesThiefApp() {
                     : null}
                 </div>
               ) : (
-                <div className="empty">{text.empty}</div>
+                <div className="empty">
+                  {selectedSlide && previewErrorSlideId === selectedSlide.id
+                    ? text.previewError
+                    : selectedSlide?.status === "converting"
+                    ? text.converting
+                    : selectedSlide?.error ?? text.empty}
+                </div>
               )}
             </div>
           </div>
@@ -2284,8 +3082,13 @@ export function SlidesThiefApp() {
         </aside>
       </main>
 
-      <footer className="prefsBar">
+      <p className="srOnly" aria-live="polite" aria-atomic="true">
+        {cornerAnnouncement}
+      </p>
+
+      <footer className="prefsBar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
         <button
+          ref={infoButtonRef}
           type="button"
           className="icon infoButton"
           title={text.infoTitle}
@@ -2320,10 +3123,23 @@ export function SlidesThiefApp() {
 
       {isInfoOpen && (
         <div className="modalOverlay" onClick={() => setIsInfoOpen(false)}>
-          <div className="modalCard" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={infoModalRef}
+            className="modalCard"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="info-modal-title"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modalHeader">
-              <h3>{text.infoTitle}</h3>
-              <button className="closeButton" type="button" onClick={() => setIsInfoOpen(false)} aria-label="Close">
+              <h3 id="info-modal-title">{text.infoTitle}</h3>
+              <button
+                ref={closeInfoButtonRef}
+                className="closeButton"
+                type="button"
+                onClick={() => setIsInfoOpen(false)}
+                aria-label={text.close}
+              >
                 &times;
               </button>
             </div>
