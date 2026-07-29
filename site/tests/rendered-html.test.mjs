@@ -82,6 +82,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /className="prefsBar"/);
   assert.match(app, /className="settingsMenu"/);
   assert.match(app, /settings: "Settings"/);
+  assert.match(app, /slideRatio: "Slide ratio"/);
+  assert.match(app, /pageLayout: "Page layout"/);
+  assert.match(app, /fitSlide: "Fit to slide \(recommended\)"/);
+  assert.doesNotMatch(app, /PDF page ratio/);
   assert.match(app, /"zh-TW"/);
   assert.match(app, /Español/);
   assert.match(app, /Français/);

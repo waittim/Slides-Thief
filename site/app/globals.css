@@ -292,12 +292,16 @@ a:hover {
 }
 
 .settingsMenuBody {
-  --settings-columns: max-content max-content 284px minmax(16px, 1fr);
+  --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
   grid-template-columns: var(--settings-columns);
   gap: 8px;
   align-items: center;
   min-width: 0;
+}
+
+.settingsMenuBody:has(> .sourceCustomSetting) {
+  --settings-columns: max-content max-content max-content minmax(240px, 1fr);
 }
 
 .settings:has(.moreSettings[open]) {
@@ -1182,6 +1186,10 @@ canvas {
     box-shadow: var(--shadow);
   }
 
+  .settingsMenuBody:has(> .sourceCustomSetting) {
+    --settings-columns: none;
+  }
+
   .settingsMenu[open] > .settingsMenuBody {
     display: grid;
     max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 80px);
@@ -1189,6 +1197,7 @@ canvas {
   }
 
   .settingsMenuBody > .ratioSetting,
+  .settingsMenuBody > .sourceCustomSetting,
   .settingsMenuBody > .pdfNameSetting {
     display: grid;
     grid-template-columns: 82px minmax(0, 1fr);
@@ -1203,6 +1212,7 @@ canvas {
   }
 
   .settingsMenuBody > .ratioSetting > select,
+  .settingsMenuBody > .sourceCustomSetting > input[type="number"],
   .settingsMenuBody > .pdfNameSetting > input[type="text"] {
     flex: none;
     width: 100%;

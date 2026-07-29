@@ -6,8 +6,10 @@ import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
 import {
   isPaperRatio,
   outputPageRatioValue,
+  pageLayoutMode,
   sourceSlideRatioValue,
   type OutputPageRatio,
+  type PageLayoutMode,
   type SourceSlideRatio,
 } from "./ratio";
 
@@ -140,6 +142,108 @@ const localeOptions: { value: LocaleValue; label: string }[] = [
   { value: "ko", label: "한국어" },
   { value: "pt-BR", label: "Português" },
 ];
+
+const ratioUiCopy: Record<LocaleValue, {
+  slideRatio: string;
+  custom: string;
+  customRatio: string;
+  pageLayout: string;
+  fitSlide: string;
+  paperLayout: string;
+  customSize: string;
+  paperFormat: string;
+}> = {
+  "zh-CN": {
+    slideRatio: "幻灯片比例",
+    custom: "自定义",
+    customRatio: "自定义比例",
+    pageLayout: "页面版式",
+    fitSlide: "紧贴幻灯片（推荐）",
+    paperLayout: "纸张版式",
+    customSize: "自定义尺寸",
+    paperFormat: "纸张规格",
+  },
+  "zh-TW": {
+    slideRatio: "投影片比例",
+    custom: "自訂",
+    customRatio: "自訂比例",
+    pageLayout: "頁面版式",
+    fitSlide: "貼合投影片（建議）",
+    paperLayout: "紙張版式",
+    customSize: "自訂尺寸",
+    paperFormat: "紙張規格",
+  },
+  en: {
+    slideRatio: "Slide ratio",
+    custom: "Custom",
+    customRatio: "Custom ratio",
+    pageLayout: "Page layout",
+    fitSlide: "Fit to slide (recommended)",
+    paperLayout: "Paper layout",
+    customSize: "Custom size",
+    paperFormat: "Paper format",
+  },
+  es: {
+    slideRatio: "Relación de diapositiva",
+    custom: "Personalizada",
+    customRatio: "Relación personalizada",
+    pageLayout: "Diseño de página",
+    fitSlide: "Ajustar a la diapositiva (recomendado)",
+    paperLayout: "Formato de papel",
+    customSize: "Tamaño personalizado",
+    paperFormat: "Papel",
+  },
+  fr: {
+    slideRatio: "Format de la diapositive",
+    custom: "Personnalisé",
+    customRatio: "Format personnalisé",
+    pageLayout: "Mise en page",
+    fitSlide: "Ajuster à la diapositive (recommandé)",
+    paperLayout: "Format papier",
+    customSize: "Taille personnalisée",
+    paperFormat: "Papier",
+  },
+  de: {
+    slideRatio: "Folienformat",
+    custom: "Benutzerdefiniert",
+    customRatio: "Eigenes Seitenverhältnis",
+    pageLayout: "Seitenlayout",
+    fitSlide: "An Folie anpassen (empfohlen)",
+    paperLayout: "Papierformat",
+    customSize: "Eigene Größe",
+    paperFormat: "Papier",
+  },
+  ja: {
+    slideRatio: "スライド比率",
+    custom: "カスタム",
+    customRatio: "カスタム比率",
+    pageLayout: "ページレイアウト",
+    fitSlide: "スライドに合わせる（推奨）",
+    paperLayout: "用紙レイアウト",
+    customSize: "カスタムサイズ",
+    paperFormat: "用紙サイズ",
+  },
+  ko: {
+    slideRatio: "슬라이드 비율",
+    custom: "사용자 지정",
+    customRatio: "사용자 지정 비율",
+    pageLayout: "페이지 레이아웃",
+    fitSlide: "슬라이드에 맞춤(권장)",
+    paperLayout: "용지 레이아웃",
+    customSize: "사용자 지정 크기",
+    paperFormat: "용지 규격",
+  },
+  "pt-BR": {
+    slideRatio: "Proporção do slide",
+    custom: "Personalizada",
+    customRatio: "Proporção personalizada",
+    pageLayout: "Layout da página",
+    fitSlide: "Ajustar ao slide (recomendado)",
+    paperLayout: "Layout de papel",
+    customSize: "Tamanho personalizado",
+    paperFormat: "Papel",
+  },
+};
 
 const copy = {
   "zh-CN": {
@@ -2122,6 +2226,8 @@ export function SlidesThiefApp() {
         ["Privacy", text.noUpload],
       ]
     : [];
+  const ratioUi = ratioUiCopy[locale];
+  const currentPageLayout = pageLayoutMode(settings.outputPageRatio, settings.height);
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
@@ -2155,7 +2261,7 @@ export function SlidesThiefApp() {
             {settingsOpen && (
               <div className="settingsMenuBody">
                 <label className="ratioSetting">
-                  <span>{locale === "zh-CN" ? "幻灯片原始比例" : "Source slide ratio"}</span>
+                  <span>{ratioUi.slideRatio}</span>
                   <select
                     value={settings.sourceSlideRatio}
                     onChange={(event) => {
@@ -2173,12 +2279,12 @@ export function SlidesThiefApp() {
                     <option value="16:9">{text.ratio16x9}</option>
                     <option value="4:3">{text.ratio4x3}</option>
                     <option value="16:10">16:10</option>
-                    <option value="custom">{locale === "zh-CN" ? "自定义" : "Custom"}</option>
+                    <option value="custom">{ratioUi.custom}</option>
                   </select>
                 </label>
                 {settings.sourceSlideRatio === "custom" && (
-                  <label>
-                    <span>{locale === "zh-CN" ? "自定义比例" : "Custom ratio"}</span>
+                  <label className="sourceCustomSetting">
+                    <span>{ratioUi.customRatio}</span>
                     <input
                       type="number"
                       min={0.2}
@@ -2194,32 +2300,6 @@ export function SlidesThiefApp() {
                     />
                   </label>
                 )}
-                <label className="ratioSetting">
-                  <span>{locale === "zh-CN" ? "PDF 页面比例" : "PDF page ratio"}</span>
-                  <select
-                    value={settings.outputPageRatio}
-                    onChange={(event) => {
-                      const outputPageRatio = event.target.value as OutputPageRatio;
-                      const isPaper = outputPageRatio !== "match-slide" && isPaperRatio(outputPageRatio);
-                      updateSettings((current) => ({
-                        ...current,
-                        outputPageRatio,
-                        height: null,
-                        fillColor: isPaper ? "#ffffff" : current.fillColor,
-                      }));
-                    }}
-                  >
-                    <option value="match-slide">
-                      {locale === "zh-CN" ? "与幻灯片一致" : "Match slide"}
-                    </option>
-                    <option value="16:9">{text.ratio16x9}</option>
-                    <option value="4:3">{text.ratio4x3}</option>
-                    <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                    <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                    <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                    <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                  </select>
-                </label>
                 <details
                   className="moreSettings"
                   ref={moreSettingsRef}
@@ -2232,6 +2312,71 @@ export function SlidesThiefApp() {
                 >
                   <summary>{text.more}</summary>
                   <div className="morePanel">
+                    <label>
+                      <span>{ratioUi.pageLayout}</span>
+                      <select
+                        value={currentPageLayout}
+                        onChange={(event) => {
+                          const nextLayout = event.target.value as PageLayoutMode;
+                          updateSettings((current) => {
+                            if (nextLayout === "paper") {
+                              const outputPageRatio = isPaperRatio(current.outputPageRatio)
+                                ? current.outputPageRatio
+                                : "A4-landscape";
+                              return {
+                                ...current,
+                                outputPageRatio,
+                                height: null,
+                                fillColor: "#ffffff",
+                              };
+                            }
+                            if (nextLayout === "custom-size") {
+                              const sourceRatio = sourceSlideRatioValue(
+                                current.sourceSlideRatio,
+                                current.sourceCustomRatio,
+                              );
+                              const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
+                              return {
+                                ...current,
+                                outputPageRatio: "match-slide",
+                                height: Math.max(600, Math.min(6000, Math.round(current.width / ratio))),
+                              };
+                            }
+                            return {
+                              ...current,
+                              outputPageRatio: "match-slide",
+                              height: null,
+                            };
+                          });
+                        }}
+                      >
+                        <option value="fit-slide">{ratioUi.fitSlide}</option>
+                        <option value="paper">{ratioUi.paperLayout}</option>
+                        <option value="custom-size">{ratioUi.customSize}</option>
+                      </select>
+                    </label>
+                    {currentPageLayout === "paper" && (
+                      <label>
+                        <span>{ratioUi.paperFormat}</span>
+                        <select
+                          value={settings.outputPageRatio}
+                          onChange={(event) => {
+                            const outputPageRatio = event.target.value as OutputPageRatio;
+                            updateSettings((current) => ({
+                              ...current,
+                              outputPageRatio,
+                              height: null,
+                              fillColor: "#ffffff",
+                            }));
+                          }}
+                        >
+                          <option value="A4-landscape">{text.ratioA4Landscape}</option>
+                          <option value="A4-portrait">{text.ratioA4Portrait}</option>
+                          <option value="letter-landscape">{text.ratioLetterLandscape}</option>
+                          <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+                        </select>
+                      </label>
+                    )}
                     <label>
                       <span>{text.width}</span>
                       <input
@@ -2247,24 +2392,23 @@ export function SlidesThiefApp() {
                         }
                       />
                     </label>
-                    <label>
-                      <span>{text.height}</span>
-                      <input
-                        type="number"
-                        min={600}
-                        max={6000}
-                        placeholder={text.heightAuto}
-                        value={settings.height ?? ""}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            height: event.target.value
-                              ? Math.max(600, Math.min(6000, Number(event.target.value) || 600))
-                              : null,
-                          }))
-                        }
-                      />
-                    </label>
+                    {currentPageLayout === "custom-size" && (
+                      <label>
+                        <span>{text.height}</span>
+                        <input
+                          type="number"
+                          min={600}
+                          max={6000}
+                          value={settings.height ?? 1350}
+                          onChange={(event) =>
+                            updateSettings((current) => ({
+                              ...current,
+                              height: Math.max(600, Math.min(6000, Number(event.target.value) || 600)),
+                            }))
+                          }
+                        />
+                      </label>
+                    )}
                     <label>
                       <span>{text.quality}</span>
                       <input

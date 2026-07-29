@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { parseRatio, isPaperRatio } = await import(
+const { parseRatio, isPaperRatio, pageLayoutMode } = await import(
   new URL("../app/ratio.ts", import.meta.url).href
 );
 
@@ -42,4 +42,13 @@ test("isPaperRatio recognizes paper ratios case-insensitively", () => {
   assert.equal(isPaperRatio("4:3"), false);
   assert.equal(isPaperRatio("custom"), false);
   assert.equal(isPaperRatio(""), false);
+});
+
+test("pageLayoutMode progressively discloses paper and custom page settings", () => {
+  assert.equal(pageLayoutMode("match-slide", null), "fit-slide");
+  assert.equal(pageLayoutMode("16:9", null), "fit-slide");
+  assert.equal(pageLayoutMode("A4-landscape", null), "paper");
+  assert.equal(pageLayoutMode("letter-portrait", null), "paper");
+  assert.equal(pageLayoutMode("match-slide", 1350), "custom-size");
+  assert.equal(pageLayoutMode("A4-landscape", 1350), "custom-size");
 });

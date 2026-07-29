@@ -13,6 +13,8 @@ export type OutputPageRatio =
   | "letter-landscape"
   | "letter-portrait";
 
+export type PageLayoutMode = "fit-slide" | "paper" | "custom-size";
+
 /** @deprecated Use SourceSlideRatio or OutputPageRatio at the appropriate boundary. */
 export type RatioValue = Exclude<OutputPageRatio, "match-slide">;
 
@@ -80,4 +82,12 @@ export function outputPageRatioValue(
   sourceRatio: number,
 ): number {
   return value === "match-slide" ? sourceRatio : parseRatio(value);
+}
+
+export function pageLayoutMode(
+  outputPageRatio: OutputPageRatio,
+  outputHeight: number | null,
+): PageLayoutMode {
+  if (outputHeight !== null) return "custom-size";
+  return isPaperRatio(outputPageRatio) ? "paper" : "fit-slide";
 }
