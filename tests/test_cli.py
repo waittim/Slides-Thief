@@ -9,6 +9,8 @@ from slides_thief.cli import (
     parse_ratio,
     resolve_enhancement_mode,
     warp_slide,
+    warp_slide_contained,
+    detect_quad,
 )
 
 
@@ -111,3 +113,29 @@ def test_resolve_enhancement_mode_prefers_grayscale_alias() -> None:
         grayscale = True
 
     assert resolve_enhancement_mode(Args()) == "bw"
+
+
+def test_fallback_detection_is_always_marked_for_review() -> None:
+    image = Image.new("RGB", (160, 100), (0, 0, 0))
+    _, diagnostics = detect_quad(image, 16 / 9)
+
+    assert diagnostics["method"].startswith("fallback-frame")
+    assert diagnostics["confidence"] == 0
+    assert diagnostics["needs_review"] is True
+    assert diagnostics["review_reasons"] == ["fallback_used"]
+
+
+def test_contained_warp_preserves_source_ratio_on_paper_page() -> None:
+    image = Image.new("RGB", (160, 90), (20, 40, 220))
+    quad = np.array([[0, 0], [159, 0], [159, 89], [0, 89]], dtype=np.float64)
+    page = warp_slide_contained(
+        image,
+        quad,
+        page_w=297,
+        page_h=210,
+        source_ratio=16 / 9,
+        fill_color=(255, 255, 255),
+    )
+
+    assert page.getpixel((148, 0)) == (255, 255, 255)
+    assert page.getpixel((148, 105))[2] > 180

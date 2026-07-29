@@ -1,4 +1,11 @@
-export type RatioValue =
+export type SourceSlideRatio =
+  | "16:9"
+  | "4:3"
+  | "16:10"
+  | "custom";
+
+export type OutputPageRatio =
+  | "match-slide"
   | "16:9"
   | "4:3"
   | "A4-landscape"
@@ -6,9 +13,13 @@ export type RatioValue =
   | "letter-landscape"
   | "letter-portrait";
 
+/** @deprecated Use SourceSlideRatio or OutputPageRatio at the appropriate boundary. */
+export type RatioValue = Exclude<OutputPageRatio, "match-slide">;
+
 export const RATIO_PRESETS: Record<string, number> = {
   "16:9": 16 / 9,
   "4:3": 4 / 3,
+  "16:10": 16 / 10,
   "a4": 297 / 210,
   "a4-landscape": 297 / 210,
   "a3": 297 / 210,
@@ -55,4 +66,18 @@ export function parseRatio(value: string): number {
   }
   const num = Number(value);
   return Number.isFinite(num) && num > 0 ? num : 16 / 9;
+}
+
+export function sourceSlideRatioValue(value: SourceSlideRatio, customRatio?: number): number {
+  if (value === "custom") {
+    return Number.isFinite(customRatio) && (customRatio ?? 0) > 0 ? customRatio! : 16 / 9;
+  }
+  return parseRatio(value);
+}
+
+export function outputPageRatioValue(
+  value: OutputPageRatio,
+  sourceRatio: number,
+): number {
+  return value === "match-slide" ? sourceRatio : parseRatio(value);
 }

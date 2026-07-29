@@ -377,7 +377,16 @@ def detect_quad(
     manual_quad: list[list[float]] | None = None,
 ) -> tuple[np.ndarray, dict]:
     if manual_quad:
-        return np.asarray(manual_quad, dtype=np.float64), {"method": "manual", "confidence": 1.0}
+        return np.asarray(manual_quad, dtype=np.float64), {
+            "method": "manual",
+            "confidence": 1.0,
+            "needs_review": False,
+            "review_reasons": [],
+            "best_score": 1.0,
+            "second_best_score": None,
+            "candidates_evaluated": 1,
+            "diagnostics": {},
+        }
 
     orig_w, orig_h = image.size
     scale = min(1.0, max_width / orig_w)
@@ -394,6 +403,21 @@ def detect_quad(
     if contrast_result is not None:
         quad, diagnostics = contrast_result
         quad /= scale
+        details = {
+            key: value
+            for key, value in diagnostics.items()
+            if key not in {"method", "confidence"}
+        }
+        diagnostics.update(
+            {
+                "needs_review": diagnostics["confidence"] < 0.65,
+                "review_reasons": ["low_confidence"] if diagnostics["confidence"] < 0.65 else [],
+                "best_score": diagnostics["confidence"],
+                "second_best_score": None,
+                "candidates_evaluated": 1,
+                "diagnostics": details,
+            }
+        )
         return quad, diagnostics
 
     # Projected slides/screens in this set are mostly neutral gray, while the
@@ -516,17 +540,29 @@ def detect_quad(
     confidence += 0.15 if ratio * 0.65 <= aspect_est <= ratio * 1.40 else 0.0
 
     quad /= scale
+    is_fallback = method.startswith("fallback-frame")
+    reported_confidence = 0.0 if is_fallback else round(float(min(1.0, confidence)), 3)
     diagnostics = {
         "method": method,
         "threshold": float(threshold),
         "sat_threshold": float(sat_threshold),
-        "confidence": round(float(min(1.0, confidence)), 3),
+        "confidence": reported_confidence,
         "points": {
             "left": len(left_pts),
             "right": len(right_pts),
             "top": len(top_pts),
             "bottom": len(bottom_pts),
         },
+        "needs_review": is_fallback or reported_confidence < 0.65,
+        "review_reasons": ["fallback_used"] if is_fallback else (["low_confidence"] if reported_confidence < 0.65 else []),
+        "best_score": reported_confidence,
+        "second_best_score": None,
+        "candidates_evaluated": 0 if is_fallback else 1,
+    }
+    diagnostics["diagnostics"] = {
+        "threshold": diagnostics["threshold"],
+        "sat_threshold": diagnostics["sat_threshold"],
+        "points": diagnostics["points"],
     }
     return quad, diagnostics
 
@@ -613,6 +649,28 @@ def warp_slide(
         fillcolor=fill_color,
     )
     return warped
+
+
+def warp_slide_contained(
+    image: Image.Image,
+    quad: np.ndarray,
+    page_w: int,
+    page_h: int,
+    source_ratio: float,
+    fill_color: tuple[int, int, int] = (0, 0, 0),
+) -> Image.Image:
+    """Correct to the slide ratio, then contain the slide on the output page."""
+    page_ratio = page_w / page_h
+    if page_ratio > source_ratio:
+        content_h = page_h
+        content_w = max(1, round(content_h * source_ratio))
+    else:
+        content_w = page_w
+        content_h = max(1, round(content_w / source_ratio))
+    corrected = warp_slide(image, quad, content_w, content_h, fill_color=fill_color)
+    page = Image.new("RGB", (page_w, page_h), fill_color)
+    page.paste(corrected, ((page_w - content_w) // 2, (page_h - content_h) // 2))
+    return page
 
 
 def draw_overlay(image: Image.Image, quad: np.ndarray, output: Path) -> None:
@@ -1113,9 +1171,13 @@ def process(args: argparse.Namespace) -> dict:
     input_dir = Path(args.input).expanduser().resolve()
     output_dir = Path(args.output_dir).expanduser().resolve()
     work_dir = Path(args.work_dir).expanduser().resolve()
-    ratio = parse_ratio(args.ratio)
+    legacy_ratio = getattr(args, "ratio", None)
+    source_ratio_name = getattr(args, "source_ratio", None) or legacy_ratio or "16:9"
+    output_ratio_name = getattr(args, "output_ratio", None) or legacy_ratio or "match-slide"
+    source_ratio = parse_ratio(source_ratio_name)
+    page_ratio = source_ratio if output_ratio_name == "match-slide" else parse_ratio(output_ratio_name)
     out_w = int(args.width)
-    out_h = int(round(out_w / ratio))
+    out_h = int(round(out_w / page_ratio))
     if args.height:
         out_h = int(args.height)
 
@@ -1139,7 +1201,7 @@ def process(args: argparse.Namespace) -> dict:
         readable = readable_image(src, converted_dir)
         image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
         manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
-        quad, diagnostics = detect_quad(image, ratio, manual_quad=manual)
+        quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
         review_image = image.copy()
         review_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
         review_asset = review_image_dir / f"{idx:03d}_{src.stem}.jpg"
@@ -1155,10 +1217,19 @@ def process(args: argparse.Namespace) -> dict:
                 "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
                 "method": diagnostics["method"],
                 "confidence": diagnostics["confidence"],
+                "needsReview": diagnostics["needs_review"],
+                "reviewReasons": diagnostics["review_reasons"],
             }
         )
-        fill_color = (255, 255, 255) if is_paper_ratio(args.ratio) else (0, 0, 0)
-        warped = warp_slide(image, quad, out_w, out_h, fill_color=fill_color)
+        fill_color = (255, 255, 255) if is_paper_ratio(output_ratio_name) else (0, 0, 0)
+        warped = warp_slide_contained(
+            image,
+            quad,
+            out_w,
+            out_h,
+            source_ratio=source_ratio,
+            fill_color=fill_color,
+        )
         enhanced = enhance_slide(warped, mode=resolve_enhancement_mode(args))
         out_image = corrected_dir / f"{idx:03d}_{src.stem}.jpg"
         enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
@@ -1192,7 +1263,9 @@ def process(args: argparse.Namespace) -> dict:
     report_document = {
         "input_dir": str(input_dir),
         "output_pdf": str(pdf_path),
-        "ratio": args.ratio,
+        "ratio": output_ratio_name,
+        "source_slide_ratio": source_ratio_name,
+        "output_page_ratio": output_ratio_name,
         "size": [out_w, out_h],
         "slides": report,
     }
@@ -1230,7 +1303,21 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("input", help="Folder containing source photos")
     parser.add_argument("--output-dir", default="outputs/slide_lens_example", help="Output folder")
     parser.add_argument("--work-dir", default="work/slide_lens_runtime", help="Intermediate folder")
-    parser.add_argument("--ratio", default="16:9", help="Output slide ratio, e.g. 16:9, 4:3, A4, A4-portrait, Letter, letter-portrait")
+    parser.add_argument(
+        "--ratio",
+        default=None,
+        help="Deprecated compatibility option that sets both source and output ratios",
+    )
+    parser.add_argument(
+        "--source-ratio",
+        default=None,
+        help="Original slide ratio used for correction, e.g. 16:9, 4:3, or 16:10",
+    )
+    parser.add_argument(
+        "--output-ratio",
+        default=None,
+        help="PDF page ratio, e.g. match-slide, 16:9, A4-landscape, or letter-portrait",
+    )
     parser.add_argument("--width", type=int, default=2200, help="Output image width in pixels")
     parser.add_argument("--height", type=int, default=None, help="Optional output image height in pixels")
     parser.add_argument("--pdf-name", default="flattened_slides.pdf", help="PDF filename")

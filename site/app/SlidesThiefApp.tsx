@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
-import { isPaperRatio, parseRatio, type RatioValue } from "./ratio";
+import type { Quad, ReviewReason } from "./detection/types";
+import {
+  isPaperRatio,
+  outputPageRatioValue,
+  sourceSlideRatioValue,
+  type OutputPageRatio,
+  type SourceSlideRatio,
+} from "./ratio";
 
 interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -20,15 +27,15 @@ type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
 type Settings = {
-  ratio: RatioValue;
+  sourceSlideRatio: SourceSlideRatio;
+  sourceCustomRatio?: number;
+  outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
   quality: number;
   enhancement: EnhancementMode;
   fillColor: string;
 };
-
-type Quad = [[number, number], [number, number], [number, number], [number, number]];
 
 type SlideStatus = "queued" | "detecting" | "ready" | "error";
 
@@ -44,6 +51,8 @@ type SlideItem = {
   thumbnailUrl?: string;
   method: string;
   confidence: number;
+  needsReview: boolean;
+  reviewReasons: ReviewReason[];
   status: SlideStatus;
   error?: string;
 };
@@ -55,6 +64,12 @@ type DetectResult = {
   quad: Quad;
   method: string;
   confidence: number;
+  needsReview: boolean;
+  reviewReasons: ReviewReason[];
+  bestScore: number;
+  secondBestScore: number | null;
+  candidatesEvaluated: number;
+  diagnostics: Record<string, unknown>;
 };
 
 type HandlePosition = {
@@ -82,7 +97,8 @@ type WorkerMessage =
   | { type: "error"; error: string };
 
 const defaultSettings: Settings = {
-  ratio: "16:9",
+  sourceSlideRatio: "16:9",
+  outputPageRatio: "match-slide",
   width: 2400,
   height: null,
   quality: 0.92,
@@ -932,7 +948,10 @@ function parseHexColor(value: string): [number, number, number] {
 }
 
 function outputRatio(settings: Settings) {
-  return settings.height ? settings.width / settings.height : parseRatio(settings.ratio);
+  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
+  return settings.height
+    ? settings.width / settings.height
+    : outputPageRatioValue(settings.outputPageRatio, sourceRatio);
 }
 
 function solveLinearSystem(matrix: number[][], vector: number[]) {
@@ -967,6 +986,20 @@ function perspectiveCoefficients(src: Quad, dst: Quad) {
   return solveLinearSystem(matrix, vector);
 }
 
+function containedRect(width: number, height: number, ratio: number): Quad {
+  const pageRatio = width / height;
+  const contentWidth = pageRatio > ratio ? height * ratio : width;
+  const contentHeight = pageRatio > ratio ? height : width / ratio;
+  const left = (width - contentWidth) / 2;
+  const top = (height - contentHeight) / 2;
+  return [
+    [left, top],
+    [left + contentWidth, top],
+    [left + contentWidth, top + contentHeight],
+    [left, top + contentHeight],
+  ];
+}
+
 function loadImage(url: string) {
   return new Promise<HTMLImageElement>((resolve, reject) => {
     const image = new Image();
@@ -999,7 +1032,8 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const output = outputCtx.createImageData(outWidth, outHeight);
   const fill = parseHexColor(settings.fillColor);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
-  const dst: Quad = [[0, 0], [outWidth, 0], [outWidth, outHeight], [0, outHeight]];
+  const sourceRatio = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
+  const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
 
   for (let y = 0; y < outHeight; y += 1) {
@@ -1008,7 +1042,8 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
       const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / den;
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
       const outIndex = (y * outWidth + x) * 4;
-      if (sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
+      const insideContent = x >= dst[0][0] && x < dst[1][0] && y >= dst[0][1] && y < dst[3][1];
+      if (insideContent && sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
         const ix = Math.max(0, Math.min(sourceWidth - 1, Math.round(sx)));
         const iy = Math.max(0, Math.min(sourceHeight - 1, Math.round(sy)));
         const srcIndex = (iy * sourceWidth + ix) * 4;
@@ -1083,6 +1118,7 @@ export function SlidesThiefApp() {
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
   const hasRun = slides.some((slide) => slide.status === "ready" || slide.status === "detecting" || slide.status === "error");
   const detecting = slides.some((slide) => slide.status === "detecting");
+  const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
 
   const cancelActiveDrag = useCallback(() => {
@@ -1103,9 +1139,14 @@ export function SlidesThiefApp() {
     if (detecting) return text.stretching;
     if (exporting) return text.generating;
     if (exportUrl) return text.generated;
+    if (reviewCount) {
+      return locale === "zh-CN"
+        ? `${reviewCount} 张图片需要检查四角`
+        : `${reviewCount} image${reviewCount === 1 ? "" : "s"} need corner review`;
+    }
     if (hasRun) return text.reviewReady;
     return locale === "zh-CN" ? `${slides.length} ${text.waiting}` : `${slides.length} ${text.waiting}`;
-  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, slides.length, text, workerError]);
+  }, [busyText, detecting, exporting, exportUrl, hasRun, locale, reviewCount, slides.length, text, workerError]);
 
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
@@ -1179,6 +1220,8 @@ export function SlidesThiefApp() {
                   autoQuad: message.result.quad,
                   method: message.result.method,
                   confidence: message.result.confidence,
+                  needsReview: message.result.needsReview,
+                  reviewReasons: message.result.reviewReasons,
                   status: "ready",
                   error: undefined,
                 }
@@ -1288,7 +1331,16 @@ export function SlidesThiefApp() {
       window.clearTimeout(timeoutId);
       if (thumbnailRefreshTokenRef.current === token) thumbnailRefreshTokenRef.current += 1;
     };
-  }, [refreshSlideThumbnail, settings.enhancement, settings.fillColor, settings.height, settings.ratio, settings.width]);
+  }, [
+    refreshSlideThumbnail,
+    settings.enhancement,
+    settings.fillColor,
+    settings.height,
+    settings.outputPageRatio,
+    settings.sourceCustomRatio,
+    settings.sourceSlideRatio,
+    settings.width,
+  ]);
 
   useEffect(() => {
     exportUrlRef.current = exportUrl;
@@ -1450,6 +1502,8 @@ export function SlidesThiefApp() {
         autoQuad: null,
         method: "queued",
         confidence: 0,
+        needsReview: false,
+        reviewReasons: [],
         status: "queued",
       }));
 
@@ -1929,17 +1983,14 @@ export function SlidesThiefApp() {
             {settingsOpen && (
               <div className="settingsMenuBody">
                 <label className="ratioSetting">
-                  <span>{text.ratio}</span>
+                  <span>{locale === "zh-CN" ? "幻灯片原始比例" : "Source slide ratio"}</span>
                   <select
-                    value={settings.ratio}
+                    value={settings.sourceSlideRatio}
                     onChange={(event) => {
-                      const nextRatio = event.target.value as RatioValue;
-                      const isPaper = isPaperRatio(nextRatio);
+                      const nextRatio = event.target.value as SourceSlideRatio;
                       const nextSettings: Settings = {
                         ...settings,
-                        ratio: nextRatio,
-                        height: null,
-                        fillColor: isPaper ? "#ffffff" : settings.fillColor,
+                        sourceSlideRatio: nextRatio,
                       };
                       updateSettings(() => nextSettings);
                       if (hasRun) {
@@ -1947,6 +1998,48 @@ export function SlidesThiefApp() {
                       }
                     }}
                   >
+                    <option value="16:9">{text.ratio16x9}</option>
+                    <option value="4:3">{text.ratio4x3}</option>
+                    <option value="16:10">16:10</option>
+                    <option value="custom">{locale === "zh-CN" ? "自定义" : "Custom"}</option>
+                  </select>
+                </label>
+                {settings.sourceSlideRatio === "custom" && (
+                  <label>
+                    <span>{locale === "zh-CN" ? "自定义比例" : "Custom ratio"}</span>
+                    <input
+                      type="number"
+                      min={0.2}
+                      max={5}
+                      step={0.01}
+                      value={settings.sourceCustomRatio ?? 16 / 9}
+                      onChange={(event) => {
+                        const sourceCustomRatio = Math.max(0.2, Math.min(5, Number(event.target.value) || 16 / 9));
+                        const nextSettings = { ...settings, sourceCustomRatio };
+                        updateSettings(() => nextSettings);
+                        if (hasRun) runAutoWithSettings(nextSettings);
+                      }}
+                    />
+                  </label>
+                )}
+                <label className="ratioSetting">
+                  <span>{locale === "zh-CN" ? "PDF 页面比例" : "PDF page ratio"}</span>
+                  <select
+                    value={settings.outputPageRatio}
+                    onChange={(event) => {
+                      const outputPageRatio = event.target.value as OutputPageRatio;
+                      const isPaper = outputPageRatio !== "match-slide" && isPaperRatio(outputPageRatio);
+                      updateSettings((current) => ({
+                        ...current,
+                        outputPageRatio,
+                        height: null,
+                        fillColor: isPaper ? "#ffffff" : current.fillColor,
+                      }));
+                    }}
+                  >
+                    <option value="match-slide">
+                      {locale === "zh-CN" ? "与幻灯片一致" : "Match slide"}
+                    </option>
                     <option value="16:9">{text.ratio16x9}</option>
                     <option value="4:3">{text.ratio4x3}</option>
                     <option value="A4-landscape">{text.ratioA4Landscape}</option>

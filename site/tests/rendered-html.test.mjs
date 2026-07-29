@@ -60,9 +60,10 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
 });
 
 test("client code uses browser-local processing contracts", async () => {
-  const [app, worker, css, packageJson] = await Promise.all([
+  const [app, worker, detector, css, packageJson] = await Promise.all([
     readFile(new URL("../app/SlidesThiefApp.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-worker.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/detection/detect.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
@@ -121,7 +122,8 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(worker, /fillColor/);
   assert.match(worker, /parseHexColor/);
   assert.match(worker, /OffscreenCanvas/);
-  assert.match(worker, /contrast-lines/);
+  assert.match(worker, /detectQuad/);
+  assert.match(detector, /contrast-lines/);
   assert.match(css, /linear-gradient\(45deg, var\(--stage-grid\) 25%, transparent 25%\)/);
   assert.match(css, /background-position: 0 0, 0 14px, 14px -14px, -14px 0/);
   assert.match(css, /canvas\s*\{[^}]*background:\s*transparent/s);
