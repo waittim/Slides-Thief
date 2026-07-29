@@ -1173,8 +1173,8 @@ export function SlidesThiefApp() {
     if (exportUrl) return text.generated;
     if (reviewCount) {
       return locale === "zh-CN"
-        ? `${reviewCount} 张图片需要检查四角`
-        : `${reviewCount} image${reviewCount === 1 ? "" : "s"} need corner review`;
+        ? `${reviewCount} 张照片建议复查`
+        : `${reviewCount} photo${reviewCount === 1 ? "" : "s"} may need review`;
     }
     if (hasRun) return text.reviewReady;
     return locale === "zh-CN" ? `${slides.length} ${text.waiting}` : `${slides.length} ${text.waiting}`;
@@ -1999,8 +1999,8 @@ export function SlidesThiefApp() {
     if (pagesNeedingReview.length) {
       const shouldContinue = window.confirm(
         locale === "zh-CN"
-          ? `仍有 ${pagesNeedingReview.length} 张图片使用了默认边框或低置信度结果。\n\n确定：继续导出\n取消：检查图片`
-          : `${pagesNeedingReview.length} image${pagesNeedingReview.length === 1 ? "" : "s"} still use a default frame or low-confidence result.\n\nOK: continue export\nCancel: review images`,
+          ? `有 ${pagesNeedingReview.length} 张照片建议复查。仍要生成 PDF 吗？`
+          : `${pagesNeedingReview.length} photo${pagesNeedingReview.length === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
       );
       if (!shouldContinue) {
         setSelectedId(pagesNeedingReview[0].id);
@@ -2367,7 +2367,7 @@ export function SlidesThiefApp() {
                       <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
                         {slide.status === "ready"
                           ? slide.needsReview
-                            ? `! ${locale === "zh-CN" ? "建议检查" : "Review"}`
+                            ? `! ${locale === "zh-CN" ? "建议复查" : "Review suggested"}`
                             : `✓ ${locale === "zh-CN" ? "自动识别" : confidenceText(slide.confidence)}`
                           : slide.status === "error"
                             ? `× ${text.failed}`

@@ -97,6 +97,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /clearExport\(\);\s*setSlides/s);
   assert.match(app, /downloadPdf: "下载 PDF"/);
   assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
+  assert.match(app, /张照片建议复查/);
+  assert.match(app, /Review suggested/);
+  assert.doesNotMatch(app, /张图片需要检查四角|建议检查/);
   assert.match(app, /enhancement: "original"/);
   assert.match(app, /enhancementOriginal: "Original"/);
   assert.match(app, /enhancementClean: "清晰增强"/);
