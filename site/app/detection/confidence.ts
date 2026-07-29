@@ -41,7 +41,9 @@ export function calculateConfidence(
         )
       )
       .map((candidate) => candidate.method)
-      .filter((method) => method !== "fallback-frame"),
+      .filter((method) =>
+        method === "contrast-lines" || method === "mask-lines" || method === "hough-lines"
+      ),
   )].sort();
   const detectorAgreement = agreeingMethods.length >= 3
     ? 1

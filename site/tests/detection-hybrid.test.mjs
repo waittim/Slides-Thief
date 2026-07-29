@@ -25,6 +25,9 @@ const { refineCandidate } = await import(
 const { calculateConfidence, isAmbiguousCandidate } = await import(
   new URL("../app/detection/confidence.ts", import.meta.url).href
 );
+const { batchPriorCandidates, buildBatchPriors } = await import(
+  new URL("../app/detection/batch-prior.ts", import.meta.url).href
+);
 
 function rectangleImage(width, height, background, inside, bounds) {
   const data = new Uint8ClampedArray(width * height * 4);
@@ -258,4 +261,40 @@ test("cross-detector agreement increases calibrated confidence", () => {
   assert.equal(withAgreement.minimumEdgeSupport, 0.88);
   assert.equal(isAmbiguousCandidate(0.5, withAgreement), false);
   assert.equal(isAmbiguousCandidate(0.5, withoutAgreement), true);
+});
+
+test("batch priors require three consistent high-confidence results", () => {
+  const normalizedQuad = [[0.08, 0.12], [0.92, 0.1], [0.9, 0.88], [0.1, 0.9]];
+  const result = (imageId, confidence, delta = 0) => ({
+    imageId,
+    width: 160,
+    height: 100,
+    normalizedQuad: normalizedQuad.map(([x, y]) => [x + delta, y]),
+    confidence,
+    method: "contrast-lines",
+    needsReview: false,
+  });
+
+  assert.deepEqual(buildBatchPriors([result("a", 0.9), result("b", 0.88)]), []);
+  const priors = buildBatchPriors([
+    result("a", 0.9),
+    result("b", 0.88, 0.004),
+    result("c", 0.84, -0.003),
+    result("low", 0.6, 0.2),
+    result("moved-a", 0.91, 0.12),
+    result("moved-b", 0.89, 0.124),
+    result("moved-c", 0.86, 0.117),
+  ]);
+
+  assert.equal(priors.length, 2);
+  assert.deepEqual(priors.map((prior) => prior.id), [
+    "camera-position-cluster-1",
+    "camera-position-cluster-2",
+  ]);
+  assert.equal(priors[0].memberCount, 3);
+  assert.ok(priors[0].rmsDeviation < 0.01);
+  const candidates = batchPriorCandidates(priors, 160, 100);
+  assert.equal(candidates.length, 2);
+  assert.equal(candidates[0].method, "batch-prior");
+  assert.ok(candidates[0].features.batchConsistency > 0.8);
 });

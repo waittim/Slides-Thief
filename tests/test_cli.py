@@ -14,6 +14,7 @@ from slides_thief.cli import (
     warp_slide_contained,
     detect_quad,
 )
+from slides_thief.detection.batch_prior import build_batch_priors
 from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
@@ -255,3 +256,94 @@ def test_cross_detector_agreement_increases_calibrated_confidence() -> None:
     assert with_agreement["minimum_edge_support"] == 0.88
     assert is_ambiguous_candidate(0.5, with_agreement) is False
     assert is_ambiguous_candidate(0.5, without_agreement) is True
+
+
+def test_batch_priors_require_three_consistent_high_confidence_results() -> None:
+    normalized_quad = np.array(
+        [[0.08, 0.12], [0.92, 0.1], [0.9, 0.88], [0.1, 0.9]],
+        dtype=np.float64,
+    )
+
+    def result(image_id: str, confidence: float, delta: float = 0.0) -> dict:
+        quad = normalized_quad.copy()
+        quad[:, 0] += delta
+        return {
+            "image_id": image_id,
+            "width": 160,
+            "height": 100,
+            "normalized_quad": quad,
+            "confidence": confidence,
+            "method": "contrast-lines",
+            "needs_review": False,
+        }
+
+    assert build_batch_priors([result("a", 0.9), result("b", 0.88)]) == []
+    priors = build_batch_priors(
+        [
+            result("a", 0.9),
+            result("b", 0.88, 0.004),
+            result("c", 0.84, -0.003),
+            result("low", 0.6, 0.2),
+        ]
+    )
+
+    assert len(priors) == 1
+    assert priors[0]["member_count"] == 3
+    assert priors[0]["rms_deviation"] < 0.01
+    assert priors[0]["consistency"] > 0.8
+
+
+def test_batch_prior_cannot_replace_missing_image_evidence() -> None:
+    image = Image.new("RGB", (160, 100), (30, 30, 30))
+    prior = {
+        "id": "camera-position-cluster-1",
+        "orientation": "landscape",
+        "normalized_quad": np.array(
+            [[0.08, 0.12], [0.92, 0.1], [0.9, 0.88], [0.1, 0.9]],
+            dtype=np.float64,
+        ),
+        "member_count": 3,
+        "rms_deviation": 0.004,
+        "consistency": 0.9,
+    }
+
+    _, diagnostics = detect_quad(
+        image,
+        16 / 9,
+        batch_priors=[prior],
+        enable_batch_prior=True,
+    )
+
+    assert diagnostics["method"] == "fallback-frame"
+    assert diagnostics["needs_review"] is True
+
+
+def test_batch_prior_can_win_when_current_image_supports_its_edges() -> None:
+    image = Image.new("RGB", (320, 200), (35, 35, 35))
+    source_quad = np.array(
+        [[28, 28], [294, 22], [286, 176], [34, 181]],
+        dtype=np.float64,
+    )
+    ImageDraw.Draw(image).polygon(
+        [tuple(point) for point in source_quad.astype(int)],
+        fill=(235, 235, 235),
+    )
+    prior = {
+        "id": "camera-position-cluster-1",
+        "orientation": "landscape",
+        "normalized_quad": source_quad / np.array([320, 200], dtype=np.float64),
+        "member_count": 4,
+        "rms_deviation": 0.003,
+        "consistency": 0.91,
+    }
+
+    _, diagnostics = detect_quad(
+        image,
+        16 / 9,
+        batch_priors=[prior],
+        enable_batch_prior=True,
+    )
+
+    assert diagnostics["method"] == "batch-prior"
+    assert diagnostics["confidence"] >= 0.78
+    assert diagnostics["needs_review"] is False

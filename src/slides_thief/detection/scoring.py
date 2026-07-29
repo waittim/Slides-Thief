@@ -146,6 +146,7 @@ def score_quad_candidate(
     quad: np.ndarray,
     ratio: float,
     gradient: GradientMap | None = None,
+    batch_consistency: float = 0.0,
 ) -> tuple[float, dict] | None:
     height, width = gray.shape
     if not _geometry_is_valid(quad, width, height):
@@ -203,7 +204,7 @@ def score_quad_candidate(
         "normalized_area": min(1.0, area_norm / 0.78),
         "geometry_validity": 1.0,
         "aspect_prior": math.exp(-abs(math.log(max(0.05, aspect / ratio)))),
-        "batch_consistency": 0.0,
+        "batch_consistency": batch_consistency,
     }
     score = (
         0.24 * features["edge_strength"]
@@ -215,6 +216,7 @@ def score_quad_candidate(
         + 0.10 * features["geometry_validity"]
         + 0.07 * features["normalized_area"]
         + 0.03 * features["aspect_prior"]
+        + 0.015 * features["batch_consistency"]
     )
     return score, {
         "features": features,

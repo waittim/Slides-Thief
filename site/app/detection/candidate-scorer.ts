@@ -37,7 +37,7 @@ export function scoreCandidate(
     normalizedArea: clamp(normalizedArea / 0.78, 0, 1),
     geometryValidity: 1,
     aspectPrior: Math.exp(-Math.abs(Math.log(Math.max(0.05, aspect / sourceRatio)))),
-    batchConsistency: 0,
+    batchConsistency: candidate.features.batchConsistency,
   };
   const rawScore =
     0.24 * features.edgeStrength +
@@ -48,7 +48,8 @@ export function scoreCandidate(
     0.12 * features.regionConsistency +
     0.1 * features.geometryValidity +
     0.07 * features.normalizedArea +
-    0.03 * features.aspectPrior;
+    0.03 * features.aspectPrior +
+    0.015 * features.batchConsistency;
 
   return {
     ...candidate,

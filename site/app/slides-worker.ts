@@ -2,8 +2,9 @@
 
 import { PDFDocument } from "pdf-lib";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
+import { buildBatchPriors, normalizeResult } from "./detection/batch-prior";
 import { detectQuad } from "./detection/detect";
-import type { DetectionSettings, Quad } from "./detection/types";
+import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import {
   outputPageRatioValue,
   sourceSlideRatioValue,
@@ -60,6 +61,14 @@ scope.onmessage = async (event) => {
 };
 
 async function detectFiles(files: JobFile[], settings: Settings) {
+  const preliminary: Array<{
+    item: JobFile;
+    width: number;
+    height: number;
+    result: ReturnType<typeof workerDetectionResult>;
+  }> = [];
+  const sourceRatioHint = sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio);
+
   for (const item of files) {
     let bitmap: ImageBitmap | null = null;
     try {
@@ -67,29 +76,17 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       bitmap = await createImageBitmap(item.file);
       const detectionSettings: DetectionSettings = {
         maxDetectionWidth: 900,
-        sourceRatioHint: sourceSlideRatioValue(settings.sourceSlideRatio, settings.sourceCustomRatio),
+        sourceRatioHint,
         enableBatchPrior: false,
       };
       const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
       const detection = detectQuad(imageData, detectionSettings);
-      const scale = bitmap.width / imageData.width;
-      const fullQuad = detection.quad.map(([x, y]) => [x * scale, y * scale]) as Quad;
+      const result = workerDetectionResult(item.id, bitmap.width, bitmap.height, imageData.width, detection);
+      preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
       scope.postMessage({
         type: "detect-result",
-        result: {
-          id: item.id,
-          width: bitmap.width,
-          height: bitmap.height,
-          quad: fullQuad,
-          method: detection.method,
-          confidence: detection.confidence,
-          needsReview: detection.needsReview,
-          reviewReasons: detection.reviewReasons,
-          bestScore: detection.bestScore,
-          secondBestScore: detection.secondBestScore,
-          candidatesEvaluated: detection.candidatesEvaluated,
-          diagnostics: detection.diagnostics,
-        },
+        phase: "preliminary",
+        result,
       });
     } catch (error) {
       scope.postMessage({
@@ -101,6 +98,101 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       bitmap?.close();
     }
   }
+
+  const priors = buildBatchPriors(preliminary.map(({ item, width, height, result }) =>
+    normalizeResult(
+      item.id,
+      width,
+      height,
+      result.quad,
+      result.confidence,
+      result.method,
+      result.needsReview,
+    )
+  ));
+  scope.postMessage({
+    type: "detect-batch-summary",
+    summary: {
+      preliminaryCount: preliminary.length,
+      reliableCount: preliminary.filter(({ result }) =>
+        result.confidence >= 0.78 && result.method !== "fallback-frame"
+      ).length,
+      priorCount: priors.length,
+      priors,
+    },
+  });
+  if (!priors.length) {
+    for (const entry of preliminary) {
+      scope.postMessage({ type: "detect-result", phase: "final", result: entry.result });
+    }
+    return;
+  }
+
+  for (const entry of preliminary) {
+    if (!(entry.result.confidence < 0.72 && entry.result.needsReview)) {
+      scope.postMessage({ type: "detect-result", phase: "final", result: entry.result });
+      continue;
+    }
+    let bitmap: ImageBitmap | null = null;
+    try {
+      bitmap = await createImageBitmap(entry.item.file);
+      const detectionSettings: DetectionSettings = {
+        maxDetectionWidth: 900,
+        sourceRatioHint,
+        enableBatchPrior: true,
+      };
+      const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
+      const detection = detectQuad(imageData, detectionSettings, priors);
+      const result = workerDetectionResult(
+        entry.item.id,
+        bitmap.width,
+        bitmap.height,
+        imageData.width,
+        detection,
+      );
+      scope.postMessage({ type: "detect-result", phase: "final", result });
+    } catch (error) {
+      scope.postMessage({
+        type: "detect-result",
+        phase: "final",
+        result: {
+          ...entry.result,
+          diagnostics: {
+            ...entry.result.diagnostics,
+            batchPriorError: error instanceof Error
+              ? error.message
+              : "Could not apply the batch geometry prior.",
+          },
+        },
+      });
+    } finally {
+      bitmap?.close();
+    }
+  }
+}
+
+function workerDetectionResult(
+  id: string,
+  width: number,
+  height: number,
+  detectionWidth: number,
+  detection: DetectionResult,
+) {
+  const scale = width / detectionWidth;
+  return {
+    id,
+    width,
+    height,
+    quad: detection.quad.map(([x, y]) => [x * scale, y * scale]) as Quad,
+    method: detection.method,
+    confidence: detection.confidence,
+    needsReview: detection.needsReview,
+    reviewReasons: detection.reviewReasons,
+    bestScore: detection.bestScore,
+    secondBestScore: detection.secondBestScore,
+    candidatesEvaluated: detection.candidatesEvaluated,
+    diagnostics: detection.diagnostics,
+  };
 }
 
 async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {

@@ -20,6 +20,7 @@ from PIL import Image, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from .detection.batch_prior import batch_prior_candidates, build_batch_priors, normalize_result
 from .detection.confidence import calculate_confidence, is_ambiguous_candidate, quad_iou
 from .detection.gradient import build_gradient_pyramid
 from .detection.hough_lines import hough_quad_candidates
@@ -382,6 +383,8 @@ def detect_quad(
     ratio: float,
     max_width: int = 1200,
     manual_quad: list[list[float]] | None = None,
+    batch_priors: list[dict] | None = None,
+    enable_batch_prior: bool = False,
 ) -> tuple[np.ndarray, dict]:
     if manual_quad:
         return np.asarray(manual_quad, dtype=np.float64), {
@@ -542,14 +545,53 @@ def detect_quad(
         }
         for candidate in hough_candidates
     )
+    if enable_batch_prior and batch_priors:
+        raw_candidates.extend(batch_prior_candidates(batch_priors, w, h))
 
     scored_candidates: list[dict] = []
     for candidate in raw_candidates:
-        scored = score_quad_candidate(gray, candidate["quad"], ratio, gradient)
+        scored = score_quad_candidate(
+            gray,
+            candidate["quad"],
+            ratio,
+            gradient,
+            candidate.get("batch_consistency", 0.0),
+        )
         if scored is None:
             continue
         score, score_diagnostics = scored
         scored_candidates.append({**candidate, "score": score, "score_diagnostics": score_diagnostics})
+    refined_batch_candidates = []
+    for candidate in scored_candidates:
+        if candidate["method"] != "batch-prior":
+            continue
+        refinement_attempt = refine_quad(candidate["quad"], gray, gradient)
+        if refinement_attempt is None:
+            continue
+        refined_quad, refinement_diagnostics = refinement_attempt
+        refined_score = score_quad_candidate(
+            gray,
+            refined_quad,
+            ratio,
+            gradient,
+            candidate.get("batch_consistency", 0.0),
+        )
+        if refined_score is None:
+            continue
+        score, score_diagnostics = refined_score
+        refined_batch_candidates.append(
+            {
+                **candidate,
+                "quad": refined_quad,
+                "score": score,
+                "score_diagnostics": score_diagnostics,
+                "detector_diagnostics": {
+                    **candidate["detector_diagnostics"],
+                    "batch_refinement": refinement_diagnostics,
+                },
+            }
+        )
+    scored_candidates.extend(refined_batch_candidates)
     scored_candidates.sort(key=lambda candidate: candidate["score"], reverse=True)
 
     ranked: list[dict] = []
@@ -1305,14 +1347,42 @@ def process(args: argparse.Namespace) -> dict:
     if not sources:
         raise SystemExit(f"No supported images found in {input_dir}")
 
+    detections: dict[Path, tuple[np.ndarray, dict]] = {}
+    preliminary_results = []
+    for src in sources:
+        readable = readable_image(src, converted_dir)
+        image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
+        manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
+        quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
+        detections[src] = (quad, diagnostics)
+        preliminary_results.append(
+            normalize_result(src.name, image.width, image.height, quad, diagnostics)
+        )
+
+    batch_priors = build_batch_priors(preliminary_results)
+    for src in sources:
+        quad, diagnostics = detections[src]
+        manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
+        if manual or not batch_priors:
+            continue
+        if not (diagnostics["confidence"] < 0.72 and diagnostics["needs_review"]):
+            continue
+        readable = readable_image(src, converted_dir)
+        image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
+        detections[src] = detect_quad(
+            image,
+            source_ratio,
+            batch_priors=batch_priors,
+            enable_batch_prior=True,
+        )
+
     corrected: list[Path] = []
     report: list[dict] = []
     review_items: list[dict] = []
     for idx, src in enumerate(sources, 1):
         readable = readable_image(src, converted_dir)
         image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
-        manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
-        quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
+        quad, diagnostics = detections[src]
         review_image = image.copy()
         review_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
         review_asset = review_image_dir / f"{idx:03d}_{src.stem}.jpg"
@@ -1378,6 +1448,21 @@ def process(args: argparse.Namespace) -> dict:
         "source_slide_ratio": source_ratio_name,
         "output_page_ratio": output_ratio_name,
         "size": [out_w, out_h],
+        "batch_summary": {
+            "preliminary_count": len(preliminary_results),
+            "reliable_count": sum(
+                result["confidence"] >= 0.78 and result["method"] != "fallback-frame"
+                for result in preliminary_results
+            ),
+            "prior_count": len(batch_priors),
+            "priors": [
+                {
+                    **prior,
+                    "normalized_quad": prior["normalized_quad"].tolist(),
+                }
+                for prior in batch_priors
+            ],
+        },
         "slides": report,
     }
     with report_path.open("w", encoding="utf-8") as fh:

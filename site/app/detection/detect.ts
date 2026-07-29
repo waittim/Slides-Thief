@@ -1,4 +1,5 @@
 import { scoreCandidate } from "./candidate-scorer.ts";
+import { batchPriorCandidates } from "./batch-prior.ts";
 import { calculateConfidence, isAmbiguousCandidate } from "./confidence.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
 import { convexQuadIoU, normalizedCornerDistance, quadIoU } from "./geometry.ts";
@@ -8,6 +9,7 @@ import { maskLineDetector } from "./mask-lines.ts";
 import { refineCandidate } from "./quad-refiner.ts";
 import type {
   CandidateDetector,
+  BatchPrior,
   DetectionResult,
   DetectionSettings,
   ImageDataLike,
@@ -22,12 +24,26 @@ const detectors: CandidateDetector[] = [
   houghLineDetector,
 ];
 
-export function detectQuad(imageData: ImageDataLike, settings: DetectionSettings): DetectionResult {
+export function detectQuad(
+  imageData: ImageDataLike,
+  settings: DetectionSettings,
+  batchPriors: BatchPrior[] = [],
+): DetectionResult {
   const image = buildImageFeatures(imageData);
-  const candidates = detectors.flatMap((detector) => detector.detect(image, settings));
-  const scored = candidates
+  const candidates = [
+    ...detectors.flatMap((detector) => detector.detect(image, settings)),
+    ...(settings.enableBatchPrior ? batchPriorCandidates(batchPriors, image.width, image.height) : []),
+  ];
+  let scored = candidates
     .map((candidate) => scoreCandidate(candidate, image, settings))
     .filter((candidate): candidate is QuadCandidate => candidate !== null);
+  const refinedBatchCandidates = scored
+    .filter((candidate) => candidate.method === "batch-prior")
+    .map((candidate) => refineCandidate(candidate, image))
+    .filter((candidate): candidate is QuadCandidate => candidate !== null)
+    .map((candidate) => scoreCandidate(candidate, image, settings))
+    .filter((candidate): candidate is QuadCandidate => candidate !== null);
+  scored = [...scored, ...refinedBatchCandidates];
   let ranked = deduplicateCandidates(scored, image.width, image.height)
     .sort((first, second) => second.rawScore - first.rawScore);
 

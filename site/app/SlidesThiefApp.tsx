@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
-import type { Quad, ReviewReason } from "./detection/types";
+import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
 import {
   isPaperRatio,
   outputPageRatioValue,
@@ -90,7 +90,16 @@ type CanvasRenderState = {
 
 type WorkerMessage =
   | { type: "detect-start"; id: string }
-  | { type: "detect-result"; result: DetectResult }
+  | { type: "detect-result"; phase: "preliminary" | "final"; result: DetectResult }
+  | {
+      type: "detect-batch-summary";
+      summary: {
+        preliminaryCount: number;
+        reliableCount: number;
+        priorCount: number;
+        priors: BatchPrior[];
+      };
+    }
   | { type: "slide-error"; id: string; error: string }
   | { type: "export-progress"; current: number; total: number; name: string }
   | { type: "export-complete"; pdf: ArrayBuffer; filename: string }
@@ -916,6 +925,14 @@ function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
 
+function quadsMatch(first: Quad | null, second: Quad | null, tolerance = 0.01): boolean {
+  if (!first || !second) return first === second;
+  return first.every(([x, y], index) =>
+    Math.abs(x - second[index][0]) <= tolerance
+    && Math.abs(y - second[index][1]) <= tolerance
+  );
+}
+
 function quadHandlePositions(quad: Quad, padX: number, padY: number, scale: number): HandlePosition[] {
   return quad.map(([x, y]) => ({
     left: (padX + x) * scale,
@@ -1210,6 +1227,12 @@ export function SlidesThiefApp() {
         );
       }
       if (message.type === "detect-result") {
+        const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
+        const preserveManualQuad = message.phase === "final"
+          && Boolean(existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad));
+        const displayedQuad = preserveManualQuad && existing?.quad
+          ? existing.quad
+          : message.result.quad;
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.result.id
@@ -1217,20 +1240,20 @@ export function SlidesThiefApp() {
                   ...slide,
                   width: message.result.width,
                   height: message.result.height,
-                  quad: message.result.quad,
+                  quad: preserveManualQuad ? slide.quad : message.result.quad,
                   autoQuad: message.result.quad,
                   method: message.result.method,
                   confidence: message.result.confidence,
                   needsReview: message.result.needsReview,
                   reviewReasons: message.result.reviewReasons,
-                  status: "ready",
+                  status: message.phase === "final" ? "ready" : "detecting",
                   error: undefined,
                 }
               : slide,
           ),
         );
-        void refreshSlideThumbnail(message.result.id, message.result.quad);
-        setBusyText("");
+        void refreshSlideThumbnail(message.result.id, displayedQuad);
+        if (message.phase === "final") setBusyText("");
       }
       if (message.type === "slide-error") {
         trackEvent("processing_error", {

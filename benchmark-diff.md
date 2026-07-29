@@ -1,9 +1,10 @@
 # Detection benchmark diff
 
-This P1 detector now calibrates confidence from the deduplicated top-two score
-margin, minimum edge support, geometry validity, and cross-detector agreement.
-Agreement requires at least two detector methods to support the selected
-boundary at Quad IoU above `0.9`.
+This P1 detector now performs a two-pass batch analysis. Only non-fallback
+results with confidence at or above `0.78` can form normalized camera-position
+clusters, and each cluster requires at least three low-variance members.
+Low-confidence review items can then try the cluster median as a locally
+refined candidate, while current-image edge evidence remains mandatory.
 
 | Metric | Baseline | Current | Change |
 | --- | ---: | ---: | ---: |
@@ -12,20 +13,22 @@ boundary at Quad IoU above `0.9`.
 | All corners under 1% | 33.33% | 100.00% | +66.67 pp |
 | Review rate | 0.00% | 0.00% | 0 pp |
 | High-confidence failure rate | 33.33% | 0.00% | −33.33 pp |
-| Runtime P95 | 626.23 ms | 987.65 ms | +57.7% |
+| Runtime P95 | 626.23 ms | 973.77 ms | +55.5% |
 
 The fixture set is still intentionally small, so these numbers establish a
 regression signal rather than a general accuracy claim.
 
-Compared with P1-5, confidence calibration reduces review rate from `33.33%`
-to `0%` for the CLI and from `100%` to `0%` in the browser. Accuracy is
-unchanged: CLI mean corner error remains `0.00273` with `0.98659` mean Quad
-IoU, while browser mean corner error remains `0.00487` with `0.97777` mean
-Quad IoU.
+Single-image benchmark accuracy is unchanged because the batch prior is
+disabled for independent detection: CLI mean corner error remains `0.00273`
+with `0.98659` mean Quad IoU, while browser mean corner error remains
+`0.00487` with `0.97777` mean Quad IoU.
 
-Convex polygon clipping provides exact agreement IoU without raster scanning.
-P95 is `987.65 ms` for the CLI and `195.60 ms` in the browser; both remain
-below the plan's three-times-baseline runtime ceiling.
+P95 is `973.77 ms` for the CLI and `187.23 ms` in the browser; both remain
+below the plan's three-times-baseline runtime ceiling. The two-pass batch
+orchestration only reruns low-confidence review items when a safe cluster
+actually exists.
 
 The safety-critical high-confidence failure rate remains zero in both
-implementations.
+implementations. The ten reported Downloads failures produced zero reliable
+anchors and therefore zero batch priors, confirming that this stage does not
+propagate their incorrect geometry.

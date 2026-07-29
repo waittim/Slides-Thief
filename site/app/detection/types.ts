@@ -100,6 +100,25 @@ export type DetectionResult = {
   diagnostics: Record<string, unknown>;
 };
 
+export type PreliminaryResult = {
+  imageId: string;
+  width: number;
+  height: number;
+  normalizedQuad: Quad;
+  confidence: number;
+  method: DetectionMethod;
+  needsReview: boolean;
+};
+
+export type BatchPrior = {
+  id: string;
+  orientation: "landscape" | "portrait";
+  normalizedQuad: Quad;
+  memberCount: number;
+  rmsDeviation: number;
+  consistency: number;
+};
+
 export interface CandidateDetector {
   name: DetectionMethod;
   detect(features: ImageFeatures, settings: DetectionSettings): QuadCandidate[];

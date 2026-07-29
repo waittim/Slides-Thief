@@ -30,7 +30,7 @@ def calculate_confidence(
         {
             candidate["method"]
             for candidate in candidates
-            if candidate["method"] != "fallback-frame"
+            if candidate["method"] in {"contrast-lines", "mask-lines", "hough-lines"}
             and (
                 candidate is best
                 or (
