@@ -1886,7 +1886,7 @@ export function SlidesThiefApp() {
     const moreSettings = moreSettingsRef.current;
     if (!settingsMenu) return;
 
-    const media = window.matchMedia("(max-width: 720px)");
+    const media = window.matchMedia("(max-width: 834px)");
     const sync = () => {
       const matches = media.matches;
       setIsMobile(matches);
@@ -1910,7 +1910,7 @@ export function SlidesThiefApp() {
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (window.matchMedia("(max-width: 720px)").matches) {
+      if (window.matchMedia("(max-width: 834px)").matches) {
         const settingsMenu = settingsMenuRef.current;
         if (settingsMenu && !settingsMenu.contains(target)) {
           if (settingsMenu.open) {
@@ -2183,7 +2183,7 @@ export function SlidesThiefApp() {
       }
 
       const previewQuad = latestDragQuadRef.current?.id === slide.id ? latestDragQuadRef.current.quad : slide.quad;
-      const compact = stage.clientWidth <= 720 || window.matchMedia("(pointer: coarse)").matches;
+      const compact = stage.clientWidth <= 834 || window.matchMedia("(pointer: coarse)").matches;
       const maxWidth = Math.max(1, stage.clientWidth - (compact ? 16 : 26));
       const maxHeight = Math.max(1, stage.clientHeight - (compact ? 16 : 26));
       const imageFitScale = Math.max(
@@ -2611,7 +2611,7 @@ export function SlidesThiefApp() {
             ref={settingsMenuRef}
             onToggle={(event) => {
               const isOpen = event.currentTarget.open;
-              if (window.matchMedia("(max-width: 720px)").matches) {
+              if (window.matchMedia("(max-width: 834px)").matches) {
                 setSettingsOpen(isOpen);
               } else {
                 event.currentTarget.open = true;
@@ -2675,7 +2675,7 @@ export function SlidesThiefApp() {
                   ref={moreSettingsRef}
                   open={isMobile ? true : undefined}
                   onToggle={(event) => {
-                    if (window.matchMedia("(max-width: 720px)").matches) {
+                    if (window.matchMedia("(max-width: 834px)").matches) {
                       event.currentTarget.open = true;
                     }
                   }}

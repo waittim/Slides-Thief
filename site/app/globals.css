@@ -1047,7 +1047,7 @@ canvas {
   }
 }
 
-@media (max-width: 720px), (max-height: 600px) and (max-width: 1040px) {
+@media (max-width: 834px), (max-height: 600px) and (max-width: 1040px) {
   html {
     height: auto;
     min-height: 100%;
@@ -1233,7 +1233,7 @@ canvas {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 834px) {
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -1427,7 +1427,7 @@ canvas {
   }
 }
 
-@media (max-width: 720px), (pointer: coarse) {
+@media (max-width: 834px), (pointer: coarse) {
   button,
   .moreSettings summary {
     height: 44px;
@@ -1533,7 +1533,7 @@ canvas {
   display: block;
 }
 
-@media (max-width: 720px), (pointer: coarse) {
+@media (max-width: 834px), (pointer: coarse) {
   .infoButton {
     width: 44px;
     height: 44px;
