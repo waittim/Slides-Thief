@@ -322,6 +322,10 @@ a:hover {
   display: none;
 }
 
+.settingsMenu {
+  --settings-label-width: 96px;
+}
+
 .settingsMenuBody {
   --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
@@ -439,7 +443,7 @@ a:hover {
 
 .morePanel label {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   height: auto;
@@ -473,7 +477,7 @@ a:hover {
 
 .morePanel .colorSetting {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   color: var(--muted);
@@ -1335,11 +1339,10 @@ canvas {
 
   .settingsMenuBody > .ratioSetting,
   .settingsMenuBody > .sourceCustomSetting,
-  .settingsMenuBody > .pdfNameSetting,
   .settingsMenuBody > .settingsMenuTheme,
   .settingsMenuBody > .settingsMenuLanguage {
     display: grid;
-    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
     height: auto;
@@ -1347,7 +1350,12 @@ canvas {
   }
 
   .settingsMenuBody > .pdfNameSetting {
-    grid-template-columns: 82px minmax(0, 1fr) auto;
+    display: grid;
+    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    height: auto;
+    min-height: 44px;
     width: 100%;
     max-width: none;
     justify-self: stretch;
