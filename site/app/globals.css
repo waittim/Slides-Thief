@@ -341,6 +341,7 @@ a:hover {
   justify-self: start;
 }
 
+.settingsMenuBody > .settingsMenuDivider,
 .settingsMenuBody > .settingsMenuTheme,
 .settingsMenuBody > .settingsMenuLanguage,
 .settingsMenuBody > .settingsMenuInfo {
@@ -1113,6 +1114,8 @@ canvas {
   .shell.inspectorCollapsed {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1164,9 +1167,9 @@ canvas {
   }
 
   .workspace {
-    height: clamp(320px, 50dvh, 480px);
+    flex: 1 1 auto;
     min-height: 320px;
-    flex: none;
+    height: auto;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1293,12 +1296,48 @@ canvas {
     overflow: auto;
   }
 
+  .settingsMenuBody > .settingsMenuDivider {
+    display: block;
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 4px 0;
+    grid-column: 1 / -1;
+  }
+
+  .settingsMenuBody > .settingsMenuInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--control-bg);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    grid-column: 1 / -1;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .settingsMenuBody > .settingsMenuInfo:hover {
+    border-color: var(--control-hover);
+    background: var(--panel-strong);
+  }
+
+  .settingsMenuBody > .settingsMenuInfo svg {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
   .settingsMenuBody > .ratioSetting,
   .settingsMenuBody > .sourceCustomSetting,
   .settingsMenuBody > .pdfNameSetting,
   .settingsMenuBody > .settingsMenuTheme,
-  .settingsMenuBody > .settingsMenuLanguage,
-  .settingsMenuBody > .settingsMenuInfo {
+  .settingsMenuBody > .settingsMenuLanguage {
     display: grid;
     grid-template-columns: 82px minmax(0, 1fr);
     align-items: center;
