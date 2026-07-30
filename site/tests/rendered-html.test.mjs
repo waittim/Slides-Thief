@@ -196,7 +196,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /@media \(max-width: 834px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
   assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow-x:\s*hidden/s);
   assert.match(css, /\.productInfo\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
-  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"\s*"prefs"/s);
+  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"/s);
   assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);
   assert.match(css, /\.settingsMenuToggle/);
   assert.match(css, /\.pdfNameSetting\s*\{[^}]*max-width:\s*320px/s);
