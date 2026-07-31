@@ -134,11 +134,9 @@ async function renderWarpedJpeg(
   const output = new ImageData(outWidth, outHeight);
   const target = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, target);
-  const provisionalFill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+  const provisionalFill = settings.fillColor === "auto"
     ? [255, 255, 255] as [number, number, number]
-    : settings.fillColor === "auto"
-      ? AUTO_FILL_FALLBACK
-      : parseHexColor(settings.fillColor);
+    : parseHexColor(settings.fillColor);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -160,10 +158,8 @@ async function renderWarpedJpeg(
   const contentBounds = contentPixelBounds(target);
   const content = extractContent(output, contentBounds);
   applyEnhancement(content.data, content.width, content.height, settings.enhancement);
-  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
-    ? [255, 255, 255] as [number, number, number]
-    : resolveFillColor(settings.fillColor, content);
-  fillAndBlitContent(output, content, contentBounds, fill);
+  const fill = resolveFillColor(settings.fillColor, content);
+  fillAndBlitContent(output, content, contentBounds, fill, provisionalFill);
 
   const outputCanvas = new OffscreenCanvas(outWidth, outHeight);
   const outputCtx = outputCanvas.getContext("2d");
@@ -229,7 +225,7 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
-const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
+const AUTO_FILL_FALLBACK: [number, number, number] = [255, 255, 255];
 
 function resolveFillColor(value: string, content: ImageData) {
   if (value !== "auto") return parseHexColor(value);
@@ -288,6 +284,7 @@ function fillAndBlitContent(
   content: ImageData,
   bounds: ReturnType<typeof contentPixelBounds>,
   fill: [number, number, number],
+  provisionalFill?: [number, number, number],
 ) {
   for (let offset = 0; offset < page.data.length; offset += 4) {
     page.data[offset] = fill[0];
@@ -298,8 +295,63 @@ function fillAndBlitContent(
   for (let y = 0; y < bounds.height; y += 1) {
     const sourceStart = y * bounds.width * 4;
     const targetStart = ((bounds.y + y) * page.width + bounds.x) * 4;
-    page.data.set(content.data.subarray(sourceStart, sourceStart + bounds.width * 4), targetStart);
+    for (let x = 0; x < bounds.width; x += 1) {
+      const sOff = sourceStart + x * 4;
+      const tOff = targetStart + x * 4;
+      const r = content.data[sOff];
+      const g = content.data[sOff + 1];
+      const b = content.data[sOff + 2];
+      if (
+        provisionalFill &&
+        r === provisionalFill[0] &&
+        g === provisionalFill[1] &&
+        b === provisionalFill[2]
+      ) {
+        page.data[tOff] = fill[0];
+        page.data[tOff + 1] = fill[1];
+        page.data[tOff + 2] = fill[2];
+        page.data[tOff + 3] = 255;
+      } else {
+        page.data[tOff] = r;
+        page.data[tOff + 1] = g;
+        page.data[tOff + 2] = b;
+        page.data[tOff + 3] = 255;
+      }
+    }
   }
+}
+
+function sampleBlurredEdgeRgb(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  cx: number,
+  cy: number,
+  radius: number = 3,
+): [number, number, number] {
+  let rSum = 0;
+  let gSum = 0;
+  let bSum = 0;
+  let count = 0;
+
+  const icx = Math.round(cx);
+  const icy = Math.round(cy);
+  const r = Math.min(14, Math.max(1, Math.round(radius)));
+  const step = r > 8 ? 2 : 1;
+
+  for (let dy = -r; dy <= r; dy += step) {
+    for (let dx = -r; dx <= r; dx += step) {
+      const px = Math.max(0, Math.min(width - 1, icx + dx));
+      const py = Math.max(0, Math.min(height - 1, icy + dy));
+      const offset = (py * width + px) * 4;
+      rSum += data[offset];
+      gSum += data[offset + 1];
+      bSum += data[offset + 2];
+      count += 1;
+    }
+  }
+
+  return [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)];
 }
 
 function medianValue(values: number[]) {
@@ -317,19 +369,29 @@ function sampleRgb(
 ) {
   const width = source.width;
   const height = source.height;
-  if (x < 0 || x >= width || y < 0 || y >= height) {
-    target[offset] = fill[0];
-    target[offset + 1] = fill[1];
-    target[offset + 2] = fill[2];
+
+  const dx = x < 0 ? -x : x >= width ? x - (width - 1) : 0;
+  const dy = y < 0 ? -y : y >= height ? y - (height - 1) : 0;
+  const dist = Math.sqrt(dx * dx + dy * dy);
+
+  if (dist > 0) {
+    const cx = Math.max(0, Math.min(width - 1, x));
+    const cy = Math.max(0, Math.min(height - 1, y));
+    const radius = Math.min(14, 2 + Math.floor(dist * 0.25));
+    const [er, eg, eb] = sampleBlurredEdgeRgb(source.data, width, height, cx, cy, radius);
+    target[offset] = er;
+    target[offset + 1] = eg;
+    target[offset + 2] = eb;
     target[offset + 3] = 255;
     return;
   }
-  const sx = clamp(x, 0, width - 1);
-  const sy = clamp(y, 0, height - 1);
+
+  const sx = Math.max(0, Math.min(width - 1, x));
+  const sy = Math.max(0, Math.min(height - 1, y));
   const x0 = Math.floor(sx);
   const y0 = Math.floor(sy);
-  const x1 = clamp(x0 + 1, 0, width - 1);
-  const y1 = clamp(y0 + 1, 0, height - 1);
+  const x1 = Math.max(0, Math.min(width - 1, x0 + 1));
+  const y1 = Math.max(0, Math.min(height - 1, y0 + 1));
   const wx = sx - x0;
   const wy = sy - y0;
   const data = source.data;

@@ -1268,7 +1268,7 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
-const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
+const AUTO_FILL_FALLBACK: [number, number, number] = [255, 255, 255];
 
 /**
  * Finds the dominant colour inside the corrected slide, deliberately skipping
@@ -1331,6 +1331,7 @@ function fillAndBlitContent(
   content: ImageData,
   bounds: ReturnType<typeof contentPixelBounds>,
   fill: [number, number, number],
+  provisionalFill?: [number, number, number],
 ) {
   for (let offset = 0; offset < page.data.length; offset += 4) {
     page.data[offset] = fill[0];
@@ -1341,8 +1342,63 @@ function fillAndBlitContent(
   for (let y = 0; y < bounds.height; y += 1) {
     const sourceStart = y * bounds.width * 4;
     const targetStart = ((bounds.y + y) * page.width + bounds.x) * 4;
-    page.data.set(content.data.subarray(sourceStart, sourceStart + bounds.width * 4), targetStart);
+    for (let x = 0; x < bounds.width; x += 1) {
+      const sOff = sourceStart + x * 4;
+      const tOff = targetStart + x * 4;
+      const r = content.data[sOff];
+      const g = content.data[sOff + 1];
+      const b = content.data[sOff + 2];
+      if (
+        provisionalFill &&
+        r === provisionalFill[0] &&
+        g === provisionalFill[1] &&
+        b === provisionalFill[2]
+      ) {
+        page.data[tOff] = fill[0];
+        page.data[tOff + 1] = fill[1];
+        page.data[tOff + 2] = fill[2];
+        page.data[tOff + 3] = 255;
+      } else {
+        page.data[tOff] = r;
+        page.data[tOff + 1] = g;
+        page.data[tOff + 2] = b;
+        page.data[tOff + 3] = 255;
+      }
+    }
   }
+}
+
+function sampleBlurredEdgeRgb(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  cx: number,
+  cy: number,
+  radius: number = 3,
+): [number, number, number] {
+  let rSum = 0;
+  let gSum = 0;
+  let bSum = 0;
+  let count = 0;
+
+  const icx = Math.round(cx);
+  const icy = Math.round(cy);
+  const r = Math.min(14, Math.max(1, Math.round(radius)));
+  const step = r > 8 ? 2 : 1;
+
+  for (let dy = -r; dy <= r; dy += step) {
+    for (let dx = -r; dx <= r; dx += step) {
+      const px = Math.max(0, Math.min(width - 1, icx + dx));
+      const py = Math.max(0, Math.min(height - 1, icy + dy));
+      const offset = (py * width + px) * 4;
+      rSum += data[offset];
+      gSum += data[offset + 1];
+      bSum += data[offset + 2];
+      count += 1;
+    }
+  }
+
+  return [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)];
 }
 
 function medianValue(values: number[]) {
@@ -1443,11 +1499,9 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
   const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
-  const provisionalFill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+  const provisionalFill = settings.fillColor === "auto"
     ? [255, 255, 255] as [number, number, number]
-    : settings.fillColor === "auto"
-      ? AUTO_FILL_FALLBACK
-      : parseHexColor(settings.fillColor);
+    : parseHexColor(settings.fillColor);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -1456,14 +1510,29 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
       const outIndex = (y * outWidth + x) * 4;
       const insideContent = x >= dst[0][0] && x < dst[1][0] && y >= dst[0][1] && y < dst[3][1];
-      if (insideContent && sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
-        const ix = Math.max(0, Math.min(sourceWidth - 1, Math.round(sx)));
-        const iy = Math.max(0, Math.min(sourceHeight - 1, Math.round(sy)));
-        const srcIndex = (iy * sourceWidth + ix) * 4;
-        output.data[outIndex] = source[srcIndex];
-        output.data[outIndex + 1] = source[srcIndex + 1];
-        output.data[outIndex + 2] = source[srcIndex + 2];
-        output.data[outIndex + 3] = 255;
+      if (insideContent) {
+        const dx = sx < 0 ? -sx : sx >= sourceWidth ? sx - (sourceWidth - 1) : 0;
+        const dy = sy < 0 ? -sy : sy >= sourceHeight ? sy - (sourceHeight - 1) : 0;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0) {
+          const cx = Math.max(0, Math.min(sourceWidth - 1, sx));
+          const cy = Math.max(0, Math.min(sourceHeight - 1, sy));
+          const radius = Math.min(14, 2 + Math.floor(dist * 0.25));
+          const [er, eg, eb] = sampleBlurredEdgeRgb(source, sourceWidth, sourceHeight, cx, cy, radius);
+          output.data[outIndex] = er;
+          output.data[outIndex + 1] = eg;
+          output.data[outIndex + 2] = eb;
+          output.data[outIndex + 3] = 255;
+        } else {
+          const ix = Math.round(sx);
+          const iy = Math.round(sy);
+          const srcIndex = (iy * sourceWidth + ix) * 4;
+          output.data[outIndex] = source[srcIndex];
+          output.data[outIndex + 1] = source[srcIndex + 1];
+          output.data[outIndex + 2] = source[srcIndex + 2];
+          output.data[outIndex + 3] = 255;
+        }
       } else {
         output.data[outIndex] = provisionalFill[0];
         output.data[outIndex + 1] = provisionalFill[1];
@@ -1475,10 +1544,8 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const contentBounds = contentPixelBounds(dst);
   const content = extractContent(output, contentBounds);
   applyEnhancement(content.data, content.width, content.height, settings.enhancement);
-  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
-    ? [255, 255, 255] as [number, number, number]
-    : resolveFillColor(settings.fillColor, content);
-  fillAndBlitContent(output, content, contentBounds, fill);
+  const fill = resolveFillColor(settings.fillColor, content);
+  fillAndBlitContent(output, content, contentBounds, fill, provisionalFill);
   outputCtx.putImageData(output, 0, 0);
   return outputCanvas.toDataURL("image/png");
 }
@@ -2835,7 +2902,7 @@ export function SlidesThiefApp() {
                           type="color"
                           className={settings.fillColor === "auto" ? undefined : "isActive"}
                           aria-label={text.fillColor}
-                          value={settings.fillColor === "auto" ? "#111111" : settings.fillColor}
+                          value={settings.fillColor === "auto" ? "#FFFFFF" : settings.fillColor}
                           onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
                         />
                       </div>
