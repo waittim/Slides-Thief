@@ -156,6 +156,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /role="dialog"/);
   assert.match(app, /aria-modal="true"/);
   assert.match(app, /aria-labelledby="info-modal-title"/);
+  assert.match(app, /import packageMetadata from "\.\.\/package\.json"/);
+  assert.match(app, /const APP_VERSION = packageMetadata\.version/);
+  assert.match(app, /className="modalVersion">v\{APP_VERSION\}/);
+  assert.match(JSON.parse(packageJson).version, /^\d+\.\d+\.\d+$/);
   assert.match(app, /event\.key === "Escape"/);
   assert.match(app, /document\.activeElement === last/);
   assert.match(app, /aria-label=\{text\.close\}/);

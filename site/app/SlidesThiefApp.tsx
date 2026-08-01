@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import packageMetadata from "../package.json";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
 import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
 import {
@@ -32,6 +33,8 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
 }
 type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
+
+const APP_VERSION = packageMetadata.version;
 
 type Settings = {
   sourceFormat: SourceFormat;
@@ -3271,7 +3274,10 @@ export function SlidesThiefApp() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modalHeader">
-              <h3 id="info-modal-title">{text.infoTitle}</h3>
+              <div className="modalTitle">
+                <h3 id="info-modal-title">{text.infoTitle}</h3>
+                <span className="modalVersion">v{APP_VERSION}</span>
+              </div>
               <button
                 ref={closeInfoButtonRef}
                 className="closeButton"
