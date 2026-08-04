@@ -10,10 +10,15 @@ import {
   sanitizePdfBaseName,
 } from "./filename";
 import {
+  defaultOrientationForBaseFormat,
+  deriveSourceFormat,
   isPaperRatio,
   outputPageRatioValue,
   pageLayoutMode,
   sourceFormatRatioValue,
+  splitSourceFormat,
+  type BaseFormat,
+  type Orientation,
   type OutputPageRatio,
   type PageLayoutMode,
   type SourceFormat,
@@ -164,6 +169,9 @@ const ratioUiCopy: Record<LocaleValue, {
   standardPaper: string;
   customPage: string;
   paperFormat: string;
+  orientation: string;
+  landscape: string;
+  portrait: string;
 }> = {
   "zh-CN": {
     sourceFormat: "原稿格式",
@@ -176,6 +184,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "标准纸张",
     customPage: "自定义页面",
     paperFormat: "纸张规格",
+    orientation: "方向",
+    landscape: "横向",
+    portrait: "纵向",
   },
   "zh-TW": {
     sourceFormat: "原稿格式",
@@ -188,6 +199,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "標準紙張",
     customPage: "自訂頁面",
     paperFormat: "紙張規格",
+    orientation: "方向",
+    landscape: "橫向",
+    portrait: "縱向",
   },
   en: {
     sourceFormat: "Source format",
@@ -200,6 +214,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Standard paper",
     customPage: "Custom page",
     paperFormat: "Paper format",
+    orientation: "Orientation",
+    landscape: "Landscape",
+    portrait: "Portrait",
   },
   es: {
     sourceFormat: "Formato original",
@@ -212,6 +229,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papel estándar",
     customPage: "Página personalizada",
     paperFormat: "Papel",
+    orientation: "Orientación",
+    landscape: "Horizontal",
+    portrait: "Vertical",
   },
   fr: {
     sourceFormat: "Format de l’original",
@@ -224,6 +244,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papier standard",
     customPage: "Page personnalisée",
     paperFormat: "Papier",
+    orientation: "Orientation",
+    landscape: "Paysage",
+    portrait: "Portrait",
   },
   de: {
     sourceFormat: "Vorlagenformat",
@@ -236,6 +259,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Standardpapier",
     customPage: "Eigene Seite",
     paperFormat: "Papier",
+    orientation: "Ausrichtung",
+    landscape: "Querformat",
+    portrait: "Hochformat",
   },
   ja: {
     sourceFormat: "原稿形式",
@@ -248,6 +274,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "標準用紙",
     customPage: "カスタムページ",
     paperFormat: "用紙サイズ",
+    orientation: "向き",
+    landscape: "横",
+    portrait: "縦",
   },
   ko: {
     sourceFormat: "원본 형식",
@@ -260,6 +289,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "표준 용지",
     customPage: "사용자 지정 페이지",
     paperFormat: "용지 규격",
+    orientation: "방향",
+    landscape: "가로",
+    portrait: "세로",
   },
   "pt-BR": {
     sourceFormat: "Formato original",
@@ -272,6 +304,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papel padrão",
     customPage: "Página personalizada",
     paperFormat: "Papel",
+    orientation: "Orientação",
+    landscape: "Paisagem",
+    portrait: "Retrato",
   },
 };
 
@@ -3016,36 +3051,41 @@ export function SlidesThiefApp() {
             <summary className="settingsMenuToggle">{text.settings}</summary>
             {settingsOpen && (
               <div className="settingsMenuBody">
-                <label className="ratioSetting">
-                  <span>{ratioUi.sourceFormat}</span>
-                  <select
-                    value={settings.sourceFormat}
-                    onChange={(event) => {
-                      const sourceFormat = event.target.value as SourceFormat;
-                      const nextSettings: Settings = {
-                        ...settings,
-                        sourceFormat,
-                      };
-                      updateSettings(() => nextSettings);
-                      if (hasRun) {
-                        runAutoWithSettings(nextSettings);
-                      }
-                    }}
-                  >
-                    <optgroup label={ratioUi.presentationGroup}>
-                      <option value="16:9">{text.ratio16x9}</option>
-                      <option value="4:3">{text.ratio4x3}</option>
-                      <option value="16:10">16:10</option>
-                    </optgroup>
-                    <optgroup label={ratioUi.documentGroup}>
-                      <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                      <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                      <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                      <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                    </optgroup>
-                    <option value="custom">{ratioUi.custom}</option>
-                  </select>
-                </label>
+                {(() => {
+                  const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
+                  return (
+                    <label className="ratioSetting">
+                      <span>{ratioUi.sourceFormat}</span>
+                      <select
+                        value={currentBaseFormat}
+                        onChange={(event) => {
+                          const nextBaseFormat = event.target.value as BaseFormat;
+                          const defaultOrient = defaultOrientationForBaseFormat(nextBaseFormat);
+                          const sourceFormat = deriveSourceFormat(nextBaseFormat, defaultOrient);
+                          const nextSettings: Settings = {
+                            ...settings,
+                            sourceFormat,
+                          };
+                          updateSettings(() => nextSettings);
+                          if (hasRun) {
+                            runAutoWithSettings(nextSettings);
+                          }
+                        }}
+                      >
+                        <optgroup label={ratioUi.presentationGroup}>
+                          <option value="16:9">{text.ratio16x9}</option>
+                          <option value="4:3">{text.ratio4x3}</option>
+                          <option value="16:10">16:10</option>
+                        </optgroup>
+                        <optgroup label={ratioUi.documentGroup}>
+                          <option value="A4">A4</option>
+                          <option value="letter">Letter</option>
+                        </optgroup>
+                        <option value="custom">{ratioUi.custom}</option>
+                      </select>
+                    </label>
+                  );
+                })()}
                 {settings.sourceFormat === "custom" && (
                   <label className="sourceCustomSetting">
                     <span>{ratioUi.customRatio}</span>
@@ -3076,6 +3116,36 @@ export function SlidesThiefApp() {
                 >
                   <summary>{text.more}</summary>
                   <div className="morePanel">
+                    {(() => {
+                      const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
+                      const isPortrait = currentOrientation === "portrait";
+                      return (
+                        <label className="orientationSetting">
+                          <span>{ratioUi.orientation}</span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isPortrait}
+                            aria-label={ratioUi.orientation}
+                            className={`switchToggle ${isPortrait ? "checked" : ""}`}
+                            onClick={() => {
+                              const nextOrientation = isPortrait ? "landscape" : "portrait";
+                              const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
+                              const nextSettings: Settings = { ...settings, sourceFormat: nextFormat };
+                              updateSettings(() => nextSettings);
+                              if (hasRun) runAutoWithSettings(nextSettings);
+                            }}
+                          >
+                            <span className="switchTrack">
+                              <span className="switchThumb" />
+                            </span>
+                            <span className="switchLabel">
+                              {isPortrait ? ratioUi.portrait : ratioUi.landscape}
+                            </span>
+                          </button>
+                        </label>
+                      );
+                    })()}
                     <label>
                       <span>{ratioUi.pageLayout}</span>
                       <select

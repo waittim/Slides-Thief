@@ -402,6 +402,70 @@ a:hover {
   margin-left: -2px;
 }
 
+.orientationSetting {
+  display: grid;
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  font-size: 13px;
+}
+
+.orientationSetting > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.switchToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.switchTrack {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.switchToggle:hover .switchTrack {
+  border-color: var(--control-hover);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  background: var(--text);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.switchToggle.checked .switchThumb {
+  transform: translateX(16px);
+}
+
+.switchLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+
 .themeSetting select {
   max-width: 108px;
 }
