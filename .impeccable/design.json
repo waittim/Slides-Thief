@@ -1,0 +1,100 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-03T21:24:00Z",
+  "title": "Design System: Slides Thief (PPT捕手)",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Slate Ink",
+        "canonical": "#172026",
+        "tonalRamp": ["#0b1013", "#172026", "#25333d", "#364957", "#4b6273", "#698194", "#91a6b8", "#c8d6e3"]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Terracotta Accent",
+        "canonical": "#c84535",
+        "tonalRamp": ["#681e15", "#982d20", "#c84535", "#e26656", "#ee8d80", "#f6b5ac", "#fcdad5", "#fef3f1"]
+      },
+      "accent-teal": {
+        "role": "secondary",
+        "displayName": "Teal Precision",
+        "canonical": "#0f766e",
+        "tonalRamp": ["#042623", "#084944", "#0f766e", "#149b91", "#1ebeb2", "#47ded2", "#8cebe3", "#d3f7f4"]
+      },
+      "handle": {
+        "role": "secondary",
+        "displayName": "Handle Gold",
+        "canonical": "#ffd84a",
+        "tonalRamp": ["#665100", "#997a00", "#cca300", "#ffd84a", "#ffe275", "#ffeb99", "#fff4c2", "#fffbe6"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "App header and main titles." },
+      "body": { "displayName": "Body", "purpose": "UI controls, labels, and descriptions." },
+      "mono": { "displayName": "Monospace", "purpose": "Quad coordinates and metadata." }
+    },
+    "shadows": [
+      {
+        "name": "control-shadow",
+        "value": "0 10px 28px rgba(21, 32, 38, 0.08)",
+        "purpose": "Floating canvas toolbar and inspector panels."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-cubic",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Modal dialog scale-in and drawer expansion."
+      }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "640px" },
+      { "name": "tablet", "value": "900px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Standard action button.",
+      "html": "<button class=\"ds-btn-primary\">Reset Corners</button>",
+      "css": ".ds-btn-primary { background: #172026; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9375rem; font-weight: 500; border: none; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; } .ds-btn-primary:hover { background: #25333d; transform: translateY(-1px); }"
+    },
+    {
+      "name": "Export PDF Button",
+      "kind": "button",
+      "refersTo": "button-accent",
+      "description": "Primary call-to-action for compilation.",
+      "html": "<button class=\"ds-btn-accent\">Export PDF</button>",
+      "css": ".ds-btn-accent { background: #0f766e; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9375rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; } .ds-btn-accent:hover { background: #149b91; transform: translateY(-1px); }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Precision Desk",
+    "overview": "Slides Thief balances professional utility with minimalist elegance. Designed for high-density document editing and perspective correction, the interface uses a structured 3-column workspace.",
+    "keyCharacteristics": [
+      "100% Local-First Execution Cues",
+      "Direct Interactive 4-Corner Quad Manipulation",
+      "Slate Ink & Teal Precision Tonal Palette"
+    ],
+    "rules": [
+      {
+        "name": "The Single Accent Rule",
+        "body": "Terracotta accent is used exclusively for key identity and critical attention states. Functional quad overlays use Teal Precision.",
+        "section": "colors"
+      }
+    ],
+    "dos": [
+      "Do use CSS custom variables (var(--...)) for all surface and text colors.",
+      "Do preserve 100% browser-local processing notice.",
+      "Do include keyboard accessibility and ARIA descriptions for canvas handles."
+    ],
+    "donts": [
+      "Don't add fixed pixel height constraints to slide list containers.",
+      "Don't use generic vibrant SaaS gradients (purple/cyan) on card backgrounds.",
+      "Don't execute image processing on the main UI thread."
+    ]
+  }
+}

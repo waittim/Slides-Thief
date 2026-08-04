@@ -472,6 +472,16 @@ const copy = {
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
+    shortcutsTitle: "快捷键指南",
+    shortcutNav: "切换上一页 / 下一页",
+    shortcutDelete: "删除选中的幻灯片",
+    shortcutUndo: "撤销角点或页面调整",
+    shortcutRedo: "重做上一步撤销",
+    shortcutExport: "一键导出 PDF",
+    shortcutNudge: "方向键 (+Shift) 8 方向微调角点",
+    clearAll: "清空全部",
+    clearAllConfirm: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
+    deleteSlideHint: "删除此图片",
     close: "关闭",
   },
   "zh-TW": {
@@ -548,6 +558,16 @@ const copy = {
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
+    shortcutsTitle: "快捷鍵指南",
+    shortcutNav: "切換上一頁 / 下一頁",
+    shortcutDelete: "刪除選取的投影片",
+    shortcutUndo: "復原角點或頁面調整",
+    shortcutRedo: "重做上一步復原",
+    shortcutExport: "一鍵匯出 PDF",
+    shortcutNudge: "方向鍵 (+Shift) 8 方向微調角點",
+    clearAll: "清空全部",
+    clearAllConfirm: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
+    deleteSlideHint: "刪除此圖片",
     close: "關閉",
   },
   en: {
@@ -624,6 +644,16 @@ const copy = {
     infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
     infoRepo: "Open Source Repo",
     infoBlog: "Introductory Blog",
+    shortcutsTitle: "Keyboard Shortcuts",
+    shortcutNav: "Previous / Next slide",
+    shortcutDelete: "Delete selected slide",
+    shortcutUndo: "Undo adjustment",
+    shortcutRedo: "Redo adjustment",
+    shortcutExport: "Export PDF",
+    shortcutNudge: "Arrow keys (+Shift) nudge handle",
+    clearAll: "Clear all",
+    clearAllConfirm: (count: number) => `Are you sure you want to clear all ${count} images?`,
+    deleteSlideHint: "Delete image",
     close: "Close",
   },
   es: {
@@ -700,6 +730,16 @@ const copy = {
     infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
     infoRepo: "Repositorio de Código",
     infoBlog: "Blog de Introducción",
+    shortcutsTitle: "Atajos de teclado",
+    shortcutNav: "Diapositiva anterior / siguiente",
+    shortcutDelete: "Eliminar diapositiva seleccionada",
+    shortcutUndo: "Deshacer ajuste",
+    shortcutRedo: "Rehacer ajuste",
+    shortcutExport: "Exportar PDF",
+    shortcutNudge: "Flechas (+Shift) ajustar esquina",
+    clearAll: "Limpiar todo",
+    clearAllConfirm: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
+    deleteSlideHint: "Eliminar imagen",
     close: "Cerrar",
   },
   fr: {
@@ -776,6 +816,16 @@ const copy = {
     infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
     infoRepo: "Dépôt de Code",
     infoBlog: "Blog d'Introduction",
+    shortcutsTitle: "Raccourcis clavier",
+    shortcutNav: "Diapositive précédente / suivante",
+    shortcutDelete: "Supprimer la diapositive",
+    shortcutUndo: "Annuler la modification",
+    shortcutRedo: "Rétablir la modification",
+    shortcutExport: "Exporter en PDF",
+    shortcutNudge: "Touches fléchées (+Shift) ajuster coin",
+    clearAll: "Tout effacer",
+    clearAllConfirm: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
+    deleteSlideHint: "Supprimer l'image",
     close: "Fermer",
   },
   de: {
@@ -852,6 +902,16 @@ const copy = {
     infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
     infoRepo: "Code-Repository",
     infoBlog: "Einführungs-Blog",
+    shortcutsTitle: "Tastaturkurzbefehle",
+    shortcutNav: "Vorherige / nächste Folie",
+    shortcutDelete: "Ausgewählte Folie löschen",
+    shortcutUndo: "Anpassung rückgängig machen",
+    shortcutRedo: "Anpassung wiederholen",
+    shortcutExport: "PDF exportieren",
+    shortcutNudge: "Pfeiltasten (+Shift) Eckpunkt anpassen",
+    clearAll: "Alles löschen",
+    clearAllConfirm: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
+    deleteSlideHint: "Bild löschen",
     close: "Schließen",
   },
   ja: {
@@ -928,6 +988,16 @@ const copy = {
     infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
     infoRepo: "オープンソースリポジトリ",
     infoBlog: "紹介ブログ",
+    shortcutsTitle: "キーボードショートカット",
+    shortcutNav: "前 / 次のスライドに移動",
+    shortcutDelete: "選択中のスライドを削除",
+    shortcutUndo: "調整を取り消す",
+    shortcutRedo: "やり直す",
+    shortcutExport: "PDF を出力",
+    shortcutNudge: "矢印キー (+Shift) で頂点を微調整",
+    clearAll: "すべて消去",
+    clearAllConfirm: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
+    deleteSlideHint: "画像を削除",
     close: "閉じる",
   },
   ko: {
@@ -1004,6 +1074,16 @@ const copy = {
     infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
     infoRepo: "오픈 소스 저장소",
     infoBlog: "소개 블로그",
+    shortcutsTitle: "키보드 단축키",
+    shortcutNav: "이전 / 다음 슬라이드 이동",
+    shortcutDelete: "선택한 슬라이드 삭제",
+    shortcutUndo: "조정 취소",
+    shortcutRedo: "다시 실행",
+    shortcutExport: "PDF 내보내기",
+    shortcutNudge: "방향키 (+Shift) 미세 조정",
+    clearAll: "모두 지우기",
+    clearAllConfirm: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
+    deleteSlideHint: "이미지 삭제",
     close: "닫기",
   },
   "pt-BR": {
@@ -1080,8 +1160,19 @@ const copy = {
     infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
     infoRepo: "Repositório de Código",
     infoBlog: "Blog de Introdução",
+    shortcutsTitle: "Atalhos de teclado",
+    shortcutNav: "Slide anterior / próximo",
+    shortcutDelete: "Excluir slide selecionado",
+    shortcutUndo: "Desfazer ajuste",
+    shortcutRedo: "Refazer ajuste",
+    shortcutExport: "Exportar PDF",
+    shortcutNudge: "Setas (+Shift) ajustar ponto",
+    clearAll: "Limpar tudo",
+    clearAllConfirm: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
+    deleteSlideHint: "Excluir imagem",
     close: "Fechar",
   },
+
 };
 
 function supportedLocaleFromLanguage(language: string | undefined): LocaleValue | null {
@@ -1553,6 +1644,15 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   return outputCanvas.toDataURL("image/png");
 }
 
+function cloneSlides(items: SlideItem[]): SlideItem[] {
+  return items.map((slide) => ({
+    ...slide,
+    quad: slide.quad ? cloneQuad(slide.quad) : null,
+    autoQuad: slide.autoQuad ? cloneQuad(slide.autoQuad) : null,
+    reviewReasons: [...slide.reviewReasons],
+  }));
+}
+
 export function SlidesThiefApp() {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -1583,9 +1683,16 @@ export function SlidesThiefApp() {
   const workerRef = useRef<Worker | null>(null);
   const exportWorkerRef = useRef<Worker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slidesRef = useRef<SlideItem[]>([]);
+  const historyPastRef = useRef<SlideItem[][]>([]);
+  const historyFutureRef = useRef<SlideItem[][]>([]);
+  const selectedIdRef = useRef<string | null>(null);
+  const exportingRef = useRef(false);
+  const busyRef = useRef(false);
   const exportUrlRef = useRef<string | null>(null);
+
   const localeRef = useRef<LocaleValue>("en");
   const settingsRef = useRef<Settings>(defaultSettings);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
@@ -1892,8 +1999,150 @@ export function SlidesThiefApp() {
   }, [slides]);
 
   useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  useEffect(() => {
+    exportingRef.current = exporting;
+  }, [exporting]);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (slidesRef.current.length > 0 || exportingRef.current) {
+        event.preventDefault();
+        event.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  const pushHistory = useCallback(() => {
+    if (slidesRef.current.length === 0) return;
+    historyPastRef.current = [...historyPastRef.current.slice(-29), cloneSlides(slidesRef.current)];
+    historyFutureRef.current = [];
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    const past = historyPastRef.current;
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    historyPastRef.current = past.slice(0, -1);
+    historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
+    clearExport();
+    setSlides(previous);
+  }, [clearExport]);
+
+  const handleRedo = useCallback(() => {
+    const future = historyFutureRef.current;
+    if (future.length === 0) return;
+    const next = future[0];
+    historyFutureRef.current = future.slice(1);
+    historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
+    clearExport();
+    setSlides(next);
+  }, [clearExport]);
+
+  const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
+    const loupeCanvas = loupeCanvasRef.current;
+    const render = canvasRenderRef.current;
+    if (!loupeCanvas || !render?.image || handleIndex === null || !quad || !quad[handleIndex]) return;
+
+    const ctx = loupeCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const [srcX, srcY] = quad[handleIndex];
+    const size = 120;
+    loupeCanvas.width = size;
+    loupeCanvas.height = size;
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    const zoomFactor = 2.5;
+    const srcSize = size / zoomFactor;
+    const cropX = srcX - srcSize / 2;
+    const cropY = srcY - srcSize / 2;
+
+    ctx.drawImage(
+      render.image,
+      cropX,
+      cropY,
+      srcSize,
+      srcSize,
+      0,
+      0,
+      size,
+      size,
+    );
+  }, []);
+
+  const deleteSlide = useCallback(
+    (id: string) => {
+      pushHistory();
+      clearExport();
+      setSlides((current) => {
+        const next = current.filter((slide) => slide.id !== id);
+        if (selectedIdRef.current === id) {
+          const index = current.findIndex((slide) => slide.id === id);
+          const nextSelected = next[Math.min(index, next.length - 1)];
+          setSelectedId(nextSelected?.id ?? null);
+        }
+        return next;
+      });
+    },
+    [clearExport, pushHistory],
+  );
+
+  const clearAllSlides = useCallback(() => {
+    const count = slidesRef.current.length;
+    if (!count) return;
+    const shouldClear = window.confirm(text.clearAllConfirm(count));
+    if (!shouldClear) return;
+    pushHistory();
+    clearExport();
+    cancelActiveDrag();
+    setSlides([]);
+    setSelectedId(null);
+  }, [cancelActiveDrag, clearExport, pushHistory, text]);
+
+
+  const selectNextSlide = useCallback(() => {
+    const currentSlides = slidesRef.current;
+    if (!currentSlides.length) return;
+    const currentId = selectedIdRef.current;
+    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
+    const nextIndex = Math.min(currentIndex + 1, currentSlides.length - 1);
+    if (nextIndex >= 0 && nextIndex !== currentIndex && currentSlides[nextIndex]) {
+      cancelActiveDrag();
+      setSelectedId(currentSlides[nextIndex].id);
+      setZoomMode("fit");
+    }
+  }, [cancelActiveDrag]);
+
+  const selectPrevSlide = useCallback(() => {
+    const currentSlides = slidesRef.current;
+    if (!currentSlides.length) return;
+    const currentId = selectedIdRef.current;
+    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    if (prevIndex >= 0 && prevIndex !== currentIndex && currentSlides[prevIndex]) {
+      cancelActiveDrag();
+      setSelectedId(currentSlides[prevIndex].id);
+      setZoomMode("fit");
+    }
+  }, [cancelActiveDrag]);
+
 
   useEffect(() => {
     const token = thumbnailRefreshTokenRef.current + 1;
@@ -2225,7 +2474,11 @@ export function SlidesThiefApp() {
       ctx.textBaseline = "middle";
       ctx.fillText(String(index + 1), left, top + 1);
     });
-  }, []);
+
+    if (dragHandleRef.current !== null && quad) {
+      updateLoupeCanvas(quad, dragHandleRef.current);
+    }
+  }, [updateLoupeCanvas]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -2309,6 +2562,7 @@ export function SlidesThiefApp() {
       const scale = Math.max(0.01, Math.min(requestedScale, maxScale));
       const width = Math.max(1, Math.round(totalWidth * scale));
       const height = Math.max(1, Math.round(totalHeight * scale));
+
 
       canvas.width = width;
       canvas.height = height;
@@ -2400,10 +2654,12 @@ export function SlidesThiefApp() {
     ) {
       return;
     }
+    pushHistory();
     latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
     activePointerRef.current = event.pointerId;
     dragHandleRef.current = index;
     setDragHandle(index);
+    updateLoupeCanvas(selectedSlide.quad, index);
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
@@ -2620,6 +2876,74 @@ export function SlidesThiefApp() {
       filename,
     });
   };
+
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (isInfoOpen) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Undo: Cmd+Z or Ctrl+Z
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Cmd+Shift+Z or Ctrl+Shift+Z or Ctrl+Y
+      if (
+        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && event.shiftKey) ||
+        (event.ctrlKey && event.key.toLowerCase() === "y")
+      ) {
+        event.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Slide Navigation & Deletion
+      if (slidesRef.current.length > 0) {
+        if (event.key.toLowerCase() === "j" || event.key === "PageDown") {
+          event.preventDefault();
+          selectNextSlide();
+          return;
+        }
+        if (event.key.toLowerCase() === "k" || event.key === "PageUp") {
+          event.preventDefault();
+          selectPrevSlide();
+          return;
+        }
+        if (event.key === "Delete" || event.key === "Backspace") {
+          if (selectedIdRef.current) {
+            event.preventDefault();
+            deleteSlide(selectedIdRef.current);
+          }
+          return;
+        }
+      }
+
+      // Export PDF: Cmd+Enter or Ctrl+Enter
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        const ready = slidesRef.current.filter((s) => s.status === "ready" && s.quad);
+        if (ready.length && !busyRef.current) {
+          exportPdf();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isInfoOpen, handleUndo, handleRedo, selectNextSlide, selectPrevSlide, deleteSlide]);
+
 
   const selectAt = (index: number) => {
     const slide = slides[Math.max(0, Math.min(slides.length - 1, index))];
@@ -2969,7 +3293,7 @@ export function SlidesThiefApp() {
             <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
               {text.runAuto}
             </button>
-            <button type="button" className="green" disabled={busy || !readySlides.length} onClick={exportPdf}>
+            <button type="button" className="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
               {text.generatePdf}
             </button>
           </div>
@@ -2994,6 +3318,17 @@ export function SlidesThiefApp() {
           <div className="sectionHead">
             <h2>{text.images}</h2>
             <span className="count">{slides.length}</span>
+            {slides.length > 0 && (
+              <button
+                type="button"
+                className="clearAllBtn"
+                disabled={busy}
+                title={text.clearAll}
+                onClick={clearAllSlides}
+              >
+                {text.clearAll}
+              </button>
+            )}
           </div>
           <div className="sidebarFilePicker">
             <input
@@ -3083,6 +3418,32 @@ export function SlidesThiefApp() {
                             : formatBytes(slide.file.size)}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      className="slideDeleteBtn"
+                      title={text.deleteSlideHint}
+                      aria-label={`${text.deleteSlideHint}: ${slide.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        deleteSlide(slide.id);
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      </svg>
+                    </button>
                   </button>
                 );
               })}
@@ -3096,7 +3457,7 @@ export function SlidesThiefApp() {
               type="button"
               className="icon reviewPrevious"
               disabled={!slides.length || selectedIndex <= 0}
-              title={text.prev}
+              title={`${text.prev} (K / PageUp)`}
               aria-label={text.prev}
               onClick={() => selectAt(selectedIndex - 1)}
             >
@@ -3106,7 +3467,7 @@ export function SlidesThiefApp() {
               type="button"
               className="icon reviewNext"
               disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
-              title={text.next}
+              title={`${text.next} (J / PageDown)`}
               aria-label={text.next}
               onClick={() => selectAt(selectedIndex + 1)}
             >
@@ -3168,7 +3529,20 @@ export function SlidesThiefApp() {
                         );
                       })
                     : null}
+                  {dragHandle !== null && handlePositions[dragHandle] && (
+                    <div
+                      className="loupeOverlay"
+                      style={{
+                        left: `${handlePositions[dragHandle].left}px`,
+                        top: `${handlePositions[dragHandle].top}px`,
+                      }}
+                    >
+                      <canvas ref={loupeCanvasRef} className="loupeCanvas" />
+                      <div className="loupeCrosshair" />
+                    </div>
+                  )}
                 </div>
+
               ) : (
                 <div className="empty">
                   {selectedSlide && previewErrorSlideId === selectedSlide.id
@@ -3293,6 +3667,29 @@ export function SlidesThiefApp() {
               <p className="modalPrivacy">
                 <strong>{text.infoPrivacy}</strong>
               </p>
+              <div className="modalShortcuts">
+                <h4>{text.shortcutsTitle}</h4>
+                <div className="shortcutGrid">
+                  <div className="shortcutItem">
+                    <kbd>J</kbd> / <kbd>K</kbd> <span>{text.shortcutNav}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>Delete</kbd> <span>{text.shortcutDelete}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘Z</kbd> / <kbd>Ctrl+Z</kbd> <span>{text.shortcutUndo}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘⇧Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> <span>{text.shortcutRedo}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘↵</kbd> / <kbd>Ctrl+Enter</kbd> <span>{text.shortcutExport}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span>{text.shortcutNudge}</span>
+                  </div>
+                </div>
+              </div>
               <div className="modalLinks">
                 <a href="https://github.com/waittim/Slides-Thief" target="_blank" rel="noopener noreferrer" className="modalLink">
                   {text.infoRepo}
