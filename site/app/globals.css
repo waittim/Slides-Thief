@@ -7,7 +7,7 @@
   --panel-strong: #edf3f5;
   --topbar-bg: rgba(255, 255, 255, 0.92);
   --text: #172026;
-  --muted: #64717a;
+  --muted: #526069;
   --line: #d8e1e7;
   --accent: #c84535;
   --accent-2: #0f766e;
@@ -18,18 +18,18 @@
   --control-hover: #aebbc4;
   --primary-bg: #172026;
   --primary-text: #ffffff;
-  --drop-line: #aebbc4;
+  --drop-line: #7d8d97;
   --drop-bg: #fbfcfd;
   --drop-active-bg: #edf8f6;
   --thumb-bg: #f8fafb;
   --chip-bg: #eef2f5;
   --low-bg: #fff3d6;
-  --low-text: #8a4c06;
+  --low-text: #7c4304;
   --stage-grid: rgba(23, 32, 38, 0.04);
   --empty-bg: rgba(255, 255, 255, 0.74);
   --shadow: 0 10px 28px rgba(21, 32, 38, 0.08);
   --logo-slide: #F5F7F2;
-  --logo-lines: #64717A;
+  --logo-lines: #526069;
 }
 
 :root[data-theme="dark"] {
@@ -39,7 +39,7 @@
   --panel-strong: #222b2f;
   --topbar-bg: rgba(23, 29, 32, 0.94);
   --text: #eef4f6;
-  --muted: #9daab1;
+  --muted: #a8b6bd;
   --line: #344147;
   --accent: #ff7b68;
   --accent-2: #32c8ba;
@@ -49,18 +49,18 @@
   --control-hover: #5b6b73;
   --primary-bg: #eef4f6;
   --primary-text: #101416;
-  --drop-line: #5b6b73;
+  --drop-line: #7a8c95;
   --drop-bg: #14191c;
   --drop-active-bg: #132c2a;
   --thumb-bg: #11181b;
   --chip-bg: #253035;
   --low-bg: #3a2d16;
-  --low-text: #ffca73;
+  --low-text: #ffd385;
   --stage-grid: rgba(238, 244, 246, 0.055);
   --empty-bg: rgba(20, 25, 28, 0.78);
   --shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
   --logo-slide: #171d20;
-  --logo-lines: #9daab1;
+  --logo-lines: #a8b6bd;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -71,7 +71,7 @@
     --panel-strong: #222b2f;
     --topbar-bg: rgba(23, 29, 32, 0.94);
     --text: #eef4f6;
-    --muted: #9daab1;
+    --muted: #a8b6bd;
     --line: #344147;
     --accent: #ff7b68;
     --accent-2: #32c8ba;
@@ -81,18 +81,18 @@
     --control-hover: #5b6b73;
     --primary-bg: #eef4f6;
     --primary-text: #101416;
-    --drop-line: #5b6b73;
+    --drop-line: #7a8c95;
     --drop-bg: #14191c;
     --drop-active-bg: #132c2a;
     --thumb-bg: #11181b;
     --chip-bg: #253035;
     --low-bg: #3a2d16;
-    --low-text: #ffca73;
+    --low-text: #ffd385;
     --stage-grid: rgba(238, 244, 246, 0.055);
     --empty-bg: rgba(20, 25, 28, 0.78);
     --shadow: 0 10px 28px rgba(0, 0, 0, 0.34);
     --logo-slide: #171d20;
-    --logo-lines: #9daab1;
+    --logo-lines: #a8b6bd;
   }
 }
 
@@ -322,6 +322,10 @@ a:hover {
   display: none;
 }
 
+.settingsMenu {
+  --settings-label-width: 96px;
+}
+
 .settingsMenuBody {
   --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
@@ -341,6 +345,13 @@ a:hover {
   justify-self: start;
 }
 
+.settingsMenuBody > .settingsMenuDivider,
+.settingsMenuBody > .settingsMenuTheme,
+.settingsMenuBody > .settingsMenuLanguage,
+.settingsMenuBody > .settingsMenuInfo {
+  display: none;
+}
+
 .settings:has(.moreSettings[open]) {
   overflow: visible;
 }
@@ -352,11 +363,13 @@ a:hover {
   gap: 6px;
   height: 34px;
   min-width: 0;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > span,
 .prefsBar label > span {
   flex: 0 0 auto;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > select,
@@ -366,6 +379,7 @@ a:hover {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > select,
@@ -373,17 +387,83 @@ a:hover {
   flex: 0 0 auto;
   min-width: 74px;
   width: auto;
+  font-size: 13px;
 }
 
 .settings label:not(.checks) > input[type="number"] {
   flex: 0 0 74px;
   width: 74px;
+  font-size: 13px;
 }
 
 .settings .fileSuffix {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   margin-left: -2px;
+}
+
+.orientationSetting {
+  display: grid;
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  font-size: 13px;
+}
+
+.orientationSetting > span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.switchToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.switchTrack {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+  flex-shrink: 0;
+}
+
+.switchToggle:hover .switchTrack {
+  border-color: var(--control-hover);
+}
+
+.switchThumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 16px;
+  height: 16px;
+  background: var(--text);
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.switchToggle.checked .switchThumb {
+  transform: translateX(16px);
+}
+
+.switchLabel {
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
 }
 
 .themeSetting select {
@@ -403,6 +483,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   list-style: none;
+  font-size: 13px;
 }
 
 .moreSettings summary::-webkit-details-marker {
@@ -426,10 +507,17 @@ a:hover {
 
 .morePanel label {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   height: auto;
+  font-size: 13px;
+}
+
+.morePanel select,
+.morePanel input[type="number"],
+.morePanel input[type="text"] {
+  font-size: 13px;
 }
 
 .morePanel .checks {
@@ -453,11 +541,11 @@ a:hover {
 
 .morePanel .colorSetting {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
   gap: 8px;
   color: var(--muted);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 400;
   line-height: 1.45;
 }
@@ -521,6 +609,11 @@ a:hover {
 .sidebar {
   border-right: 1px solid var(--line);
   grid-template-rows: auto auto auto minmax(0, 1fr);
+  min-width: 0;
+}
+
+.sidebar > * {
+  min-width: 0;
 }
 
 .inspector {
@@ -558,6 +651,7 @@ a:hover {
 
 .sidebarStatus {
   min-height: 36px;
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -565,6 +659,7 @@ a:hover {
 }
 
 .statusDot {
+  flex: none;
   width: 9px;
   height: 9px;
   border-radius: 50%;
@@ -588,6 +683,8 @@ a:hover {
 }
 
 .statusLine {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -659,6 +756,29 @@ a:hover {
   font-weight: 720;
 }
 
+.clearAllBtn {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+.clearAllBtn:hover:not(:disabled) {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+}
+
+.clearAllBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+
 .fileInput {
   display: none;
 }
@@ -715,6 +835,7 @@ a:hover {
 
 .fileRow,
 .slideRow {
+  position: relative;
   width: 100%;
   min-height: 58px;
   display: grid;
@@ -734,6 +855,59 @@ a:hover {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2), transparent 82%);
 }
+
+.slideDeleteBtn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  cursor: pointer;
+  opacity: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+  z-index: 2;
+}
+
+.slideDeleteBtn svg {
+  display: block;
+  width: 14px;
+  height: 14px;
+  margin: auto;
+  pointer-events: none;
+}
+
+.fileRow:hover .slideDeleteBtn,
+.slideRow:hover .slideDeleteBtn,
+.fileRow:focus-within .slideDeleteBtn,
+.slideRow:focus-within .slideDeleteBtn {
+  opacity: 1;
+}
+
+.slideDeleteBtn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #ffffff;
+  transform: scale(1.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+
+@media (pointer: coarse) {
+  .slideDeleteBtn {
+    opacity: 0.85;
+  }
+}
+
+
 
 .idx {
   grid-row: 1 / 3;
@@ -1034,7 +1208,7 @@ canvas {
   }
 }
 
-@media (max-width: 720px), (max-height: 600px) and (max-width: 1040px) {
+@media (max-width: 834px), (max-height: 600px) and (max-width: 1040px) {
   html {
     height: auto;
     min-height: 100%;
@@ -1059,11 +1233,10 @@ canvas {
     overflow-x: hidden;
     overflow-y: visible;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto minmax(0, 1fr);
     grid-template-areas:
       "topbar"
-      "shell"
-      "prefs";
+      "shell";
   }
 
   .topbar {
@@ -1072,17 +1245,7 @@ canvas {
   }
 
   .prefsBar {
-    min-height: 0;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    padding: 12px max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom))
-      max(12px, env(safe-area-inset-left));
-    border-bottom: 0;
-    border-top: 1px solid var(--line);
-    position: relative;
-    top: auto;
+    display: none;
   }
 
   .prefsBar .infoButton {
@@ -1105,6 +1268,8 @@ canvas {
   .shell.inspectorCollapsed {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1156,9 +1321,9 @@ canvas {
   }
 
   .workspace {
-    height: clamp(320px, 50dvh, 480px);
+    flex: 1 1 auto;
     min-height: 320px;
-    flex: none;
+    height: auto;
     width: 100%;
     max-width: 100%;
     min-width: 0;
@@ -1220,7 +1385,7 @@ canvas {
   }
 }
 
-@media (max-width: 720px) {
+@media (max-width: 834px) {
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
@@ -1285,11 +1450,49 @@ canvas {
     overflow: auto;
   }
 
+  .settingsMenuBody > .settingsMenuDivider {
+    display: block;
+    border: 0;
+    border-top: 1px solid var(--line);
+    margin: 4px 0;
+    grid-column: 1 / -1;
+  }
+
+  .settingsMenuBody > .settingsMenuInfo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 44px;
+    padding: 0 12px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--control-bg);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    font-size: 13px;
+    font-weight: 500;
+    grid-column: 1 / -1;
+    transition: border-color 0.15s ease, background-color 0.15s ease;
+  }
+
+  .settingsMenuBody > .settingsMenuInfo:hover {
+    border-color: var(--control-hover);
+    background: var(--panel-strong);
+  }
+
+  .settingsMenuBody > .settingsMenuInfo svg {
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
   .settingsMenuBody > .ratioSetting,
   .settingsMenuBody > .sourceCustomSetting,
-  .settingsMenuBody > .pdfNameSetting {
+  .settingsMenuBody > .settingsMenuTheme,
+  .settingsMenuBody > .settingsMenuLanguage {
     display: grid;
-    grid-template-columns: 82px minmax(0, 1fr);
+    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
     align-items: center;
     gap: 8px;
     height: auto;
@@ -1297,7 +1500,12 @@ canvas {
   }
 
   .settingsMenuBody > .pdfNameSetting {
-    grid-template-columns: 82px minmax(0, 1fr) auto;
+    display: grid;
+    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    height: auto;
+    min-height: 44px;
     width: 100%;
     max-width: none;
     justify-self: stretch;
@@ -1397,12 +1605,24 @@ canvas {
     font-size: 16px;
   }
 
+  .settings label,
+  .prefsBar label,
+  .morePanel label,
+  .settings select,
+  .prefsBar select,
+  .morePanel select,
+  .settings input,
+  .morePanel input,
+  .moreSettings summary {
+    font-size: 13px;
+  }
+
   .empty {
     min-width: min(100%, 460px);
   }
 }
 
-@media (max-width: 720px), (pointer: coarse) {
+@media (max-width: 834px), (pointer: coarse) {
   button,
   .moreSettings summary {
     height: 44px;
@@ -1411,6 +1631,9 @@ canvas {
 
   button.icon {
     width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   select,
@@ -1418,6 +1641,18 @@ canvas {
   input[type="text"] {
     height: 44px;
     font-size: 16px;
+  }
+
+  .settings label,
+  .prefsBar label,
+  .morePanel label,
+  .settings select,
+  .prefsBar select,
+  .morePanel select,
+  .settings input,
+  .morePanel input,
+  .moreSettings summary {
+    font-size: 13px;
   }
 
   .settings label,
@@ -1448,6 +1683,10 @@ canvas {
   }
 
   .links a {
+    min-height: 44px;
+  }
+
+  .sectionHead {
     min-height: 44px;
   }
 }
@@ -1496,7 +1735,7 @@ canvas {
   display: block;
 }
 
-@media (max-width: 720px), (pointer: coarse) {
+@media (max-width: 834px), (pointer: coarse) {
   .infoButton {
     width: 44px;
     height: 44px;
@@ -1544,11 +1783,26 @@ canvas {
   border-bottom: 1px solid var(--line);
 }
 
+.modalTitle {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
 .modalHeader h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 750;
   color: var(--text);
+}
+
+.modalVersion {
+  flex: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
 }
 
 .modalHeader .closeButton {
@@ -1680,3 +1934,103 @@ canvas {
     transform: none;
   }
 }
+
+/* Corner Drag Magnifying Loupe Overlay */
+.loupeOverlay {
+  position: absolute;
+  pointer-events: none;
+  z-index: 100;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-2);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+  background: var(--panel);
+  transform: translate(-50%, -100%);
+  margin-top: -16px;
+}
+
+.loupeCanvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+}
+
+.loupeCrosshair {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 14px;
+  height: 14px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.loupeCrosshair::before,
+.loupeCrosshair::after {
+  content: "";
+  position: absolute;
+  background: var(--handle);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+}
+
+.loupeCrosshair::before {
+  top: 6px;
+  left: 0;
+  width: 14px;
+  height: 2px;
+}
+
+.loupeCrosshair::after {
+  top: 0;
+  left: 6px;
+  width: 2px;
+  height: 14px;
+}
+
+/* Modal Keyboard Shortcuts Section & Keycaps */
+.modalShortcuts {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.modalShortcuts h4 {
+  margin: 0 0 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.shortcutGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 8px 12px;
+}
+
+.shortcutItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8125rem;
+  color: var(--muted);
+}
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 5px;
+  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  color: var(--text);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+

@@ -154,3 +154,7 @@ pyproject.toml          # Python 构建、运行时与开发配置
 ```
 
 生成任务、中间文件和包构建产物不会进入源码管理，通常位于 `outputs/`、`work/`、`dist/`、`*.egg-info/` 等已忽略路径下。
+
+## 更新日志
+
+版本历史见 [CHANGELOG.md](CHANGELOG.md)。

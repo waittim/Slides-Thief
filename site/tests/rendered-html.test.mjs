@@ -72,6 +72,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /new Worker\(new URL\("\.\/slides-worker\.ts"/);
   assert.match(app, /new Worker\(new URL\("\.\/slides-export-worker\.ts"/);
   assert.match(app, /runAuto/);
+  assert.match(app, /isManual =[\s\S]*slide\.reviewedByUser/);
   assert.match(app, /buildAdjustedThumbnail/);
   assert.match(app, /refreshSlideThumbnail/);
   assert.match(app, /x \/ scale - padX/);
@@ -156,6 +157,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /role="dialog"/);
   assert.match(app, /aria-modal="true"/);
   assert.match(app, /aria-labelledby="info-modal-title"/);
+  assert.match(app, /import packageMetadata from "\.\.\/package\.json"/);
+  assert.match(app, /const APP_VERSION = packageMetadata\.version/);
+  assert.match(app, /className="modalVersion">v\{APP_VERSION\}/);
+  assert.match(JSON.parse(packageJson).version, /^\d+\.\d+\.\d+$/);
   assert.match(app, /event\.key === "Escape"/);
   assert.match(app, /document\.activeElement === last/);
   assert.match(app, /aria-label=\{text\.close\}/);
@@ -175,6 +180,16 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
   assert.match(exportWorker, /fillColor/);
   assert.match(exportWorker, /parseHexColor/);
+  assert.match(
+    app,
+    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
+  );
+  assert.match(
+    exportWorker,
+    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
+  );
+  assert.doesNotMatch(app, /applyEnhancement\(output\.data/);
+  assert.doesNotMatch(exportWorker, /applyEnhancement\(output\.data/);
   assert.match(exportWorker, /OffscreenCanvas/);
   assert.match(worker, /detectQuad/);
   assert.match(detector, /contrast-lines/);
@@ -183,14 +198,17 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /canvas\s*\{[^}]*background:\s*transparent/s);
   assert.match(css, /canvas\s*\{[^}]*touch-action:\s*pan-x pan-y/s);
   assert.match(css, /\.cornerHandle\s*\{[^}]*touch-action:\s*none/s);
-  assert.match(css, /@media \(max-width: 720px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
+  assert.match(css, /@media \(max-width: 834px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
   assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow-x:\s*hidden/s);
   assert.match(css, /\.productInfo\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
-  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"\s*"prefs"/s);
+  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"/s);
   assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);
   assert.match(css, /\.settingsMenuToggle/);
   assert.match(css, /\.pdfNameSetting\s*\{[^}]*max-width:\s*320px/s);
   assert.match(css, /\.sidebarFilePicker\s*\{[^}]*min-height:\s*0;[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/s);
+  assert.match(css, /\.sidebar\s*>\s*\*\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.sidebarStatus\s*\{[^}]*min-width:\s*0/s);
+  assert.match(css, /\.statusLine\s*\{[^}]*flex:\s*1;[^}]*min-width:\s*0;[^}]*text-overflow:\s*ellipsis/s);
   assert.match(css, /\.files\s*\{[^}]*max-height:\s*calc\(100%\s*-\s*10px\);[^}]*align-self:\s*start;[^}]*overflow:\s*auto/s);
   assert.doesNotMatch(css, /\.files\s*\{[^}]*max-height:\s*calc\(100vh/s);
   assert.match(css, /font-size:\s*16px/);

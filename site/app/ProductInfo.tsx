@@ -23,6 +23,10 @@ export function ProductInfo() {
           <p>Image correction and PDF generation run locally in your browser without uploading source photos.</p>
         </article>
         <article>
+          <h3>Keyboard shortcuts</h3>
+          <p>Navigate with J/K, delete with Delete/Backspace, undo/redo with Cmd+Z/Cmd+Shift+Z, export PDF with Cmd+Enter, and fine-tune corners with Arrow keys (+Shift).</p>
+        </article>
+        <article>
           <h3>Optional readability enhancement</h3>
           <p>
             Keep original colors by default, or choose Clean, High contrast, or Black &amp; white to

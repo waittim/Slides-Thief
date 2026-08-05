@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import packageMetadata from "../package.json";
 import { applyEnhancement, type EnhancementMode } from "./enhance";
 import type { BatchPrior, Quad, ReviewReason } from "./detection/types";
 import {
@@ -9,10 +10,15 @@ import {
   sanitizePdfBaseName,
 } from "./filename";
 import {
+  defaultOrientationForBaseFormat,
+  deriveSourceFormat,
   isPaperRatio,
   outputPageRatioValue,
   pageLayoutMode,
   sourceFormatRatioValue,
+  splitSourceFormat,
+  type BaseFormat,
+  type Orientation,
   type OutputPageRatio,
   type PageLayoutMode,
   type SourceFormat,
@@ -32,6 +38,8 @@ function trackEvent(name: string, params?: Record<string, unknown>) {
 }
 type ThemeValue = "auto" | "light" | "dark";
 type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
+
+const APP_VERSION = packageMetadata.version;
 
 type Settings = {
   sourceFormat: SourceFormat;
@@ -161,6 +169,9 @@ const ratioUiCopy: Record<LocaleValue, {
   standardPaper: string;
   customPage: string;
   paperFormat: string;
+  orientation: string;
+  landscape: string;
+  portrait: string;
 }> = {
   "zh-CN": {
     sourceFormat: "原稿格式",
@@ -173,6 +184,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "标准纸张",
     customPage: "自定义页面",
     paperFormat: "纸张规格",
+    orientation: "方向",
+    landscape: "横向",
+    portrait: "纵向",
   },
   "zh-TW": {
     sourceFormat: "原稿格式",
@@ -185,6 +199,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "標準紙張",
     customPage: "自訂頁面",
     paperFormat: "紙張規格",
+    orientation: "方向",
+    landscape: "橫向",
+    portrait: "縱向",
   },
   en: {
     sourceFormat: "Source format",
@@ -197,6 +214,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Standard paper",
     customPage: "Custom page",
     paperFormat: "Paper format",
+    orientation: "Orientation",
+    landscape: "Landscape",
+    portrait: "Portrait",
   },
   es: {
     sourceFormat: "Formato original",
@@ -209,6 +229,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papel estándar",
     customPage: "Página personalizada",
     paperFormat: "Papel",
+    orientation: "Orientación",
+    landscape: "Horizontal",
+    portrait: "Vertical",
   },
   fr: {
     sourceFormat: "Format de l’original",
@@ -221,6 +244,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papier standard",
     customPage: "Page personnalisée",
     paperFormat: "Papier",
+    orientation: "Orientation",
+    landscape: "Paysage",
+    portrait: "Portrait",
   },
   de: {
     sourceFormat: "Vorlagenformat",
@@ -233,6 +259,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Standardpapier",
     customPage: "Eigene Seite",
     paperFormat: "Papier",
+    orientation: "Ausrichtung",
+    landscape: "Querformat",
+    portrait: "Hochformat",
   },
   ja: {
     sourceFormat: "原稿形式",
@@ -245,6 +274,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "標準用紙",
     customPage: "カスタムページ",
     paperFormat: "用紙サイズ",
+    orientation: "向き",
+    landscape: "横",
+    portrait: "縦",
   },
   ko: {
     sourceFormat: "원본 형식",
@@ -257,6 +289,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "표준 용지",
     customPage: "사용자 지정 페이지",
     paperFormat: "용지 규격",
+    orientation: "방향",
+    landscape: "가로",
+    portrait: "세로",
   },
   "pt-BR": {
     sourceFormat: "Formato original",
@@ -269,6 +304,9 @@ const ratioUiCopy: Record<LocaleValue, {
     standardPaper: "Papel padrão",
     customPage: "Página personalizada",
     paperFormat: "Papel",
+    orientation: "Orientação",
+    landscape: "Paisagem",
+    portrait: "Retrato",
   },
 };
 
@@ -469,6 +507,16 @@ const copy = {
     infoPrivacy: "照片和 PDF 均在本地处理，绝对不会上传到任何服务器，保护您的隐私安全。",
     infoRepo: "开源仓库",
     infoBlog: "介绍博客",
+    shortcutsTitle: "快捷键指南",
+    shortcutNav: "切换上一页 / 下一页",
+    shortcutDelete: "删除选中的幻灯片",
+    shortcutUndo: "撤销角点或页面调整",
+    shortcutRedo: "重做上一步撤销",
+    shortcutExport: "一键导出 PDF",
+    shortcutNudge: "方向键 (+Shift) 8 方向微调角点",
+    clearAll: "清空全部",
+    clearAllConfirm: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
+    deleteSlideHint: "删除此图片",
     close: "关闭",
   },
   "zh-TW": {
@@ -545,6 +593,16 @@ const copy = {
     infoPrivacy: "相片和 PDF 均在本地處理，絕對不會上傳到任何伺服器，保護您的隱私安全。",
     infoRepo: "開源倉庫",
     infoBlog: "介紹網誌",
+    shortcutsTitle: "快捷鍵指南",
+    shortcutNav: "切換上一頁 / 下一頁",
+    shortcutDelete: "刪除選取的投影片",
+    shortcutUndo: "復原角點或頁面調整",
+    shortcutRedo: "重做上一步復原",
+    shortcutExport: "一鍵匯出 PDF",
+    shortcutNudge: "方向鍵 (+Shift) 8 方向微調角點",
+    clearAll: "清空全部",
+    clearAllConfirm: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
+    deleteSlideHint: "刪除此圖片",
     close: "關閉",
   },
   en: {
@@ -621,6 +679,16 @@ const copy = {
     infoPrivacy: "All processing is done entirely locally on your device; your photos and PDFs are never uploaded to any server.",
     infoRepo: "Open Source Repo",
     infoBlog: "Introductory Blog",
+    shortcutsTitle: "Keyboard Shortcuts",
+    shortcutNav: "Previous / Next slide",
+    shortcutDelete: "Delete selected slide",
+    shortcutUndo: "Undo adjustment",
+    shortcutRedo: "Redo adjustment",
+    shortcutExport: "Export PDF",
+    shortcutNudge: "Arrow keys (+Shift) nudge handle",
+    clearAll: "Clear all",
+    clearAllConfirm: (count: number) => `Are you sure you want to clear all ${count} images?`,
+    deleteSlideHint: "Delete image",
     close: "Close",
   },
   es: {
@@ -697,6 +765,16 @@ const copy = {
     infoPrivacy: "Todo el procesamiento se realiza localmente en su dispositivo; sus fotos y PDFs nunca se cargan a ningún servidor.",
     infoRepo: "Repositorio de Código",
     infoBlog: "Blog de Introducción",
+    shortcutsTitle: "Atajos de teclado",
+    shortcutNav: "Diapositiva anterior / siguiente",
+    shortcutDelete: "Eliminar diapositiva seleccionada",
+    shortcutUndo: "Deshacer ajuste",
+    shortcutRedo: "Rehacer ajuste",
+    shortcutExport: "Exportar PDF",
+    shortcutNudge: "Flechas (+Shift) ajustar esquina",
+    clearAll: "Limpiar todo",
+    clearAllConfirm: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
+    deleteSlideHint: "Eliminar imagen",
     close: "Cerrar",
   },
   fr: {
@@ -773,6 +851,16 @@ const copy = {
     infoPrivacy: "Tout le traitement est effectué localement sur votre appareil ; vos photos et PDF ne sont jamais téléchargés sur un serveur.",
     infoRepo: "Dépôt de Code",
     infoBlog: "Blog d'Introduction",
+    shortcutsTitle: "Raccourcis clavier",
+    shortcutNav: "Diapositive précédente / suivante",
+    shortcutDelete: "Supprimer la diapositive",
+    shortcutUndo: "Annuler la modification",
+    shortcutRedo: "Rétablir la modification",
+    shortcutExport: "Exporter en PDF",
+    shortcutNudge: "Touches fléchées (+Shift) ajuster coin",
+    clearAll: "Tout effacer",
+    clearAllConfirm: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
+    deleteSlideHint: "Supprimer l'image",
     close: "Fermer",
   },
   de: {
@@ -849,6 +937,16 @@ const copy = {
     infoPrivacy: "Die Verarbeitung erfolgt vollständig lokal auf Ihrem Gerät; Ihre Fotos und PDFs werden niemals auf einen Server hochgeladen.",
     infoRepo: "Code-Repository",
     infoBlog: "Einführungs-Blog",
+    shortcutsTitle: "Tastaturkurzbefehle",
+    shortcutNav: "Vorherige / nächste Folie",
+    shortcutDelete: "Ausgewählte Folie löschen",
+    shortcutUndo: "Anpassung rückgängig machen",
+    shortcutRedo: "Anpassung wiederholen",
+    shortcutExport: "PDF exportieren",
+    shortcutNudge: "Pfeiltasten (+Shift) Eckpunkt anpassen",
+    clearAll: "Alles löschen",
+    clearAllConfirm: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
+    deleteSlideHint: "Bild löschen",
     close: "Schließen",
   },
   ja: {
@@ -925,6 +1023,16 @@ const copy = {
     infoPrivacy: "すべての処理はデバイス上でローカルに実行され、写真やPDFがサーバーにアップロードされることはありません。",
     infoRepo: "オープンソースリポジトリ",
     infoBlog: "紹介ブログ",
+    shortcutsTitle: "キーボードショートカット",
+    shortcutNav: "前 / 次のスライドに移動",
+    shortcutDelete: "選択中のスライドを削除",
+    shortcutUndo: "調整を取り消す",
+    shortcutRedo: "やり直す",
+    shortcutExport: "PDF を出力",
+    shortcutNudge: "矢印キー (+Shift) で頂点を微調整",
+    clearAll: "すべて消去",
+    clearAllConfirm: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
+    deleteSlideHint: "画像を削除",
     close: "閉じる",
   },
   ko: {
@@ -1001,6 +1109,16 @@ const copy = {
     infoPrivacy: "모든 처리는 기기에서 로컬로 진행되며, 사진과 PDF는 절대 서버로 업로드되지 않습니다.",
     infoRepo: "오픈 소스 저장소",
     infoBlog: "소개 블로그",
+    shortcutsTitle: "키보드 단축키",
+    shortcutNav: "이전 / 다음 슬라이드 이동",
+    shortcutDelete: "선택한 슬라이드 삭제",
+    shortcutUndo: "조정 취소",
+    shortcutRedo: "다시 실행",
+    shortcutExport: "PDF 내보내기",
+    shortcutNudge: "방향키 (+Shift) 미세 조정",
+    clearAll: "모두 지우기",
+    clearAllConfirm: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
+    deleteSlideHint: "이미지 삭제",
     close: "닫기",
   },
   "pt-BR": {
@@ -1077,8 +1195,19 @@ const copy = {
     infoPrivacy: "Todo o processamento é feito localmente no seu dispositivo; suas fotos e PDFs nunca são enviados para qualquer servidor.",
     infoRepo: "Repositório de Código",
     infoBlog: "Blog de Introdução",
+    shortcutsTitle: "Atalhos de teclado",
+    shortcutNav: "Slide anterior / próximo",
+    shortcutDelete: "Excluir slide selecionado",
+    shortcutUndo: "Desfazer ajuste",
+    shortcutRedo: "Refazer ajuste",
+    shortcutExport: "Exportar PDF",
+    shortcutNudge: "Setas (+Shift) ajustar ponto",
+    clearAll: "Limpar tudo",
+    clearAllConfirm: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
+    deleteSlideHint: "Excluir imagem",
     close: "Fechar",
   },
+
 };
 
 function supportedLocaleFromLanguage(language: string | undefined): LocaleValue | null {
@@ -1268,48 +1397,137 @@ function parseHexColor(value: string): [number, number, number] {
   ];
 }
 
-const AUTO_FILL_FALLBACK: [number, number, number] = [17, 17, 17];
+const AUTO_FILL_FALLBACK: [number, number, number] = [255, 255, 255];
 
 /**
  * Finds the dominant colour inside the corrected slide, deliberately skipping
  * its edge so a projector bezel or photographed screen border is not used.
  */
-function resolveFillColor(value: string, source: ImageData, target: Quad, coeffs: number[]) {
+function resolveFillColor(value: string, content: ImageData) {
   if (value !== "auto") return parseHexColor(value);
   const inset = 0.12;
-  const left = target[0][0] + (target[1][0] - target[0][0]) * inset;
-  const right = target[1][0] - (target[1][0] - target[0][0]) * inset;
-  const top = target[0][1] + (target[3][1] - target[0][1]) * inset;
-  const bottom = target[3][1] - (target[3][1] - target[0][1]) * inset;
-  const samples: Array<[number, number, number] | null> = [];
+  const left = content.width * inset;
+  const right = content.width * (1 - inset);
+  const top = content.height * inset;
+  const bottom = content.height * (1 - inset);
+  const samples: [number, number, number][] = [];
 
   for (let row = 0; row < 8; row += 1) {
     for (let column = 0; column < 12; column += 1) {
       const x = left + (right - left) * ((column + 0.5) / 12);
       const y = top + (bottom - top) * ((row + 0.5) / 8);
-      samples.push(sampleCorrectedRgb(source, coeffs, x, y));
+      const offset = (
+        Math.min(content.height - 1, Math.max(0, Math.round(y))) * content.width
+        + Math.min(content.width - 1, Math.max(0, Math.round(x)))
+      ) * 4;
+      samples.push([content.data[offset], content.data[offset + 1], content.data[offset + 2]]);
     }
   }
 
-  const valid = samples.filter((sample): sample is [number, number, number] => sample !== null);
-  if (valid.length < 24) return AUTO_FILL_FALLBACK;
   const buckets = new Map<string, [number, number, number][]>();
-  for (const sample of valid) {
+  for (const sample of samples) {
     const key = sample.map((value) => Math.floor(value / 32)).join(":");
     buckets.set(key, [...(buckets.get(key) ?? []), sample]);
   }
   const dominant = [...buckets.values()].reduce((largest, bucket) => bucket.length > largest.length ? bucket : largest, [] as [number, number, number][]);
-  if (dominant.length < valid.length * 0.14) return AUTO_FILL_FALLBACK;
+  if (dominant.length < samples.length * 0.14) return AUTO_FILL_FALLBACK;
   return [0, 1, 2].map((channel) => medianValue(dominant.map((sample) => sample[channel]))) as [number, number, number];
 }
 
-function sampleCorrectedRgb(source: ImageData, coeffs: number[], x: number, y: number): [number, number, number] | null {
-  const denominator = coeffs[6] * x + coeffs[7] * y + 1;
-  const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denominator;
-  const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denominator;
-  if (sx < 0 || sx >= source.width || sy < 0 || sy >= source.height) return null;
-  const offset = (Math.min(source.height - 1, Math.round(sy)) * source.width + Math.min(source.width - 1, Math.round(sx))) * 4;
-  return [source.data[offset], source.data[offset + 1], source.data[offset + 2]];
+function contentPixelBounds(target: Quad) {
+  const x = Math.ceil(target[0][0]);
+  const y = Math.ceil(target[0][1]);
+  return {
+    x,
+    y,
+    width: Math.max(1, Math.ceil(target[1][0]) - x),
+    height: Math.max(1, Math.ceil(target[3][1]) - y),
+  };
+}
+
+function extractContent(page: ImageData, bounds: ReturnType<typeof contentPixelBounds>) {
+  const content = new ImageData(bounds.width, bounds.height);
+  for (let y = 0; y < bounds.height; y += 1) {
+    const sourceStart = ((bounds.y + y) * page.width + bounds.x) * 4;
+    const targetStart = y * bounds.width * 4;
+    content.data.set(page.data.subarray(sourceStart, sourceStart + bounds.width * 4), targetStart);
+  }
+  return content;
+}
+
+function fillAndBlitContent(
+  page: ImageData,
+  content: ImageData,
+  bounds: ReturnType<typeof contentPixelBounds>,
+  fill: [number, number, number],
+  provisionalFill?: [number, number, number],
+) {
+  for (let offset = 0; offset < page.data.length; offset += 4) {
+    page.data[offset] = fill[0];
+    page.data[offset + 1] = fill[1];
+    page.data[offset + 2] = fill[2];
+    page.data[offset + 3] = 255;
+  }
+  for (let y = 0; y < bounds.height; y += 1) {
+    const sourceStart = y * bounds.width * 4;
+    const targetStart = ((bounds.y + y) * page.width + bounds.x) * 4;
+    for (let x = 0; x < bounds.width; x += 1) {
+      const sOff = sourceStart + x * 4;
+      const tOff = targetStart + x * 4;
+      const r = content.data[sOff];
+      const g = content.data[sOff + 1];
+      const b = content.data[sOff + 2];
+      if (
+        provisionalFill &&
+        r === provisionalFill[0] &&
+        g === provisionalFill[1] &&
+        b === provisionalFill[2]
+      ) {
+        page.data[tOff] = fill[0];
+        page.data[tOff + 1] = fill[1];
+        page.data[tOff + 2] = fill[2];
+        page.data[tOff + 3] = 255;
+      } else {
+        page.data[tOff] = r;
+        page.data[tOff + 1] = g;
+        page.data[tOff + 2] = b;
+        page.data[tOff + 3] = 255;
+      }
+    }
+  }
+}
+
+function sampleBlurredEdgeRgb(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  cx: number,
+  cy: number,
+  radius: number = 3,
+): [number, number, number] {
+  let rSum = 0;
+  let gSum = 0;
+  let bSum = 0;
+  let count = 0;
+
+  const icx = Math.round(cx);
+  const icy = Math.round(cy);
+  const r = Math.min(14, Math.max(1, Math.round(radius)));
+  const step = r > 8 ? 2 : 1;
+
+  for (let dy = -r; dy <= r; dy += step) {
+    for (let dx = -r; dx <= r; dx += step) {
+      const px = Math.max(0, Math.min(width - 1, icx + dx));
+      const py = Math.max(0, Math.min(height - 1, icy + dy));
+      const offset = (py * width + px) * 4;
+      rSum += data[offset];
+      gSum += data[offset + 1];
+      bSum += data[offset + 2];
+      count += 1;
+    }
+  }
+
+  return [Math.round(rSum / count), Math.round(gSum / count), Math.round(bSum / count)];
 }
 
 function medianValue(values: number[]) {
@@ -1410,9 +1628,9 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
   const dst = containedRect(outWidth, outHeight, sourceRatio);
   const coeffs = perspectiveCoefficients(scaledQuad, dst);
-  const fill = settings.fillColor === "auto" && isPaperRatio(settings.outputPageRatio)
+  const provisionalFill = settings.fillColor === "auto"
     ? [255, 255, 255] as [number, number, number]
-    : resolveFillColor(settings.fillColor, new ImageData(source, sourceWidth, sourceHeight), dst, coeffs);
+    : parseHexColor(settings.fillColor);
 
   for (let y = 0; y < outHeight; y += 1) {
     for (let x = 0; x < outWidth; x += 1) {
@@ -1421,25 +1639,53 @@ async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Se
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
       const outIndex = (y * outWidth + x) * 4;
       const insideContent = x >= dst[0][0] && x < dst[1][0] && y >= dst[0][1] && y < dst[3][1];
-      if (insideContent && sx >= 0 && sx < sourceWidth && sy >= 0 && sy < sourceHeight) {
-        const ix = Math.max(0, Math.min(sourceWidth - 1, Math.round(sx)));
-        const iy = Math.max(0, Math.min(sourceHeight - 1, Math.round(sy)));
-        const srcIndex = (iy * sourceWidth + ix) * 4;
-        output.data[outIndex] = source[srcIndex];
-        output.data[outIndex + 1] = source[srcIndex + 1];
-        output.data[outIndex + 2] = source[srcIndex + 2];
-        output.data[outIndex + 3] = 255;
+      if (insideContent) {
+        const dx = sx < 0 ? -sx : sx >= sourceWidth ? sx - (sourceWidth - 1) : 0;
+        const dy = sy < 0 ? -sy : sy >= sourceHeight ? sy - (sourceHeight - 1) : 0;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0) {
+          const cx = Math.max(0, Math.min(sourceWidth - 1, sx));
+          const cy = Math.max(0, Math.min(sourceHeight - 1, sy));
+          const radius = Math.min(14, 2 + Math.floor(dist * 0.25));
+          const [er, eg, eb] = sampleBlurredEdgeRgb(source, sourceWidth, sourceHeight, cx, cy, radius);
+          output.data[outIndex] = er;
+          output.data[outIndex + 1] = eg;
+          output.data[outIndex + 2] = eb;
+          output.data[outIndex + 3] = 255;
+        } else {
+          const ix = Math.round(sx);
+          const iy = Math.round(sy);
+          const srcIndex = (iy * sourceWidth + ix) * 4;
+          output.data[outIndex] = source[srcIndex];
+          output.data[outIndex + 1] = source[srcIndex + 1];
+          output.data[outIndex + 2] = source[srcIndex + 2];
+          output.data[outIndex + 3] = 255;
+        }
       } else {
-        output.data[outIndex] = fill[0];
-        output.data[outIndex + 1] = fill[1];
-        output.data[outIndex + 2] = fill[2];
+        output.data[outIndex] = provisionalFill[0];
+        output.data[outIndex + 1] = provisionalFill[1];
+        output.data[outIndex + 2] = provisionalFill[2];
         output.data[outIndex + 3] = 255;
       }
     }
   }
-  applyEnhancement(output.data, outWidth, outHeight, settings.enhancement);
+  const contentBounds = contentPixelBounds(dst);
+  const content = extractContent(output, contentBounds);
+  applyEnhancement(content.data, content.width, content.height, settings.enhancement);
+  const fill = resolveFillColor(settings.fillColor, content);
+  fillAndBlitContent(output, content, contentBounds, fill, provisionalFill);
   outputCtx.putImageData(output, 0, 0);
   return outputCanvas.toDataURL("image/png");
+}
+
+function cloneSlides(items: SlideItem[]): SlideItem[] {
+  return items.map((slide) => ({
+    ...slide,
+    quad: slide.quad ? cloneQuad(slide.quad) : null,
+    autoQuad: slide.autoQuad ? cloneQuad(slide.autoQuad) : null,
+    reviewReasons: [...slide.reviewReasons],
+  }));
 }
 
 export function SlidesThiefApp() {
@@ -1472,9 +1718,16 @@ export function SlidesThiefApp() {
   const workerRef = useRef<Worker | null>(null);
   const exportWorkerRef = useRef<Worker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const slidesRef = useRef<SlideItem[]>([]);
+  const historyPastRef = useRef<SlideItem[][]>([]);
+  const historyFutureRef = useRef<SlideItem[][]>([]);
+  const selectedIdRef = useRef<string | null>(null);
+  const exportingRef = useRef(false);
+  const busyRef = useRef(false);
   const exportUrlRef = useRef<string | null>(null);
+
   const localeRef = useRef<LocaleValue>("en");
   const settingsRef = useRef<Settings>(defaultSettings);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
@@ -1613,22 +1866,20 @@ export function SlidesThiefApp() {
       }
       if (message.type === "detect-result") {
         const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
-        const preserveManualQuad = message.phase === "final"
-          && Boolean(
-            existing?.reviewedByUser
-            || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
-          );
+        const preserveManualQuad = Boolean(
+          existing?.reviewedByUser
+          || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
+        );
         const displayedQuad = preserveManualQuad && existing?.quad
           ? existing.quad
           : message.result.quad;
         setSlides((current) =>
           current.map((slide) => {
             if (slide.id !== message.result.id) return slide;
-            const preserveManualReview = message.phase === "final"
-              && (
-                slide.reviewedByUser
-                || Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
-              );
+            const preserveManualReview = Boolean(
+              slide.reviewedByUser
+              || (slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
+            );
             return {
               ...slide,
               width: message.result.width,
@@ -1781,8 +2032,150 @@ export function SlidesThiefApp() {
   }, [slides]);
 
   useEffect(() => {
+    selectedIdRef.current = selectedId;
+  }, [selectedId]);
+
+  useEffect(() => {
+    exportingRef.current = exporting;
+  }, [exporting]);
+
+  useEffect(() => {
+    busyRef.current = busy;
+  }, [busy]);
+
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (slidesRef.current.length > 0 || exportingRef.current) {
+        event.preventDefault();
+        event.returnValue = "";
+        return "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  useEffect(() => {
     settingsRef.current = settings;
   }, [settings]);
+
+  const pushHistory = useCallback(() => {
+    if (slidesRef.current.length === 0) return;
+    historyPastRef.current = [...historyPastRef.current.slice(-29), cloneSlides(slidesRef.current)];
+    historyFutureRef.current = [];
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    const past = historyPastRef.current;
+    if (past.length === 0) return;
+    const previous = past[past.length - 1];
+    historyPastRef.current = past.slice(0, -1);
+    historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
+    clearExport();
+    setSlides(previous);
+  }, [clearExport]);
+
+  const handleRedo = useCallback(() => {
+    const future = historyFutureRef.current;
+    if (future.length === 0) return;
+    const next = future[0];
+    historyFutureRef.current = future.slice(1);
+    historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
+    clearExport();
+    setSlides(next);
+  }, [clearExport]);
+
+  const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
+    const loupeCanvas = loupeCanvasRef.current;
+    const render = canvasRenderRef.current;
+    if (!loupeCanvas || !render?.image || handleIndex === null || !quad || !quad[handleIndex]) return;
+
+    const ctx = loupeCanvas.getContext("2d");
+    if (!ctx) return;
+
+    const [srcX, srcY] = quad[handleIndex];
+    const size = 120;
+    loupeCanvas.width = size;
+    loupeCanvas.height = size;
+
+    ctx.clearRect(0, 0, size, size);
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+
+    const zoomFactor = 2.5;
+    const srcSize = size / zoomFactor;
+    const cropX = srcX - srcSize / 2;
+    const cropY = srcY - srcSize / 2;
+
+    ctx.drawImage(
+      render.image,
+      cropX,
+      cropY,
+      srcSize,
+      srcSize,
+      0,
+      0,
+      size,
+      size,
+    );
+  }, []);
+
+  const deleteSlide = useCallback(
+    (id: string) => {
+      pushHistory();
+      clearExport();
+      setSlides((current) => {
+        const next = current.filter((slide) => slide.id !== id);
+        if (selectedIdRef.current === id) {
+          const index = current.findIndex((slide) => slide.id === id);
+          const nextSelected = next[Math.min(index, next.length - 1)];
+          setSelectedId(nextSelected?.id ?? null);
+        }
+        return next;
+      });
+    },
+    [clearExport, pushHistory],
+  );
+
+  const clearAllSlides = useCallback(() => {
+    const count = slidesRef.current.length;
+    if (!count) return;
+    const shouldClear = window.confirm(text.clearAllConfirm(count));
+    if (!shouldClear) return;
+    pushHistory();
+    clearExport();
+    cancelActiveDrag();
+    setSlides([]);
+    setSelectedId(null);
+  }, [cancelActiveDrag, clearExport, pushHistory, text]);
+
+
+  const selectNextSlide = useCallback(() => {
+    const currentSlides = slidesRef.current;
+    if (!currentSlides.length) return;
+    const currentId = selectedIdRef.current;
+    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
+    const nextIndex = Math.min(currentIndex + 1, currentSlides.length - 1);
+    if (nextIndex >= 0 && nextIndex !== currentIndex && currentSlides[nextIndex]) {
+      cancelActiveDrag();
+      setSelectedId(currentSlides[nextIndex].id);
+      setZoomMode("fit");
+    }
+  }, [cancelActiveDrag]);
+
+  const selectPrevSlide = useCallback(() => {
+    const currentSlides = slidesRef.current;
+    if (!currentSlides.length) return;
+    const currentId = selectedIdRef.current;
+    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
+    const prevIndex = Math.max(currentIndex - 1, 0);
+    if (prevIndex >= 0 && prevIndex !== currentIndex && currentSlides[prevIndex]) {
+      cancelActiveDrag();
+      setSelectedId(currentSlides[prevIndex].id);
+      setZoomMode("fit");
+    }
+  }, [cancelActiveDrag]);
+
 
   useEffect(() => {
     const token = thumbnailRefreshTokenRef.current + 1;
@@ -1845,7 +2238,7 @@ export function SlidesThiefApp() {
     const moreSettings = moreSettingsRef.current;
     if (!settingsMenu) return;
 
-    const media = window.matchMedia("(max-width: 720px)");
+    const media = window.matchMedia("(max-width: 834px)");
     const sync = () => {
       const matches = media.matches;
       setIsMobile(matches);
@@ -1869,7 +2262,7 @@ export function SlidesThiefApp() {
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
       const target = event.target as Node;
-      if (window.matchMedia("(max-width: 720px)").matches) {
+      if (window.matchMedia("(max-width: 834px)").matches) {
         const settingsMenu = settingsMenuRef.current;
         if (settingsMenu && !settingsMenu.contains(target)) {
           if (settingsMenu.open) {
@@ -2114,7 +2507,11 @@ export function SlidesThiefApp() {
       ctx.textBaseline = "middle";
       ctx.fillText(String(index + 1), left, top + 1);
     });
-  }, []);
+
+    if (dragHandleRef.current !== null && quad) {
+      updateLoupeCanvas(quad, dragHandleRef.current);
+    }
+  }, [updateLoupeCanvas]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -2142,7 +2539,7 @@ export function SlidesThiefApp() {
       }
 
       const previewQuad = latestDragQuadRef.current?.id === slide.id ? latestDragQuadRef.current.quad : slide.quad;
-      const compact = stage.clientWidth <= 720 || window.matchMedia("(pointer: coarse)").matches;
+      const compact = stage.clientWidth <= 834 || window.matchMedia("(pointer: coarse)").matches;
       const maxWidth = Math.max(1, stage.clientWidth - (compact ? 16 : 26));
       const maxHeight = Math.max(1, stage.clientHeight - (compact ? 16 : 26));
       const imageFitScale = Math.max(
@@ -2198,6 +2595,7 @@ export function SlidesThiefApp() {
       const scale = Math.max(0.01, Math.min(requestedScale, maxScale));
       const width = Math.max(1, Math.round(totalWidth * scale));
       const height = Math.max(1, Math.round(totalHeight * scale));
+
 
       canvas.width = width;
       canvas.height = height;
@@ -2289,10 +2687,12 @@ export function SlidesThiefApp() {
     ) {
       return;
     }
+    pushHistory();
     latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
     activePointerRef.current = event.pointerId;
     dragHandleRef.current = index;
     setDragHandle(index);
+    updateLoupeCanvas(selectedSlide.quad, index);
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
   };
@@ -2430,19 +2830,21 @@ export function SlidesThiefApp() {
       const targetSettings = overrideSettings ?? settings;
       const processableIds = new Set(processableSlides.map((slide) => slide.id));
       setSlides((current) =>
-        current.map((slide) =>
-          processableIds.has(slide.id)
-            ? {
-                ...slide,
-                status: "detecting",
-                method: "detecting",
-                reviewedByUser: false,
-                quad: null,
-                thumbnailUrl: undefined,
-                error: undefined,
-              }
-            : slide,
-        ),
+        current.map((slide) => {
+          if (!processableIds.has(slide.id)) return slide;
+          const isManual =
+            slide.reviewedByUser ||
+            Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad));
+          return {
+            ...slide,
+            status: "detecting",
+            method: isManual ? "manual" : "detecting",
+            reviewedByUser: isManual,
+            quad: isManual ? slide.quad : null,
+            thumbnailUrl: isManual ? slide.thumbnailUrl : undefined,
+            error: undefined,
+          };
+        }),
       );
       worker.postMessage({
         type: "detect",
@@ -2510,6 +2912,74 @@ export function SlidesThiefApp() {
     });
   };
 
+  useEffect(() => {
+    const handleGlobalKeyDown = (event: KeyboardEvent) => {
+      if (isInfoOpen) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+
+      // Undo: Cmd+Z or Ctrl+Z
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
+        event.preventDefault();
+        handleUndo();
+        return;
+      }
+
+      // Redo: Cmd+Shift+Z or Ctrl+Shift+Z or Ctrl+Y
+      if (
+        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && event.shiftKey) ||
+        (event.ctrlKey && event.key.toLowerCase() === "y")
+      ) {
+        event.preventDefault();
+        handleRedo();
+        return;
+      }
+
+      // Slide Navigation & Deletion
+      if (slidesRef.current.length > 0) {
+        if (event.key.toLowerCase() === "j" || event.key === "PageDown") {
+          event.preventDefault();
+          selectNextSlide();
+          return;
+        }
+        if (event.key.toLowerCase() === "k" || event.key === "PageUp") {
+          event.preventDefault();
+          selectPrevSlide();
+          return;
+        }
+        if (event.key === "Delete" || event.key === "Backspace") {
+          if (selectedIdRef.current) {
+            event.preventDefault();
+            deleteSlide(selectedIdRef.current);
+          }
+          return;
+        }
+      }
+
+      // Export PDF: Cmd+Enter or Ctrl+Enter
+      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
+        event.preventDefault();
+        const ready = slidesRef.current.filter((s) => s.status === "ready" && s.quad);
+        if (ready.length && !busyRef.current) {
+          exportPdf();
+        }
+        return;
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalKeyDown);
+    return () => window.removeEventListener("keydown", handleGlobalKeyDown);
+  }, [isInfoOpen, handleUndo, handleRedo, selectNextSlide, selectPrevSlide, deleteSlide]);
+
+
   const selectAt = (index: number) => {
     const slide = slides[Math.max(0, Math.min(slides.length - 1, index))];
     if (slide) {
@@ -2570,7 +3040,7 @@ export function SlidesThiefApp() {
             ref={settingsMenuRef}
             onToggle={(event) => {
               const isOpen = event.currentTarget.open;
-              if (window.matchMedia("(max-width: 720px)").matches) {
+              if (window.matchMedia("(max-width: 834px)").matches) {
                 setSettingsOpen(isOpen);
               } else {
                 event.currentTarget.open = true;
@@ -2581,36 +3051,41 @@ export function SlidesThiefApp() {
             <summary className="settingsMenuToggle">{text.settings}</summary>
             {settingsOpen && (
               <div className="settingsMenuBody">
-                <label className="ratioSetting">
-                  <span>{ratioUi.sourceFormat}</span>
-                  <select
-                    value={settings.sourceFormat}
-                    onChange={(event) => {
-                      const sourceFormat = event.target.value as SourceFormat;
-                      const nextSettings: Settings = {
-                        ...settings,
-                        sourceFormat,
-                      };
-                      updateSettings(() => nextSettings);
-                      if (hasRun) {
-                        runAutoWithSettings(nextSettings);
-                      }
-                    }}
-                  >
-                    <optgroup label={ratioUi.presentationGroup}>
-                      <option value="16:9">{text.ratio16x9}</option>
-                      <option value="4:3">{text.ratio4x3}</option>
-                      <option value="16:10">16:10</option>
-                    </optgroup>
-                    <optgroup label={ratioUi.documentGroup}>
-                      <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                      <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                      <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                      <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                    </optgroup>
-                    <option value="custom">{ratioUi.custom}</option>
-                  </select>
-                </label>
+                {(() => {
+                  const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
+                  return (
+                    <label className="ratioSetting">
+                      <span>{ratioUi.sourceFormat}</span>
+                      <select
+                        value={currentBaseFormat}
+                        onChange={(event) => {
+                          const nextBaseFormat = event.target.value as BaseFormat;
+                          const defaultOrient = defaultOrientationForBaseFormat(nextBaseFormat);
+                          const sourceFormat = deriveSourceFormat(nextBaseFormat, defaultOrient);
+                          const nextSettings: Settings = {
+                            ...settings,
+                            sourceFormat,
+                          };
+                          updateSettings(() => nextSettings);
+                          if (hasRun) {
+                            runAutoWithSettings(nextSettings);
+                          }
+                        }}
+                      >
+                        <optgroup label={ratioUi.presentationGroup}>
+                          <option value="16:9">{text.ratio16x9}</option>
+                          <option value="4:3">{text.ratio4x3}</option>
+                          <option value="16:10">16:10</option>
+                        </optgroup>
+                        <optgroup label={ratioUi.documentGroup}>
+                          <option value="A4">A4</option>
+                          <option value="letter">Letter</option>
+                        </optgroup>
+                        <option value="custom">{ratioUi.custom}</option>
+                      </select>
+                    </label>
+                  );
+                })()}
                 {settings.sourceFormat === "custom" && (
                   <label className="sourceCustomSetting">
                     <span>{ratioUi.customRatio}</span>
@@ -2634,13 +3109,43 @@ export function SlidesThiefApp() {
                   ref={moreSettingsRef}
                   open={isMobile ? true : undefined}
                   onToggle={(event) => {
-                    if (window.matchMedia("(max-width: 720px)").matches) {
+                    if (window.matchMedia("(max-width: 834px)").matches) {
                       event.currentTarget.open = true;
                     }
                   }}
                 >
                   <summary>{text.more}</summary>
                   <div className="morePanel">
+                    {(() => {
+                      const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
+                      const isPortrait = currentOrientation === "portrait";
+                      return (
+                        <label className="orientationSetting">
+                          <span>{ratioUi.orientation}</span>
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isPortrait}
+                            aria-label={ratioUi.orientation}
+                            className={`switchToggle ${isPortrait ? "checked" : ""}`}
+                            onClick={() => {
+                              const nextOrientation = isPortrait ? "landscape" : "portrait";
+                              const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
+                              const nextSettings: Settings = { ...settings, sourceFormat: nextFormat };
+                              updateSettings(() => nextSettings);
+                              if (hasRun) runAutoWithSettings(nextSettings);
+                            }}
+                          >
+                            <span className="switchTrack">
+                              <span className="switchThumb" />
+                            </span>
+                            <span className="switchLabel">
+                              {isPortrait ? ratioUi.portrait : ratioUi.landscape}
+                            </span>
+                          </button>
+                        </label>
+                      );
+                    })()}
                     <label>
                       <span>{ratioUi.pageLayout}</span>
                       <select
@@ -2794,7 +3299,7 @@ export function SlidesThiefApp() {
                           type="color"
                           className={settings.fillColor === "auto" ? undefined : "isActive"}
                           aria-label={text.fillColor}
-                          value={settings.fillColor === "auto" ? "#111111" : settings.fillColor}
+                          value={settings.fillColor === "auto" ? "#FFFFFF" : settings.fillColor}
                           onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
                         />
                       </div>
@@ -2811,6 +3316,37 @@ export function SlidesThiefApp() {
                   />
                   <span className="fileSuffix">.pdf</span>
                 </label>
+                <hr className="settingsMenuDivider" />
+                <label className="themeSetting settingsMenuTheme">
+                  <span>{text.theme}</span>
+                  <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
+                    <option value="auto">{text.auto}</option>
+                    <option value="light">{text.light}</option>
+                    <option value="dark">{text.dark}</option>
+                  </select>
+                </label>
+                <label className="languageSetting settingsMenuLanguage">
+                  <span>{text.language}</span>
+                  <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
+                    {localeOptions.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  className="settingsMenuInfoRow settingsMenuInfo"
+                  onClick={() => setIsInfoOpen(true)}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M12 16v-4" />
+                    <path d="M12 8h.01" />
+                  </svg>
+                  <span>{text.infoTitle}</span>
+                </button>
               </div>
             )}
           </details>
@@ -2827,7 +3363,7 @@ export function SlidesThiefApp() {
             <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
               {text.runAuto}
             </button>
-            <button type="button" className="green" disabled={busy || !readySlides.length} onClick={exportPdf}>
+            <button type="button" className="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
               {text.generatePdf}
             </button>
           </div>
@@ -2852,6 +3388,17 @@ export function SlidesThiefApp() {
           <div className="sectionHead">
             <h2>{text.images}</h2>
             <span className="count">{slides.length}</span>
+            {slides.length > 0 && (
+              <button
+                type="button"
+                className="clearAllBtn"
+                disabled={busy}
+                title={text.clearAll}
+                onClick={clearAllSlides}
+              >
+                {text.clearAll}
+              </button>
+            )}
           </div>
           <div className="sidebarFilePicker">
             <input
@@ -2941,6 +3488,32 @@ export function SlidesThiefApp() {
                             : formatBytes(slide.file.size)}
                       </div>
                     )}
+                    <button
+                      type="button"
+                      className="slideDeleteBtn"
+                      title={text.deleteSlideHint}
+                      aria-label={`${text.deleteSlideHint}: ${slide.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        deleteSlide(slide.id);
+                      }}
+                    >
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                      >
+                        <path d="M3 6h18" />
+                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                      </svg>
+                    </button>
                   </button>
                 );
               })}
@@ -2954,7 +3527,7 @@ export function SlidesThiefApp() {
               type="button"
               className="icon reviewPrevious"
               disabled={!slides.length || selectedIndex <= 0}
-              title={text.prev}
+              title={`${text.prev} (K / PageUp)`}
               aria-label={text.prev}
               onClick={() => selectAt(selectedIndex - 1)}
             >
@@ -2964,7 +3537,7 @@ export function SlidesThiefApp() {
               type="button"
               className="icon reviewNext"
               disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
-              title={text.next}
+              title={`${text.next} (J / PageDown)`}
               aria-label={text.next}
               onClick={() => selectAt(selectedIndex + 1)}
             >
@@ -3026,7 +3599,20 @@ export function SlidesThiefApp() {
                         );
                       })
                     : null}
+                  {dragHandle !== null && handlePositions[dragHandle] && (
+                    <div
+                      className="loupeOverlay"
+                      style={{
+                        left: `${handlePositions[dragHandle].left}px`,
+                        top: `${handlePositions[dragHandle].top}px`,
+                      }}
+                    >
+                      <canvas ref={loupeCanvasRef} className="loupeCanvas" />
+                      <div className="loupeCrosshair" />
+                    </div>
+                  )}
                 </div>
+
               ) : (
                 <div className="empty">
                   {selectedSlide && previewErrorSlideId === selectedSlide.id
@@ -3132,7 +3718,10 @@ export function SlidesThiefApp() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modalHeader">
-              <h3 id="info-modal-title">{text.infoTitle}</h3>
+              <div className="modalTitle">
+                <h3 id="info-modal-title">{text.infoTitle}</h3>
+                <span className="modalVersion">v{APP_VERSION}</span>
+              </div>
               <button
                 ref={closeInfoButtonRef}
                 className="closeButton"
@@ -3148,6 +3737,29 @@ export function SlidesThiefApp() {
               <p className="modalPrivacy">
                 <strong>{text.infoPrivacy}</strong>
               </p>
+              <div className="modalShortcuts">
+                <h4>{text.shortcutsTitle}</h4>
+                <div className="shortcutGrid">
+                  <div className="shortcutItem">
+                    <kbd>J</kbd> / <kbd>K</kbd> <span>{text.shortcutNav}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>Delete</kbd> <span>{text.shortcutDelete}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘Z</kbd> / <kbd>Ctrl+Z</kbd> <span>{text.shortcutUndo}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘⇧Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> <span>{text.shortcutRedo}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>⌘↵</kbd> / <kbd>Ctrl+Enter</kbd> <span>{text.shortcutExport}</span>
+                  </div>
+                  <div className="shortcutItem">
+                    <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span>{text.shortcutNudge}</span>
+                  </div>
+                </div>
+              </div>
               <div className="modalLinks">
                 <a href="https://github.com/waittim/Slides-Thief" target="_blank" rel="noopener noreferrer" className="modalLink">
                   {text.infoRepo}

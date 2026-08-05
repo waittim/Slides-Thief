@@ -177,6 +177,10 @@ Generated jobs, intermediate files, and package build artifacts stay outside
 source control under ignored paths such as `outputs/`, `work/`, `dist/`, and
 `*.egg-info/`.
 
+## Changelog
+
+Release history: [CHANGELOG.md](CHANGELOG.md).
+
 ## License
 
 MIT License. See [LICENSE](LICENSE).

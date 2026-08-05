@@ -19,6 +19,17 @@ Slides Thief converts angled photos of presentation slides into perspective-corr
 - Preserve both the server-rendered Sites build and the GitHub Pages static build.
 - Keep public documentation URLs under `https://slidesthief.com/`.
 
+## Versioning and releases
+
+- Semantic versioning (`MAJOR.MINOR.PATCH`). Release notes live in `CHANGELOG.md`.
+- Canonical product version: `src/slides_thief/__version__` (also drives `pyproject.toml` via setuptools dynamic version).
+- Keep these in sync with `__version__` on every release bump:
+  - `site/package.json` and root entries in `site/package-lock.json`
+  - `site/public/citation.json`
+  - `CITATION.cff`
+- Record user-facing changes in `CHANGELOG.md` for every released version (`0.1.0`, `2.0.0`, …).
+- Ship a release by committing the bump + changelog, then tagging `vX.Y.Z` (annotated) on that commit and creating a GitHub Release. Do not use branch names as version markers.
+
 ## Validation
 
 ```bash
