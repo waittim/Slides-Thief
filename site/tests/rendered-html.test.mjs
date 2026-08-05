@@ -60,14 +60,21 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
 });
 
 test("client code uses browser-local processing contracts", async () => {
-  const [app, worker, exportWorker, detector, css, packageJson] = await Promise.all([
+  const [appMain, i18n, slideUtils, types, canvasUtils, perspective, worker, exportWorker, detector, css, packageJson] = await Promise.all([
     readFile(new URL("../app/SlidesThiefApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/i18n.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/slide-utils.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/types.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/canvas-utils.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/perspective.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-export-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/detection/detect.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
+  const app = [appMain, i18n, slideUtils, types, canvasUtils, perspective].join("\n");
+
 
   assert.match(app, /new Worker\(new URL\("\.\/slides-worker\.ts"/);
   assert.match(app, /new Worker\(new URL\("\.\/slides-export-worker\.ts"/);
