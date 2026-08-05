@@ -1866,22 +1866,20 @@ export function SlidesThiefApp() {
       }
       if (message.type === "detect-result") {
         const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
-        const preserveManualQuad = message.phase === "final"
-          && Boolean(
-            existing?.reviewedByUser
-            || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
-          );
+        const preserveManualQuad = Boolean(
+          existing?.reviewedByUser
+          || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
+        );
         const displayedQuad = preserveManualQuad && existing?.quad
           ? existing.quad
           : message.result.quad;
         setSlides((current) =>
           current.map((slide) => {
             if (slide.id !== message.result.id) return slide;
-            const preserveManualReview = message.phase === "final"
-              && (
-                slide.reviewedByUser
-                || Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
-              );
+            const preserveManualReview = Boolean(
+              slide.reviewedByUser
+              || (slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
+            );
             return {
               ...slide,
               width: message.result.width,
@@ -2832,19 +2830,21 @@ export function SlidesThiefApp() {
       const targetSettings = overrideSettings ?? settings;
       const processableIds = new Set(processableSlides.map((slide) => slide.id));
       setSlides((current) =>
-        current.map((slide) =>
-          processableIds.has(slide.id)
-            ? {
-                ...slide,
-                status: "detecting",
-                method: "detecting",
-                reviewedByUser: false,
-                quad: null,
-                thumbnailUrl: undefined,
-                error: undefined,
-              }
-            : slide,
-        ),
+        current.map((slide) => {
+          if (!processableIds.has(slide.id)) return slide;
+          const isManual =
+            slide.reviewedByUser ||
+            Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad));
+          return {
+            ...slide,
+            status: "detecting",
+            method: isManual ? "manual" : "detecting",
+            reviewedByUser: isManual,
+            quad: isManual ? slide.quad : null,
+            thumbnailUrl: isManual ? slide.thumbnailUrl : undefined,
+            error: undefined,
+          };
+        }),
       );
       worker.postMessage({
         type: "detect",

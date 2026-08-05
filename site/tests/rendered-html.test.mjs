@@ -72,6 +72,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /new Worker\(new URL\("\.\/slides-worker\.ts"/);
   assert.match(app, /new Worker\(new URL\("\.\/slides-export-worker\.ts"/);
   assert.match(app, /runAuto/);
+  assert.match(app, /isManual =[\s\S]*slide\.reviewedByUser/);
   assert.match(app, /buildAdjustedThumbnail/);
   assert.match(app, /refreshSlideThumbnail/);
   assert.match(app, /x \/ scale - padX/);
