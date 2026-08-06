@@ -68,6 +68,7 @@ import { SlideSidebar } from "./components/SlideSidebar";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { AboutModal } from "./components/AboutModal";
+import { Button, Select } from "./components/ui";
 
 const APP_VERSION = packageMetadata.version;
 
@@ -1244,10 +1245,11 @@ export function SlidesThiefApp() {
       </p>
 
       <footer className="prefsBar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
-        <button
+        <Button
           ref={infoButtonRef}
           type="button"
-          className="icon infoButton"
+          variant="icon"
+          className="infoButton"
           title={text.infoTitle}
           aria-label={text.infoTitle}
           onClick={() => setIsInfoOpen(true)}
@@ -1257,24 +1259,24 @@ export function SlidesThiefApp() {
             <path d="M12 16v-4" />
             <path d="M12 8h.01" />
           </svg>
-        </button>
+        </Button>
         <label className="themeSetting">
           <span>{text.theme}</span>
-          <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
+          <Select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
             <option value="auto">{text.auto}</option>
             <option value="light">{text.light}</option>
             <option value="dark">{text.dark}</option>
-          </select>
+          </Select>
         </label>
         <label className="languageSetting">
           <span>{text.language}</span>
-          <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
+          <Select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
             {localeOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       </footer>
 

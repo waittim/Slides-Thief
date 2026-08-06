@@ -1,6 +1,7 @@
 import React from "react";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
 import type { SlideItem } from "../lib/types";
+import { Button, CountBadge, StatusDot } from "./ui";
 
 interface SlideSidebarProps {
   busy: boolean;
@@ -56,16 +57,16 @@ export function SlideSidebar({
   return (
     <aside className="sidebar">
       <div className="sidebarActions">
-        <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
+        <Button variant="primary" disabled={busy || !slides.length} onClick={runAuto}>
           {text.runAuto}
-        </button>
-        <button type="button" className="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
+        </Button>
+        <Button variant="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
           {text.generatePdf}
-        </button>
+        </Button>
       </div>
       <div className="sidebarRunMeta">
         <div className="sidebarStatus" role="status" aria-live="polite">
-          <span className={`statusDot ${statusTone}`} aria-hidden="true" />
+          <StatusDot status={(statusTone as any) || "default"} />
           <span className="statusLine">{statusText}</span>
         </div>
         {exportUrl ? (
@@ -83,17 +84,16 @@ export function SlideSidebar({
       </div>
       <div className="sectionHead">
         <h2>{text.images}</h2>
-        <span className="count">{slides.length}</span>
+        <CountBadge count={slides.length} />
         {slides.length > 0 && (
-          <button
-            type="button"
-            className="clearAllBtn"
+          <Button
+            variant="clear"
             disabled={busy}
             title={text.clearAll}
             onClick={clearAllSlides}
           >
             {text.clearAll}
-          </button>
+          </Button>
         )}
       </div>
       <div className="sidebarFilePicker">

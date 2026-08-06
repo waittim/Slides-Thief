@@ -1,5 +1,6 @@
 import React from "react";
 import type { SlideItem } from "../lib/types";
+import { Button, CountBadge } from "./ui";
 
 interface InspectorPanelProps {
   inspectorCollapsed: boolean;
@@ -24,9 +25,10 @@ export function InspectorPanel({
     <aside className={`inspector ${inspectorCollapsed ? "collapsed" : ""}`}>
       <div className="sectionHead">
         <h2>{text.details}</h2>
-        <span className="count">{readySlides.length}</span>
-        <button
-          className="icon inspectorToggle"
+        <CountBadge count={readySlides.length} />
+        <Button
+          variant="icon"
+          className="inspectorToggle"
           type="button"
           title={inspectorCollapsed ? text.expand : text.collapse}
           aria-label={inspectorCollapsed ? text.expand : text.collapse}
@@ -35,7 +37,7 @@ export function InspectorPanel({
           onClick={() => setInspectorCollapsed((value) => !value)}
         >
           {inspectorCollapsed ? "+" : "−"}
-        </button>
+        </Button>
       </div>
       <div className="inspectorBody" id="inspectorDetails">
         <div className="metrics">
@@ -63,3 +65,4 @@ export function InspectorPanel({
     </aside>
   );
 }
+

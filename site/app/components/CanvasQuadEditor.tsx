@@ -1,6 +1,7 @@
 import React from "react";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
+import { Button } from "./ui";
 
 interface CanvasQuadEditorProps {
   stageRef: React.RefObject<HTMLDivElement | null>;
@@ -54,46 +55,46 @@ export function CanvasQuadEditor({
   return (
     <section className="workspace">
       <div className="reviewBar">
-        <button
-          type="button"
-          className="icon reviewPrevious"
+        <Button
+          variant="icon"
+          className="reviewPrevious"
           disabled={!slides.length || selectedIndex <= 0}
           title={`${text.prev} (K / PageUp)`}
           aria-label={text.prev}
           onClick={() => selectAt(selectedIndex - 1)}
         >
           ‹
-        </button>
-        <button
-          type="button"
-          className="icon reviewNext"
+        </Button>
+        <Button
+          variant="icon"
+          className="reviewNext"
           disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
           title={`${text.next} (J / PageDown)`}
           aria-label={text.next}
           onClick={() => selectAt(selectedIndex + 1)}
         >
           ›
-        </button>
+        </Button>
         <div className="title" title={selectedSlide?.name}>
           {selectedSlide
             ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${displayFileName(selectedSlide.name, isMobile)}`
             : text.noSlide}
         </div>
         <div className="zoomControls">
-          <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
+          <Button variant="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
             −
-          </button>
+          </Button>
           <span className="zoomValue">{Math.round(displayZoom * 100)}%</span>
-          <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
+          <Button variant="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
             +
-          </button>
-          <button type="button" className="fitButton" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
+          </Button>
+          <Button variant="fit" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
             {text.fit}
-          </button>
+          </Button>
         </div>
-        <button type="button" className="resetButton" disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
+        <Button variant="reset" disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
           {text.resetSlide}
-        </button>
+        </Button>
       </div>
       <div className="stage" ref={stageRef}>
         <div className="canvasShell">

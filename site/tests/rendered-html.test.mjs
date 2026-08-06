@@ -76,6 +76,11 @@ test("client code uses browser-local processing contracts", async () => {
     canvasQuadEditor,
     inspectorPanel,
     aboutModal,
+    uiButton,
+    uiSelect,
+    uiBadge,
+    uiSwitch,
+    uiModalShell,
     worker,
     exportWorker,
     detector,
@@ -96,6 +101,11 @@ test("client code uses browser-local processing contracts", async () => {
     readFile(new URL("../app/components/CanvasQuadEditor.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/InspectorPanel.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/AboutModal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ui/Button.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ui/Select.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ui/Badge.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ui/Switch.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/ui/ModalShell.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-export-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/detection/detect.ts", import.meta.url), "utf8"),
@@ -117,6 +127,11 @@ test("client code uses browser-local processing contracts", async () => {
     canvasQuadEditor,
     inspectorPanel,
     aboutModal,
+    uiButton,
+    uiSelect,
+    uiBadge,
+    uiSwitch,
+    uiModalShell,
   ].join("\n");
 
 
@@ -215,7 +230,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(JSON.parse(packageJson).version, /^\d+\.\d+\.\d+$/);
   assert.match(app, /event\.key === "Escape"/);
   assert.match(app, /document\.activeElement === last/);
-  assert.match(app, /aria-label=\{text\.close\}/);
+  assert.match(app, /aria-label=\{(?:text\.close|closeLabel)\}/);
   assert.match(app, /window\.requestAnimationFrame/);
   assert.match(app, /if \(workerRef\.current === worker\) workerRef\.current = null/);
   assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);

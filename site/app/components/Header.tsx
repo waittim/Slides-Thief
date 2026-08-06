@@ -14,6 +14,7 @@ import {
   type PageLayoutMode,
 } from "../ratio";
 import type { Settings, SlideItem, ThemeValue } from "../lib/types";
+import { Button, Select, Switch } from "./ui";
 
 interface HeaderProps {
   isInfoOpen: boolean;
@@ -97,7 +98,7 @@ export function Header({
                 return (
                   <label className="ratioSetting">
                     <span>{ratioUi.sourceFormat}</span>
-                    <select
+                    <Select
                       value={currentBaseFormat}
                       onChange={(event) => {
                         const nextBaseFormat = event.target.value as BaseFormat;
@@ -123,7 +124,7 @@ export function Header({
                         <option value="letter">Letter</option>
                       </optgroup>
                       <option value="custom">{ratioUi.custom}</option>
-                    </select>
+                    </Select>
                   </label>
                 );
               })()}
@@ -161,35 +162,25 @@ export function Header({
                     const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
                     const isPortrait = currentOrientation === "portrait";
                     return (
-                      <label className="orientationSetting">
+                      <div className="orientationSetting">
                         <span>{ratioUi.orientation}</span>
-                        <button
-                          type="button"
-                          role="switch"
-                          aria-checked={isPortrait}
-                          aria-label={ratioUi.orientation}
-                          className={`switchToggle ${isPortrait ? "checked" : ""}`}
-                          onClick={() => {
+                        <Switch
+                          checked={isPortrait}
+                          label={isPortrait ? ratioUi.portrait : ratioUi.landscape}
+                          onChange={() => {
                             const nextOrientation = isPortrait ? "landscape" : "portrait";
                             const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
                             const nextSettings: Settings = { ...settings, sourceFormat: nextFormat };
                             updateSettings(() => nextSettings);
                             if (hasRun) runAutoWithSettings(nextSettings);
                           }}
-                        >
-                          <span className="switchTrack">
-                            <span className="switchThumb" />
-                          </span>
-                          <span className="switchLabel">
-                            {isPortrait ? ratioUi.portrait : ratioUi.landscape}
-                          </span>
-                        </button>
-                      </label>
+                        />
+                      </div>
                     );
                   })()}
                   <label>
                     <span>{ratioUi.pageLayout}</span>
-                    <select
+                    <Select
                       value={currentPageLayout}
                       onChange={(event) => {
                         const nextLayout = event.target.value as PageLayoutMode;
@@ -235,12 +226,12 @@ export function Header({
                       <option value="match-source">{ratioUi.matchSource}</option>
                       <option value="paper">{ratioUi.standardPaper}</option>
                       <option value="custom-size">{ratioUi.customPage}</option>
-                    </select>
+                    </Select>
                   </label>
                   {currentPageLayout === "paper" && (
                     <label>
                       <span>{ratioUi.paperFormat}</span>
-                      <select
+                      <Select
                         value={settings.outputPageRatio}
                         onChange={(event) => {
                           const outputPageRatio = event.target.value as OutputPageRatio;
@@ -255,7 +246,7 @@ export function Header({
                         <option value="A4-portrait">{text.ratioA4Portrait}</option>
                         <option value="letter-landscape">{text.ratioLetterLandscape}</option>
                         <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                      </select>
+                      </Select>
                     </label>
                   )}
                   <label>
@@ -307,7 +298,7 @@ export function Header({
                   </label>
                   <label>
                     <span>{text.enhancement}</span>
-                    <select
+                    <Select
                       value={settings.enhancement}
                       onChange={(event) =>
                         updateSettings((current) => ({
@@ -320,7 +311,7 @@ export function Header({
                       <option value="clean">{text.enhancementClean}</option>
                       <option value="high-contrast">{text.enhancementHighContrast}</option>
                       <option value="bw">{text.enhancementBw}</option>
-                    </select>
+                    </Select>
                   </label>
                   <div
                     className="colorSetting"
@@ -329,13 +320,13 @@ export function Header({
                   >
                     <span id="fill-color-label">{text.fillColor}</span>
                     <div className="colorControls">
-                      <button
+                      <Button
                         type="button"
                         aria-pressed={settings.fillColor === "auto"}
                         onClick={() => updateSettings((current) => ({ ...current, fillColor: "auto" }))}
                       >
                         {text.auto}
-                      </button>
+                      </Button>
                       <input
                         type="color"
                         className={settings.fillColor === "auto" ? undefined : "isActive"}
@@ -360,23 +351,23 @@ export function Header({
               <hr className="settingsMenuDivider" />
               <label className="themeSetting settingsMenuTheme">
                 <span>{text.theme}</span>
-                <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
+                <Select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
                   <option value="auto">{text.auto}</option>
                   <option value="light">{text.light}</option>
                   <option value="dark">{text.dark}</option>
-                </select>
+                </Select>
               </label>
               <label className="languageSetting settingsMenuLanguage">
                 <span>{text.language}</span>
-                <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
+                <Select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
                   {localeOptions.map((option) => (
                     <option key={option.value} value={option.value}>
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </Select>
               </label>
-              <button
+              <Button
                 type="button"
                 className="settingsMenuInfoRow settingsMenuInfo"
                 onClick={() => setIsInfoOpen(true)}
@@ -387,7 +378,7 @@ export function Header({
                   <path d="M12 8h.01" />
                 </svg>
                 <span>{text.infoTitle}</span>
-              </button>
+              </Button>
             </div>
           )}
         </details>
@@ -395,3 +386,4 @@ export function Header({
     </header>
   );
 }
+
