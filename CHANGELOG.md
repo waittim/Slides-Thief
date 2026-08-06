@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-05
+
+### Added
+
+- Orientation settings and enhanced aspect ratio handling in the web UI.
+- Keyboard shortcuts modal section and displayed app version in product info modal.
+- Explicit distinction between manual corner adjustments and automatic detection upon aspect ratio changes.
+
+### Changed
+
+- Streamlined global CSS color variables, switch labels, and button dimensions.
+- Cleaned up obsolete design specs and unused component types.
+
 ## [2.1.0] - 2026-07-29
 
 ### Added
@@ -68,7 +81,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/waittim/Slides-Thief/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/waittim/Slides-Thief/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/waittim/Slides-Thief/compare/v0.1.0...v2.0.0
 [0.1.0]: https://github.com/waittim/Slides-Thief/releases/tag/v0.1.0
