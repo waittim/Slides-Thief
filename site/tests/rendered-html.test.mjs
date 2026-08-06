@@ -7,7 +7,8 @@ async function render() {
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
-  return worker.fetch(
+  const fetchFn = typeof worker.fetch === "function" ? worker.fetch.bind(worker) : worker;
+  return fetchFn(
     new Request("http://localhost/", {
       headers: { accept: "text/html" },
     }),
