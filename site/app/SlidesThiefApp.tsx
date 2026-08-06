@@ -60,13 +60,20 @@ import {
   resolvedSlideRatio,
   buildAdjustedThumbnail,
 } from "./lib/slide-utils";
+import { useSlideDeck } from "./hooks/useSlideDeck";
+import { useDetectionWorker } from "./hooks/useDetectionWorker";
+import { useExportWorker } from "./hooks/useExportWorker";
+import { Header } from "./components/Header";
+import { SlideSidebar } from "./components/SlideSidebar";
+import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
+import { InspectorPanel } from "./components/InspectorPanel";
+import { AboutModal } from "./components/AboutModal";
 
 const APP_VERSION = packageMetadata.version;
 
 
+
 export function SlidesThiefApp() {
-  const [slides, setSlides] = useState<SlideItem[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -91,15 +98,9 @@ export function SlidesThiefApp() {
   const [isIOS, setIsIOS] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const workerRef = useRef<Worker | null>(null);
-  const exportWorkerRef = useRef<Worker | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const slidesRef = useRef<SlideItem[]>([]);
-  const historyPastRef = useRef<SlideItem[][]>([]);
-  const historyFutureRef = useRef<SlideItem[][]>([]);
-  const selectedIdRef = useRef<string | null>(null);
   const exportingRef = useRef(false);
   const busyRef = useRef(false);
   const exportUrlRef = useRef<string | null>(null);
@@ -128,6 +129,84 @@ export function SlidesThiefApp() {
 
   const text = copy[locale];
   const reviewText = reviewUiCopy[locale];
+
+  const cancelActiveDrag = useCallback(() => {
+    if (dragFrameRef.current !== null) {
+      window.cancelAnimationFrame(dragFrameRef.current);
+      dragFrameRef.current = null;
+    }
+    latestDragQuadRef.current = null;
+    activePointerRef.current = null;
+    dragHandleRef.current = null;
+    setDragHandle(null);
+  }, []);
+
+  const clearExport = useCallback(() => {
+    if (exportUrlRef.current) {
+      URL.revokeObjectURL(exportUrlRef.current);
+      exportUrlRef.current = null;
+    }
+    setExportUrl((current) => (current === null ? current : null));
+  }, []);
+
+  const confirmClearText = useCallback((count: number) => copy[localeRef.current].clearAllConfirm(count), []);
+
+  const {
+    slides,
+    setSlides,
+    selectedId,
+    setSelectedId,
+    slidesRef,
+    selectedIdRef,
+    pushHistory,
+    handleUndo,
+    handleRedo,
+    deleteSlide,
+    clearAllSlides,
+    selectNextSlide: selectNextSlideDeck,
+    selectPrevSlide: selectPrevSlideDeck,
+  } = useSlideDeck(clearExport, cancelActiveDrag, confirmClearText);
+
+  const selectNextSlide = useCallback(() => {
+    selectNextSlideDeck(() => setZoomMode("fit"));
+  }, [selectNextSlideDeck]);
+
+  const selectPrevSlide = useCallback(() => {
+    selectPrevSlideDeck(() => setZoomMode("fit"));
+  }, [selectPrevSlideDeck]);
+
+  const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
+    const slide = slidesRef.current.find((item) => item.id === id);
+    if (!slide) return;
+    try {
+      const thumbnailUrl = await buildAdjustedThumbnail(slide, quad, overrideSettings ?? settingsRef.current);
+      setSlides((current) => current.map((item) => (item.id === id ? { ...item, thumbnailUrl } : item)));
+    } catch {
+      // Keep the original preview if thumbnail generation fails.
+    }
+  }, [setSlides, slidesRef]);
+
+  const { workerRef, ensureWorker } = useDetectionWorker(
+    slidesRef,
+    setSlides,
+    setBusyText,
+    setWorkerError,
+    setExporting,
+    localeRef,
+    refreshSlideThumbnail,
+  );
+
+  const { exportWorkerRef, ensureExportWorker } = useExportWorker(
+    slidesRef,
+    exportUrlRef,
+    setExportUrl,
+    setExportName,
+    setExporting,
+    setWorkerError,
+    setBusyText,
+    localeRef,
+  );
+
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
@@ -140,17 +219,6 @@ export function SlidesThiefApp() {
   const detecting = slides.some((slide) => slide.status === "detecting");
   const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
-
-  const cancelActiveDrag = useCallback(() => {
-    if (dragFrameRef.current !== null) {
-      window.cancelAnimationFrame(dragFrameRef.current);
-      dragFrameRef.current = null;
-    }
-    latestDragQuadRef.current = null;
-    activePointerRef.current = null;
-    dragHandleRef.current = null;
-    setDragHandle(null);
-  }, []);
 
   const statusText = useMemo(() => {
     if (workerError) return workerError;
@@ -180,25 +248,6 @@ export function SlidesThiefApp() {
     return reviewText.corrected;
   };
 
-  const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
-    const slide = slidesRef.current.find((item) => item.id === id);
-    if (!slide) return;
-    try {
-      const thumbnailUrl = await buildAdjustedThumbnail(slide, quad, overrideSettings ?? settingsRef.current);
-      setSlides((current) => current.map((item) => (item.id === id ? { ...item, thumbnailUrl } : item)));
-    } catch {
-      // Keep the original preview if thumbnail generation fails.
-    }
-  }, []);
-
-  const clearExport = useCallback(() => {
-    if (exportUrlRef.current) {
-      URL.revokeObjectURL(exportUrlRef.current);
-      exportUrlRef.current = null;
-    }
-    setExportUrl((current) => (current === null ? current : null));
-  }, []);
-
   const updateSettings = useCallback(
     (updater: (current: Settings) => Settings) => {
       clearExport();
@@ -206,192 +255,6 @@ export function SlidesThiefApp() {
     },
     [clearExport],
   );
-
-  const ensureWorker = useCallback(() => {
-    if (workerRef.current) return workerRef.current;
-    let worker: Worker;
-    try {
-      worker = new Worker(new URL("./slides-worker.ts", import.meta.url), {
-        type: "module",
-      });
-    } catch (error) {
-      setWorkerError(messageFromError(error));
-      setBusyText("");
-      return null;
-    }
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-      const message = event.data;
-      if (message.type === "detect-start") {
-        const name = slidesRef.current.find((slide) => slide.id === message.id)?.name ?? "";
-        const currentCopy = copy[localeRef.current];
-        setBusyText(name ? `${currentCopy.stretching}: ${name}` : currentCopy.stretching);
-        setSlides((current) =>
-          current.map((slide) =>
-            slide.id === message.id
-              ? {
-                  ...slide,
-                  status: "detecting",
-                  method: "detecting",
-                  reviewedByUser: false,
-                  thumbnailUrl: undefined,
-                  error: undefined,
-                }
-              : slide,
-          ),
-        );
-      }
-      if (message.type === "detect-result") {
-        const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
-        const preserveManualQuad = Boolean(
-          existing?.reviewedByUser
-          || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
-        );
-        const displayedQuad = preserveManualQuad && existing?.quad
-          ? existing.quad
-          : message.result.quad;
-        setSlides((current) =>
-          current.map((slide) => {
-            if (slide.id !== message.result.id) return slide;
-            const preserveManualReview = Boolean(
-              slide.reviewedByUser
-              || (slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
-            );
-            return {
-              ...slide,
-              width: message.result.width,
-              height: message.result.height,
-              quad: preserveManualReview ? slide.quad : message.result.quad,
-              autoQuad: message.result.quad,
-              method: preserveManualReview ? "manual" : message.result.method,
-              confidence: preserveManualReview ? 1 : message.result.confidence,
-              needsReview: preserveManualReview ? false : message.result.needsReview,
-              reviewReasons: preserveManualReview ? [] : message.result.reviewReasons,
-              reviewedByUser: preserveManualReview,
-              sourceRatio: message.result.sourceRatio,
-              status: message.phase === "final" ? "ready" : "detecting",
-              error: undefined,
-            };
-          }),
-        );
-        void refreshSlideThumbnail(message.result.id, displayedQuad);
-        if (message.phase === "final") setBusyText("");
-      }
-      if (message.type === "slide-error") {
-        trackEvent("processing_error", {
-          error_type: "slide_error",
-          error_message: message.error || "Slide processing error",
-        });
-        setSlides((current) =>
-          current.map((slide) =>
-            slide.id === message.id
-              ? { ...slide, status: "error", method: "error", error: message.error }
-              : slide,
-          ),
-        );
-        setBusyText("");
-      }
-      if (message.type === "error") {
-        trackEvent("processing_error", {
-          error_type: "worker_error",
-          error_message: message.error || "General worker error",
-        });
-        setSlides((current) =>
-          current.map((slide) =>
-            slide.status === "detecting"
-              ? { ...slide, status: "error", method: "error", error: message.error }
-              : slide,
-          ),
-        );
-        setWorkerError(message.error);
-        setExporting(false);
-        setBusyText("");
-      }
-    };
-    const handleWorkerFailure = (message: string) => {
-      trackEvent("processing_error", {
-        error_type: "worker_failure",
-        error_message: message || "Worker terminated unexpectedly",
-      });
-      worker.terminate();
-      if (workerRef.current === worker) workerRef.current = null;
-      setSlides((current) =>
-        current.map((slide) =>
-          slide.status === "detecting" ? { ...slide, status: "error", method: "error", error: message } : slide,
-        ),
-      );
-      setWorkerError(message);
-      setExporting(false);
-      setBusyText("");
-    };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The image worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
-    workerRef.current = worker;
-    return worker;
-  }, [refreshSlideThumbnail]);
-
-  const ensureExportWorker = useCallback(() => {
-    if (exportWorkerRef.current) return exportWorkerRef.current;
-    let worker: Worker;
-    try {
-      worker = new Worker(new URL("./slides-export-worker.ts", import.meta.url), {
-        type: "module",
-      });
-    } catch (error) {
-      setWorkerError(messageFromError(error));
-      setExporting(false);
-      setBusyText("");
-      return null;
-    }
-    const releaseWorker = () => {
-      worker.terminate();
-      if (exportWorkerRef.current === worker) exportWorkerRef.current = null;
-    };
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
-      const message = event.data;
-      if (message.type === "export-progress") {
-        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
-      }
-      if (message.type === "export-complete") {
-        trackEvent("pdf_export_success", {
-          page_count: slidesRef.current.length,
-          file_size_bytes: message.pdf.byteLength,
-        });
-        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-        const blob = new Blob([message.pdf], { type: "application/pdf" });
-        const url = URL.createObjectURL(blob);
-        exportUrlRef.current = url;
-        setExportUrl(url);
-        setExportName(message.filename);
-        setExporting(false);
-        setBusyText("");
-        releaseWorker();
-      }
-      if (message.type === "error") {
-        trackEvent("processing_error", {
-          error_type: "export_worker_error",
-          error_message: message.error || "PDF export error",
-        });
-        setWorkerError(message.error);
-        setExporting(false);
-        setBusyText("");
-        releaseWorker();
-      }
-    };
-    const handleWorkerFailure = (message: string) => {
-      trackEvent("processing_error", {
-        error_type: "export_worker_failure",
-        error_message: message || "PDF worker terminated unexpectedly",
-      });
-      setWorkerError(message);
-      setExporting(false);
-      setBusyText("");
-      releaseWorker();
-    };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The PDF worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the PDF worker.");
-    exportWorkerRef.current = worker;
-    return worker;
-  }, []);
 
   useEffect(() => {
     return () => {
@@ -401,65 +264,7 @@ export function SlidesThiefApp() {
       exportWorkerRef.current = null;
       if (dragFrameRef.current !== null) window.cancelAnimationFrame(dragFrameRef.current);
     };
-  }, []);
-
-  useEffect(() => {
-    slidesRef.current = slides;
-  }, [slides]);
-
-  useEffect(() => {
-    selectedIdRef.current = selectedId;
-  }, [selectedId]);
-
-  useEffect(() => {
-    exportingRef.current = exporting;
-  }, [exporting]);
-
-  useEffect(() => {
-    busyRef.current = busy;
-  }, [busy]);
-
-  useEffect(() => {
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      if (slidesRef.current.length > 0 || exportingRef.current) {
-        event.preventDefault();
-        event.returnValue = "";
-        return "";
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, []);
-
-  useEffect(() => {
-    settingsRef.current = settings;
-  }, [settings]);
-
-  const pushHistory = useCallback(() => {
-    if (slidesRef.current.length === 0) return;
-    historyPastRef.current = [...historyPastRef.current.slice(-29), cloneSlides(slidesRef.current)];
-    historyFutureRef.current = [];
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    const past = historyPastRef.current;
-    if (past.length === 0) return;
-    const previous = past[past.length - 1];
-    historyPastRef.current = past.slice(0, -1);
-    historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
-    clearExport();
-    setSlides(previous);
-  }, [clearExport]);
-
-  const handleRedo = useCallback(() => {
-    const future = historyFutureRef.current;
-    if (future.length === 0) return;
-    const next = future[0];
-    historyFutureRef.current = future.slice(1);
-    historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
-    clearExport();
-    setSlides(next);
-  }, [clearExport]);
+  }, [exportWorkerRef, workerRef]);
 
   const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
     const loupeCanvas = loupeCanvasRef.current;
@@ -496,61 +301,6 @@ export function SlidesThiefApp() {
     );
   }, []);
 
-  const deleteSlide = useCallback(
-    (id: string) => {
-      pushHistory();
-      clearExport();
-      setSlides((current) => {
-        const next = current.filter((slide) => slide.id !== id);
-        if (selectedIdRef.current === id) {
-          const index = current.findIndex((slide) => slide.id === id);
-          const nextSelected = next[Math.min(index, next.length - 1)];
-          setSelectedId(nextSelected?.id ?? null);
-        }
-        return next;
-      });
-    },
-    [clearExport, pushHistory],
-  );
-
-  const clearAllSlides = useCallback(() => {
-    const count = slidesRef.current.length;
-    if (!count) return;
-    const shouldClear = window.confirm(text.clearAllConfirm(count));
-    if (!shouldClear) return;
-    pushHistory();
-    clearExport();
-    cancelActiveDrag();
-    setSlides([]);
-    setSelectedId(null);
-  }, [cancelActiveDrag, clearExport, pushHistory, text]);
-
-
-  const selectNextSlide = useCallback(() => {
-    const currentSlides = slidesRef.current;
-    if (!currentSlides.length) return;
-    const currentId = selectedIdRef.current;
-    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
-    const nextIndex = Math.min(currentIndex + 1, currentSlides.length - 1);
-    if (nextIndex >= 0 && nextIndex !== currentIndex && currentSlides[nextIndex]) {
-      cancelActiveDrag();
-      setSelectedId(currentSlides[nextIndex].id);
-      setZoomMode("fit");
-    }
-  }, [cancelActiveDrag]);
-
-  const selectPrevSlide = useCallback(() => {
-    const currentSlides = slidesRef.current;
-    if (!currentSlides.length) return;
-    const currentId = selectedIdRef.current;
-    const currentIndex = currentSlides.findIndex((s) => s.id === currentId);
-    const prevIndex = Math.max(currentIndex - 1, 0);
-    if (prevIndex >= 0 && prevIndex !== currentIndex && currentSlides[prevIndex]) {
-      cancelActiveDrag();
-      setSelectedId(currentSlides[prevIndex].id);
-      setZoomMode("fit");
-    }
-  }, [cancelActiveDrag]);
 
 
   useEffect(() => {
@@ -1398,650 +1148,95 @@ export function SlidesThiefApp() {
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
-      <header className="topbar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
-        <div className="brand">
-          <div className="mark" aria-label={text.brandMark} role="img">
-            <svg width="30" height="30" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M8 10.5L24 8.5V21.5L8 23.5V10.5Z" fill="var(--logo-slide, #F5F7F2)"/>
-              <path d="M11 13.625L21 12.375V13.375L11 14.625Z" fill="var(--logo-lines, #64717A)"/>
-              <path d="M11 16.125L19 15.125V16.125L11 17.125Z" fill="var(--logo-lines, #64717A)"/>
-              <path d="M11 18.625L16 18.0V19.0L11 19.625Z" fill="var(--logo-lines, #64717A)"/>
-            </svg>
-          </div>
-          <h1 className="brandText">{text.brandName}</h1>
-        </div>
-        <div className="settings">
-          <details
-            className="settingsMenu"
-            ref={settingsMenuRef}
-            onToggle={(event) => {
-              const isOpen = event.currentTarget.open;
-              if (window.matchMedia("(max-width: 834px)").matches) {
-                setSettingsOpen(isOpen);
-              } else {
-                event.currentTarget.open = true;
-                setSettingsOpen(true);
-              }
-            }}
-          >
-            <summary className="settingsMenuToggle">{text.settings}</summary>
-            {settingsOpen && (
-              <div className="settingsMenuBody">
-                {(() => {
-                  const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
-                  return (
-                    <label className="ratioSetting">
-                      <span>{ratioUi.sourceFormat}</span>
-                      <select
-                        value={currentBaseFormat}
-                        onChange={(event) => {
-                          const nextBaseFormat = event.target.value as BaseFormat;
-                          const defaultOrient = defaultOrientationForBaseFormat(nextBaseFormat);
-                          const sourceFormat = deriveSourceFormat(nextBaseFormat, defaultOrient);
-                          const nextSettings: Settings = {
-                            ...settings,
-                            sourceFormat,
-                          };
-                          updateSettings(() => nextSettings);
-                          if (hasRun) {
-                            runAutoWithSettings(nextSettings);
-                          }
-                        }}
-                      >
-                        <optgroup label={ratioUi.presentationGroup}>
-                          <option value="16:9">{text.ratio16x9}</option>
-                          <option value="4:3">{text.ratio4x3}</option>
-                          <option value="16:10">16:10</option>
-                        </optgroup>
-                        <optgroup label={ratioUi.documentGroup}>
-                          <option value="A4">A4</option>
-                          <option value="letter">Letter</option>
-                        </optgroup>
-                        <option value="custom">{ratioUi.custom}</option>
-                      </select>
-                    </label>
-                  );
-                })()}
-                {settings.sourceFormat === "custom" && (
-                  <label className="sourceCustomSetting">
-                    <span>{ratioUi.customRatio}</span>
-                    <input
-                      type="number"
-                      min={0.2}
-                      max={5}
-                      step={0.01}
-                      value={settings.sourceCustomRatio ?? 16 / 9}
-                      onChange={(event) => {
-                        const sourceCustomRatio = Math.max(0.2, Math.min(5, Number(event.target.value) || 16 / 9));
-                        const nextSettings = { ...settings, sourceCustomRatio };
-                        updateSettings(() => nextSettings);
-                        if (hasRun) runAutoWithSettings(nextSettings);
-                      }}
-                    />
-                  </label>
-                )}
-                <details
-                  className="moreSettings"
-                  ref={moreSettingsRef}
-                  open={isMobile ? true : undefined}
-                  onToggle={(event) => {
-                    if (window.matchMedia("(max-width: 834px)").matches) {
-                      event.currentTarget.open = true;
-                    }
-                  }}
-                >
-                  <summary>{text.more}</summary>
-                  <div className="morePanel">
-                    {(() => {
-                      const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
-                      const isPortrait = currentOrientation === "portrait";
-                      return (
-                        <label className="orientationSetting">
-                          <span>{ratioUi.orientation}</span>
-                          <button
-                            type="button"
-                            role="switch"
-                            aria-checked={isPortrait}
-                            aria-label={ratioUi.orientation}
-                            className={`switchToggle ${isPortrait ? "checked" : ""}`}
-                            onClick={() => {
-                              const nextOrientation = isPortrait ? "landscape" : "portrait";
-                              const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
-                              const nextSettings: Settings = { ...settings, sourceFormat: nextFormat };
-                              updateSettings(() => nextSettings);
-                              if (hasRun) runAutoWithSettings(nextSettings);
-                            }}
-                          >
-                            <span className="switchTrack">
-                              <span className="switchThumb" />
-                            </span>
-                            <span className="switchLabel">
-                              {isPortrait ? ratioUi.portrait : ratioUi.landscape}
-                            </span>
-                          </button>
-                        </label>
-                      );
-                    })()}
-                    <label>
-                      <span>{ratioUi.pageLayout}</span>
-                      <select
-                        value={currentPageLayout}
-                        onChange={(event) => {
-                          const nextLayout = event.target.value as PageLayoutMode;
-                          updateSettings((current) => {
-                            if (nextLayout === "paper") {
-                              const sourceRatio = sourceFormatRatioValue(
-                                current.sourceFormat,
-                                current.sourceCustomRatio,
-                                selectedSlide?.sourceRatio,
-                              );
-                              const outputPageRatio = isPaperRatio(current.outputPageRatio)
-                                ? current.outputPageRatio
-                                : sourceRatio >= 1
-                                  ? "A4-landscape"
-                                  : "A4-portrait";
-                              return {
-                                ...current,
-                                outputPageRatio,
-                                height: null,
-                              };
-                            }
-                            if (nextLayout === "custom-size") {
-                              const sourceRatio = sourceFormatRatioValue(
-                                current.sourceFormat,
-                                current.sourceCustomRatio,
-                                selectedSlide?.sourceRatio,
-                              );
-                              const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
-                              return {
-                                ...current,
-                                outputPageRatio: "match-source",
-                                height: Math.max(600, Math.min(6000, Math.round(current.width / ratio))),
-                              };
-                            }
-                            return {
-                              ...current,
-                              outputPageRatio: "match-source",
-                              height: null,
-                            };
-                          });
-                        }}
-                      >
-                        <option value="match-source">{ratioUi.matchSource}</option>
-                        <option value="paper">{ratioUi.standardPaper}</option>
-                        <option value="custom-size">{ratioUi.customPage}</option>
-                      </select>
-                    </label>
-                    {currentPageLayout === "paper" && (
-                      <label>
-                        <span>{ratioUi.paperFormat}</span>
-                        <select
-                          value={settings.outputPageRatio}
-                          onChange={(event) => {
-                            const outputPageRatio = event.target.value as OutputPageRatio;
-                            updateSettings((current) => ({
-                              ...current,
-                              outputPageRatio,
-                              height: null,
-                            }));
-                          }}
-                        >
-                          <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                          <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                          <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                          <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                        </select>
-                      </label>
-                    )}
-                    <label>
-                      <span>{text.width}</span>
-                      <input
-                        type="number"
-                        min={800}
-                        max={6000}
-                        value={settings.width}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
-                          }))
-                        }
-                      />
-                    </label>
-                    {currentPageLayout === "custom-size" && (
-                      <label>
-                        <span>{text.height}</span>
-                        <input
-                          type="number"
-                          min={600}
-                          max={6000}
-                          value={settings.height ?? 1350}
-                          onChange={(event) =>
-                            updateSettings((current) => ({
-                              ...current,
-                              height: Math.max(600, Math.min(6000, Number(event.target.value) || 600)),
-                            }))
-                          }
-                        />
-                      </label>
-                    )}
-                    <label>
-                      <span>{text.quality}</span>
-                      <input
-                        type="number"
-                        min={60}
-                        max={98}
-                        value={Math.round(settings.quality * 100)}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
-                          }))
-                        }
-                      />
-                    </label>
-                    <label>
-                      <span>{text.enhancement}</span>
-                      <select
-                        value={settings.enhancement}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            enhancement: event.target.value as EnhancementMode,
-                          }))
-                        }
-                      >
-                        <option value="original">{text.enhancementOriginal}</option>
-                        <option value="clean">{text.enhancementClean}</option>
-                        <option value="high-contrast">{text.enhancementHighContrast}</option>
-                        <option value="bw">{text.enhancementBw}</option>
-                      </select>
-                    </label>
-                    <div
-                      className="colorSetting"
-                      role="group"
-                      aria-labelledby="fill-color-label"
-                    >
-                      <span id="fill-color-label">{text.fillColor}</span>
-                      <div className="colorControls">
-                        <button
-                          type="button"
-                          aria-pressed={settings.fillColor === "auto"}
-                          onClick={() => updateSettings((current) => ({ ...current, fillColor: "auto" }))}
-                        >
-                          {text.auto}
-                        </button>
-                        <input
-                          type="color"
-                          className={settings.fillColor === "auto" ? undefined : "isActive"}
-                          aria-label={text.fillColor}
-                          value={settings.fillColor === "auto" ? "#FFFFFF" : settings.fillColor}
-                          onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </details>
-                <label className="pdfNameSetting">
-                  <span>{text.pdfName}</span>
-                  <input
-                    value={pdfBaseName}
-                    maxLength={PDF_BASENAME_MAX_LENGTH}
-                    onChange={(event) => setPdfBaseName(sanitizePdfBaseName(event.target.value))}
-                    type="text"
-                  />
-                  <span className="fileSuffix">.pdf</span>
-                </label>
-                <hr className="settingsMenuDivider" />
-                <label className="themeSetting settingsMenuTheme">
-                  <span>{text.theme}</span>
-                  <select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
-                    <option value="auto">{text.auto}</option>
-                    <option value="light">{text.light}</option>
-                    <option value="dark">{text.dark}</option>
-                  </select>
-                </label>
-                <label className="languageSetting settingsMenuLanguage">
-                  <span>{text.language}</span>
-                  <select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
-                    {localeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  type="button"
-                  className="settingsMenuInfoRow settingsMenuInfo"
-                  onClick={() => setIsInfoOpen(true)}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M12 16v-4" />
-                    <path d="M12 8h.01" />
-                  </svg>
-                  <span>{text.infoTitle}</span>
-                </button>
-              </div>
-            )}
-          </details>
-        </div>
-      </header>
+      <Header
+        isInfoOpen={isInfoOpen}
+        text={text}
+        ratioUi={ratioUi}
+        settings={settings}
+        settingsOpen={settingsOpen}
+        setSettingsOpen={setSettingsOpen}
+        settingsMenuRef={settingsMenuRef}
+        moreSettingsRef={moreSettingsRef}
+        isMobile={isMobile}
+        hasRun={hasRun}
+        pdfBaseName={pdfBaseName}
+        setPdfBaseName={setPdfBaseName}
+        theme={theme}
+        setTheme={setTheme}
+        locale={locale}
+        setLocale={setLocale}
+        updateSettings={updateSettings}
+        runAutoWithSettings={runAutoWithSettings}
+        selectedSlide={selectedSlide}
+        setIsInfoOpen={setIsInfoOpen}
+        currentPageLayout={currentPageLayout}
+      />
 
       <main
         className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}
         aria-hidden={isInfoOpen || undefined}
         inert={isInfoOpen ? true : undefined}
       >
-        <aside className="sidebar">
-          <div className="sidebarActions">
-            <button type="button" className="primary" disabled={busy || !slides.length} onClick={runAuto}>
-              {text.runAuto}
-            </button>
-            <button type="button" className="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
-              {text.generatePdf}
-            </button>
-          </div>
-          <div className="sidebarRunMeta">
-            <div className="sidebarStatus" role="status" aria-live="polite">
-              <span className={`statusDot ${statusTone}`} aria-hidden="true" />
-              <span className="statusLine">{statusText}</span>
-            </div>
-            {exportUrl ? (
-              <div className="links sidebarLinks">
-                <a
-                  href={exportUrl}
-                  download={isIOS ? undefined : exportName}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {text.downloadPdf}
-                </a>
-              </div>
-            ) : null}
-          </div>
-          <div className="sectionHead">
-            <h2>{text.images}</h2>
-            <span className="count">{slides.length}</span>
-            {slides.length > 0 && (
-              <button
-                type="button"
-                className="clearAllBtn"
-                disabled={busy}
-                title={text.clearAll}
-                onClick={clearAllSlides}
-              >
-                {text.clearAll}
-              </button>
-            )}
-          </div>
-          <div className="sidebarFilePicker">
-            <input
-              ref={inputRef}
-              className="fileInput"
-              type="file"
-              accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-              multiple
-              disabled={busy}
-              onChange={(event) => {
-                const files = event.currentTarget.files ? Array.from(event.currentTarget.files) : [];
-                event.currentTarget.value = "";
-                if (files.length) void loadFiles(files);
-              }}
-            />
-            <button
-              type="button"
-              className={`dropzone ${dragActive ? "active" : ""}`}
-              disabled={busy}
-              onClick={() => inputRef.current?.click()}
-              onDragOver={(event) => {
-                event.preventDefault();
-                setDragActive(true);
-              }}
-              onDragLeave={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
-              }}
-              onDrop={(event) => {
-                event.preventDefault();
-                setDragActive(false);
-                void loadFiles(event.dataTransfer.files);
-              }}
-            >
-              <span className="dropzoneContent">
-                <strong>{isMobile ? text.uploadTitle : text.dropTitle}</strong>
-                {!isMobile && <span>{text.dropSubtitle}</span>}
-              </span>
-            </button>
-            <div className="files">
-              {slides.map((slide, index) => {
-                const active = selectedId === slide.id || (!selectedId && index === 0);
-                const className = `${hasRun ? "slideRow" : "fileRow"} ${active ? "active" : ""}`;
-                return (
-                  <button
-                    type="button"
-                    key={slide.id}
-                    className={className}
-                    aria-pressed={active}
-                    onClick={() => selectAt(index)}
-                  >
-                    <div className="idx">{String(index + 1).padStart(2, "0")}</div>
-                    {slide.url ? (
-                      /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
-                      <img
-                        className="thumb"
-                        src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
-                        alt=""
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    ) : (
-                      <div className="thumb thumbPlaceholder" aria-hidden="true">
-                        HEIC
-                      </div>
-                    )}
-                    <div className="name" title={slide.name}>
-                      {displayFileName(slide.name, isMobile)}
-                    </div>
-                    {hasRun ? (
-                      <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
-                        {slide.status === "ready"
-                          ? slide.needsReview
-                            ? `! ${reviewText.reviewSuggested}`
-                            : slide.method === "manual"
-                              ? `✓ ${text.manualAdjusted}`
-                              : `✓ ${reviewText.automaticRecognized}`
-                          : slide.status === "error"
-                            ? `× ${text.failed}`
-                            : slideStatusText(slide)}
-                      </div>
-                    ) : (
-                      <div className="sub">
-                        {slide.status === "converting"
-                          ? text.converting
-                          : slide.status === "error"
-                            ? text.failed
-                            : formatBytes(slide.file.size)}
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      className="slideDeleteBtn"
-                      title={text.deleteSlideHint}
-                      aria-label={`${text.deleteSlideHint}: ${slide.name}`}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        deleteSlide(slide.id);
-                      }}
-                    >
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2.2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        aria-hidden="true"
-                      >
-                        <path d="M3 6h18" />
-                        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                      </svg>
-                    </button>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </aside>
+        <SlideSidebar
+          busy={busy}
+          slides={slides}
+          readySlides={readySlides}
+          runAuto={runAuto}
+          exportPdf={exportPdf}
+          text={text}
+          reviewText={reviewText}
+          statusTone={statusTone}
+          statusText={statusText}
+          exportUrl={exportUrl}
+          exportName={exportName}
+          isIOS={isIOS}
+          clearAllSlides={clearAllSlides}
+          inputRef={inputRef}
+          loadFiles={loadFiles}
+          dragActive={dragActive}
+          setDragActive={setDragActive}
+          isMobile={isMobile}
+          selectedId={selectedId}
+          hasRun={hasRun}
+          selectAt={selectAt}
+          slideStatusText={slideStatusText}
+          deleteSlide={deleteSlide}
+        />
 
-        <section className="workspace">
-          <div className="reviewBar">
-            <button
-              type="button"
-              className="icon reviewPrevious"
-              disabled={!slides.length || selectedIndex <= 0}
-              title={`${text.prev} (K / PageUp)`}
-              aria-label={text.prev}
-              onClick={() => selectAt(selectedIndex - 1)}
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              className="icon reviewNext"
-              disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
-              title={`${text.next} (J / PageDown)`}
-              aria-label={text.next}
-              onClick={() => selectAt(selectedIndex + 1)}
-            >
-              ›
-            </button>
-            <div className="title" title={selectedSlide?.name}>
-              {selectedSlide
-                ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${displayFileName(selectedSlide.name, isMobile)}`
-                : text.noSlide}
-            </div>
-            <div className="zoomControls">
-              <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
-                −
-              </button>
-              <span className="zoomValue">{Math.round(displayZoom * 100)}%</span>
-              <button type="button" className="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
-                +
-              </button>
-              <button type="button" className="fitButton" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
-                {text.fit}
-              </button>
-            </div>
-            <button type="button" className="resetButton" disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
-              {text.resetSlide}
-            </button>
-          </div>
-          <div className="stage" ref={stageRef}>
-            <div className="canvasShell">
-              {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
-                <div className="canvasWrap">
-                  <canvas ref={canvasRef} aria-label={text.adjustCorners}>
-                    {text.adjustCorners}
-                  </canvas>
-                  <span id="cornerKeyboardHelp" className="srOnly">
-                    {text.cornerKeyboardHelp}
-                  </span>
-                  {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
-                    ? selectedSlide.quad.map(([x, y], index) => {
-                        const position = handlePositions[index] ?? { left: 0, top: 0 };
-                        return (
-                          <button
-                            type="button"
-                            key={index}
-                            ref={(node) => {
-                              handleRefs.current[index] = node;
-                            }}
-                            className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
-                            style={{ left: position.left, top: position.top }}
-                            aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
-                            aria-describedby="cornerKeyboardHelp"
-                            title={text.adjustCorners}
-                            onPointerDown={(event) => onHandlePointerDown(index, event)}
-                            onPointerMove={onHandlePointerMove}
-                            onPointerUp={onHandlePointerUp}
-                            onPointerCancel={onHandlePointerUp}
-                            onLostPointerCapture={onHandlePointerUp}
-                            onKeyDown={(event) => onHandleKeyDown(index, event)}
-                          />
-                        );
-                      })
-                    : null}
-                  {dragHandle !== null && handlePositions[dragHandle] && (
-                    <div
-                      className="loupeOverlay"
-                      style={{
-                        left: `${handlePositions[dragHandle].left}px`,
-                        top: `${handlePositions[dragHandle].top}px`,
-                      }}
-                    >
-                      <canvas ref={loupeCanvasRef} className="loupeCanvas" />
-                      <div className="loupeCrosshair" />
-                    </div>
-                  )}
-                </div>
+        <CanvasQuadEditor
+          stageRef={stageRef}
+          canvasRef={canvasRef}
+          loupeCanvasRef={loupeCanvasRef}
+          handleRefs={handleRefs}
+          slides={slides}
+          selectedSlide={selectedSlide}
+          selectedIndex={selectedIndex}
+          isMobile={isMobile}
+          text={text}
+          displayZoom={displayZoom}
+          previewErrorSlideId={previewErrorSlideId}
+          handlePositions={handlePositions}
+          dragHandle={dragHandle}
+          selectAt={selectAt}
+          zoomOut={zoomOut}
+          zoomIn={zoomIn}
+          setZoomMode={setZoomMode}
+          resetSelected={resetSelected}
+          onHandlePointerDown={onHandlePointerDown}
+          onHandlePointerMove={onHandlePointerMove}
+          onHandlePointerUp={onHandlePointerUp}
+          onHandleKeyDown={onHandleKeyDown}
+        />
 
-              ) : (
-                <div className="empty">
-                  {selectedSlide && previewErrorSlideId === selectedSlide.id
-                    ? text.previewError
-                    : selectedSlide?.status === "converting"
-                    ? text.converting
-                    : selectedSlide?.error ?? text.empty}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
-
-        <aside className={`inspector ${inspectorCollapsed ? "collapsed" : ""}`}>
-          <div className="sectionHead">
-            <h2>{text.details}</h2>
-            <span className="count">{readySlides.length}</span>
-            <button
-              className="icon inspectorToggle"
-              type="button"
-              title={inspectorCollapsed ? text.expand : text.collapse}
-              aria-label={inspectorCollapsed ? text.expand : text.collapse}
-              aria-expanded={!inspectorCollapsed}
-              aria-controls="inspectorDetails"
-              onClick={() => setInspectorCollapsed((value) => !value)}
-            >
-              {inspectorCollapsed ? "+" : "−"}
-            </button>
-          </div>
-          <div className="inspectorBody" id="inspectorDetails">
-            <div className="metrics">
-              {metrics.map(([key, value]) => (
-                <div className="metric" key={key}>
-                  <div className="key">{key}</div>
-                  <div className="value">{value}</div>
-                </div>
-              ))}
-            </div>
-            <div className="cornerTable">
-              {selectedSlide?.quad
-                ? selectedSlide.quad.map(([x, y], index) => (
-                    <div className="cornerRow" key={index}>
-                      <span>{index + 1}</span>
-                      <code>{Math.round(x * 100) / 100}</code>
-                      <code>{Math.round(y * 100) / 100}</code>
-                    </div>
-                  ))
-                : null}
-            </div>
-            {workerError ? <p className="errorText" role="alert">{workerError}</p> : null}
-            {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error}</p> : null}
-          </div>
-        </aside>
+        <InspectorPanel
+          inspectorCollapsed={inspectorCollapsed}
+          setInspectorCollapsed={setInspectorCollapsed}
+          text={text}
+          readySlides={readySlides}
+          metrics={metrics}
+          selectedSlide={selectedSlide}
+          workerError={workerError}
+        />
       </main>
 
       <p className="srOnly" aria-live="polite" aria-atomic="true">
@@ -2083,71 +1278,15 @@ export function SlidesThiefApp() {
         </label>
       </footer>
 
-      {isInfoOpen && (
-        <div className="modalOverlay" onClick={() => setIsInfoOpen(false)}>
-          <div
-            ref={infoModalRef}
-            className="modalCard"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="info-modal-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="modalHeader">
-              <div className="modalTitle">
-                <h3 id="info-modal-title">{text.infoTitle}</h3>
-                <span className="modalVersion">v{APP_VERSION}</span>
-              </div>
-              <button
-                ref={closeInfoButtonRef}
-                className="closeButton"
-                type="button"
-                onClick={() => setIsInfoOpen(false)}
-                aria-label={text.close}
-              >
-                &times;
-              </button>
-            </div>
-            <div className="modalBody">
-              <p className="modalDesc">{text.infoDesc}</p>
-              <p className="modalPrivacy">
-                <strong>{text.infoPrivacy}</strong>
-              </p>
-              <div className="modalShortcuts">
-                <h4>{text.shortcutsTitle}</h4>
-                <div className="shortcutGrid">
-                  <div className="shortcutItem">
-                    <kbd>J</kbd> / <kbd>K</kbd> <span>{text.shortcutNav}</span>
-                  </div>
-                  <div className="shortcutItem">
-                    <kbd>Delete</kbd> <span>{text.shortcutDelete}</span>
-                  </div>
-                  <div className="shortcutItem">
-                    <kbd>⌘Z</kbd> / <kbd>Ctrl+Z</kbd> <span>{text.shortcutUndo}</span>
-                  </div>
-                  <div className="shortcutItem">
-                    <kbd>⌘⇧Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> <span>{text.shortcutRedo}</span>
-                  </div>
-                  <div className="shortcutItem">
-                    <kbd>⌘↵</kbd> / <kbd>Ctrl+Enter</kbd> <span>{text.shortcutExport}</span>
-                  </div>
-                  <div className="shortcutItem">
-                    <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span>{text.shortcutNudge}</span>
-                  </div>
-                </div>
-              </div>
-              <div className="modalLinks">
-                <a href="https://github.com/waittim/Slides-Thief" target="_blank" rel="noopener noreferrer" className="modalLink">
-                  {text.infoRepo}
-                </a>
-                <a href="https://www.zekun.blog/2026/07/13/slides-thief/" target="_blank" rel="noopener noreferrer" className="modalLink">
-                  {text.infoBlog}
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AboutModal
+        isInfoOpen={isInfoOpen}
+        setIsInfoOpen={setIsInfoOpen}
+        infoModalRef={infoModalRef}
+        closeInfoButtonRef={closeInfoButtonRef}
+        text={text}
+        appVersion={APP_VERSION}
+      />
     </div>
   );
 }
+

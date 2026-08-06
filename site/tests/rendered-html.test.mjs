@@ -60,24 +60,68 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
 });
 
 test("client code uses browser-local processing contracts", async () => {
-  const [appMain, i18n, slideUtils, types, canvasUtils, perspective, worker, exportWorker, detector, css, packageJson] = await Promise.all([
+  const [
+    appMain,
+    i18n,
+    slideUtils,
+    types,
+    canvasUtils,
+    perspective,
+    useSlideDeck,
+    useDetectionWorker,
+    useExportWorker,
+    header,
+    slideSidebar,
+    canvasQuadEditor,
+    inspectorPanel,
+    aboutModal,
+    worker,
+    exportWorker,
+    detector,
+    css,
+    packageJson,
+  ] = await Promise.all([
     readFile(new URL("../app/SlidesThiefApp.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/i18n.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/slide-utils.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/canvas-utils.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/perspective.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useSlideDeck.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useDetectionWorker.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useExportWorker.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/Header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/SlideSidebar.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/CanvasQuadEditor.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/InspectorPanel.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/AboutModal.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-export-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/detection/detect.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
     readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
-  const app = [appMain, i18n, slideUtils, types, canvasUtils, perspective].join("\n");
+  const app = [
+    appMain,
+    i18n,
+    slideUtils,
+    types,
+    canvasUtils,
+    perspective,
+    useSlideDeck,
+    useDetectionWorker,
+    useExportWorker,
+    header,
+    slideSidebar,
+    canvasQuadEditor,
+    inspectorPanel,
+    aboutModal,
+  ].join("\n");
 
 
-  assert.match(app, /new Worker\(new URL\("\.\/slides-worker\.ts"/);
-  assert.match(app, /new Worker\(new URL\("\.\/slides-export-worker\.ts"/);
+
+  assert.match(app, /new Worker\(new URL\("\.\.\/slides-worker\.ts"/);
+  assert.match(app, /new Worker\(new URL\("\.\.\/slides-export-worker\.ts"/);
   assert.match(app, /runAuto/);
   assert.match(app, /isManual =[\s\S]*slide\.reviewedByUser/);
   assert.match(app, /buildAdjustedThumbnail/);
@@ -166,7 +210,7 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /aria-labelledby="info-modal-title"/);
   assert.match(app, /import packageMetadata from "\.\.\/package\.json"/);
   assert.match(app, /const APP_VERSION = packageMetadata\.version/);
-  assert.match(app, /className="modalVersion">v\{APP_VERSION\}/);
+  assert.match(app, /className="modalVersion">v\{(?:APP_VERSION|appVersion)\}/);
   assert.match(JSON.parse(packageJson).version, /^\d+\.\d+\.\d+$/);
   assert.match(app, /event\.key === "Escape"/);
   assert.match(app, /document\.activeElement === last/);
