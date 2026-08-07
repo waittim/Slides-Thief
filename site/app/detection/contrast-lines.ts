@@ -58,10 +58,13 @@ export const contrastLineDetector: CandidateDetector = {
               || (ratio !== undefined && (aspect < ratio * 0.45 || aspect > ratio * 1.85))
               || (ratio === undefined && (aspect < 0.3 || aspect > 3.4))
             ) continue;
+            const aspectError = ratio !== undefined
+              ? Math.abs(Math.log(Math.max(0.05, aspect / ratio)))
+              : 0;
             const edgeScores = [topScore, bottomScore, leftScore, rightScore];
             candidates.push({
               quad,
-              detectorScore: average(edgeScores) + area * 10,
+              detectorScore: average(edgeScores) + area * 10 - aspectError,
               diagnostics: {
                 detectorEdgeScores: edgeScores.map((score) => round(score, 2)),
                 detectorAspectEstimate: round(aspect, 3),

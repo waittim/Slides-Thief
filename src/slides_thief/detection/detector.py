@@ -55,22 +55,22 @@ def contrast_score(diff: np.ndarray) -> float:
     return max(scores)
 
 
-def horizontal_edge_candidates(gray: np.ndarray, kind: str, limit: int = 12) -> list[tuple[Line, float]]:
+def horizontal_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> list[tuple[Line, float]]:
     h, w = gray.shape
-    xs = np.linspace(w * 0.16, w * 0.88, 240)
+    xs = np.linspace(w * 0.16, w * 0.88, 180)
     x_center = w / 2.0
-    offset = max(6.0, h * 0.017)
+    offset = max(5.0, h * 0.017)
     if kind == "top":
-        y_values = np.arange(h * 0.07, h * 0.45, max(2, h // 260))
+        y_values = np.arange(h * 0.07, h * 0.45, max(2, h // 220))
     else:
-        y_values = np.arange(h * 0.42, h * 0.92, max(2, h // 260))
+        y_values = np.arange(h * 0.42, h * 0.92, max(2, h // 220))
 
     candidates: list[tuple[Line, float, float, float]] = []
-    for slope in np.linspace(-0.22, 0.16, 33):
+    for slope in np.linspace(-0.22, 0.16, 29):
         for y0 in y_values:
             ys = slope * (xs - x_center) + y0
             valid = (ys > offset + 1) & (ys < h - offset - 1)
-            if valid.mean() < 0.85:
+            if valid.mean() < 0.82:
                 continue
             if kind == "top":
                 diff = sample_nearest(gray, xs[valid], ys[valid] + offset) - sample_nearest(
@@ -100,22 +100,22 @@ def best_horizontal_edge(gray: np.ndarray, kind: str) -> tuple[Line, float] | No
     return candidates[0] if candidates else None
 
 
-def vertical_edge_candidates(gray: np.ndarray, kind: str, limit: int = 12) -> list[tuple[Line, float]]:
+def vertical_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> list[tuple[Line, float]]:
     h, w = gray.shape
-    ys = np.linspace(h * 0.18, h * 0.84, 220)
+    ys = np.linspace(h * 0.18, h * 0.84, 170)
     y_center = h / 2.0
-    offset = max(6.0, w * 0.012)
+    offset = max(5.0, w * 0.012)
     if kind == "left":
-        x_values = np.arange(w * 0.01, w * 0.46, max(2, w // 280))
+        x_values = np.arange(w * 0.01, w * 0.46, max(2, w // 240))
     else:
-        x_values = np.arange(w * 0.54, w * 0.99, max(2, w // 280))
+        x_values = np.arange(w * 0.54, w * 0.99, max(2, w // 240))
 
     candidates: list[tuple[Line, float, float, float]] = []
-    for slope in np.linspace(-0.24, 0.24, 39):
+    for slope in np.linspace(-0.24, 0.24, 31):
         for x0 in x_values:
             xs = slope * (ys - y_center) + x0
             valid = (xs > offset + 1) & (xs < w - offset - 1)
-            if valid.mean() < 0.82:
+            if valid.mean() < 0.80:
                 continue
             if kind == "left":
                 diff = sample_nearest(gray, xs[valid] + offset, ys[valid]) - sample_nearest(
@@ -147,21 +147,21 @@ def best_vertical_edge(gray: np.ndarray, kind: str) -> tuple[Line, float] | None
 
 def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | None:
     h, w = gray.shape
-    tops = horizontal_edge_candidates(gray, "top", limit=10)
-    bottoms = horizontal_edge_candidates(gray, "bottom", limit=10)
-    lefts = vertical_edge_candidates(gray, "left", limit=10)
-    rights = vertical_edge_candidates(gray, "right", limit=10)
+    tops = horizontal_edge_candidates(gray, "top", limit=8)
+    bottoms = horizontal_edge_candidates(gray, "bottom", limit=8)
+    lefts = vertical_edge_candidates(gray, "left", limit=8)
+    rights = vertical_edge_candidates(gray, "right", limit=8)
     if not all([tops, bottoms, lefts, rights]):
         return None
 
     best: tuple[float, np.ndarray, list[float], float, float] | None = None
     for top, top_score in tops:
         for bottom, bottom_score in bottoms:
-            if bottom.y_at(w / 2.0) <= top.y_at(w / 2.0) + h * 0.20:
+            if bottom.y_at(w / 2.0) <= top.y_at(w / 2.0) + h * 0.18:
                 continue
             for left, left_score in lefts:
                 for right, right_score in rights:
-                    if right.x_at(h / 2.0) <= left.x_at(h / 2.0) + w * 0.22:
+                    if right.x_at(h / 2.0) <= left.x_at(h / 2.0) + w * 0.20:
                         continue
                     quad = order_quad(
                         np.vstack(
@@ -433,7 +433,11 @@ def detect_quad(
 
     ranked: list[dict] = []
     for candidate in scored_candidates:
-        if any(normalized_quad_distance(candidate["quad"], kept["quad"], w, h) < 0.012 for kept in ranked):
+        if any(
+            quad_iou(candidate["quad"], kept["quad"], w, h) > 0.94
+            or normalized_quad_distance(candidate["quad"], kept["quad"], w, h) < 0.012
+            for kept in ranked
+        ):
             continue
         ranked.append(candidate)
 
