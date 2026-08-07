@@ -7,18 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [2.2.0] - 2026-08-05
+## [2.2.0] - 2026-08-07
 
 ### Added
 
+- Export cancellation support allowing users to abort ongoing PDF or image ZIP exports.
+- Automated JSON Schema to TypeScript build script (`build:schemas`) for schema contracts.
 - Orientation settings and enhanced aspect ratio handling in the web UI.
 - Keyboard shortcuts modal section and displayed app version in product info modal.
-- Explicit distinction between manual corner adjustments and automatic detection upon aspect ratio changes.
+- Explicit distinction between manual corner adjustments and automatic candidate detection.
 
 ### Changed
 
-- Streamlined global CSS color variables, switch labels, and button dimensions.
-- Cleaned up obsolete design specs and unused component types.
+- Refactored web app architecture, modularized canvas utilities, slide management, and sidebar accessibility.
+- Improved edge candidate limits and aspect ratio handling in candidate detection.
+- Updated JSON schemas for manual quadrilaterals and dataset report specifications.
+- Streamlined CLI functionality and internal import structures.
+- Removed unused Drizzle ORM database dependencies and obsolete design specs.
 
 ## [2.1.0] - 2026-07-29
 
