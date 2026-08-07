@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://slidesthief.com/schemas/slide-lens-report.schema.json",
-  "title": "Slides Thief detection report",
+  "title": "SlideLensReport",
   "type": "object",
   "required": [
     "input_dir",

@@ -1,13 +1,23 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://slidesthief.com/schemas/slide-lens-report.schema.json",
-  "title": "Slides Thief detection report",
+  "title": "SlideLensReport",
   "type": "object",
-  "required": ["input_dir", "output_pdf", "ratio", "size", "slides"],
+  "required": [
+    "input_dir",
+    "output_pdf",
+    "ratio",
+    "source_slide_ratio",
+    "output_page_ratio",
+    "size",
+    "slides"
+  ],
   "properties": {
     "input_dir": { "type": "string" },
     "output_pdf": { "type": "string" },
     "ratio": { "type": "string" },
+    "source_slide_ratio": { "type": "string" },
+    "output_page_ratio": { "type": "string" },
     "size": {
       "type": "array",
       "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 1 }],
@@ -24,19 +34,7 @@
           "index": { "type": "integer", "minimum": 1 },
           "source": { "type": "string" },
           "output": { "type": "string" },
-          "quad": {
-            "description": "Four [x, y] points ordered top-left, top-right, bottom-right, bottom-left.",
-            "type": "array",
-            "minItems": 4,
-            "maxItems": 4,
-            "items": {
-              "type": "array",
-              "prefixItems": [{ "type": "number" }, { "type": "number" }],
-              "items": false,
-              "minItems": 2,
-              "maxItems": 2
-            }
-          },
+          "quad": { "$ref": "#/$defs/quad" },
           "method": { "type": "string" },
           "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
         },
@@ -44,5 +42,25 @@
       }
     }
   },
-  "additionalProperties": false
+  "additionalProperties": false,
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "quad": {
+      "description": "Points ordered top-left, top-right, bottom-right, bottom-left.",
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/point" }, { "$ref": "#/$defs/point" },
+        { "$ref": "#/$defs/point" }, { "$ref": "#/$defs/point" }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    }
+  }
 }

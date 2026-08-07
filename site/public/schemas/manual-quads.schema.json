@@ -1,14 +1,20 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://slidesthief.com/schemas/manual-quads.schema.json",
-  "title": "Slides Thief manual quadrilaterals",
+  "title": "ManualQuads",
   "description": "Manual slide corners keyed by source filename or stem. Points are ordered top-left, top-right, bottom-right, bottom-left.",
   "type": "object",
   "additionalProperties": {
     "type": "array",
     "minItems": 4,
     "maxItems": 4,
-    "items": { "$ref": "#/$defs/point" }
+    "prefixItems": [
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" },
+      { "$ref": "#/$defs/point" }
+    ],
+    "items": false
   },
   "$defs": {
     "point": {
@@ -20,4 +26,5 @@
     }
   }
 }
+
 

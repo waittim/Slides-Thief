@@ -252,3 +252,7 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
     reviewReasons: [...slide.reviewReasons],
   }));
 }
+
+export { exportManualQuads } from "./export-utils";
+
+
