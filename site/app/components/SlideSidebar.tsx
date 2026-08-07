@@ -138,12 +138,19 @@ export function SlideSidebar({
             const active = selectedId === slide.id || (!selectedId && index === 0);
             const className = `${hasRun ? "slideRow" : "fileRow"} ${active ? "active" : ""}`;
             return (
-              <button
-                type="button"
+              <div
+                role="button"
+                tabIndex={0}
                 key={slide.id}
                 className={className}
                 aria-pressed={active}
                 onClick={() => selectAt(index)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    selectAt(index);
+                  }
+                }}
               >
                 <div className="idx">{String(index + 1).padStart(2, "0")}</div>
                 {slide.url ? (
@@ -210,7 +217,7 @@ export function SlideSidebar({
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                   </svg>
                 </button>
-              </button>
+              </div>
             );
           })}
         </div>
