@@ -71,7 +71,7 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
         low, high = np.percentile(sample_gray, [2, 98])
         span = max(float(high - low), 8.0)
         gray = np.clip((gray - low) / span * 255.0, 0, 255)
-        rgb = Image.fromarray(np.stack([gray, gray, gray], axis=-1).astype(np.uint8), "RGB")
+        rgb = Image.fromarray(np.stack([gray, gray, gray], axis=-1).astype(np.uint8))
         rgb = ImageEnhance.Contrast(rgb).enhance(1.28)
         return ImageEnhance.Sharpness(rgb).enhance(1.45)
 
@@ -83,13 +83,13 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
         mapped = (luma - low) / span * 255.0
         factor = np.where(luma > 1e-3, mapped / np.maximum(luma, 1e-3), 1.0)
         arr = np.clip(arr * factor[..., None], 0, 255)
-        rgb = Image.fromarray(arr.astype(np.uint8), "RGB")
+        rgb = Image.fromarray(arr.astype(np.uint8))
         rgb = ImageEnhance.Contrast(rgb).enhance(1.3)
         rgb = ImageEnhance.Color(rgb).enhance(0.9)
         return ImageEnhance.Sharpness(rgb).enhance(1.5)
 
     # clean
-    rgb = Image.fromarray(arr.astype(np.uint8), "RGB")
+    rgb = Image.fromarray(arr.astype(np.uint8))
     rgb = ImageEnhance.Contrast(rgb).enhance(1.12)
     return ImageEnhance.Sharpness(rgb).enhance(1.35)
 

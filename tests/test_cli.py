@@ -85,7 +85,6 @@ def test_list_images_filters_supported_extensions(tmp_path) -> None:
 def test_enhance_slide_original_preserves_pixels() -> None:
     image = Image.fromarray(
         np.full((8, 8, 3), (120, 130, 140), dtype=np.uint8),
-        "RGB",
     )
     enhanced = enhance_slide(image, mode="original")
     assert np.array_equal(np.asarray(enhanced), np.asarray(image))
@@ -94,7 +93,6 @@ def test_enhance_slide_original_preserves_pixels() -> None:
 def test_enhance_slide_bw_is_grayscale() -> None:
     image = Image.fromarray(
         np.array([[[200, 40, 40], [40, 200, 40]], [[40, 40, 200], [180, 180, 40]]], dtype=np.uint8),
-        "RGB",
     )
     enhanced = np.asarray(enhance_slide(image, mode="bw"))
     assert np.allclose(enhanced[..., 0], enhanced[..., 1])
@@ -108,7 +106,7 @@ def test_enhance_slide_stats_ignore_edge_fill() -> None:
     arr[-5:, :] = (255, 0, 0)
     arr[:, :5] = (255, 0, 0)
     arr[:, -5:] = (255, 0, 0)
-    enhanced = np.asarray(enhance_slide(Image.fromarray(arr, "RGB"), mode="clean"))
+    enhanced = np.asarray(enhance_slide(Image.fromarray(arr), mode="clean"))
     center = enhanced[40:60, 40:60]
     assert abs(float(center[..., 0].mean()) - float(center[..., 1].mean())) < 4
     assert abs(float(center[..., 1].mean()) - float(center[..., 2].mean())) < 4
@@ -151,7 +149,7 @@ def test_contained_warp_preserves_source_ratio_on_paper_page() -> None:
 def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
     arr = np.full((100, 160, 3), 230, dtype=np.uint8)
     arr[12:88, 15:145] = 20
-    image = Image.fromarray(arr, "RGB")
+    image = Image.fromarray(arr)
 
     _, diagnostics = detect_quad(image, 16 / 9)
 
@@ -163,7 +161,7 @@ def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
 def test_hybrid_detector_reports_ranked_candidate_fields() -> None:
     arr = np.full((100, 160, 3), 20, dtype=np.uint8)
     arr[12:88, 15:145] = 230
-    image = Image.fromarray(arr, "RGB")
+    image = Image.fromarray(arr)
 
     _, diagnostics = detect_quad(image, 16 / 9)
 
