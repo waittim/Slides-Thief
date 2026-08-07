@@ -5,6 +5,8 @@ import { Button, CountBadge, StatusDot } from "./ui";
 
 interface SlideSidebarProps {
   busy: boolean;
+  exporting?: boolean;
+  cancelExport?: () => void;
   slides: SlideItem[];
   readySlides: SlideItem[];
   runAuto: () => void;
@@ -31,6 +33,8 @@ interface SlideSidebarProps {
 
 export function SlideSidebar({
   busy,
+  exporting,
+  cancelExport,
   slides,
   readySlides,
   runAuto,
@@ -68,6 +72,16 @@ export function SlideSidebar({
         <div className="sidebarStatus" role="status" aria-live="polite">
           <StatusDot status={(statusTone as any) || "default"} />
           <span className="statusLine">{statusText}</span>
+          {exporting && cancelExport ? (
+            <Button
+              variant="clear"
+              className="cancelExportBtn"
+              title={text.cancelExport}
+              onClick={cancelExport}
+            >
+              {text.cancelExport}
+            </Button>
+          ) : null}
         </div>
         {exportUrl ? (
           <div className="links sidebarLinks">

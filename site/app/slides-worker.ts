@@ -219,5 +219,8 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("This browser cannot process canvas image data.");
   ctx.drawImage(bitmap, 0, 0, width, height);
-  return ctx.getImageData(0, 0, width, height);
+  const data = ctx.getImageData(0, 0, width, height);
+  canvas.width = 0;
+  canvas.height = 0;
+  return data;
 }

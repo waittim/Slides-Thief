@@ -79,5 +79,14 @@ export function useExportWorker(
     return worker;
   }, [exportUrlRef, localeRef, setBusyText, setExportName, setExportUrl, setExporting, setWorkerError, slidesRef]);
 
-  return { exportWorkerRef, ensureExportWorker };
+  const cancelExport = useCallback(() => {
+    if (exportWorkerRef.current) {
+      exportWorkerRef.current.terminate();
+      exportWorkerRef.current = null;
+    }
+    setExporting(false);
+    setBusyText("");
+  }, [setBusyText, setExporting]);
+
+  return { exportWorkerRef, ensureExportWorker, cancelExport };
 }

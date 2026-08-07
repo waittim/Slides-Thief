@@ -197,7 +197,7 @@ export function SlidesThiefApp() {
     refreshSlideThumbnail,
   );
 
-  const { exportWorkerRef, ensureExportWorker } = useExportWorker(
+  const { exportWorkerRef, ensureExportWorker, cancelExport } = useExportWorker(
     slidesRef,
     exportUrlRef,
     setExportUrl,
@@ -1180,6 +1180,8 @@ export function SlidesThiefApp() {
       >
         <SlideSidebar
           busy={busy}
+          exporting={exporting}
+          cancelExport={cancelExport}
           slides={slides}
           readySlides={readySlides}
           runAuto={runAuto}

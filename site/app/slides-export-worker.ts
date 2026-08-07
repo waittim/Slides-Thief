@@ -139,6 +139,8 @@ async function renderWarpedJpeg(
   }
 
   const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
+  sourceCanvas.width = 0;
+  sourceCanvas.height = 0;
   const scaledQuad = quad.map(([x, y]) => [x * sourceScaleX, y * sourceScaleY]) as Quad;
   const output = new ImageData(outWidth, outHeight);
   const target = containedRect(outWidth, outHeight, sourceRatio);
@@ -175,6 +177,8 @@ async function renderWarpedJpeg(
   if (!outputCtx) throw new Error("This browser cannot render the corrected slide.");
   outputCtx.putImageData(output, 0, 0);
   const blob = await outputCanvas.convertToBlob({ type: "image/jpeg", quality: settings.quality });
+  outputCanvas.width = 0;
+  outputCanvas.height = 0;
   return new Uint8Array(await blob.arrayBuffer());
 }
 
