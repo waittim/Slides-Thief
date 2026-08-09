@@ -4,9 +4,12 @@
 
 The CLI writes `slide_lens_report.json`, containing the input directory, PDF
 path, separate `source_slide_ratio` and `output_page_ratio` values, output
-dimensions, and one detection record per slide. Each record includes its source
-and output path, detection method, confidence, review state, and four
-source-image corner coordinates.
+dimensions, batch-detection summary, and one detection record per slide. The
+`batch_summary` records preliminary and reliable result counts plus any camera
+position priors. Each prior includes its orientation, normalized four-corner
+quadrilateral, member count, RMS deviation, and consistency score. Each slide
+record includes its source and output path, detection method, confidence, review
+state, and four source-image corner coordinates.
 
 ## Manual review data
 

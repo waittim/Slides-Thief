@@ -35,6 +35,7 @@ export interface SlideLensReport {
    * @maxItems 2
    */
   size: [number, number];
+  batch_summary: BatchSummary;
   slides: {
     index: number;
     source: string;
@@ -42,6 +43,54 @@ export interface SlideLensReport {
     quad: Quad;
     method: string;
     confidence: number;
+    needs_review?: boolean;
+    review_reasons?: string[];
+    best_score?: number;
+    second_best_score?: number | null;
+    candidates_evaluated?: number;
+    features?: Features;
+    diagnostics?: {
+      [k: string]: unknown;
+    };
     [k: string]: unknown;
   }[];
+}
+/**
+ * This interface was referenced by `SlideLensReport`'s JSON-Schema
+ * via the `definition` "batchSummary".
+ */
+export interface BatchSummary {
+  preliminary_count: number;
+  reliable_count: number;
+  prior_count: number;
+  priors: BatchPrior[];
+}
+/**
+ * This interface was referenced by `SlideLensReport`'s JSON-Schema
+ * via the `definition` "batchPrior".
+ */
+export interface BatchPrior {
+  id: string;
+  orientation: 'landscape' | 'portrait';
+  normalized_quad: Quad;
+  member_count: number;
+  rms_deviation: number;
+  consistency: number;
+}
+/**
+ * This interface was referenced by `SlideLensReport`'s JSON-Schema
+ * via the `definition` "features".
+ */
+export interface Features {
+  edge_strength?: number;
+  edge_support?: number;
+  edge_continuity?: number;
+  gradient_alignment?: number;
+  inside_outside_difference?: number;
+  region_consistency?: number;
+  normalized_area?: number;
+  geometry_validity?: number;
+  aspect_prior?: number;
+  batch_consistency?: number;
+  [k: string]: unknown;
 }

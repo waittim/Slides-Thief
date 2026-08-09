@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Declared the CLI report's `batch_summary` and camera-position prior structure
+  in the public JSON Schema, and added process-level schema validation coverage.
+
 ## [2.2.0] - 2026-08-07
 
 ### Added

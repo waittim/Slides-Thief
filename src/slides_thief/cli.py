@@ -40,6 +40,7 @@ from .image_processing import (
     warp_slide,
     warp_slide_contained,
 )
+from .report import BatchSummary, ReportSlide, SlideLensReport
 
 
 def load_manual_quads(path: Path | None) -> dict[str, list[list[float]]]:
@@ -106,7 +107,7 @@ def process(args: argparse.Namespace) -> dict:
         )
 
     corrected: list[Path] = []
-    report: list[dict] = []
+    report: list[ReportSlide] = []
     review_items: list[dict] = []
     for idx, src in enumerate(sources, 1):
         readable = readable_image(src, converted_dir)
@@ -152,15 +153,14 @@ def process(args: argparse.Namespace) -> dict:
         enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
         corrected.append(out_image)
         draw_overlay(image, quad, overlay_dir / f"{idx:03d}_{src.stem}_overlay.jpg")
-        report.append(
-            {
-                "index": idx,
-                "source": str(src),
-                "output": str(out_image),
-                "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
-                **diagnostics,
-            }
-        )
+        slide_report: ReportSlide = {
+            "index": idx,
+            "source": str(src),
+            "output": str(out_image),
+            "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
+            **diagnostics,
+        }
+        report.append(slide_report)
         print(f"[{idx:02d}/{len(sources):02d}] {src.name}: {diagnostics['method']} confidence={diagnostics['confidence']}")
 
     pdf_path = output_dir / args.pdf_name
@@ -177,28 +177,29 @@ def process(args: argparse.Namespace) -> dict:
         json.dump(review_items, fh, indent=2, ensure_ascii=False)
 
     report_path = output_dir / "slide_lens_report.json"
-    report_document = {
+    batch_summary: BatchSummary = {
+        "preliminary_count": len(preliminary_results),
+        "reliable_count": sum(
+            result["confidence"] >= 0.78 and result["method"] != "fallback-frame"
+            for result in preliminary_results
+        ),
+        "prior_count": len(batch_priors),
+        "priors": [
+            {
+                **prior,
+                "normalized_quad": prior["normalized_quad"].tolist(),
+            }
+            for prior in batch_priors
+        ],
+    }
+    report_document: SlideLensReport = {
         "input_dir": str(input_dir),
         "output_pdf": str(pdf_path),
         "ratio": output_ratio_name,
         "source_slide_ratio": source_ratio_name,
         "output_page_ratio": output_ratio_name,
         "size": [out_w, out_h],
-        "batch_summary": {
-            "preliminary_count": len(preliminary_results),
-            "reliable_count": sum(
-                result["confidence"] >= 0.78 and result["method"] != "fallback-frame"
-                for result in preliminary_results
-            ),
-            "prior_count": len(batch_priors),
-            "priors": [
-                {
-                    **prior,
-                    "normalized_quad": prior["normalized_quad"].tolist(),
-                }
-                for prior in batch_priors
-            ],
-        },
+        "batch_summary": batch_summary,
         "slides": report,
     }
     with report_path.open("w", encoding="utf-8") as fh:
