@@ -14,6 +14,12 @@ export type SourceFormat =
   | "letter-portrait"
   | "custom";
 
+export type SourceFormatSettings = {
+  sourceFormat: SourceFormat;
+  sourceOrientation: Orientation;
+  sourceCustomRatio?: number;
+};
+
 export type OutputPageRatio =
   | "match-source"
   | "16:9"
@@ -105,8 +111,9 @@ export function deriveSourceFormat(
 
 export function splitSourceFormat(
   sourceFormat: string,
+  customOrientation: Orientation = "landscape",
 ): { baseFormat: BaseFormat; orientation: Orientation } {
-  if (sourceFormat === "custom") return { baseFormat: "custom", orientation: "landscape" };
+  if (sourceFormat === "custom") return { baseFormat: "custom", orientation: customOrientation };
   if (sourceFormat === "A4-portrait") return { baseFormat: "A4", orientation: "portrait" };
   if (sourceFormat === "A4-landscape") return { baseFormat: "A4", orientation: "landscape" };
   if (sourceFormat === "letter-portrait") return { baseFormat: "letter", orientation: "portrait" };
@@ -120,16 +127,15 @@ export function splitSourceFormat(
   return { baseFormat: "16:9", orientation: "landscape" };
 }
 
-export function sourceFormatRatioValue(
-  value: SourceFormat,
-  customRatio?: number,
-  orientation?: Orientation,
-): number {
-  if (value === "custom") {
-    const raw = Number.isFinite(customRatio) && (customRatio ?? 0) > 0 ? customRatio! : 16 / 9;
-    return orientation === "portrait" ? 1 / raw : raw;
+export function sourceFormatRatioValue(settings: SourceFormatSettings): number {
+  if (settings.sourceFormat === "custom") {
+    const raw = Number.isFinite(settings.sourceCustomRatio)
+      && (settings.sourceCustomRatio ?? 0) > 0
+      ? settings.sourceCustomRatio ?? 16 / 9
+      : 16 / 9;
+    return settings.sourceOrientation === "portrait" ? 1 / raw : raw;
   }
-  return parseRatio(value);
+  return parseRatio(settings.sourceFormat);
 }
 
 export function outputPageRatioValue(
@@ -158,4 +164,3 @@ export function pageLayoutMode(
   if (outputHeight !== null) return "custom-size";
   return isPaperRatio(outputPageRatio) ? "paper" : "match-source";
 }
-

@@ -112,6 +112,10 @@ export function SlidesThiefApp() {
   const text = copy[locale];
   const reviewText = reviewUiCopy[locale];
 
+  useEffect(() => {
+    settingsRef.current = settings;
+  }, [settings]);
+
   const cancelActiveDrag = useCallback(() => {
     if (dragFrameRef.current !== null) {
       window.cancelAnimationFrame(dragFrameRef.current);
@@ -318,6 +322,7 @@ export function SlidesThiefApp() {
     settings.outputPageRatio,
     settings.sourceCustomRatio,
     settings.sourceFormat,
+    settings.sourceOrientation,
     settings.width,
   ]);
 
@@ -1023,7 +1028,6 @@ export function SlidesThiefApp() {
         id: slide.id,
         name: slide.name,
         quad: slide.quad,
-        sourceRatio: slide.sourceRatio,
       })),
       settings,
       filename,

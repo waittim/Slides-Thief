@@ -50,6 +50,7 @@ test("deriveSourceFormat and splitSourceFormat work symmetrically", () => {
   assert.deepEqual(splitSourceFormat("16:9"), { baseFormat: "16:9", orientation: "landscape" });
   assert.deepEqual(splitSourceFormat("A4-portrait"), { baseFormat: "A4", orientation: "portrait" });
   assert.deepEqual(splitSourceFormat("A4-landscape"), { baseFormat: "A4", orientation: "landscape" });
+  assert.deepEqual(splitSourceFormat("custom", "portrait"), { baseFormat: "custom", orientation: "portrait" });
 });
 
 test("parseRatio parses custom ratio strings and falls back gracefully", () => {
@@ -88,12 +89,18 @@ test("pageLayoutMode progressively discloses paper and custom page settings", ()
 });
 
 test("source formats support presentation, document, and custom ratios", () => {
-  assert.equal(sourceFormatRatioValue("16:9"), 16 / 9);
-  assert.equal(sourceFormatRatioValue("9:16"), 9 / 16);
-  assert.equal(sourceFormatRatioValue("A4-portrait"), 210 / 297);
-  assert.equal(sourceFormatRatioValue("letter-landscape"), 11 / 8.5);
-  assert.equal(sourceFormatRatioValue("custom", 1.5), 1.5);
-  assert.equal(sourceFormatRatioValue("custom", 1.5, "portrait"), 1 / 1.5);
+  const cases = [
+    { sourceFormat: "16:9", sourceOrientation: "landscape", expected: 16 / 9 },
+    { sourceFormat: "9:16", sourceOrientation: "portrait", expected: 9 / 16 },
+    { sourceFormat: "A4-portrait", sourceOrientation: "portrait", expected: 210 / 297 },
+    { sourceFormat: "letter-landscape", sourceOrientation: "landscape", expected: 11 / 8.5 },
+    { sourceFormat: "custom", sourceOrientation: "landscape", sourceCustomRatio: 1.5, expected: 1.5 },
+    { sourceFormat: "custom", sourceOrientation: "portrait", sourceCustomRatio: 1.5, expected: 1 / 1.5 },
+  ];
+
+  for (const { expected, ...settings } of cases) {
+    assert.equal(sourceFormatRatioValue(settings), expected, JSON.stringify(settings));
+  }
   assert.equal(outputPageRatioValue("match-source", 4 / 3), 4 / 3);
 });
 

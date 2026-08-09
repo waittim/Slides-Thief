@@ -162,10 +162,7 @@ export function outputRatio(settings: Settings, sourceRatio: number) {
 }
 
 export function resolvedSlideRatio(slide: SlideItem, settings: Settings) {
-  return sourceFormatRatioValue(
-    settings.sourceFormat,
-    settings.sourceCustomRatio,
-  );
+  return sourceFormatRatioValue(settings);
 }
 
 export async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, settings: Settings) {
@@ -254,5 +251,4 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
 }
 
 export { exportManualQuads } from "./export-utils";
-
 

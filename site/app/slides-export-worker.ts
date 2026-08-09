@@ -17,12 +17,11 @@ import {
   outputPageRatioValue,
   pdfPageDimensions,
   type OutputPageRatio,
-  type SourceFormat,
+  sourceFormatRatioValue,
+  type SourceFormatSettings,
 } from "./ratio";
 
-type Settings = {
-  sourceFormat: SourceFormat;
-  sourceCustomRatio?: number;
+type Settings = SourceFormatSettings & {
   outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
@@ -41,7 +40,6 @@ type ExportSlide = {
   id: string;
   name: string;
   quad: Quad;
-  sourceRatio: number;
 };
 
 const scope = self as DedicatedWorkerGlobalScope;
@@ -69,12 +67,12 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
   const fileById = new Map(files.map((item) => [item.id, item]));
   const pdf = await PDFDocument.create();
   const outputWidth = settings.width;
+  const sourceRatio = sourceFormatRatioValue(settings);
 
   for (let index = 0; index < slides.length; index += 1) {
     const slide = slides[index];
     const item = fileById.get(slide.id);
     if (!item) continue;
-    const sourceRatio = slide.sourceRatio;
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({ type: "export-progress", current: index + 1, total: slides.length, name: item.name });

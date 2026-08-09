@@ -1,6 +1,6 @@
 import type { BatchPrior, DetectionMethod, Quad, ReviewReason } from "../detection/types";
 import type { EnhancementMode } from "../enhance";
-import type { OutputPageRatio, SourceFormat } from "../ratio";
+import type { OutputPageRatio, SourceFormatSettings } from "../ratio";
 
 export interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -17,9 +17,7 @@ export function trackEvent(name: string, params?: Record<string, unknown>) {
 
 export type ThemeValue = "auto" | "light" | "dark";
 
-export type Settings = {
-  sourceFormat: SourceFormat;
-  sourceCustomRatio?: number;
+export type Settings = SourceFormatSettings & {
   outputPageRatio: OutputPageRatio;
   width: number;
   height: number | null;
@@ -29,7 +27,7 @@ export type Settings = {
 };
 
 export type DetectionJobId = number;
-export type DetectionWorkerSettings = Pick<Settings, "sourceFormat" | "sourceCustomRatio">;
+export type DetectionWorkerSettings = Pick<Settings, "sourceFormat" | "sourceOrientation" | "sourceCustomRatio">;
 export type DetectionWorkerFile = {
   id: string;
   name: string;
@@ -123,6 +121,7 @@ export type WorkerMessage = DetectionWorkerMessage | ExportWorkerMessage;
 
 export const defaultSettings: Settings = {
   sourceFormat: "16:9",
+  sourceOrientation: "landscape",
   outputPageRatio: "match-source",
   width: 2400,
   height: null,

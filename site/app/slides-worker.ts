@@ -14,13 +14,10 @@ import type {
 } from "./lib/types";
 import {
   sourceFormatRatioValue,
-  type SourceFormat,
+  type SourceFormatSettings,
 } from "./ratio";
 
-type Settings = {
-  sourceFormat: SourceFormat;
-  sourceCustomRatio?: number;
-};
+type Settings = SourceFormatSettings;
 
 type JobFile = DetectionWorkerFile;
 
@@ -66,10 +63,7 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
     height: number;
     result: ReturnType<typeof workerDetectionResult>;
   }> = [];
-  const sourceRatioHint = sourceFormatRatioValue(
-    settings.sourceFormat,
-    settings.sourceCustomRatio,
-  );
+  const sourceRatioHint = sourceFormatRatioValue(settings);
 
   for (const item of files) {
     if (isCancelled()) return;
@@ -228,10 +222,7 @@ function workerDetectionResult(
   const scaleX = width / detectionWidth;
   const scaleY = height / detectionHeight;
   const quad = detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad;
-  const sourceRatio = sourceFormatRatioValue(
-    settings.sourceFormat,
-    settings.sourceCustomRatio,
-  );
+  const sourceRatio = sourceFormatRatioValue(settings);
   return {
     id,
     width,
@@ -249,6 +240,7 @@ function workerDetectionResult(
       ...detection.diagnostics,
       sourceRatio,
       sourceFormat: settings.sourceFormat,
+      sourceOrientation: settings.sourceOrientation,
     },
   };
 }

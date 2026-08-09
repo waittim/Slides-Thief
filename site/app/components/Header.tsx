@@ -92,7 +92,10 @@ export function Header({
           {settingsOpen && (
             <div className="settingsMenuBody">
               {(() => {
-                const { baseFormat: currentBaseFormat } = splitSourceFormat(settings.sourceFormat);
+                const { baseFormat: currentBaseFormat } = splitSourceFormat(
+                  settings.sourceFormat,
+                  settings.sourceOrientation,
+                );
                 return (
                   <label className="ratioSetting">
                     <span>{ratioUi.sourceFormat}</span>
@@ -105,6 +108,7 @@ export function Header({
                         const nextSettings: Settings = {
                           ...settings,
                           sourceFormat,
+                          sourceOrientation: defaultOrient,
                         };
                         updateSettings(() => nextSettings);
                         if (hasRun) {
@@ -157,7 +161,10 @@ export function Header({
                 <summary>{text.more}</summary>
                 <div className="morePanel">
                   {(() => {
-                    const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(settings.sourceFormat);
+                    const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(
+                      settings.sourceFormat,
+                      settings.sourceOrientation,
+                    );
                     const isPortrait = currentOrientation === "portrait";
                     return (
                       <div className="orientationSetting">
@@ -168,7 +175,11 @@ export function Header({
                           onChange={() => {
                             const nextOrientation = isPortrait ? "landscape" : "portrait";
                             const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
-                            const nextSettings: Settings = { ...settings, sourceFormat: nextFormat };
+                            const nextSettings: Settings = {
+                              ...settings,
+                              sourceFormat: nextFormat,
+                              sourceOrientation: nextOrientation,
+                            };
                             updateSettings(() => nextSettings);
                             if (hasRun) runAutoWithSettings(nextSettings);
                           }}
@@ -183,13 +194,8 @@ export function Header({
                       onChange={(event) => {
                         const nextLayout = event.target.value as PageLayoutMode;
                         updateSettings((current) => {
-                          const { orientation } = splitSourceFormat(current.sourceFormat);
                           if (nextLayout === "paper") {
-                            const sourceRatio = sourceFormatRatioValue(
-                              current.sourceFormat,
-                              current.sourceCustomRatio,
-                              orientation,
-                            );
+                            const sourceRatio = sourceFormatRatioValue(current);
                             const outputPageRatio = isPaperRatio(current.outputPageRatio)
                               ? current.outputPageRatio
                               : sourceRatio >= 1
@@ -202,11 +208,7 @@ export function Header({
                             };
                           }
                           if (nextLayout === "custom-size") {
-                            const sourceRatio = sourceFormatRatioValue(
-                              current.sourceFormat,
-                              current.sourceCustomRatio,
-                              orientation,
-                            );
+                            const sourceRatio = sourceFormatRatioValue(current);
                             const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
                             return {
                               ...current,

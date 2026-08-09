@@ -211,6 +211,8 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /enhancementClean: "清晰增强"/);
   assert.match(exportWorker, /applyEnhancement/);
   assert.match(exportWorker, /enhancement/);
+  assert.match(exportWorker, /sourceFormatRatioValue\(settings\)/);
+  assert.doesNotMatch(exportWorker, /sourceRatio = slide\.sourceRatio/);
   assert.doesNotMatch(exportWorker, /settings\.grayscale/);
   assert.match(app, /settings\.enhancement/);
   assert.match(app, /type="color"/);
