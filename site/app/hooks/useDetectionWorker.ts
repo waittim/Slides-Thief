@@ -2,7 +2,15 @@ import { useCallback, useRef } from "react";
 import type { Quad } from "../detection/types";
 import { copy, type LocaleValue } from "../i18n";
 import { messageFromError, quadsMatch } from "../lib/slide-utils";
-import { trackEvent, type SlideItem, type WorkerMessage } from "../lib/types";
+import {
+  trackEvent,
+  type DetectionJobId,
+  type DetectionWorkerFile,
+  type DetectionWorkerMessage,
+  type DetectionWorkerSettings,
+  type Settings,
+  type SlideItem,
+} from "../lib/types";
 
 export function useDetectionWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
@@ -11,9 +19,16 @@ export function useDetectionWorker(
   setWorkerError: (error: string) => void,
   setExporting: (exporting: boolean) => void,
   localeRef: React.MutableRefObject<LocaleValue>,
-  refreshSlideThumbnail: (id: string, quad: Quad) => Promise<void>,
+  refreshSlideThumbnail: (
+    id: string,
+    quad: Quad,
+    overrideSettings?: Settings,
+    isStillCurrent?: () => boolean,
+  ) => Promise<void>,
 ) {
   const workerRef = useRef<Worker | null>(null);
+  const nextJobIdRef = useRef<DetectionJobId>(0);
+  const activeJobIdRef = useRef<DetectionJobId | null>(null);
 
   const ensureWorker = useCallback(() => {
     if (workerRef.current) return workerRef.current;
@@ -27,8 +42,9 @@ export function useDetectionWorker(
       setBusyText("");
       return null;
     }
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+    worker.onmessage = (event: MessageEvent<DetectionWorkerMessage>) => {
       const message = event.data;
+      if (message.jobId !== activeJobIdRef.current) return;
       if (message.type === "detect-start") {
         const name = slidesRef.current.find((slide) => slide.id === message.id)?.name ?? "";
         const currentCopy = copy[localeRef.current];
@@ -81,7 +97,12 @@ export function useDetectionWorker(
             };
           }),
         );
-        void refreshSlideThumbnail(message.result.id, displayedQuad);
+        void refreshSlideThumbnail(
+          message.result.id,
+          displayedQuad,
+          undefined,
+          () => activeJobIdRef.current === message.jobId,
+        );
         if (message.phase === "final") setBusyText("");
       }
       if (message.type === "slide-error") {
@@ -122,6 +143,7 @@ export function useDetectionWorker(
       });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
+      activeJobIdRef.current = null;
       setSlides((current) =>
         current.map((slide) =>
           slide.status === "detecting" ? { ...slide, status: "error", method: "error", error: message } : slide,
@@ -137,5 +159,26 @@ export function useDetectionWorker(
     return worker;
   }, [localeRef, refreshSlideThumbnail, setBusyText, setExporting, setSlides, setWorkerError, slidesRef]);
 
-  return { workerRef, ensureWorker };
+  const startDetection = useCallback(
+    (files: DetectionWorkerFile[], settings: DetectionWorkerSettings) => {
+      const worker = ensureWorker();
+      if (!worker) return null;
+      const jobId = nextJobIdRef.current + 1;
+      nextJobIdRef.current = jobId;
+      activeJobIdRef.current = jobId;
+      worker.postMessage({ type: "detect", jobId, files, settings });
+      return jobId;
+    },
+    [ensureWorker],
+  );
+
+  const cancelDetection = useCallback(() => {
+    const activeJobId = activeJobIdRef.current;
+    if (activeJobId !== null) {
+      workerRef.current?.postMessage({ type: "cancel-detect", jobId: activeJobId });
+    }
+    activeJobIdRef.current = null;
+  }, []);
+
+  return { workerRef, ensureWorker, startDetection, cancelDetection };
 }

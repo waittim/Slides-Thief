@@ -233,6 +233,11 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /aria-label=\{(?:text\.close|closeLabel)\}/);
   assert.match(app, /window\.requestAnimationFrame/);
   assert.match(app, /if \(workerRef\.current === worker\) workerRef\.current = null/);
+  assert.match(useDetectionWorker, /message\.jobId !== activeJobIdRef\.current/);
+  assert.match(useDetectionWorker, /type: "detect", jobId, files, settings/);
+  assert.match(worker, /createLatestJobRunner/);
+  assert.match(worker, /data\.type === "cancel-detect"/);
+  assert.match(worker, /jobId,\s*phase/);
   assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);
   assert.match(app, /loading="lazy"/);
   assert.match(app, /decoding="async"/);

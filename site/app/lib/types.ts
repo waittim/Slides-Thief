@@ -28,6 +28,22 @@ export type Settings = {
   fillColor: string;
 };
 
+export type DetectionJobId = number;
+export type DetectionWorkerSettings = Pick<Settings, "sourceFormat" | "sourceCustomRatio">;
+export type DetectionWorkerFile = {
+  id: string;
+  name: string;
+  file: File;
+};
+export type DetectionWorkerRequest =
+  | {
+      type: "detect";
+      jobId: DetectionJobId;
+      files: DetectionWorkerFile[];
+      settings: DetectionWorkerSettings;
+    }
+  | { type: "cancel-detect"; jobId: DetectionJobId };
+
 export type SlideStatus = "converting" | "queued" | "detecting" | "ready" | "error";
 
 export type SlideItem = {
@@ -82,11 +98,12 @@ export type CanvasRenderState = {
   compact: boolean;
 };
 
-export type WorkerMessage =
-  | { type: "detect-start"; id: string }
-  | { type: "detect-result"; phase: "preliminary" | "final"; result: DetectResult }
+export type DetectionWorkerMessage =
+  | { type: "detect-start"; jobId: DetectionJobId; id: string }
+  | { type: "detect-result"; jobId: DetectionJobId; phase: "preliminary" | "final"; result: DetectResult }
   | {
       type: "detect-batch-summary";
+      jobId: DetectionJobId;
       summary: {
         preliminaryCount: number;
         reliableCount: number;
@@ -94,10 +111,15 @@ export type WorkerMessage =
         priors: BatchPrior[];
       };
     }
-  | { type: "slide-error"; id: string; error: string }
+  | { type: "slide-error"; jobId: DetectionJobId; id: string; error: string }
+  | { type: "error"; jobId: DetectionJobId; error: string };
+
+export type ExportWorkerMessage =
   | { type: "export-progress"; current: number; total: number; name: string }
   | { type: "export-complete"; pdf: ArrayBuffer; filename: string }
   | { type: "error"; error: string };
+
+export type WorkerMessage = DetectionWorkerMessage | ExportWorkerMessage;
 
 export const defaultSettings: Settings = {
   sourceFormat: "16:9",

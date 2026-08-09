@@ -1,7 +1,7 @@
 import { useCallback, useRef } from "react";
 import { copy, type LocaleValue } from "../i18n";
 import { messageFromError } from "../lib/slide-utils";
-import { trackEvent, type SlideItem, type WorkerMessage } from "../lib/types";
+import { trackEvent, type ExportWorkerMessage, type SlideItem } from "../lib/types";
 
 export function useExportWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
@@ -32,7 +32,7 @@ export function useExportWorker(
       worker.terminate();
       if (exportWorkerRef.current === worker) exportWorkerRef.current = null;
     };
-    worker.onmessage = (event: MessageEvent<WorkerMessage>) => {
+    worker.onmessage = (event: MessageEvent<ExportWorkerMessage>) => {
       const message = event.data;
       if (message.type === "export-progress") {
         setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);

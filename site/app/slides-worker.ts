@@ -2,9 +2,16 @@
 
 import { buildBatchPriors, normalizeResult } from "./detection/batch-prior";
 import { detectQuad } from "./detection/detect";
+import { createLatestJobRunner } from "./detection/job-queue";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
-import type { DetectResult } from "./lib/types";
+import type {
+  DetectionJobId,
+  DetectionWorkerFile,
+  DetectionWorkerMessage,
+  DetectionWorkerRequest,
+  DetectResult,
+} from "./lib/types";
 import {
   sourceFormatRatioValue,
   type SourceFormat,
@@ -15,30 +22,44 @@ type Settings = {
   sourceCustomRatio?: number;
 };
 
-type JobFile = {
-  id: string;
-  name: string;
-  file: File;
-};
+type JobFile = DetectionWorkerFile;
 
 const scope = self as DedicatedWorkerGlobalScope;
 const DETECTION_MAX_PIXELS = 1_200_000;
-
-scope.onmessage = async (event) => {
-  const data = event.data;
-  try {
-    if (data.type === "detect") {
-      await detectFiles(data.files as JobFile[], data.settings as Settings);
-    }
-  } catch (error) {
-    scope.postMessage({
-      type: "error",
-      error: error instanceof Error ? error.message : "The browser processing worker stopped unexpectedly.",
-    });
-  }
+type DetectionTask = {
+  jobId: DetectionJobId;
+  files: JobFile[];
+  settings: Settings;
 };
 
-async function detectFiles(files: JobFile[], settings: Settings) {
+const detectionQueue = createLatestJobRunner<DetectionTask>(
+  (task, isCancelled) => detectFiles(task, isCancelled),
+  (error, task, isCancelled) => {
+    if (isCancelled()) return;
+    postDetectionMessage({
+      type: "error",
+      jobId: task.jobId,
+      error: error instanceof Error ? error.message : "The browser processing worker stopped unexpectedly.",
+    });
+  },
+);
+
+scope.onmessage = (event: MessageEvent<DetectionWorkerRequest>) => {
+  const data = event.data;
+  if (data.type === "cancel-detect") {
+    detectionQueue.cancel(data.jobId);
+    return;
+  }
+  if (data.type !== "detect") return;
+  detectionQueue.enqueue(data.jobId, {
+    jobId: data.jobId,
+    files: data.files,
+    settings: data.settings,
+  });
+};
+
+async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
+  const { jobId, files, settings } = task;
   const preliminary: Array<{
     item: JobFile;
     width: number;
@@ -51,10 +72,12 @@ async function detectFiles(files: JobFile[], settings: Settings) {
   );
 
   for (const item of files) {
+    if (isCancelled()) return;
     let bitmap: ImageBitmap | null = null;
     try {
-      scope.postMessage({ type: "detect-start", id: item.id });
+      postDetectionMessage({ type: "detect-start", jobId, id: item.id });
       bitmap = await createImageBitmap(item.file);
+      if (isCancelled()) return;
       const detectionSettings: DetectionSettings = {
         maxDetectionWidth: 900,
         sourceRatioHint,
@@ -62,6 +85,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       };
       const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
       const detection = detectQuad(imageData, detectionSettings);
+      if (isCancelled()) return;
       const result = workerDetectionResult(
         item.id,
         bitmap.width,
@@ -73,8 +97,10 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       );
       preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
     } catch (error) {
-      scope.postMessage({
+      if (isCancelled()) return;
+      postDetectionMessage({
         type: "slide-error",
+        jobId,
         id: item.id,
         error: error instanceof Error ? error.message : "Could not decode this image in the browser.",
       });
@@ -83,10 +109,14 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     }
   }
 
+  if (isCancelled()) return;
   postDetectionResults(
     preliminary.map(({ result }) => result),
     "preliminary",
+    jobId,
+    isCancelled,
   );
+  if (isCancelled()) return;
 
   const priors = buildBatchPriors(preliminary.map(({ item, width, height, result }) =>
     normalizeResult(
@@ -99,8 +129,9 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       result.needsReview,
     )
   ));
-  scope.postMessage({
+  postDetectionMessage({
     type: "detect-batch-summary",
+    jobId,
     summary: {
       preliminaryCount: preliminary.length,
       reliableCount: preliminary.filter(({ result }) =>
@@ -113,10 +144,12 @@ async function detectFiles(files: JobFile[], settings: Settings) {
   const finalResults: Array<ReturnType<typeof workerDetectionResult>> = [];
   if (!priors.length) {
     for (const entry of preliminary) {
+      if (isCancelled()) return;
       finalResults.push(entry.result);
     }
   } else {
     for (const entry of preliminary) {
+      if (isCancelled()) return;
       if (!(entry.result.confidence < 0.72 && entry.result.needsReview)) {
         finalResults.push(entry.result);
         continue;
@@ -124,6 +157,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
       let bitmap: ImageBitmap | null = null;
       try {
         bitmap = await createImageBitmap(entry.item.file);
+        if (isCancelled()) return;
         const detectionSettings: DetectionSettings = {
           maxDetectionWidth: 900,
           sourceRatioHint,
@@ -131,6 +165,7 @@ async function detectFiles(files: JobFile[], settings: Settings) {
         };
         const imageData = imageDataFromBitmap(bitmap, detectionSettings.maxDetectionWidth);
         const detection = detectQuad(imageData, detectionSettings, priors);
+        if (isCancelled()) return;
         finalResults.push(workerDetectionResult(
           entry.item.id,
           bitmap.width,
@@ -156,20 +191,29 @@ async function detectFiles(files: JobFile[], settings: Settings) {
     }
   }
 
-  postDetectionResults(finalResults, "final");
+  if (isCancelled()) return;
+  postDetectionResults(finalResults, "final", jobId, isCancelled);
 }
 
 function postDetectionResults(
   results: Array<ReturnType<typeof workerDetectionResult>>,
   phase: "preliminary" | "final",
+  jobId: DetectionJobId,
+  isCancelled: () => boolean,
 ) {
   for (const result of results) {
-    scope.postMessage({
+    if (isCancelled()) return;
+    postDetectionMessage({
       type: "detect-result",
+      jobId,
       phase,
       result,
     });
   }
+}
+
+function postDetectionMessage(message: DetectionWorkerMessage) {
+  scope.postMessage(message);
 }
 
 function workerDetectionResult(

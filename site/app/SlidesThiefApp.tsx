@@ -41,6 +41,7 @@ import {
 import { useSlideDeck } from "./hooks/useSlideDeck";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
 import { useExportWorker } from "./hooks/useExportWorker";
+import { createGlobalKeyDownHandler } from "./keyboard-shortcuts";
 import { Header } from "./components/Header";
 import { SlideSidebar } from "./components/SlideSidebar";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
@@ -84,7 +85,6 @@ export function SlidesThiefApp() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const busyRef = useRef(false);
   const exportUrlRef = useRef<string | null>(null);
 
   const localeRef = useRef<LocaleValue>("en");
@@ -157,18 +157,24 @@ export function SlidesThiefApp() {
     selectPrevSlideDeck(() => setZoomMode("fit"));
   }, [selectPrevSlideDeck]);
 
-  const refreshSlideThumbnail = useCallback(async (id: string, quad: Quad, overrideSettings?: Settings) => {
+  const refreshSlideThumbnail = useCallback(async (
+    id: string,
+    quad: Quad,
+    overrideSettings?: Settings,
+    isStillCurrent?: () => boolean,
+  ) => {
     const slide = slidesRef.current.find((item) => item.id === id);
     if (!slide) return;
     try {
       const thumbnailUrl = await buildAdjustedThumbnail(slide, quad, overrideSettings ?? settingsRef.current);
+      if (isStillCurrent && !isStillCurrent()) return;
       setSlides((current) => current.map((item) => (item.id === id ? { ...item, thumbnailUrl } : item)));
     } catch {
       // Keep the original preview if thumbnail generation fails.
     }
   }, [setSlides, slidesRef]);
 
-  const { workerRef, ensureWorker } = useDetectionWorker(
+  const { workerRef, startDetection, cancelDetection } = useDetectionWorker(
     slidesRef,
     setSlides,
     setBusyText,
@@ -243,13 +249,14 @@ export function SlidesThiefApp() {
 
   useEffect(() => {
     return () => {
+      cancelDetection();
       workerRef.current?.terminate();
       workerRef.current = null;
       exportWorkerRef.current?.terminate();
       exportWorkerRef.current = null;
       if (dragFrameRef.current !== null) window.cancelAnimationFrame(dragFrameRef.current);
     };
-  }, [exportWorkerRef, workerRef]);
+  }, [cancelDetection, exportWorkerRef, workerRef]);
 
   const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
     const loupeCanvas = loupeCanvasRef.current;
@@ -477,6 +484,7 @@ export function SlidesThiefApp() {
         has_heif: hasHeif,
       });
 
+      cancelDetection();
       workerRef.current?.terminate();
       workerRef.current = null;
       exportWorkerRef.current?.terminate();
@@ -565,7 +573,7 @@ export function SlidesThiefApp() {
       setBusyText("");
       if (firstConversionError) setWorkerError(firstConversionError);
     },
-    [cancelActiveDrag, exportWorkerRef, pdfBaseName, setSelectedId, setSlides, slidesRef, workerRef],
+    [cancelActiveDrag, cancelDetection, exportWorkerRef, pdfBaseName, setSelectedId, setSlides, slidesRef, workerRef],
   );
 
   const paintCanvas = useCallback((quad: Quad | null) => {
@@ -935,13 +943,16 @@ export function SlidesThiefApp() {
       );
       if (!processableSlides.length) return;
       cancelActiveDrag();
-      const worker = ensureWorker();
-      if (!worker) return;
       clearExport();
       setWorkerError("");
       setBusyText(text.stretching);
       autoReviewSelectedRef.current = false;
       const targetSettings = overrideSettings ?? settings;
+      const jobId = startDetection(
+        processableSlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+        targetSettings,
+      );
+      if (jobId === null) return;
       const processableIds = new Set(processableSlides.map((slide) => slide.id));
       setSlides((current) =>
         current.map((slide) => {
@@ -960,13 +971,8 @@ export function SlidesThiefApp() {
           };
         }),
       );
-      worker.postMessage({
-        type: "detect",
-        files: processableSlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
-        settings: targetSettings,
-      });
     },
-    [cancelActiveDrag, clearExport, ensureWorker, setSlides, settings, slides, text.stretching],
+    [cancelActiveDrag, clearExport, setSlides, settings, slides, startDetection, text.stretching],
   );
 
   const runAuto = useCallback(() => {
@@ -984,14 +990,12 @@ export function SlidesThiefApp() {
       return;
     }
     cancelActiveDrag();
-    const worker = ensureWorker();
-    if (!worker) return;
-    setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-    worker.postMessage({
-      type: "detect",
-      files: [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
+    const jobId = startDetection(
+      [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
       settings,
-    });
+    );
+    if (jobId === null) return;
+    setBusyText(`${text.stretching}: ${selectedSlide.name}`);
   };
 
   const exportPdf = useCallback(() => {
@@ -1036,72 +1040,24 @@ export function SlidesThiefApp() {
   ]);
 
   useEffect(() => {
-    const handleGlobalKeyDown = (event: KeyboardEvent) => {
-      if (isInfoOpen) return;
-      const target = event.target as HTMLElement | null;
-      if (
-        target &&
-        (target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT" ||
-          target.isContentEditable)
-      ) {
-        return;
-      }
-
-      // Undo: Cmd+Z or Ctrl+Z
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
-        event.preventDefault();
-        handleUndo();
-        return;
-      }
-
-      // Redo: Cmd+Shift+Z or Ctrl+Shift+Z or Ctrl+Y
-      if (
-        ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && event.shiftKey) ||
-        (event.ctrlKey && event.key.toLowerCase() === "y")
-      ) {
-        event.preventDefault();
-        handleRedo();
-        return;
-      }
-
-      // Slide Navigation & Deletion
-      if (slidesRef.current.length > 0) {
-        if (event.key.toLowerCase() === "j" || event.key === "PageDown") {
-          event.preventDefault();
-          selectNextSlide();
-          return;
-        }
-        if (event.key.toLowerCase() === "k" || event.key === "PageUp") {
-          event.preventDefault();
-          selectPrevSlide();
-          return;
-        }
-        if (event.key === "Delete" || event.key === "Backspace") {
-          if (selectedIdRef.current) {
-            event.preventDefault();
-            deleteSlide(selectedIdRef.current);
-          }
-          return;
-        }
-      }
-
-      // Export PDF: Cmd+Enter or Ctrl+Enter
-      if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-        event.preventDefault();
-        const ready = slidesRef.current.filter((s) => s.status === "ready" && s.quad);
-        if (ready.length && !busyRef.current) {
-          exportPdf();
-        }
-        return;
-      }
-    };
+    const handleGlobalKeyDown = createGlobalKeyDownHandler({
+      busy,
+      deleteSlide,
+      exportPdf,
+      handleRedo,
+      handleUndo,
+      isInfoOpen,
+      selectedIdRef,
+      selectNextSlide,
+      selectPrevSlide,
+      slidesRef,
+    });
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
   }, [
     deleteSlide,
+    busy,
     exportPdf,
     handleRedo,
     handleUndo,
