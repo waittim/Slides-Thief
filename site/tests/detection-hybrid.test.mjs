@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const { evaluateEdgeEvidence } = await import(
@@ -7,7 +8,7 @@ const { evaluateEdgeEvidence } = await import(
 const { detectQuad, deduplicateCandidates } = await import(
   new URL("../app/detection/detect.ts", import.meta.url).href
 );
-const { buildImageFeatures } = await import(
+const { boxBlur, buildImageFeatures } = await import(
   new URL("../app/detection/image-features.ts", import.meta.url).href
 );
 const { maskLineDetector } = await import(
@@ -72,6 +73,21 @@ const settings = {
   sourceRatioHint: 16 / 9,
   enableBatchPrior: false,
 };
+
+const boxBlurFixture = JSON.parse(
+  await readFile(new URL("../../tests/fixtures/detection/box-blur.json", import.meta.url), "utf8")
+);
+
+test("box blur preserves shape, constants, and edge-replicated shared values", () => {
+  const { width, height, radius, input, expected } = boxBlurFixture;
+  const blurred = boxBlur(new Float64Array(input), width, height, radius);
+  assert.equal(blurred.length, input.length);
+  assert.deepEqual(
+    Array.from(boxBlur(new Float64Array([7.5, 7.5, 7.5, 7.5, 7.5, 7.5]), 2, 3, 3)),
+    [7.5, 7.5, 7.5, 7.5, 7.5, 7.5],
+  );
+  assert.deepEqual(Array.from(blurred), expected);
+});
 
 test("edge evidence supports inside-brighter and inside-darker polarity", () => {
   const brighter = buildImageFeatures(rectangleImage(120, 80, 20, 230, [20, 15, 100, 65]));

@@ -24,14 +24,25 @@ from .scoring import normalized_quad_distance, score_quad_candidate
 def box_blur(gray: np.ndarray, radius: int = 5) -> np.ndarray:
     # Two cumulative-sum passes keep the detector quick without SciPy/OpenCV.
     arr = gray.astype(np.float64)
+    window_size = radius * 2 + 1
     for axis in (0, 1):
         pad = [(0, 0), (0, 0)]
         pad[axis] = (radius, radius)
         padded = np.pad(arr, pad, mode="edge")
         csum = np.cumsum(padded, axis=axis)
-        head = np.take(csum, range(2 * radius + 1, csum.shape[axis]), axis=axis)
-        tail = np.take(csum, range(0, csum.shape[axis] - 2 * radius - 1), axis=axis)
-        arr = (head - tail) / (2 * radius + 1)
+
+        # The leading zero makes each difference represent a complete window
+        # starting at the corresponding output coordinate. Without it, the
+        # first padded sample is skipped and the result loses one element.
+        zero_shape = list(csum.shape)
+        zero_shape[axis] = 1
+        csum = np.concatenate((np.zeros(zero_shape, dtype=csum.dtype), csum), axis=axis)
+
+        head_indices = [slice(None)] * arr.ndim
+        tail_indices = [slice(None)] * arr.ndim
+        head_indices[axis] = slice(window_size, None)
+        tail_indices[axis] = slice(None, -window_size)
+        arr = (csum[tuple(head_indices)] - csum[tuple(tail_indices)]) / window_size
     return arr
 
 
