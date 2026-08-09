@@ -1,4 +1,4 @@
-import type { BatchPrior, Quad, ReviewReason } from "../detection/types";
+import type { BatchPrior, DetectionMethod, Quad, ReviewReason } from "../detection/types";
 import type { EnhancementMode } from "../enhance";
 import type { OutputPageRatio, SourceFormat } from "../ratio";
 
@@ -56,7 +56,7 @@ export type DetectResult = {
   height: number;
   quad: Quad;
   sourceRatio: number;
-  method: string;
+  method: DetectionMethod;
   confidence: number;
   needsReview: boolean;
   reviewReasons: ReviewReason[];

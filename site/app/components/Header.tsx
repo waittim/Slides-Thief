@@ -13,7 +13,7 @@ import {
   type OutputPageRatio,
   type PageLayoutMode,
 } from "../ratio";
-import type { Settings, SlideItem, ThemeValue } from "../lib/types";
+import type { Settings, ThemeValue } from "../lib/types";
 import { Button, Select, Switch } from "./ui";
 
 interface HeaderProps {
@@ -35,7 +35,6 @@ interface HeaderProps {
   setLocale: (locale: LocaleValue) => void;
   updateSettings: (updater: (current: Settings) => Settings) => void;
   runAutoWithSettings: (settings: Settings) => void;
-  selectedSlide: SlideItem | null;
   setIsInfoOpen: (open: boolean) => void;
   currentPageLayout: PageLayoutMode;
 }
@@ -59,7 +58,6 @@ export function Header({
   setLocale,
   updateSettings,
   runAutoWithSettings,
-  selectedSlide,
   setIsInfoOpen,
   currentPageLayout,
 }: HeaderProps) {
@@ -185,11 +183,12 @@ export function Header({
                       onChange={(event) => {
                         const nextLayout = event.target.value as PageLayoutMode;
                         updateSettings((current) => {
+                          const { orientation } = splitSourceFormat(current.sourceFormat);
                           if (nextLayout === "paper") {
                             const sourceRatio = sourceFormatRatioValue(
                               current.sourceFormat,
                               current.sourceCustomRatio,
-                              selectedSlide?.sourceRatio,
+                              orientation,
                             );
                             const outputPageRatio = isPaperRatio(current.outputPageRatio)
                               ? current.outputPageRatio
@@ -206,7 +205,7 @@ export function Header({
                             const sourceRatio = sourceFormatRatioValue(
                               current.sourceFormat,
                               current.sourceCustomRatio,
-                              selectedSlide?.sourceRatio,
+                              orientation,
                             );
                             const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
                             return {
@@ -386,4 +385,3 @@ export function Header({
     </header>
   );
 }
-

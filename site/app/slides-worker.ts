@@ -4,6 +4,7 @@ import { buildBatchPriors, normalizeResult } from "./detection/batch-prior";
 import { detectQuad } from "./detection/detect";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
+import type { DetectResult } from "./lib/types";
 import {
   sourceFormatRatioValue,
   type SourceFormat,
@@ -179,7 +180,7 @@ function workerDetectionResult(
   detectionHeight: number,
   detection: DetectionResult,
   settings: Settings,
-) {
+): DetectResult {
   const scaleX = width / detectionWidth;
   const scaleY = height / detectionHeight;
   const quad = detection.quad.map(([x, y]) => [x * scaleX, y * scaleY]) as Quad;

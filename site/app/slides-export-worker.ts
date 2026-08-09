@@ -17,7 +17,6 @@ import {
   outputPageRatioValue,
   pdfPageDimensions,
   isPaperRatio,
-  sourceFormatRatioValue,
   type OutputPageRatio,
   type SourceFormat,
 } from "./ratio";
@@ -76,11 +75,7 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
     const slide = slides[index];
     const item = fileById.get(slide.id);
     if (!item) continue;
-    const sourceRatio = sourceFormatRatioValue(
-      settings.sourceFormat,
-      settings.sourceCustomRatio,
-      slide.sourceRatio,
-    );
+    const sourceRatio = slide.sourceRatio;
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({ type: "export-progress", current: index + 1, total: slides.length, name: item.name });

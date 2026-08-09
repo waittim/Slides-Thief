@@ -1130,7 +1130,7 @@ export function SlidesThiefApp() {
     setZoom(Math.min(maxZoomRef.current, Math.max(fitZoomRef.current * 0.5, displayZoom * 1.18)));
   };
 
-  const metrics = selectedSlide
+  const metrics: Array<[string, string]> = selectedSlide
     ? [
         [text.file, selectedSlide.name],
         [
@@ -1168,7 +1168,6 @@ export function SlidesThiefApp() {
         setLocale={setLocale}
         updateSettings={updateSettings}
         runAutoWithSettings={runAutoWithSettings}
-        selectedSlide={selectedSlide}
         setIsInfoOpen={setIsInfoOpen}
         currentPageLayout={currentPageLayout}
       />
@@ -1293,4 +1292,3 @@ export function SlidesThiefApp() {
     </div>
   );
 }
-
