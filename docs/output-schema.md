@@ -10,7 +10,7 @@ source-image corner coordinates.
 
 ## Manual review data
 
-The CLI also writes `manual_review_data.json`, which backs the generated `manual_review.html` page. Export `manual_quads.json` from that page for a second pass with `--manual`.
+The CLI also writes `manual_review_data.json`, which backs the generated `manual_review.html` page. Each item records `origWidth`/`origHeight` for the source photo, `assetWidth`/`assetHeight` for the review JPEG, `sourceQuad` in source-photo coordinates, and `assetQuad` in review-asset coordinates. The page edits `assetQuad` and converts it back to source coordinates when exporting `manual_quads.json`. Export that file for a second pass with `--manual`.
 
 ## Manual corner input
 

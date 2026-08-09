@@ -3,7 +3,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image
 
-from slides_thief.exporter import make_contact_sheet, make_manual_review_html, make_pdf
+from slides_thief.exporter import make_contact_sheet, make_manual_review_html, make_pdf, scale_quad
 from slides_thief.geometry import (
     Line,
     fit_line_xy,
@@ -47,6 +47,14 @@ def test_geometry_perspective_coefficients() -> None:
     dst = np.array([[0, 0], [100, 0], [100, 100], [0, 100]], dtype=np.float64)
     coeffs = perspective_coefficients(src, dst)
     assert len(coeffs) == 8
+
+
+def test_scale_quad_scales_x_and_y_independently() -> None:
+    assert scale_quad(
+        [[1000, 900], [3000, 900], [3000, 2100], [1000, 2100]],
+        source_size=(4000, 3000),
+        target_size=(1600, 1000),
+    ) == [[400.0, 300.0], [1200.0, 300.0], [1200.0, 700.0], [400.0, 700.0]]
 
 
 def test_image_processing_warping_and_enhancement() -> None:

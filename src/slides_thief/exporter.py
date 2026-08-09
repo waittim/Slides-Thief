@@ -12,6 +12,25 @@ from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
 
+def scale_quad(
+    quad: np.ndarray | list[list[float]],
+    source_size: tuple[int, int],
+    target_size: tuple[int, int],
+) -> list[list[float]]:
+    """Scale quadrilateral coordinates between image spaces independently on X and Y."""
+    source_width, source_height = source_size
+    target_width, target_height = target_size
+    if source_width <= 0 or source_height <= 0 or target_width <= 0 or target_height <= 0:
+        raise ValueError("Image dimensions must be positive")
+
+    x_scale = target_width / source_width
+    y_scale = target_height / source_height
+    return [
+        [round(float(x) * x_scale, 2), round(float(y) * y_scale, 2)]
+        for x, y in quad
+    ]
+
+
 def draw_overlay(image: Image.Image, quad: np.ndarray, output: Path) -> None:
     overlay = image.convert("RGB").copy()
     overlay.thumbnail((1200, 900), Image.Resampling.LANCZOS)
@@ -284,6 +303,33 @@ let img = new Image();
 let scale = 1;
 let dragIdx = -1;
 
+function assetQuadForItem(item) {{
+  if (item.assetQuad) return item.assetQuad;
+
+  // Compatibility with review data generated before sourceQuad/assetQuad
+  // were explicit. Legacy `quad` values are source-image coordinates.
+  const sourceQuad = item.sourceQuad || item.quad;
+  const sourceWidth = item.origWidth || item.assetWidth || img.width;
+  const sourceHeight = item.origHeight || item.assetHeight || img.height;
+  const assetWidth = item.assetWidth || img.width;
+  const assetHeight = item.assetHeight || img.height;
+  return sourceQuad.map(([x, y]) => [
+    x * assetWidth / sourceWidth,
+    y * assetHeight / sourceHeight
+  ]);
+}}
+
+function sourceQuadForItem(item, assetQuad) {{
+  const sourceWidth = item.origWidth || item.assetWidth || img.width;
+  const sourceHeight = item.origHeight || item.assetHeight || img.height;
+  const assetWidth = item.assetWidth || img.width;
+  const assetHeight = item.assetHeight || img.height;
+  return assetQuad.map(([x, y]) => [
+    x * sourceWidth / assetWidth,
+    y * sourceHeight / assetHeight
+  ]);
+}}
+
 const cv = document.getElementById("cv");
 const ctx = cv.getContext("2d");
 const sidebar = document.getElementById("sidebar");
@@ -318,11 +364,8 @@ function loadPage(idx) {{
     cv.width = Math.round(img.width * scale);
     cv.height = Math.round(img.height * scale);
 
-    if (item.customQuad) {{
-      points = item.customQuad.map(pt => [pt[0] * scale, pt[1] * scale]);
-    }} else {{
-      points = item.quad.map(pt => [pt[0] * scale, pt[1] * scale]);
-    }}
+    const assetQuad = item.customQuad || assetQuadForItem(item);
+    points = assetQuad.map(pt => [pt[0] * scale, pt[1] * scale]);
     draw();
   }};
   img.src = item.image;
@@ -403,8 +446,9 @@ document.getElementById("resetBtn").onclick = () => {{
 document.getElementById("exportBtn").onclick = () => {{
   const out = {{}};
   items.forEach(item => {{
-    const q = item.customQuad || item.quad;
-    out[item.filename] = q.map(pt => [Math.round(pt[0]), Math.round(pt[1])]);
+    const assetQuad = item.customQuad || assetQuadForItem(item);
+    const sourceQuad = sourceQuadForItem(item, assetQuad);
+    out[item.filename] = sourceQuad.map(pt => [Math.round(pt[0]), Math.round(pt[1])]);
   }});
   const jsonStr = JSON.stringify(out, null, 2);
   navigator.clipboard.writeText(jsonStr);

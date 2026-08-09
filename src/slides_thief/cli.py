@@ -17,7 +17,7 @@ from PIL import Image, ImageOps
 
 from .detection.batch_prior import build_batch_priors, normalize_result
 from .detection.detector import contrast_quad, detect_quad
-from .exporter import draw_overlay, make_contact_sheet, make_manual_review_html, make_pdf
+from .exporter import draw_overlay, make_contact_sheet, make_manual_review_html, make_pdf, scale_quad
 from .geometry import (
     PAPER_PRESETS,
     RATIO_PRESETS,
@@ -116,6 +116,12 @@ def process(args: argparse.Namespace) -> dict:
         review_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
         review_asset = review_image_dir / f"{idx:03d}_{src.stem}.jpg"
         review_image.save(review_asset, quality=90, optimize=True)
+        source_quad = [[round(float(x), 2), round(float(y), 2)] for x, y in quad]
+        asset_quad = scale_quad(
+            quad,
+            source_size=(image.width, image.height),
+            target_size=(review_image.width, review_image.height),
+        )
         review_items.append(
             {
                 "filename": src.name,
@@ -124,7 +130,8 @@ def process(args: argparse.Namespace) -> dict:
                 "origHeight": image.height,
                 "assetWidth": review_image.width,
                 "assetHeight": review_image.height,
-                "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
+                "sourceQuad": source_quad,
+                "assetQuad": asset_quad,
                 "method": diagnostics["method"],
                 "confidence": diagnostics["confidence"],
                 "needsReview": diagnostics["needs_review"],
@@ -293,6 +300,7 @@ __all__ = [
     "draw_overlay",
     "make_contact_sheet",
     "make_manual_review_html",
+    "scale_quad",
     "make_pdf",
     "contrast_quad",
     "detect_quad",

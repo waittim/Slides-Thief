@@ -1,6 +1,13 @@
+import json
 import math
+import shutil
+import subprocess
+import textwrap
+from argparse import Namespace
+from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
@@ -9,6 +16,7 @@ from slides_thief.cli import (
     list_images,
     order_quad,
     parse_ratio,
+    process,
     resolve_enhancement_mode,
     warp_slide,
     warp_slide_contained,
@@ -19,11 +27,182 @@ from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
 from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
+from slides_thief.exporter import make_manual_review_html, scale_quad
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
     assert parse_ratio("16:9") == 16 / 9
     assert parse_ratio("1.25") == 1.25
+
+
+def test_cli_manual_review_round_trips_large_image_coordinates(tmp_path: Path, monkeypatch) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    input_dir.mkdir()
+    Image.new("RGB", (4000, 3000), (80, 90, 100)).save(input_dir / "slide.jpg")
+
+    source_quad = np.array(
+        [[250, 375], [3500, 300], [3600, 2550], [300, 2700]],
+        dtype=np.float64,
+    )
+
+    def fake_detect_quad(image, source_ratio, manual_quad=None, **kwargs):
+        quad = np.asarray(manual_quad, dtype=np.float64) if manual_quad is not None else source_quad
+        return quad, {
+            "method": "manual" if manual_quad is not None else "test",
+            "confidence": 0.9,
+            "needs_review": False,
+            "review_reasons": [],
+        }
+
+    monkeypatch.setattr("slides_thief.cli.detect_quad", fake_detect_quad)
+    args = Namespace(
+        input=str(input_dir),
+        output_dir=str(output_dir),
+        work_dir=str(work_dir),
+        ratio=None,
+        source_ratio="16:9",
+        output_ratio="match-slide",
+        width=800,
+        height=None,
+        pdf_name="slides.pdf",
+        manual=None,
+        jpeg_quality=92,
+        enhancement="original",
+        grayscale=False,
+        clean_converted=False,
+    )
+
+    result = process(args)
+    item = json.loads((output_dir / "manual_review_data.json").read_text(encoding="utf-8"))[0]
+
+    assert item["origWidth"] == 4000
+    assert item["origHeight"] == 3000
+    assert item["assetWidth"] == 1600
+    assert item["assetHeight"] == 1200
+    assert item["sourceQuad"] == source_quad.tolist()
+    assert item["assetQuad"] == [[100.0, 150.0], [1400.0, 120.0], [1440.0, 1020.0], [120.0, 1080.0]]
+    assert "quad" not in item
+
+    restored_quad = scale_quad(
+        item["assetQuad"],
+        source_size=(item["assetWidth"], item["assetHeight"]),
+        target_size=(item["origWidth"], item["origHeight"]),
+    )
+    assert restored_quad == item["sourceQuad"]
+    assert result["review_items"][0]["sourceQuad"] == item["sourceQuad"]
+
+
+def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path: Path) -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node.js is required to execute the generated review page")
+
+    html_path = tmp_path / "manual_review.html"
+    make_manual_review_html(
+        [
+            {
+                "filename": "slide.jpg",
+                "image": "manual_review_images/slide.jpg",
+                "origWidth": 4000,
+                "origHeight": 3000,
+                "assetWidth": 1600,
+                "assetHeight": 1200,
+                "sourceQuad": [[250, 375], [3500, 300], [3600, 2550], [300, 2700]],
+                "assetQuad": [[100, 150], [1400, 120], [1440, 1020], [120, 1080]],
+                "confidence": 0.9,
+                "needsReview": True,
+                "method": "test",
+                "reviewReasons": [],
+            }
+        ],
+        html_path,
+    )
+
+    harness = textwrap.dedent(
+        r"""
+        const fs = require("fs");
+        const vm = require("vm");
+
+        const html = fs.readFileSync(process.argv[1], "utf8");
+        const script = html.match(/<script>\n([\s\S]*)\n<\/script>/)[1];
+        let exported = null;
+        const context2d = new Proxy({}, { get: () => () => {} });
+
+        class Element {
+          constructor(id) {
+            this.id = id;
+            this.listeners = {};
+            this.style = {};
+            this.innerHTML = "";
+          }
+          addEventListener(name, callback) { this.listeners[name] = callback; }
+          getBoundingClientRect() { return { left: 0, top: 0 }; }
+          getContext() { return context2d; }
+          appendChild() {}
+          click() { if (this.onclick) this.onclick(); }
+        }
+
+        const elements = new Map(
+          ["cv", "sidebar", "info", "toast", "prevBtn", "nextBtn", "resetBtn", "exportBtn"]
+            .map((id) => [id, new Element(id)])
+        );
+        const document = {
+          getElementById(id) { return elements.get(id); },
+          querySelectorAll() { return []; },
+          createElement() { return new Element("created"); }
+        };
+        const window = {
+          innerWidth: 1600,
+          innerHeight: 1300,
+          listeners: {},
+          addEventListener(name, callback) { this.listeners[name] = callback; }
+        };
+        class FakeImage {
+          constructor() { this.width = 1600; this.height = 1200; this.onload = null; }
+          set src(value) { if (this.onload) this.onload(); }
+        }
+        class FakeBlob {
+          constructor(parts) { this.parts = parts; }
+        }
+
+        const navigator = {
+          language: "en",
+          clipboard: { writeText(value) { exported = value; } }
+        };
+        vm.runInNewContext(script, {
+          document,
+          window,
+          navigator,
+          Image: FakeImage,
+          Blob: FakeBlob,
+          URL: { createObjectURL() { return "blob:review"; } },
+          localStorage: { getItem() { return null; } },
+          setTimeout() {},
+          Math,
+          JSON,
+          Object,
+          Array
+        });
+
+        const canvas = elements.get("cv");
+        canvas.listeners.mousedown({ clientX: 75, clientY: 112.5 });
+        canvas.listeners.mousemove({ clientX: 150, clientY: 150 });
+        window.listeners.mouseup();
+        elements.get("exportBtn").onclick();
+        process.stdout.write(exported);
+        """
+    )
+    completed = subprocess.run(
+        ["node", "-e", harness, str(html_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == {
+        "slide.jpg": [[500, 500], [3500, 300], [3600, 2550], [300, 2700]]
+    }
 
 
 def test_parse_ratio_accepts_named_paper_aliases() -> None:
