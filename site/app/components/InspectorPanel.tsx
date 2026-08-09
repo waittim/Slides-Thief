@@ -1,11 +1,12 @@
 import React from "react";
+import type { LocaleCopy } from "../i18n";
 import type { SlideItem } from "../lib/types";
 import { Button, CountBadge } from "./ui";
 
 interface InspectorPanelProps {
   inspectorCollapsed: boolean;
   setInspectorCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
-  text: Record<string, any>;
+  text: LocaleCopy;
   readySlides: SlideItem[];
   metrics: Array<[string, string]>;
   selectedSlide: SlideItem | null;
@@ -65,4 +66,3 @@ export function InspectorPanel({
     </aside>
   );
 }
-

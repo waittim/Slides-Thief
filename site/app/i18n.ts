@@ -164,6 +164,8 @@ export const ratioUiCopy: Record<LocaleValue, {
   },
 };
 
+export type RatioUiCopy = (typeof ratioUiCopy)[LocaleValue];
+
 export type ReviewUiCopy = {
   reviewSuggested: string;
   corrected: string;
@@ -1071,6 +1073,8 @@ export const copy = {
     close: "Fechar",
   },
 };
+
+export type LocaleCopy = (typeof copy)[LocaleValue];
 
 export function supportedLocaleFromLanguage(language: string | undefined): LocaleValue | null {
   const normalized = language?.trim().toLowerCase().replace(/_/g, "-");

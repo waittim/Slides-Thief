@@ -1,7 +1,7 @@
 import React from "react";
 import type { EnhancementMode } from "../enhance";
 import { PDF_BASENAME_MAX_LENGTH, sanitizePdfBaseName } from "../filename";
-import { localeOptions, type LocaleValue } from "../i18n";
+import { localeOptions, type LocaleCopy, type LocaleValue, type RatioUiCopy } from "../i18n";
 import {
   defaultOrientationForBaseFormat,
   deriveSourceFormat,
@@ -18,8 +18,8 @@ import { Button, Select, Switch } from "./ui";
 
 interface HeaderProps {
   isInfoOpen: boolean;
-  text: Record<string, any>;
-  ratioUi: Record<string, any>;
+  text: LocaleCopy;
+  ratioUi: RatioUiCopy;
   settings: Settings;
   settingsOpen: boolean;
   setSettingsOpen: (open: boolean) => void;

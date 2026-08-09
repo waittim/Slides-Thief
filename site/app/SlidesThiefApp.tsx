@@ -2,27 +2,9 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import packageMetadata from "../package.json";
-import { applyEnhancement, type EnhancementMode } from "./enhance";
 import type { Quad } from "./detection/types";
-import {
-  normalizePdfName,
-  PDF_BASENAME_MAX_LENGTH,
-  sanitizePdfBaseName,
-} from "./filename";
-import {
-  defaultOrientationForBaseFormat,
-  deriveSourceFormat,
-  isPaperRatio,
-  outputPageRatioValue,
-  pageLayoutMode,
-  sourceFormatRatioValue,
-  splitSourceFormat,
-  type BaseFormat,
-  type Orientation,
-  type OutputPageRatio,
-  type PageLayoutMode,
-  type SourceFormat,
-} from "./ratio";
+import { normalizePdfName } from "./filename";
+import { pageLayoutMode } from "./ratio";
 import {
   copy,
   detectBrowserLocale,
@@ -40,15 +22,11 @@ import {
   type Settings,
   type SlideItem,
   type ThemeValue,
-  type WorkerMessage,
 } from "./lib/types";
 import {
   clampQuadCoordinate,
   cloneQuad,
-  cloneSlides,
   confidenceText,
-  displayFileName,
-  formatBytes,
   isHeifImage,
   isSupported,
   makeId,
@@ -71,6 +49,10 @@ import { AboutModal } from "./components/AboutModal";
 import { Button, Select } from "./components/ui";
 
 const APP_VERSION = packageMetadata.version;
+
+function revokeSlideObjectUrls(slides: SlideItem[]) {
+  slides.forEach((slide) => URL.revokeObjectURL(slide.url));
+}
 
 
 
@@ -102,7 +84,6 @@ export function SlidesThiefApp() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
-  const exportingRef = useRef(false);
   const busyRef = useRef(false);
   const exportUrlRef = useRef<string | null>(null);
 
@@ -208,7 +189,10 @@ export function SlidesThiefApp() {
     localeRef,
   );
 
-  const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
+  const readySlides = useMemo(
+    () => slides.filter((slide) => slide.status === "ready" && slide.quad),
+    [slides],
+  );
   const selectedIndex = slides.findIndex((slide) => slide.id === selectedId);
   const selectedSlide = selectedIndex >= 0 ? slides[selectedIndex] : slides[0] ?? null;
   const hasRun = slides.some(
@@ -237,7 +221,7 @@ export function SlidesThiefApp() {
     if (workerError) return "bad";
     if (detecting || exporting) return "busy";
     if (hasRun || exportUrl) return "good";
-    return "neutral";
+    return "default";
   }, [detecting, exporting, exportUrl, hasRun, workerError]);
 
   const slideStatusText = (slide: SlideItem) => {
@@ -320,6 +304,7 @@ export function SlidesThiefApp() {
     };
   }, [
     refreshSlideThumbnail,
+    slidesRef,
     settings.enhancement,
     settings.fillColor,
     settings.height,
@@ -343,7 +328,7 @@ export function SlidesThiefApp() {
       setZoomMode("fit");
     }, 0);
     return () => window.clearTimeout(timeoutId);
-  }, [detecting, reviewCount, slides]);
+  }, [detecting, reviewCount, setSelectedId, slides]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -469,11 +454,13 @@ export function SlidesThiefApp() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      slidesRef.current.forEach((slide) => URL.revokeObjectURL(slide.url));
+    const cleanupObjectUrls = () => {
+      revokeSlideObjectUrls(slidesRef.current);
       if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
     };
-  }, []);
+
+    return cleanupObjectUrls;
+  }, [slidesRef]);
 
   const loadFiles = useCallback(
     async (fileList: FileList | File[]) => {
@@ -578,7 +565,7 @@ export function SlidesThiefApp() {
       setBusyText("");
       if (firstConversionError) setWorkerError(firstConversionError);
     },
-    [cancelActiveDrag, pdfBaseName],
+    [cancelActiveDrag, exportWorkerRef, pdfBaseName, setSelectedId, setSlides, slidesRef, workerRef],
   );
 
   const paintCanvas = useCallback((quad: Quad | null) => {
@@ -758,7 +745,7 @@ export function SlidesThiefApp() {
       if (imageCacheRef.current?.image === image) setPreviewErrorSlideId(slide.id);
     };
     image.src = slide.url;
-  }, [paintCanvas, selectedSlide, zoom, zoomMode]);
+  }, [paintCanvas, selectedSlide, setSlides, zoom, zoomMode]);
 
   useEffect(() => {
     const initialFrame = window.requestAnimationFrame(redrawCanvas);
@@ -793,7 +780,7 @@ export function SlidesThiefApp() {
         return slide;
       }),
     );
-  }, [clearExport]);
+  }, [clearExport, setSlides]);
 
   const canvasPoint = (event: React.PointerEvent<HTMLElement>) => {
     const canvas = canvasRef.current;
@@ -979,7 +966,7 @@ export function SlidesThiefApp() {
         settings: targetSettings,
       });
     },
-    [cancelActiveDrag, clearExport, ensureWorker, settings, slides, text.stretching],
+    [cancelActiveDrag, clearExport, ensureWorker, setSlides, settings, slides, text.stretching],
   );
 
   const runAuto = useCallback(() => {
@@ -1007,7 +994,7 @@ export function SlidesThiefApp() {
     });
   };
 
-  const exportPdf = () => {
+  const exportPdf = useCallback(() => {
     if (!readySlides.length) return;
     const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
     if (pagesNeedingReview.length) {
@@ -1037,7 +1024,16 @@ export function SlidesThiefApp() {
       settings,
       filename,
     });
-  };
+  }, [
+    clearExport,
+    ensureExportWorker,
+    pdfBaseName,
+    readySlides,
+    reviewText,
+    setSelectedId,
+    settings,
+    text.generating,
+  ]);
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: KeyboardEvent) => {
@@ -1104,7 +1100,17 @@ export function SlidesThiefApp() {
 
     window.addEventListener("keydown", handleGlobalKeyDown);
     return () => window.removeEventListener("keydown", handleGlobalKeyDown);
-  }, [isInfoOpen, handleUndo, handleRedo, selectNextSlide, selectPrevSlide, deleteSlide]);
+  }, [
+    deleteSlide,
+    exportPdf,
+    handleRedo,
+    handleUndo,
+    isInfoOpen,
+    selectedIdRef,
+    selectNextSlide,
+    selectPrevSlide,
+    slidesRef,
+  ]);
 
 
   const selectAt = (index: number) => {

@@ -16,7 +16,6 @@ import {
 import {
   outputPageRatioValue,
   pdfPageDimensions,
-  isPaperRatio,
   type OutputPageRatio,
   type SourceFormat,
 } from "./ratio";
@@ -157,7 +156,7 @@ async function renderWarpedJpeg(
       const denom = coeffs[6] * x + coeffs[7] * y + 1;
       const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denom;
       const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denom;
-      sampleRgb(source, sx, sy, output.data, targetOffset, provisionalFill);
+      sampleRgb(source, sx, sy, output.data, targetOffset);
     }
   }
 
@@ -185,7 +184,6 @@ function sampleRgb(
   y: number,
   target: Uint8ClampedArray,
   offset: number,
-  fill: [number, number, number],
 ) {
   const width = source.width;
   const height = source.height;
@@ -228,8 +226,4 @@ function sampleRgb(
 
 function bilinear(a: number, b: number, c: number, d: number, wx: number, wy: number) {
   return a * (1 - wx) * (1 - wy) + b * wx * (1 - wy) + c * (1 - wx) * wy + d * wx * wy;
-}
-
-function clamp(value: number, min: number, max: number) {
-  return Math.max(min, Math.min(max, value));
 }

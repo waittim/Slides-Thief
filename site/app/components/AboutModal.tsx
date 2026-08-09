@@ -1,4 +1,5 @@
 import React from "react";
+import type { LocaleCopy } from "../i18n";
 import { ModalShell } from "./ui";
 
 interface AboutModalProps {
@@ -6,7 +7,7 @@ interface AboutModalProps {
   setIsInfoOpen: (open: boolean) => void;
   infoModalRef: React.RefObject<HTMLDivElement | null>;
   closeInfoButtonRef: React.RefObject<HTMLButtonElement | null>;
-  text: Record<string, any>;
+  text: LocaleCopy;
   appVersion: string;
 }
 
@@ -66,4 +67,3 @@ export function AboutModal({
     </ModalShell>
   );
 }
-

@@ -1,7 +1,8 @@
 import React from "react";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
 import type { SlideItem } from "../lib/types";
-import { Button, CountBadge, StatusDot } from "./ui";
+import { Button, CountBadge, StatusDot, type StatusDotProps } from "./ui";
 
 interface SlideSidebarProps {
   busy: boolean;
@@ -11,9 +12,9 @@ interface SlideSidebarProps {
   readySlides: SlideItem[];
   runAuto: () => void;
   exportPdf: () => void;
-  text: Record<string, any>;
-  reviewText: Record<string, any>;
-  statusTone: string;
+  text: LocaleCopy;
+  reviewText: ReviewUiCopy;
+  statusTone: StatusDotProps["status"];
   statusText: string;
   exportUrl: string | null;
   exportName: string;
@@ -70,7 +71,7 @@ export function SlideSidebar({
       </div>
       <div className="sidebarRunMeta">
         <div className="sidebarStatus" role="status" aria-live="polite">
-          <StatusDot status={(statusTone as any) || "default"} />
+          <StatusDot status={statusTone} />
           <span className="statusLine">{statusText}</span>
           {exporting && cancelExport ? (
             <Button

@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Quad } from "../detection/types";
 import { cloneSlides } from "../lib/slide-utils";
 import type { SlideItem } from "../lib/types";
 

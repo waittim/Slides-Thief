@@ -1,4 +1,5 @@
 import React from "react";
+import type { LocaleCopy } from "../i18n";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
 import { Button } from "./ui";
@@ -12,7 +13,7 @@ interface CanvasQuadEditorProps {
   selectedSlide: SlideItem | null;
   selectedIndex: number;
   isMobile: boolean;
-  text: Record<string, any>;
+  text: LocaleCopy;
   displayZoom: number;
   previewErrorSlideId: string | null;
   handlePositions: HandlePosition[];
