@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import numpy as np
 
-AUTO_REVIEW_CONFIDENCE = 0.68
+from .config import DETECTION_CONFIG
+
+_CONFIDENCE_CONFIG = DETECTION_CONFIG["confidence"]
+_SCORING_CONFIG = DETECTION_CONFIG["scoring"]
+_FORMULA_WEIGHTS = _SCORING_CONFIG["formulaWeights"]
+AUTO_REVIEW_CONFIDENCE = float(_CONFIDENCE_CONFIG["autoReviewThreshold"])
 
 
 def calculate_confidence(
@@ -15,7 +20,7 @@ def calculate_confidence(
     height: int,
 ) -> dict:
     raw_margin = max(0.0, best["score"] - second["score"]) if second else best["score"]
-    normalized_margin = min(1.0, max(0.0, raw_margin / 0.18))
+    normalized_margin = min(1.0, max(0.0, raw_margin / float(_CONFIDENCE_CONFIG["marginScale"])))
     features = best["score_diagnostics"]["features"]
     edge_evidence = best["score_diagnostics"].get("edge_evidence", [])
     minimum_edge_support = (
@@ -36,24 +41,32 @@ def calculate_confidence(
             and (
                 candidate is best
                 or (
-                    _normalized_corner_distance(best["quad"], candidate["quad"], width, height) < 0.035
-                    and quad_iou(best["quad"], candidate["quad"], width, height) > 0.9
+                    _normalized_corner_distance(best["quad"], candidate["quad"], width, height)
+                    < float(_SCORING_CONFIG["agreementCornerDistance"])
+                    and quad_iou(best["quad"], candidate["quad"], width, height)
+                    > float(_SCORING_CONFIG["agreementIoU"])
                 )
             )
         }
     )
-    detector_agreement = 1.0 if len(agreeing_methods) >= 3 else 0.8 if len(agreeing_methods) == 2 else 0.2
+    detector_agreement = (
+        1.0
+        if len(agreeing_methods) >= 3
+        else float(_CONFIDENCE_CONFIG["twoDetectorAgreement"])
+        if len(agreeing_methods) == 2
+        else float(_CONFIDENCE_CONFIG["minimumDetectorAgreement"])
+    )
     best_normalized_score = min(1.0, max(0.0, best["score"]))
     geometry_validity = min(1.0, max(0.0, features["geometry_validity"]))
     confidence = min(
         1.0,
         max(
             0.0,
-            0.30 * best_normalized_score
-            + 0.25 * normalized_margin
-            + 0.20 * minimum_edge_support
-            + 0.15 * detector_agreement
-            + 0.10 * geometry_validity,
+            float(_FORMULA_WEIGHTS["bestScore"]) * best_normalized_score
+            + float(_FORMULA_WEIGHTS["margin"]) * normalized_margin
+            + float(_FORMULA_WEIGHTS["edgeSupport"]) * minimum_edge_support
+            + float(_FORMULA_WEIGHTS["detectorAgreement"]) * detector_agreement
+            + float(_FORMULA_WEIGHTS["geometryValidity"]) * geometry_validity,
         ),
     )
     return {
@@ -71,9 +84,9 @@ def calculate_confidence(
 
 def is_ambiguous_candidate(second_best_iou: float, breakdown: dict) -> bool:
     return (
-        breakdown["normalized_margin"] < 0.33
-        and second_best_iou < 0.75
-        and breakdown["detector_agreement"] < 0.8
+        breakdown["normalized_margin"] < float(_CONFIDENCE_CONFIG["ambiguousMargin"])
+        and second_best_iou < float(_CONFIDENCE_CONFIG["ambiguousIoU"])
+        and breakdown["detector_agreement"] < float(_CONFIDENCE_CONFIG["ambiguousAgreement"])
     )
 
 

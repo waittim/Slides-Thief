@@ -1,6 +1,8 @@
 import type { GradientMap, ImageDataLike } from "./types.ts";
+import { DETECTION_CONFIG } from "./config.ts";
 
-const PYRAMID_SCALES = [1, 0.67, 0.45];
+const GRADIENT_CONFIG = DETECTION_CONFIG.gradient;
+const PYRAMID_SCALES = [...GRADIENT_CONFIG.pyramidScales];
 
 type ScaleGradient = {
   width: number;
@@ -25,7 +27,8 @@ export function buildGradientPyramid(imageData: ImageDataLike): GradientMap {
         const sourceX = clamp(Math.round((x + 0.5) * scaledWidth / width - 0.5), 0, scaledWidth - 1);
         const sourceIndex = sourceY * scaledWidth + sourceX;
         const targetIndex = y * width + x;
-        const scaledMagnitude = gradient.magnitude[sourceIndex] * Math.sqrt(scale);
+        const scaledMagnitude = gradient.magnitude[sourceIndex] *
+          scale ** GRADIENT_CONFIG.magnitudeScaleExponent;
         if (scaledMagnitude > fusedMagnitude[targetIndex]) {
           fusedMagnitude[targetIndex] = scaledMagnitude;
           fusedOrientation[targetIndex] = gradient.orientation[sourceIndex];
@@ -41,7 +44,10 @@ export function buildGradientPyramid(imageData: ImageDataLike): GradientMap {
     magnitude: fusedMagnitude,
     orientation: fusedOrientation,
     sourceScale,
-    threshold: Math.max(0.035, percentile(fusedMagnitude, 0.85)),
+    threshold: Math.max(
+      GRADIENT_CONFIG.thresholdFloor,
+      percentile(fusedMagnitude, GRADIENT_CONFIG.thresholdPercentile),
+    ),
     scales: [...PYRAMID_SCALES],
   };
 }
@@ -63,13 +69,12 @@ function gradientAtScale(imageData: ImageDataLike, width: number, height: number
     new Float64Array(width * height),
   ];
   for (let y = 0; y < height; y += 1) {
-    const sourceY = clamp(Math.round((y + 0.5) * imageData.height / height - 0.5), 0, imageData.height - 1);
-    for (let x = 0; x < width; x += 1) {
-      const sourceX = clamp(Math.round((x + 0.5) * imageData.width / width - 0.5), 0, imageData.width - 1);
-      const source = (sourceY * imageData.width + sourceX) * 4;
-      const red = imageData.data[source];
-      const green = imageData.data[source + 1];
-      const blue = imageData.data[source + 2];
+      const sourceY = (y + 0.5) * imageData.height / height - 0.5;
+      for (let x = 0; x < width; x += 1) {
+        const sourceX = (x + 0.5) * imageData.width / width - 0.5;
+        const red = sampleBilinear(imageData, sourceX, sourceY, 0);
+        const green = sampleBilinear(imageData, sourceX, sourceY, 1);
+        const blue = sampleBilinear(imageData, sourceX, sourceY, 2);
       const target = y * width + x;
       channels[0][target] = (red * 0.299 + green * 0.587 + blue * 0.114) / 255;
       channels[1][target] = (red - green) / 510;
@@ -83,6 +88,24 @@ function gradientAtScale(imageData: ImageDataLike, width: number, height: number
     applySobel(channel, width, height, magnitude, orientation);
   }
   return { width, height, magnitude, orientation };
+}
+
+function sampleBilinear(imageData: ImageDataLike, x: number, y: number, channel: number): number {
+  const sourceX = clamp(x, 0, imageData.width - 1);
+  const sourceY = clamp(y, 0, imageData.height - 1);
+  const left = Math.floor(sourceX);
+  const top = Math.floor(sourceY);
+  const right = Math.min(imageData.width - 1, left + 1);
+  const bottom = Math.min(imageData.height - 1, top + 1);
+  const horizontal = sourceX - left;
+  const vertical = sourceY - top;
+  const topLeft = imageData.data[(top * imageData.width + left) * 4 + channel];
+  const topRight = imageData.data[(top * imageData.width + right) * 4 + channel];
+  const bottomLeft = imageData.data[(bottom * imageData.width + left) * 4 + channel];
+  const bottomRight = imageData.data[(bottom * imageData.width + right) * 4 + channel];
+  const topValue = topLeft + (topRight - topLeft) * horizontal;
+  const bottomValue = bottomLeft + (bottomRight - bottomLeft) * horizontal;
+  return topValue + (bottomValue - topValue) * vertical;
 }
 
 function applySobel(

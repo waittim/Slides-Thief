@@ -89,3 +89,47 @@ Where:
   $$\text{confidence} = \text{clamp}(0.30 \cdot S_{\text{best}} + 0.25 \cdot M_{\text{norm}} + 0.20 \cdot E_{\text{min}} + 0.15 \cdot A_{\text{det}} + 0.10 \cdot G_{\text{valid}}, 0.0, 1.0)$$
 - Ambiguous candidate flag (`ambiguous_candidates`) is raised if:
   $$M_{\text{norm}} < 0.33 \quad \land \quad \text{quadIoU}(\text{best}, \text{second}) < 0.75 \quad \land \quad A_{\text{det}} < 0.8$$
+
+## 6. Cross-Implementation Contract
+
+The machine-readable source for shared detector policy is
+`schemas/detection-config.json`. Python and TypeScript constants are generated
+from it by:
+
+```bash
+python3 scripts/generate_detection_config.py
+python3 scripts/generate_detection_config.py --check
+```
+
+The generated files are `src/slides_thief/detection/config.py` and
+`site/app/detection/config.ts`; they must not be edited directly. The
+configuration covers the contract-critical geometry, sampling, detector,
+batch-prior, refinement, fallback, scoring, and confidence thresholds. Runtime-specific operations such as image
+resampling kernels may still differ internally, so parity is defined by the
+shared golden contract rather than bit-for-bit output equality.
+
+The public synthetic fixtures under `tests/fixtures/detection/` are checked by
+`tests/fixtures/detection/golden-contract.json`. The contract covers ordinary
+polarity cases plus rotated/Hough candidates, batch priors, portrait input,
+fallback, occlusion, and out-of-bounds input. The cross-runtime check compares
+each implementation's quad accuracy, selected method, required candidate
+methods, candidate count, selected score features, confidence, review
+state/reasons, and normalized corner delta. The `decisionCases` section also
+keeps the Python and TypeScript ambiguity decision at the same thresholds:
+
+Selected score features use the canonical camelCase set
+`edgeStrength`, `edgeSupport`, `edgeContinuity`, `gradientAlignment`,
+`insideOutsideDifference`, `regionConsistency`, `normalizedArea`,
+`geometryValidity`, `aspectPrior`, and `batchConsistency`. A scored candidate
+must provide all ten fields; fallback candidates must provide none. Candidate
+warnings, including weak edge continuity, are also compared across runtimes.
+
+```bash
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src \
+  python3 scripts/check_detection_contract.py
+```
+
+Any new detector threshold or changed tolerance should update the JSON source
+and the golden contract in the same change. The repository CI runs both the
+generated-config `--check` and this cross-runtime contract before the Python
+and Web test/build jobs complete.

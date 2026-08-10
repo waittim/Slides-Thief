@@ -11,6 +11,12 @@ ROOT = Path(__file__).resolve().parent / "fixtures" / "detection" / "synthetic"
 SIZE = (320, 240)
 
 
+def save_fixture(name: str, image: Image.Image) -> None:
+    ROOT.mkdir(parents=True, exist_ok=True)
+    image.save(ROOT / f"{name}.png", optimize=True)
+    image.save(ROOT / f"{name}.ppm")
+
+
 def make_fixture(
     name: str,
     quad: list[tuple[int, int]],
@@ -32,9 +38,21 @@ def make_fixture(
     content_draw.rectangle((198, 132, 258, 177), outline=accent, width=3)
     image.paste(content, mask=mask)
 
-    ROOT.mkdir(parents=True, exist_ok=True)
-    image.save(ROOT / f"{name}.png", optimize=True)
-    image.save(ROOT / f"{name}.ppm")
+    save_fixture(name, image)
+
+
+def make_plain_fixture(
+    name: str,
+    size: tuple[int, int],
+    quad: list[tuple[int, int]],
+    background: tuple[int, int, int],
+    slide: tuple[int, int, int],
+) -> Image.Image:
+    image = Image.new("RGB", size, background)
+    if quad:
+        ImageDraw.Draw(image).polygon(quad, fill=slide)
+    save_fixture(name, image)
+    return image
 
 
 def main() -> None:
@@ -58,6 +76,50 @@ def main() -> None:
         (48, 134, 142),
         (191, 190, 181),
         (59, 68, 76),
+    )
+    make_plain_fixture(
+        "hough-rotated",
+        (180, 125),
+        [(36, 15), (159, 38), (139, 111), (18, 83)],
+        (22, 22, 22),
+        (225, 225, 225),
+    )
+    make_plain_fixture(
+        "batch-prior-rotated",
+        (180, 125),
+        [(36, 15), (159, 38), (139, 111), (18, 83)],
+        (22, 22, 22),
+        (225, 225, 225),
+    )
+    make_plain_fixture(
+        "portrait-slide",
+        (180, 320),
+        [(36, 28), (155, 18), (160, 294), (22, 304)],
+        (35, 45, 58),
+        (232, 230, 218),
+    )
+    make_plain_fixture(
+        "fallback-solid",
+        (160, 100),
+        [],
+        (128, 128, 128),
+        (128, 128, 128),
+    )
+    occluded = make_plain_fixture(
+        "occluded-slide",
+        SIZE,
+        [(34, 30), (290, 42), (275, 207), (43, 196)],
+        (35, 45, 58),
+        (232, 230, 218),
+    )
+    ImageDraw.Draw(occluded).rectangle((80, 135, 245, 239), fill=(35, 45, 58))
+    save_fixture("occluded-slide", occluded)
+    make_plain_fixture(
+        "out-of-bounds-slide",
+        SIZE,
+        [(-10, -18), (310, -8), (275, 205), (35, 195)],
+        (35, 45, 58),
+        (232, 230, 218),
     )
 
 

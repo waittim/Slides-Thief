@@ -6,7 +6,8 @@ import {
   isAmbiguousCandidate,
 } from "./confidence.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
-import { convexQuadIoU, normalizedCornerDistance, quadIoU } from "./geometry.ts";
+import { convexQuadIoU, normalizedCornerDistance } from "./geometry.ts";
+import { DETECTION_CONFIG } from "./config.ts";
 import { buildImageFeatures } from "./image-features.ts";
 import { houghLineDetector } from "./hough-lines.ts";
 import { maskLineDetector } from "./mask-lines.ts";
@@ -88,7 +89,9 @@ export function detectQuad(
   const confidence = confidenceBreakdown.confidence;
   const reviewReasons: ReviewReason[] = [];
   if (confidence < AUTO_REVIEW_CONFIDENCE) reviewReasons.push("low_confidence");
-  if (confidenceBreakdown.minimumEdgeSupport < 0.25) reviewReasons.push("weak_edge_support");
+  if (
+    confidenceBreakdown.minimumEdgeSupport < DETECTION_CONFIG.scoring.weakEdgeSupportReview
+  ) reviewReasons.push("weak_edge_support");
   if (
     second &&
     isAmbiguousCandidate(
@@ -141,8 +144,9 @@ export function deduplicateCandidates(
   const kept: QuadCandidate[] = [];
   for (const candidate of ranked) {
     const duplicate = kept.some((existing) =>
-      quadIoU(candidate.quad, existing.quad, width, height) > 0.94 ||
-      normalizedCornerDistance(candidate.quad, existing.quad, width, height) < 0.012
+      convexQuadIoU(candidate.quad, existing.quad) > DETECTION_CONFIG.deduplication.iouThreshold ||
+      normalizedCornerDistance(candidate.quad, existing.quad, width, height) <
+        DETECTION_CONFIG.deduplication.cornerDistanceThreshold
     );
     if (!duplicate) kept.push(candidate);
   }
@@ -150,13 +154,13 @@ export function deduplicateCandidates(
 }
 
 function fallbackResult(width: number, height: number, candidatesEvaluated: number): DetectionResult {
-  const marginX = width * 0.045;
-  const marginY = height * 0.055;
+  const marginY = height * DETECTION_CONFIG.fallback.marginYRatio;
+  const fallbackMarginX = width * DETECTION_CONFIG.fallback.marginXRatio;
   const quad: Quad = [
-    [marginX, marginY],
-    [width - marginX, marginY],
-    [width - marginX, height - marginY],
-    [marginX, height - marginY],
+    [fallbackMarginX, marginY],
+    [width - fallbackMarginX, marginY],
+    [width - fallbackMarginX, height - marginY],
+    [fallbackMarginX, height - marginY],
   ];
   return {
     quad,

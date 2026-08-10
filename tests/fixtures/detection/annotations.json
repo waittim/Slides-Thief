@@ -14,6 +14,52 @@
       "file": "synthetic/neutral-slide-color-wall.png",
       "quad": [[52, 44], [276, 33], [288, 198], [40, 210]],
       "tags": ["neutral-slide", "color-background", "internal-lines"]
+    },
+    {
+      "file": "synthetic/hough-rotated.png",
+      "quad": [[36, 15], [159, 38], [139, 111], [18, 83]],
+      "ratio": 1.7777777778,
+      "tags": ["hough", "rotated", "perspective"]
+    },
+    {
+      "file": "synthetic/batch-prior-rotated.png",
+      "quad": [[36, 15], [159, 38], [139, 111], [18, 83]],
+      "ratio": 1.7777777778,
+      "batch_priors": [
+        {
+          "id": "fixture-prior",
+          "orientation": "landscape",
+          "normalized_quad": [[0.2, 0.12], [0.8833333333, 0.304], [0.7722222222, 0.888], [0.1, 0.664]],
+          "normalizedQuad": [[0.2, 0.12], [0.8833333333, 0.304], [0.7722222222, 0.888], [0.1, 0.664]],
+          "memberCount": 3,
+          "member_count": 3,
+          "rmsDeviation": 0,
+          "rms_deviation": 0,
+          "consistency": 1
+        }
+      ],
+      "tags": ["batch-prior", "rotated", "perspective"]
+    },
+    {
+      "file": "synthetic/portrait-slide.png",
+      "quad": [[36, 28], [155, 18], [160, 294], [22, 304]],
+      "ratio": 0.5625,
+      "tags": ["portrait", "perspective"]
+    },
+    {
+      "file": "synthetic/fallback-solid.png",
+      "quad": null,
+      "tags": ["fallback", "no-boundary"]
+    },
+    {
+      "file": "synthetic/occluded-slide.png",
+      "quad": [[34, 30], [290, 42], [275, 207], [43, 196]],
+      "tags": ["occlusion", "review"]
+    },
+    {
+      "file": "synthetic/out-of-bounds-slide.png",
+      "quad": [[-10, -18], [310, -8], [275, 205], [35, 195]],
+      "tags": ["out-of-bounds", "review"]
     }
   ]
 }

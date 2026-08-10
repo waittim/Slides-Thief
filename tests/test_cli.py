@@ -1,5 +1,6 @@
 import json
 import math
+import re
 import shutil
 import subprocess
 import textwrap
@@ -126,6 +127,7 @@ def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path:
 
         const html = fs.readFileSync(process.argv[1], "utf8");
         const script = html.match(/<script>\n([\s\S]*)\n<\/script>/)[1];
+        const reviewData = html.match(/<script id="review-data" type="application\/json">([\s\S]*?)<\/script>/)[1];
         let exported = null;
         const context2d = new Proxy({}, { get: () => () => {} });
 
@@ -134,19 +136,26 @@ def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path:
             this.id = id;
             this.listeners = {};
             this.style = {};
-            this.innerHTML = "";
+            this.children = [];
+            this.textContent = "";
           }
           addEventListener(name, callback) { this.listeners[name] = callback; }
-          getBoundingClientRect() { return { left: 0, top: 0 }; }
+          append(...children) { this.children.push(...children); }
+          appendChild(child) { this.children.push(child); }
+          getBoundingClientRect() { return { left: 0, top: 0, width: this.width || 1200, height: this.height || 900 }; }
           getContext() { return context2d; }
-          appendChild() {}
+          setAttribute() {}
+          setPointerCapture() {}
+          releasePointerCapture() {}
           click() { if (this.onclick) this.onclick(); }
         }
 
         const elements = new Map(
-          ["cv", "sidebar", "info", "toast", "prevBtn", "nextBtn", "resetBtn", "exportBtn"]
+          ["cv", "sidebar", "info", "toast", "status", "handles", "cornerKeyboardHelp", "prevBtn", "nextBtn", "resetBtn", "exportBtn"]
             .map((id) => [id, new Element(id)])
         );
+        elements.set("review-data", new Element("review-data"));
+        elements.get("review-data").textContent = reviewData;
         const document = {
           getElementById(id) { return elements.get(id); },
           querySelectorAll() { return []; },
@@ -156,7 +165,8 @@ def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path:
           innerWidth: 1600,
           innerHeight: 1300,
           listeners: {},
-          addEventListener(name, callback) { this.listeners[name] = callback; }
+          addEventListener(name, callback) { this.listeners[name] = callback; },
+          requestAnimationFrame(callback) { callback(); }
         };
         class FakeImage {
           constructor() { this.width = 1600; this.height = 1200; this.onload = null; }
@@ -186,9 +196,9 @@ def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path:
         });
 
         const canvas = elements.get("cv");
-        canvas.listeners.mousedown({ clientX: 75, clientY: 112.5 });
-        canvas.listeners.mousemove({ clientX: 150, clientY: 150 });
-        window.listeners.mouseup();
+        canvas.listeners.pointerdown({ clientX: 75, clientY: 112.5, pointerId: 1, pointerType: "mouse", button: 0, currentTarget: canvas, preventDefault() {} });
+        canvas.listeners.pointermove({ clientX: 150, clientY: 150, pointerId: 1, currentTarget: canvas });
+        window.listeners.pointerup({ pointerId: 1, currentTarget: window });
         elements.get("exportBtn").onclick();
         process.stdout.write(exported);
         """
@@ -203,6 +213,38 @@ def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path:
     assert json.loads(completed.stdout) == {
         "slide.jpg": [[500, 500], [3500, 300], [3600, 2550], [300, 2700]]
     }
+
+
+def test_manual_review_html_escapes_untrusted_data_and_uses_accessible_controls(tmp_path: Path) -> None:
+    html_path = tmp_path / "manual_review.html"
+    filename = "</script><script>window.wasInjected = true</script>.jpg"
+    make_manual_review_html(
+        [
+            {
+                "filename": filename,
+                "image": "manual_review_images/slide.jpg",
+                "assetQuad": [[0, 0], [10, 0], [10, 10], [0, 10]],
+                "confidence": 0.9,
+                "needsReview": False,
+                "method": "test",
+            }
+        ],
+        html_path,
+    )
+
+    html = html_path.read_text(encoding="utf-8")
+    data_match = re.search(r'<script id="review-data" type="application/json">([\s\S]*?)</script>', html)
+    assert data_match is not None
+    assert json.loads(data_match.group(1))[0]["filename"] == filename
+    assert r"\u003c/script\u003e" in data_match.group(1)
+    assert html.count("</script>") == 2
+    assert "innerHTML" not in html
+    assert '<div class="thumb"' not in html
+    assert 'class="corner-handles"' in html
+    assert 'button.className = "corner-handle"' in html
+    assert 'addEventListener("pointerdown"' in html
+    assert 'addEventListener("keydown"' in html
+    assert 'aria-live="polite"' in html
 
 
 def test_parse_ratio_accepts_named_paper_aliases() -> None:

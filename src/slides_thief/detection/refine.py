@@ -7,7 +7,11 @@ import math
 import numpy as np
 
 from .gradient import GradientMap
+from .config import DETECTION_CONFIG
 from .scoring import evaluate_edge_evidence
+
+
+_REFINEMENT_CONFIG = DETECTION_CONFIG["refinement"]
 
 
 def refine_quad(
@@ -32,7 +36,7 @@ def refine_quad(
     if not _geometry_is_valid(refined, width, height):
         return None
     movements = np.linalg.norm(refined - quad, axis=1)
-    movement_limit = math.hypot(width, height) * 0.04
+    movement_limit = math.hypot(width, height) * float(_REFINEMENT_CONFIG["movementRatio"])
     if float(movements.max()) > movement_limit:
         return None
     return refined, {
@@ -58,8 +62,18 @@ def _refine_edge(
     best = _evaluate_transform(midpoint, length, base_angle, 0.0, 0.0, gray, gradient)
     objective_before = best["objective"]
 
-    for angle_degrees in np.arange(-3.0, 3.001, 0.5):
-        for offset in np.arange(-12.0, 12.001, 2.0):
+    angle_range = float(_REFINEMENT_CONFIG["coarseAngleRangeDegrees"])
+    offset_range = float(_REFINEMENT_CONFIG["coarseOffset"])
+    for angle_degrees in np.arange(
+        -angle_range,
+        angle_range + float(_REFINEMENT_CONFIG["coarseAngleStepDegrees"]) * 0.01,
+        float(_REFINEMENT_CONFIG["coarseAngleStepDegrees"]),
+    ):
+        for offset in np.arange(
+            -offset_range,
+            offset_range + float(_REFINEMENT_CONFIG["coarseOffsetStep"]) * 0.01,
+            float(_REFINEMENT_CONFIG["coarseOffsetStep"]),
+        ):
             candidate = _evaluate_transform(
                 midpoint,
                 length,
@@ -75,12 +89,21 @@ def _refine_edge(
     coarse_angle = best["angle_delta"]
     coarse_offset = best["offset"]
     for angle_delta in np.arange(
-        coarse_angle - math.radians(0.3),
-        coarse_angle + math.radians(0.301),
-        math.radians(0.1),
+        coarse_angle - math.radians(float(_REFINEMENT_CONFIG["fineAngleRangeDegrees"])),
+        coarse_angle + math.radians(
+            float(_REFINEMENT_CONFIG["fineAngleRangeDegrees"])
+            + float(_REFINEMENT_CONFIG["fineAngleStepDegrees"]) * 0.01
+        ),
+        math.radians(float(_REFINEMENT_CONFIG["fineAngleStepDegrees"])),
     ):
-        for offset in np.arange(coarse_offset - 1.0, coarse_offset + 1.001, 0.5):
-            if abs(angle_delta) > math.radians(3) or abs(offset) > 12:
+        fine_offset_range = float(_REFINEMENT_CONFIG["fineOffsetRange"])
+        for offset in np.arange(
+            coarse_offset - fine_offset_range,
+            coarse_offset + fine_offset_range
+            + float(_REFINEMENT_CONFIG["fineOffsetStep"]) * 0.01,
+            float(_REFINEMENT_CONFIG["fineOffsetStep"]),
+        ):
+            if abs(angle_delta) > math.radians(angle_range) or abs(offset) > offset_range:
                 continue
             candidate = _evaluate_transform(
                 midpoint,
@@ -114,10 +137,13 @@ def _evaluate_transform(
     end = shifted_midpoint + direction * length / 2
     evidence = evaluate_edge_evidence(gray, start, end, gradient)
     objective = _edge_objective(evidence, gradient)
-    localization_score = 1 - min(1.0, evidence["localization_offset"] / 4)
-    regularization = 0.0015 * (
-        abs(angle_delta) / math.radians(3)
-        + abs(offset) / 12
+    localization_score = 1 - min(
+        1.0,
+        evidence["localization_offset"] / float(_REFINEMENT_CONFIG["localizationScale"]),
+    )
+    regularization = float(_REFINEMENT_CONFIG["regularizationWeight"]) * (
+        abs(angle_delta) / math.radians(float(_REFINEMENT_CONFIG["coarseAngleRangeDegrees"]))
+        + abs(offset) / float(_REFINEMENT_CONFIG["coarseOffset"])
     )
     return {
         "line": np.array([normal[0], normal[1], -float(normal @ shifted_midpoint)]),
@@ -130,14 +156,25 @@ def _evaluate_transform(
 
 
 def _edge_objective(evidence: dict, gradient: GradientMap) -> float:
-    edge_strength = min(1.0, evidence["median_strength"] / max(0.05, gradient.threshold * 1.8))
-    signed_contrast = max(0.0, min(1.0, evidence["signed_contrast"] / 32))
+    edge_strength = min(
+        1.0,
+        evidence["median_strength"]
+        / max(
+            float(_REFINEMENT_CONFIG["gradientStrengthFloor"]),
+            gradient.threshold * float(_REFINEMENT_CONFIG["gradientStrengthScale"]),
+        ),
+    )
+    signed_contrast = max(
+        0.0,
+        min(1.0, evidence["signed_contrast"] / float(_REFINEMENT_CONFIG["signedContrastScale"])),
+    )
+    weights = _REFINEMENT_CONFIG["edgeObjectiveWeights"]
     return (
-        0.35 * edge_strength
-        + 0.30 * evidence["support_ratio"]
-        + 0.20 * evidence["longest_run_ratio"]
-        + 0.10 * evidence["gradient_alignment"]
-        + 0.05 * signed_contrast
+        float(weights["edgeStrength"]) * edge_strength
+        + float(weights["edgeSupport"]) * evidence["support_ratio"]
+        + float(weights["edgeContinuity"]) * evidence["longest_run_ratio"]
+        + float(weights["gradientAlignment"]) * evidence["gradient_alignment"]
+        + float(weights["signedContrast"]) * signed_contrast
     )
 
 

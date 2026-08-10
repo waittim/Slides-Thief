@@ -5,6 +5,9 @@ import type {
   Quad,
   QuadCandidate,
 } from "./types.ts";
+import { DETECTION_CONFIG } from "./config.ts";
+
+const BATCH_CONFIG = DETECTION_CONFIG.batchPrior;
 
 const EMPTY_FEATURES: CandidateFeatures = {
   edgeStrength: 0,
@@ -21,7 +24,7 @@ const EMPTY_FEATURES: CandidateFeatures = {
 
 export function buildBatchPriors(results: PreliminaryResult[]): BatchPrior[] {
   const reliable = results.filter((result) =>
-    result.confidence >= 0.78 && result.method !== "fallback-frame"
+    result.confidence >= BATCH_CONFIG.minimumReliableConfidence && result.method !== "fallback-frame"
   );
   const clusters: PreliminaryResult[][] = [];
   for (const result of reliable) {
@@ -32,7 +35,7 @@ export function buildBatchPriors(results: PreliminaryResult[]): BatchPrior[] {
       if (imageOrientation(cluster[0].width, cluster[0].height) !== orientation) continue;
       const center = medianQuad(cluster.map((item) => item.normalizedQuad));
       const distance = normalizedQuadDistance(result.normalizedQuad, center);
-      if (distance < 0.045 && distance < bestDistance) {
+      if (distance < BATCH_CONFIG.clusterDistance && distance < bestDistance) {
         bestCluster = cluster;
         bestDistance = distance;
       }
@@ -43,19 +46,19 @@ export function buildBatchPriors(results: PreliminaryResult[]): BatchPrior[] {
 
   const priors: BatchPrior[] = [];
   for (const cluster of clusters) {
-    if (cluster.length < 3) continue;
+    if (cluster.length < BATCH_CONFIG.minimumClusterMembers) continue;
     const normalizedQuad = medianQuad(cluster.map((item) => item.normalizedQuad));
     const rmsDeviation = Math.sqrt(
       average(cluster.map((item) => normalizedQuadDistance(item.normalizedQuad, normalizedQuad) ** 2)),
     );
-    if (rmsDeviation >= 0.028) continue;
+    if (rmsDeviation >= BATCH_CONFIG.maximumRmsDeviation) continue;
     priors.push({
       id: `camera-position-cluster-${priors.length + 1}`,
       orientation: imageOrientation(cluster[0].width, cluster[0].height),
       normalizedQuad,
       memberCount: cluster.length,
       rmsDeviation,
-      consistency: clamp(1 - rmsDeviation / 0.035, 0, 1),
+      consistency: clamp(1 - rmsDeviation / BATCH_CONFIG.consistencyScale, 0, 1),
     });
   }
   return priors;

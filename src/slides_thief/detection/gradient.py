@@ -7,8 +7,10 @@ from dataclasses import dataclass
 import numpy as np
 from PIL import Image
 
+from .config import DETECTION_CONFIG
 
-PYRAMID_SCALES = (1.0, 0.67, 0.45)
+_GRADIENT_CONFIG = DETECTION_CONFIG["gradient"]
+PYRAMID_SCALES = tuple(float(value) for value in _GRADIENT_CONFIG["pyramidScales"])
 
 
 @dataclass(frozen=True)
@@ -58,14 +60,19 @@ def build_gradient_pyramid(rgb: np.ndarray) -> GradientMap:
             0,
             scaled_width - 1,
         )
-        mapped_magnitude = magnitude[np.ix_(y_indices, x_indices)] * np.sqrt(scale)
+        mapped_magnitude = magnitude[np.ix_(y_indices, x_indices)] * scale ** float(
+            _GRADIENT_CONFIG["magnitudeScaleExponent"]
+        )
         mapped_orientation = orientation[np.ix_(y_indices, x_indices)]
         replace = mapped_magnitude > fused_magnitude
         fused_magnitude[replace] = mapped_magnitude[replace]
         fused_orientation[replace] = mapped_orientation[replace]
         source_scale[replace] = scale
 
-    threshold = max(0.035, float(np.percentile(fused_magnitude, 85)))
+    threshold = max(
+        float(_GRADIENT_CONFIG["thresholdFloor"]),
+        float(np.percentile(fused_magnitude, float(_GRADIENT_CONFIG["thresholdPercentile"]) * 100)),
+    )
     return GradientMap(fused_magnitude, fused_orientation, source_scale, threshold)
 
 

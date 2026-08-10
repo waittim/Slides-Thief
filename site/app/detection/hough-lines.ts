@@ -5,6 +5,7 @@ import {
   polygonArea,
   type Line,
 } from "./geometry.ts";
+import { DETECTION_CONFIG } from "./config.ts";
 import type {
   CandidateDetector,
   CandidateFeatures,
@@ -13,6 +14,8 @@ import type {
   Quad,
   QuadCandidate,
 } from "./types.ts";
+
+const HOUGH_CONFIG = DETECTION_CONFIG.houghLines;
 
 type EdgePoint = {
   x: number;
@@ -51,21 +54,24 @@ const EMPTY_FEATURES: CandidateFeatures = {
   batchConsistency: 0,
 };
 
-const ANGLE_STEP = Math.PI / 90;
-const RHO_STEP = 3;
+const ANGLE_STEP = Math.PI / HOUGH_CONFIG.angleBins;
+const RHO_STEP = HOUGH_CONFIG.rhoStep;
 
 export const houghLineDetector: CandidateDetector = {
   name: "hough-lines",
   detect(features: ImageFeatures): QuadCandidate[] {
     const edgePoints = collectEdgePoints(features);
-    if (edgePoints.length < 48) return [];
+    if (edgePoints.length < HOUGH_CONFIG.minimumEdgePoints) return [];
     const peaks = voteForLines(edgePoints, features.width, features.height);
     const segments = extractSegments(peaks, edgePoints, features.width, features.height);
     const families = clusterDirections(segments);
     if (!families) return [];
     const [firstFamily, secondFamily] = families;
     const familyAngle = directionDifference(firstFamily.angle, secondFamily.angle);
-    if (familyAngle < 35 * Math.PI / 180 || familyAngle > 145 * Math.PI / 180) return [];
+    if (
+      familyAngle < HOUGH_CONFIG.minimumFamilyAngleDegrees * Math.PI / 180 ||
+      familyAngle > HOUGH_CONFIG.maximumFamilyAngleDegrees * Math.PI / 180
+    ) return [];
 
     const firstPairs = generateLinePairs(firstFamily.segments, features.width, features.height);
     const secondPairs = generateLinePairs(secondFamily.segments, features.width, features.height);
@@ -81,7 +87,7 @@ export const houghLineDetector: CandidateDetector = {
         if (!geometryIsValid(quad, features.width, features.height)) continue;
         const area = polygonArea(quad) / (features.width * features.height);
         const lineSupport = [...firstPair, ...secondPair].map((segment) => segment.support);
-        const detectorScore = average(lineSupport) + Math.min(0.8, area);
+        const detectorScore = average(lineSupport) + Math.min(HOUGH_CONFIG.areaScoreCap, area);
         candidates.push({ quad, detectorScore, lineSupport });
       }
     }
@@ -89,10 +95,13 @@ export const houghLineDetector: CandidateDetector = {
     return candidates
       .sort((first, second) => second.detectorScore - first.detectorScore)
       .filter((candidate, index, all) =>
-        all.findIndex((other) => quadDistance(candidate.quad, other.quad, features.width, features.height) < 0.012) ===
+        all.findIndex((other) =>
+          quadDistance(candidate.quad, other.quad, features.width, features.height) <
+            DETECTION_CONFIG.deduplication.cornerDistanceThreshold
+        ) ===
           index
       )
-      .slice(0, 5)
+      .slice(0, HOUGH_CONFIG.outputCandidateLimit)
       .map((candidate) => ({
         quad: candidate.quad,
         method: "hough-lines",
@@ -116,7 +125,9 @@ export const houghLineDetector: CandidateDetector = {
 function collectEdgePoints(features: ImageFeatures): EdgePoint[] {
   const { magnitude, orientation, threshold } = features.gradient;
   const rawCount = magnitude.reduce((count, value) => count + (value >= threshold ? 1 : 0), 0);
-  const stride = rawCount > 28000 ? 2 : 1;
+  const stride = rawCount > HOUGH_CONFIG.maximumEdgePointsBeforeStride
+    ? HOUGH_CONFIG.strideWhenDense
+    : 1;
   const points: EdgePoint[] = [];
   for (let y = 1; y < features.height - 1; y += stride) {
     for (let x = 1; x < features.width - 1; x += stride) {
@@ -130,17 +141,18 @@ function collectEdgePoints(features: ImageFeatures): EdgePoint[] {
 
 function voteForLines(edgePoints: EdgePoint[], width: number, height: number): HoughPeak[] {
   const diagonal = Math.hypot(width, height);
-  const angleBins = 90;
+  const angleBins = HOUGH_CONFIG.angleBins;
   const rhoBins = Math.ceil(diagonal * 2 / RHO_STEP) + 1;
   const accumulator = new Float64Array(angleBins * rhoBins);
   for (const point of edgePoints) {
     const centerIndex = Math.round(point.orientation / ANGLE_STEP) % angleBins;
-    for (const offset of [-2, -1, 0, 1, 2]) {
+    for (let offset = -HOUGH_CONFIG.voteAngleRadius; offset <= HOUGH_CONFIG.voteAngleRadius; offset += 1) {
       const angleIndex = modulo(centerIndex + offset, angleBins);
       const angle = angleIndex * ANGLE_STEP;
       const rho = point.x * Math.cos(angle) + point.y * Math.sin(angle);
       const rhoIndex = Math.round((rho + diagonal) / RHO_STEP);
-      accumulator[angleIndex * rhoBins + rhoIndex] += 0.35 + Math.min(1, point.magnitude);
+      accumulator[angleIndex * rhoBins + rhoIndex] +=
+        HOUGH_CONFIG.voteWeightBase + Math.min(HOUGH_CONFIG.voteMagnitudeCap, point.magnitude);
     }
   }
 
@@ -148,7 +160,7 @@ function voteForLines(edgePoints: EdgePoint[], width: number, height: number): H
   for (let angleIndex = 0; angleIndex < angleBins; angleIndex += 1) {
     for (let rhoIndex = 0; rhoIndex < rhoBins; rhoIndex += 1) {
       const votes = accumulator[angleIndex * rhoBins + rhoIndex];
-      if (votes >= Math.max(8, Math.min(width, height) * 0.018)) {
+      if (votes >= Math.max(HOUGH_CONFIG.minimumVotes, Math.min(width, height) * HOUGH_CONFIG.minimumVotesRatio)) {
         peakCandidates.push({ angleIndex, rhoIndex, votes });
       }
     }
@@ -157,12 +169,12 @@ function voteForLines(edgePoints: EdgePoint[], width: number, height: number): H
   const peaks: HoughPeak[] = [];
   for (const candidate of peakCandidates) {
     if (peaks.every((peak) =>
-      circularBinDistance(candidate.angleIndex, peak.angleIndex, angleBins) > 2 ||
-      Math.abs(candidate.rhoIndex - peak.rhoIndex) > 3
+      circularBinDistance(candidate.angleIndex, peak.angleIndex, angleBins) > HOUGH_CONFIG.peakAngleDistance ||
+      Math.abs(candidate.rhoIndex - peak.rhoIndex) > HOUGH_CONFIG.peakRhoDistance
     )) {
       peaks.push(candidate);
     }
-    if (peaks.length >= 40) break;
+    if (peaks.length >= HOUGH_CONFIG.maximumPeaks) break;
   }
   return peaks;
 }
@@ -184,16 +196,16 @@ function extractSegments(
     const rho = peak.rhoIndex * RHO_STEP - diagonal;
     const aligned = edgePoints
       .filter((point) =>
-        Math.abs(point.x * normalX + point.y * normalY - rho) <= 2.75 &&
-        orientationDifference(point.orientation, normalAngle) <= 12 * Math.PI / 180
+        Math.abs(point.x * normalX + point.y * normalY - rho) <= HOUGH_CONFIG.lineDistance &&
+        orientationDifference(point.orientation, normalAngle) <= HOUGH_CONFIG.orientationToleranceDegrees * Math.PI / 180
       )
       .map((point) => ({ point, projection: point.x * directionX + point.y * directionY }))
       .sort((first, second) => first.projection - second.projection);
-    if (aligned.length < 8) continue;
+    if (aligned.length < HOUGH_CONFIG.minimumEdgePoints) continue;
 
     const groups: typeof aligned[] = [];
     let group: typeof aligned = [aligned[0]];
-    const maximumGap = Math.max(5, diagonal * 0.012);
+    const maximumGap = Math.max(HOUGH_CONFIG.maximumGapFloor, diagonal * HOUGH_CONFIG.maximumGapRatio);
     for (let index = 1; index < aligned.length; index += 1) {
       if (aligned[index].projection - aligned[index - 1].projection > maximumGap) {
         groups.push(group);
@@ -207,12 +219,7 @@ function extractSegments(
       const first = support[0].projection;
       const last = support[support.length - 1].projection;
       const length = last - first;
-      const endpointMargin = Math.min(width, height) * 0.06;
-      const touchesFrame = support.some(({ point }) =>
-        point.x < endpointMargin || point.x > width - endpointMargin ||
-        point.y < endpointMargin || point.y > height - endpointMargin
-      );
-      if (length < diagonal * (touchesFrame ? 0.08 : 0.1)) continue;
+      if (length < diagonal * HOUGH_CONFIG.minimumSegmentLengthRatio) continue;
       candidates.push({
         line: { a: normalX, b: normalY, c: -rho },
         start: [normalX * rho + directionX * first, normalY * rho + directionY * first],
@@ -229,12 +236,13 @@ function extractSegments(
   const selected: LineSegment[] = [];
   for (const segment of candidates) {
     if (selected.every((kept) =>
-      orientationDifference(segment.normalAngle, kept.normalAngle) > 4 * Math.PI / 180 ||
-      Math.abs(segment.rho - kept.rho) > 5
+      orientationDifference(segment.normalAngle, kept.normalAngle) >
+        HOUGH_CONFIG.lineDeduplicationAngleDegrees * Math.PI / 180 ||
+      Math.abs(segment.rho - kept.rho) > HOUGH_CONFIG.lineDeduplicationRho
     )) {
       selected.push(segment);
     }
-    if (selected.length >= 28) break;
+    if (selected.length >= HOUGH_CONFIG.maximumSegments) break;
   }
   return selected;
 }
@@ -262,7 +270,7 @@ function clusterDirections(segments: LineSegment[]): [
       let weight = 0;
       segments.forEach((segment, index) => {
         if (assignments[index] !== family) return;
-        const itemWeight = segment.length * Math.max(0.15, segment.support);
+        const itemWeight = segment.length * Math.max(HOUGH_CONFIG.supportWeightFloor, segment.support);
         x += vectors[index][0] * itemWeight;
         y += vectors[index][1] * itemWeight;
         weight += itemWeight;
@@ -288,7 +296,7 @@ function generateLinePairs(segments: LineSegment[], width: number, height: numbe
   for (let first = 0; first < positioned.length; first += 1) {
     for (let second = first + 1; second < positioned.length; second += 1) {
       const separation = Math.abs(positioned[first].position - positioned[second].position);
-      if (separation < Math.min(width, height) * 0.16) continue;
+      if (separation < Math.min(width, height) * HOUGH_CONFIG.pairSeparationRatio) continue;
       const straddlesCenter = positioned[first].position * positioned[second].position <= 0;
       const support = positioned[first].segment.support + positioned[second].segment.support;
       const length = positioned[first].segment.length + positioned[second].segment.length;
@@ -298,7 +306,10 @@ function generateLinePairs(segments: LineSegment[], width: number, height: numbe
       });
     }
   }
-  return pairs.sort((first, second) => second.score - first.score).slice(0, 6).map((item) => item.pair);
+  return pairs
+    .sort((first, second) => second.score - first.score)
+    .slice(0, HOUGH_CONFIG.maximumPairs)
+    .map((item) => item.pair);
 }
 
 function normalizeAngle(angle: number): number {

@@ -12,6 +12,9 @@ import type {
   Quad,
   QuadCandidate,
 } from "./types.ts";
+import { DETECTION_CONFIG } from "./config.ts";
+
+const REFINEMENT_CONFIG = DETECTION_CONFIG.refinement;
 
 type EdgeSearchResult = {
   line: Line;
@@ -37,7 +40,7 @@ export function refineCandidate(candidate: QuadCandidate, image: ImageFeatures):
   const maximumMovement = Math.max(
     ...candidate.quad.map((point, index) => distance(point, refinedQuad[index])),
   );
-  const movementLimit = Math.hypot(image.width, image.height) * 0.04;
+  const movementLimit = Math.hypot(image.width, image.height) * REFINEMENT_CONFIG.movementRatio;
   if (maximumMovement > movementLimit) return null;
 
   return {
@@ -65,8 +68,16 @@ function refineEdge(start: Point, end: Point, image: ImageFeatures): EdgeSearchR
   let best = evaluateEdgeTransform(midpoint, length, baseAngle, 0, 0, image);
   const objectiveBefore = best.objective;
 
-  for (let angleDegrees = -3; angleDegrees <= 3.0001; angleDegrees += 0.5) {
-    for (let offset = -12; offset <= 12.0001; offset += 2) {
+  for (
+    let angleDegrees = -REFINEMENT_CONFIG.coarseAngleRangeDegrees;
+    angleDegrees <= REFINEMENT_CONFIG.coarseAngleRangeDegrees + 0.0001;
+    angleDegrees += REFINEMENT_CONFIG.coarseAngleStepDegrees
+  ) {
+    for (
+      let offset = -REFINEMENT_CONFIG.coarseOffset;
+      offset <= REFINEMENT_CONFIG.coarseOffset + 0.0001;
+      offset += REFINEMENT_CONFIG.coarseOffsetStep
+    ) {
       const candidate = evaluateEdgeTransform(
         midpoint,
         length,
@@ -81,12 +92,19 @@ function refineEdge(start: Point, end: Point, image: ImageFeatures): EdgeSearchR
 
   const coarse = best;
   for (
-    let angleDelta = coarse.angleDelta - 0.3 * Math.PI / 180;
-    angleDelta <= coarse.angleDelta + 0.3001 * Math.PI / 180;
-    angleDelta += 0.1 * Math.PI / 180
+    let angleDelta = coarse.angleDelta - REFINEMENT_CONFIG.fineAngleRangeDegrees * Math.PI / 180;
+    angleDelta <= coarse.angleDelta + (REFINEMENT_CONFIG.fineAngleRangeDegrees + 0.0001) * Math.PI / 180;
+    angleDelta += REFINEMENT_CONFIG.fineAngleStepDegrees * Math.PI / 180
   ) {
-    for (let offset = coarse.offset - 1; offset <= coarse.offset + 1.0001; offset += 0.5) {
-      if (Math.abs(angleDelta) > 3 * Math.PI / 180 || Math.abs(offset) > 12) continue;
+    for (
+      let offset = coarse.offset - REFINEMENT_CONFIG.fineOffsetRange;
+      offset <= coarse.offset + REFINEMENT_CONFIG.fineOffsetRange + 0.0001;
+      offset += REFINEMENT_CONFIG.fineOffsetStep
+    ) {
+      if (
+        Math.abs(angleDelta) > REFINEMENT_CONFIG.coarseAngleRangeDegrees * Math.PI / 180 ||
+        Math.abs(offset) > REFINEMENT_CONFIG.coarseOffset
+      ) continue;
       const candidate = evaluateEdgeTransform(midpoint, length, baseAngle, angleDelta, offset, image);
       if (candidate.selectionScore > best.selectionScore) best = candidate;
     }
@@ -137,10 +155,14 @@ function evaluateEdgeTransform(
   ];
   const evidence = evaluateEdgeEvidence(start, end, image);
   const objective = edgeObjective(evidence, image);
-  const localizationScore = 1 - clamp(evidence.localizationOffset / 4, 0, 1);
-  const regularization = 0.0015 * (
-    Math.abs(angleDelta) / (3 * Math.PI / 180) +
-    Math.abs(offset) / 12
+  const localizationScore = 1 - clamp(
+    evidence.localizationOffset / REFINEMENT_CONFIG.localizationScale,
+    0,
+    1,
+  );
+  const regularization = REFINEMENT_CONFIG.regularizationWeight * (
+    Math.abs(angleDelta) / (REFINEMENT_CONFIG.coarseAngleRangeDegrees * Math.PI / 180) +
+    Math.abs(offset) / REFINEMENT_CONFIG.coarseOffset
   );
   return {
     line: {
@@ -158,17 +180,24 @@ function evaluateEdgeTransform(
 
 function edgeObjective(evidence: EdgeEvidence, image: ImageFeatures): number {
   const edgeStrength = clamp(
-    evidence.medianStrength / Math.max(0.05, image.gradient.threshold * 1.8),
+    evidence.medianStrength / Math.max(
+      REFINEMENT_CONFIG.gradientStrengthFloor,
+      image.gradient.threshold * REFINEMENT_CONFIG.gradientStrengthScale,
+    ),
     0,
     1,
   );
-  const signedContrast = clamp(evidence.signedContrast / 32, 0, 1);
+  const signedContrast = clamp(
+    evidence.signedContrast / REFINEMENT_CONFIG.signedContrastScale,
+    0,
+    1,
+  );
   return (
-    0.35 * edgeStrength +
-    0.3 * evidence.supportRatio +
-    0.2 * evidence.longestRunRatio +
-    0.1 * evidence.gradientAlignment +
-    0.05 * signedContrast
+    REFINEMENT_CONFIG.edgeObjectiveWeights.edgeStrength * edgeStrength +
+    REFINEMENT_CONFIG.edgeObjectiveWeights.edgeSupport * evidence.supportRatio +
+    REFINEMENT_CONFIG.edgeObjectiveWeights.edgeContinuity * evidence.longestRunRatio +
+    REFINEMENT_CONFIG.edgeObjectiveWeights.gradientAlignment * evidence.gradientAlignment +
+    REFINEMENT_CONFIG.edgeObjectiveWeights.signedContrast * signedContrast
   );
 }
 

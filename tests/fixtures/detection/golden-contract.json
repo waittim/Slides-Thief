@@ -1,0 +1,124 @@
+{
+  "version": 1,
+  "fixtures": [
+    {
+      "file": "synthetic/light-slide-dark-wall.png",
+      "method": "mask-lines",
+      "confidence": { "min": 0.7, "max": 0.85 },
+      "maxCornerError": 0.02,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/dark-slide-light-wall.png",
+      "method": "contrast-lines",
+      "confidence": { "min": 0.7, "max": 0.85 },
+      "maxCornerError": 0.02,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/neutral-slide-color-wall.png",
+      "method": "mask-lines",
+      "confidence": { "min": 0.7, "max": 0.85 },
+      "maxCornerError": 0.02,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/hough-rotated.png",
+      "method": "contrast-lines",
+      "requiredCandidateMethods": ["hough-lines"],
+      "confidence": { "min": 0.7, "max": 0.8 },
+      "maxCornerError": 0.03,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/batch-prior-rotated.png",
+      "method": "batch-prior",
+      "requiredCandidateMethods": ["batch-prior"],
+      "confidence": { "min": 0.72, "max": 0.82 },
+      "maxCornerError": 0.03,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/portrait-slide.png",
+      "method": "mask-lines",
+      "confidence": { "min": 0.7, "max": 0.85 },
+      "maxCornerError": 0.02,
+      "minQuadIoU": 0.9,
+      "needsReview": false,
+      "reviewReasons": []
+    },
+    {
+      "file": "synthetic/fallback-solid.png",
+      "method": "fallback-frame",
+      "confidence": { "min": 0, "max": 0 },
+      "candidateCountRange": [0, 0],
+      "needsReview": true,
+      "reviewReasons": ["fallback_used"]
+    },
+    {
+      "file": "synthetic/occluded-slide.png",
+      "method": "hough-lines",
+      "requiredCandidateMethods": ["hough-lines"],
+      "confidence": { "min": 0.5, "max": 0.7 },
+      "needsReview": true,
+      "reviewReasons": ["low_confidence"]
+    },
+    {
+      "file": "synthetic/out-of-bounds-slide.png",
+      "method": "fallback-frame",
+      "confidence": { "min": 0, "max": 0 },
+      "candidateCountRange": [0, 0],
+      "needsReview": true,
+      "reviewReasons": ["fallback_used"]
+    }
+  ],
+  "decisionCases": [
+    {
+      "name": "all-ambiguity-signals-below-threshold",
+      "secondBestIoU": 0.5,
+      "breakdown": { "normalized_margin": 0.2, "detector_agreement": 0.2 },
+      "expected": true
+    },
+    {
+      "name": "margin-resolves-ambiguity",
+      "secondBestIoU": 0.5,
+      "breakdown": { "normalized_margin": 0.4, "detector_agreement": 0.2 },
+      "expected": false
+    },
+    {
+      "name": "overlap-resolves-ambiguity",
+      "secondBestIoU": 0.8,
+      "breakdown": { "normalized_margin": 0.2, "detector_agreement": 0.2 },
+      "expected": false
+    },
+    {
+      "name": "agreement-resolves-ambiguity",
+      "secondBestIoU": 0.5,
+      "breakdown": { "normalized_margin": 0.2, "detector_agreement": 0.8 },
+      "expected": false
+    },
+    {
+      "name": "strict-threshold-boundary",
+      "secondBestIoU": 0.75,
+      "breakdown": { "normalized_margin": 0.32, "detector_agreement": 0.2 },
+      "expected": false
+    }
+  ],
+  "crossImplementation": {
+    "maxNormalizedCornerDelta": 0.015,
+    "maxCandidateCountDelta": 3,
+    "maxConfidenceDelta": 0.08,
+    "maxBestScoreDelta": 0.1,
+    "maxFeatureDelta": 0.3
+  }
+}

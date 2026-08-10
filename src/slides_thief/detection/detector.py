@@ -9,6 +9,7 @@ from PIL import Image, ImageFilter, ImageOps
 
 from ..geometry import Line, intersect, order_quad, robust_fit
 from .batch_prior import batch_prior_candidates
+from .config import DETECTION_CONFIG
 from .confidence import (
     AUTO_REVIEW_CONFIDENCE,
     calculate_confidence,
@@ -19,6 +20,11 @@ from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
 from .refine import refine_quad
 from .scoring import normalized_quad_distance, score_quad_candidate
+
+_CONTRAST_CONFIG = DETECTION_CONFIG["contrastLines"]
+_MASK_CONFIG = DETECTION_CONFIG["maskLines"]
+_DEDUP_CONFIG = DETECTION_CONFIG["deduplication"]
+_FALLBACK_CONFIG = DETECTION_CONFIG["fallback"]
 
 
 def box_blur(gray: np.ndarray, radius: int = 5) -> np.ndarray:
@@ -59,29 +65,56 @@ def contrast_score(diff: np.ndarray) -> float:
     scores = []
     for signed in (diff, -diff):
         positive = signed[signed > 0]
-        if len(positive) < max(8, len(diff) * 0.12):
+        if len(positive) < max(
+            int(_CONTRAST_CONFIG["minimumPositiveCount"]),
+            len(diff) * float(_CONTRAST_CONFIG["minimumPositiveFraction"]),
+        ):
             scores.append(0.0)
         else:
-            scores.append(float(np.percentile(positive, 72) + positive.mean() * 0.35))
+            scores.append(
+                float(
+                    np.percentile(positive, float(_CONTRAST_CONFIG["positivePercentile"]) * 100)
+                    + positive.mean() * float(_CONTRAST_CONFIG["positiveMeanWeight"])
+                )
+            )
     return max(scores)
 
 
-def horizontal_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> list[tuple[Line, float]]:
+def horizontal_edge_candidates(
+    gray: np.ndarray,
+    kind: str,
+    limit: int | None = None,
+) -> list[tuple[Line, float]]:
+    limit = int(_CONTRAST_CONFIG["candidateLimit"]) if limit is None else int(limit)
     h, w = gray.shape
-    xs = np.linspace(w * 0.16, w * 0.88, 180)
+    xs = np.linspace(w * 0.16, w * 0.88, int(_CONTRAST_CONFIG["horizontalSampleCount"]))
     x_center = w / 2.0
-    offset = max(5.0, h * 0.017)
+    offset = max(float(_CONTRAST_CONFIG["minimumOffset"]), h * float(_CONTRAST_CONFIG["horizontalOffsetRatio"]))
     if kind == "top":
-        y_values = np.arange(h * 0.07, h * 0.45, max(2, h // 220))
+        start, end = _CONTRAST_CONFIG["topRange"]
+        y_values = np.arange(
+            h * float(start),
+            h * float(end),
+            max(2, h // int(_CONTRAST_CONFIG["horizontalStepDivisor"])),
+        )
     else:
-        y_values = np.arange(h * 0.42, h * 0.92, max(2, h // 220))
+        start, end = _CONTRAST_CONFIG["bottomRange"]
+        y_values = np.arange(
+            h * float(start),
+            h * float(end),
+            max(2, h // int(_CONTRAST_CONFIG["horizontalStepDivisor"])),
+        )
 
     candidates: list[tuple[Line, float, float, float]] = []
-    for slope in np.linspace(-0.22, 0.16, 29):
+    for slope in np.linspace(
+        float(_CONTRAST_CONFIG["horizontalSlopeRange"][0]),
+        float(_CONTRAST_CONFIG["horizontalSlopeRange"][1]),
+        int(_CONTRAST_CONFIG["horizontalSlopeCount"]),
+    ):
         for y0 in y_values:
             ys = slope * (xs - x_center) + y0
             valid = (ys > offset + 1) & (ys < h - offset - 1)
-            if valid.mean() < 0.82:
+            if valid.mean() < float(_CONTRAST_CONFIG["horizontalValidFraction"]):
                 continue
             if kind == "top":
                 diff = sample_nearest(gray, xs[valid], ys[valid] + offset) - sample_nearest(
@@ -92,14 +125,18 @@ def horizontal_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> l
                     gray, xs[valid], ys[valid] + offset
                 )
             score = contrast_score(diff)
-            if score > 3.5:
+            if score > float(_CONTRAST_CONFIG["minimumScore"]):
                 candidates.append((Line(float(-slope), 1.0, float(slope * x_center - y0)), score, float(y0), float(slope)))
 
     candidates.sort(key=lambda item: item[1], reverse=True)
     selected: list[tuple[Line, float, float, float]] = []
     for candidate in candidates:
         _, _, y0, slope = candidate
-        if all(abs(y0 - kept[2]) > h * 0.035 or abs(slope - kept[3]) > 0.055 for kept in selected):
+        if all(
+            abs(y0 - kept[2]) > h * float(_CONTRAST_CONFIG["positionDeduplicationRatio"])
+            or abs(slope - kept[3]) > float(_CONTRAST_CONFIG["horizontalSlopeGap"])
+            for kept in selected
+        ):
             selected.append(candidate)
         if len(selected) >= limit:
             break
@@ -111,22 +148,41 @@ def best_horizontal_edge(gray: np.ndarray, kind: str) -> tuple[Line, float] | No
     return candidates[0] if candidates else None
 
 
-def vertical_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> list[tuple[Line, float]]:
+def vertical_edge_candidates(
+    gray: np.ndarray,
+    kind: str,
+    limit: int | None = None,
+) -> list[tuple[Line, float]]:
+    limit = int(_CONTRAST_CONFIG["candidateLimit"]) if limit is None else int(limit)
     h, w = gray.shape
-    ys = np.linspace(h * 0.18, h * 0.84, 170)
+    ys = np.linspace(h * 0.18, h * 0.84, int(_CONTRAST_CONFIG["verticalSampleCount"]))
     y_center = h / 2.0
-    offset = max(5.0, w * 0.012)
+    offset = max(float(_CONTRAST_CONFIG["minimumOffset"]), w * float(_CONTRAST_CONFIG["verticalOffsetRatio"]))
     if kind == "left":
-        x_values = np.arange(w * 0.01, w * 0.46, max(2, w // 240))
+        start, end = _CONTRAST_CONFIG["leftRange"]
+        x_values = np.arange(
+            w * float(start),
+            w * float(end),
+            max(2, w // int(_CONTRAST_CONFIG["verticalStepDivisor"])),
+        )
     else:
-        x_values = np.arange(w * 0.54, w * 0.99, max(2, w // 240))
+        start, end = _CONTRAST_CONFIG["rightRange"]
+        x_values = np.arange(
+            w * float(start),
+            w * float(end),
+            max(2, w // int(_CONTRAST_CONFIG["verticalStepDivisor"])),
+        )
 
     candidates: list[tuple[Line, float, float, float]] = []
-    for slope in np.linspace(-0.24, 0.24, 31):
+    for slope in np.linspace(
+        float(_CONTRAST_CONFIG["verticalSlopeRange"][0]),
+        float(_CONTRAST_CONFIG["verticalSlopeRange"][1]),
+        int(_CONTRAST_CONFIG["verticalSlopeCount"]),
+    ):
         for x0 in x_values:
             xs = slope * (ys - y_center) + x0
             valid = (xs > offset + 1) & (xs < w - offset - 1)
-            if valid.mean() < 0.80:
+            if valid.mean() < float(_CONTRAST_CONFIG["verticalValidFraction"]):
                 continue
             if kind == "left":
                 diff = sample_nearest(gray, xs[valid] + offset, ys[valid]) - sample_nearest(
@@ -137,14 +193,18 @@ def vertical_edge_candidates(gray: np.ndarray, kind: str, limit: int = 8) -> lis
                     gray, xs[valid] + offset, ys[valid]
                 )
             score = contrast_score(diff)
-            if score > 3.5:
+            if score > float(_CONTRAST_CONFIG["minimumScore"]):
                 candidates.append((Line(1.0, float(-slope), float(slope * y_center - x0)), score, float(x0), float(slope)))
 
     candidates.sort(key=lambda item: item[1], reverse=True)
     selected: list[tuple[Line, float, float, float]] = []
     for candidate in candidates:
         _, _, x0, slope = candidate
-        if all(abs(x0 - kept[2]) > w * 0.035 or abs(slope - kept[3]) > 0.065 for kept in selected):
+        if all(
+            abs(x0 - kept[2]) > w * float(_CONTRAST_CONFIG["positionDeduplicationRatio"])
+            or abs(slope - kept[3]) > float(_CONTRAST_CONFIG["verticalSlopeGap"])
+            for kept in selected
+        ):
             selected.append(candidate)
         if len(selected) >= limit:
             break
@@ -158,21 +218,26 @@ def best_vertical_edge(gray: np.ndarray, kind: str) -> tuple[Line, float] | None
 
 def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | None:
     h, w = gray.shape
-    tops = horizontal_edge_candidates(gray, "top", limit=8)
-    bottoms = horizontal_edge_candidates(gray, "bottom", limit=8)
-    lefts = vertical_edge_candidates(gray, "left", limit=8)
-    rights = vertical_edge_candidates(gray, "right", limit=8)
+    candidate_limit = int(_CONTRAST_CONFIG["candidateLimit"])
+    tops = horizontal_edge_candidates(gray, "top", limit=candidate_limit)
+    bottoms = horizontal_edge_candidates(gray, "bottom", limit=candidate_limit)
+    lefts = vertical_edge_candidates(gray, "left", limit=candidate_limit)
+    rights = vertical_edge_candidates(gray, "right", limit=candidate_limit)
     if not all([tops, bottoms, lefts, rights]):
         return None
 
     best: tuple[float, np.ndarray, list[float], float, float] | None = None
     for top, top_score in tops:
         for bottom, bottom_score in bottoms:
-            if bottom.y_at(w / 2.0) <= top.y_at(w / 2.0) + h * 0.18:
+            if bottom.y_at(w / 2.0) <= top.y_at(w / 2.0) + h * float(
+                _CONTRAST_CONFIG["topBottomSeparationRatio"]
+            ):
                 continue
             for left, left_score in lefts:
                 for right, right_score in rights:
-                    if right.x_at(h / 2.0) <= left.x_at(h / 2.0) + w * 0.20:
+                    if right.x_at(h / 2.0) <= left.x_at(h / 2.0) + w * float(
+                        _CONTRAST_CONFIG["leftRightSeparationRatio"]
+                    ):
                         continue
                     quad = order_quad(
                         np.vstack(
@@ -203,7 +268,11 @@ def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | N
                         - np.dot(quad[:, 1], np.roll(quad[:, 0], -1))
                     )
                     area_norm = area / (w * h)
-                    if area_norm < 0.08 or not (ratio * 0.45 <= aspect_est <= ratio * 1.85):
+                    if area_norm < float(_CONTRAST_CONFIG["minimumAreaRatio"]) or not (
+                        ratio * float(_CONTRAST_CONFIG["aspectMinimumRatio"])
+                        <= aspect_est
+                        <= ratio * float(_CONTRAST_CONFIG["aspectMaximumRatio"])
+                    ):
                         continue
                     aspect_error = abs(math.log(max(0.05, aspect_est / ratio)))
                     edge_score = float(np.mean([top_score, bottom_score, left_score, right_score]))
@@ -265,7 +334,12 @@ def detect_quad(
     # wall, curtains, and audience are either saturated or dark. Segmenting the
     # low-saturation screen body gives a better document boundary than raw
     # brightness, especially when the cyan wall is brighter than the slide.
-    p05, p25, p55, p92 = np.percentile(gray, [5, 25, 55, 92])
+    p05, p25, p55, p92 = np.percentile(
+        gray,
+        [5, float(_MASK_CONFIG["grayPercentiles"]["lower"]) * 100,
+         float(_MASK_CONFIG["grayPercentiles"]["threshold"]) * 100,
+         float(_MASK_CONFIG["grayPercentiles"]["highlight"]) * 100],
+    )
     rgb_max = rgb_small.max(axis=2)
     rgb_min = rgb_small.min(axis=2)
     sat = np.divide(
@@ -274,15 +348,33 @@ def detect_quad(
         out=np.zeros_like(rgb_max),
         where=rgb_max > 1.0,
     )
-    threshold = max(24.0, min(p55 - 5.0, p25 + (p92 - p25) * 0.16))
-    sat_threshold = float(max(34.0, min(78.0, np.percentile(sat, 48) + 18.0)))
+    threshold = max(
+        float(_MASK_CONFIG["primaryMinimumGray"]),
+        min(
+            p55 - float(_MASK_CONFIG["thresholdOffset"]),
+            p25 + (p92 - p25) * float(_MASK_CONFIG["thresholdRangeScale"]),
+        ),
+    )
+    sat_threshold = float(
+        max(
+            float(_MASK_CONFIG["primarySaturationMinimum"]),
+            min(
+                float(_MASK_CONFIG["primarySaturationMaximum"]),
+                np.percentile(sat, float(_MASK_CONFIG["primarySaturationPercentile"]) * 100)
+                + float(_MASK_CONFIG["primarySaturationOffset"]),
+            ),
+        )
+    )
     mask = (gray > threshold) & (sat < sat_threshold)
 
     # Bring bright white text back into the same component without letting the
     # cyan wall dominate the top edge.
-    mask = mask | ((gray > max(115.0, p92 * 0.78)) & (sat < sat_threshold + 18.0))
+    mask = mask | (
+        (gray > max(float(_MASK_CONFIG["highlightMinimumGray"]), p92 * float(_MASK_CONFIG["highlightGrayScale"])))
+        & (sat < sat_threshold + float(_MASK_CONFIG["highlightSaturationOffset"]))
+    )
 
-    density = box_blur(mask.astype(np.float64), radius=max(3, round(w * 0.006)))
+    density = box_blur(mask.astype(np.float64), radius=max(3, round(w * float(_MASK_CONFIG["densityBlurRatio"]))))
 
     left_pts: list[tuple[float, float]] = []
     right_pts: list[tuple[float, float]] = []
@@ -291,31 +383,31 @@ def detect_quad(
 
     row_min = max(0, int(h * 0.04))
     row_max = min(h, int(h * 0.96))
-    for y in range(row_min, row_max, 2):
+    for y in range(row_min, row_max, int(_MASK_CONFIG["scanStep"])):
         row = density[y]
-        active = np.flatnonzero(row > 0.38)
-        if len(active) < w * 0.30:
+        active = np.flatnonzero(row > float(_MASK_CONFIG["densityThreshold"]))
+        if len(active) < w * float(_MASK_CONFIG["rowActiveFraction"]):
             continue
         x1, x2 = int(active[0]), int(active[-1])
-        if x2 - x1 < w * 0.50:
+        if x2 - x1 < w * float(_MASK_CONFIG["rowSpanFraction"]):
             continue
         # Ignore isolated bright text by requiring a reasonably dense span.
-        if row[x1:x2 + 1].mean() < 0.32:
+        if row[x1:x2 + 1].mean() < float(_MASK_CONFIG["rowDensityFraction"]):
             continue
         left_pts.append((x1, y))
         right_pts.append((x2, y))
 
     col_min = max(0, int(w * 0.04))
     col_max = min(w, int(w * 0.96))
-    for x in range(col_min, col_max, 2):
+    for x in range(col_min, col_max, int(_MASK_CONFIG["scanStep"])):
         col = density[:, x]
-        active = np.flatnonzero(col > 0.38)
-        if len(active) < h * 0.24:
+        active = np.flatnonzero(col > float(_MASK_CONFIG["densityThreshold"]))
+        if len(active) < h * float(_MASK_CONFIG["columnActiveFraction"]):
             continue
         y1, y2 = int(active[0]), int(active[-1])
-        if y2 - y1 < h * 0.35:
+        if y2 - y1 < h * float(_MASK_CONFIG["columnSpanFraction"]):
             continue
-        if col[y1:y2 + 1].mean() < 0.30:
+        if col[y1:y2 + 1].mean() < float(_MASK_CONFIG["columnDensityFraction"]):
             continue
         top_pts.append((x, y1))
         bottom_pts.append((x, y2))
@@ -328,8 +420,8 @@ def detect_quad(
     method = "mask-lines"
     if not all([left, right, top, bottom]):
         method = "fallback-frame"
-        margin_x = w * 0.03
-        margin_y = h * 0.04
+        margin_x = w * float(_FALLBACK_CONFIG["marginXRatio"])
+        margin_y = h * float(_FALLBACK_CONFIG["marginYRatio"])
         left = Line(1.0, 0.0, -margin_x)
         right = Line(1.0, 0.0, -(w - margin_x))
         top = Line(0.0, 1.0, -margin_y)
@@ -367,7 +459,9 @@ def detect_quad(
         )
     if method == "mask-lines":
         center = quad.mean(axis=0)
-        for factor, variant in ((1.0, "fitted"), (0.985, "inset"), (1.015, "outset")):
+        for variant_config in _MASK_CONFIG["variants"]:
+            factor = float(variant_config["scale"])
+            variant = str(variant_config["name"])
             raw_candidates.append(
                 {
                     "quad": center + (quad - center) * factor,
@@ -445,16 +539,18 @@ def detect_quad(
     ranked: list[dict] = []
     for candidate in scored_candidates:
         if any(
-            quad_iou(candidate["quad"], kept["quad"], w, h) > 0.94
-            or normalized_quad_distance(candidate["quad"], kept["quad"], w, h) < 0.012
+            quad_iou(candidate["quad"], kept["quad"], w, h)
+            > float(_DEDUP_CONFIG["iouThreshold"])
+            or normalized_quad_distance(candidate["quad"], kept["quad"], w, h)
+            < float(_DEDUP_CONFIG["cornerDistanceThreshold"])
             for kept in ranked
         ):
             continue
         ranked.append(candidate)
 
     if not ranked:
-        margin_x = w * 0.045
-        margin_y = h * 0.055
+        margin_x = w * float(_FALLBACK_CONFIG["marginXRatio"])
+        margin_y = h * float(_FALLBACK_CONFIG["marginYRatio"])
         fallback_quad = np.array(
             [
                 [margin_x, margin_y],
@@ -524,7 +620,9 @@ def detect_quad(
     review_reasons = []
     if confidence < AUTO_REVIEW_CONFIDENCE:
         review_reasons.append("low_confidence")
-    if confidence_breakdown["minimum_edge_support"] < 0.25:
+    if confidence_breakdown["minimum_edge_support"] < float(
+        DETECTION_CONFIG["scoring"]["weakEdgeSupportReview"]
+    ):
         review_reasons.append("weak_edge_support")
     if (
         second
@@ -552,6 +650,7 @@ def detect_quad(
                 item["polarity"] for item in best["score_diagnostics"]["edge_evidence"]
             ],
             "selected_detector_diagnostics": best["detector_diagnostics"],
+            "selected_warnings": best["score_diagnostics"].get("warnings", []),
             "confidence_breakdown": {
                 key: (
                     round(float(value), 4)

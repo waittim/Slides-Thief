@@ -7,6 +7,11 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from .detection.config import DETECTION_CONFIG
+
+
+_MASK_CONFIG = DETECTION_CONFIG["maskLines"]
+
 
 @dataclass
 class Line:
@@ -86,7 +91,7 @@ def fit_line_xy(points: np.ndarray) -> Line:
 
 
 def robust_fit(points: list[tuple[float, float]], prefer: str) -> Line | None:
-    if len(points) < 16:
+    if len(points) < int(_MASK_CONFIG["fitMinimumPoints"]):
         return None
     arr = np.asarray(points, dtype=np.float64)
     if prefer == "x":
@@ -94,17 +99,27 @@ def robust_fit(points: list[tuple[float, float]], prefer: str) -> Line | None:
     else:
         values = arr[:, 1]
 
-    lo, hi = np.percentile(values, [8, 92])
+    lo, hi = np.percentile(
+        values,
+        [
+            float(_MASK_CONFIG["fitLowQuantile"]) * 100,
+            float(_MASK_CONFIG["fitHighQuantile"]) * 100,
+        ],
+    )
     trimmed = arr[(values >= lo) & (values <= hi)]
-    if len(trimmed) < 12:
+    if len(trimmed) < int(_MASK_CONFIG["fitMinimumWorkingPoints"]):
         trimmed = arr
 
     line = fit_line_xy(trimmed)
-    for _ in range(3):
+    for _ in range(int(_MASK_CONFIG["fitIterations"])):
         dist = np.abs(line.a * arr[:, 0] + line.b * arr[:, 1] + line.c) / math.hypot(line.a, line.b)
-        cutoff = max(3.0, float(np.percentile(dist, 70)) * 1.8)
+        cutoff = max(
+            float(_MASK_CONFIG["fitOutlierFloor"]),
+            float(np.percentile(dist, float(_MASK_CONFIG["fitOutlierQuantile"]) * 100))
+            * float(_MASK_CONFIG["fitOutlierScale"]),
+        )
         keep = arr[dist <= cutoff]
-        if len(keep) < 12:
+        if len(keep) < int(_MASK_CONFIG["fitMinimumWorkingPoints"]):
             break
         line = fit_line_xy(keep)
     return line

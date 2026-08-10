@@ -69,8 +69,20 @@ def make_contact_sheet(images: list[Path], output: Path, title: str) -> None:
     sheet.save(output, quality=92)
 
 
+def _json_for_html_script(value: object) -> str:
+    """Serialize data for an inert JSON script element without ending the element."""
+    return (
+        json.dumps(value, ensure_ascii=False)
+        .replace("&", "\\u0026")
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("\u2028", "\\u2028")
+        .replace("\u2029", "\\u2029")
+    )
+
+
 def make_manual_review_html(items: list[dict], output: Path) -> None:
-    payload = json.dumps(items, ensure_ascii=False)
+    payload = _json_for_html_script(items)
     html = f"""<!doctype html>
 <html lang="en" data-theme="auto">
 <head>
@@ -141,6 +153,7 @@ header p {{ margin: 4px 0 0 0; color: var(--muted); font-size: 13px; }}
   font-weight: 600;
 }}
 .btn:hover {{ background: var(--control-hover); }}
+.btn:disabled {{ opacity: 0.5; cursor: not-allowed; }}
 .btn.primary {{
   background: var(--primary-bg);
   color: var(--primary-text);
@@ -166,14 +179,21 @@ header p {{ margin: 4px 0 0 0; color: var(--muted); font-size: 13px; }}
   align-items: center;
   margin-bottom: 6px;
   border: 1px solid transparent;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  background: transparent;
 }}
 .thumb:hover {{ background: var(--bg); }}
+.thumb:focus-visible {{ outline: 3px solid var(--accent); outline-offset: 2px; }}
 .thumb.active {{
   border-color: var(--primary-bg);
   background: var(--bg);
 }}
 .thumb.flagged {{ border-left: 4px solid var(--accent); }}
 .thumb-info {{ flex: 1; min-width: 0; }}
+.thumb-title, .thumb-meta {{ display: block; }}
 .thumb-title {{
   font-size: 13px;
   font-weight: 600;
@@ -197,7 +217,33 @@ header p {{ margin: 4px 0 0 0; color: var(--muted); font-size: 13px; }}
   border: 1px solid var(--canvas-border);
   box-shadow: 0 10px 30px rgba(0,0,0,0.15);
 }}
-canvas {{ display: block; }}
+canvas {{ display: block; touch-action: none; }}
+.corner-handles {{
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}}
+.corner-handle {{
+  position: absolute;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2px solid #1f272c;
+  border-radius: 50%;
+  background: var(--handle);
+  color: #1f272c;
+  font: 700 12px/1 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  cursor: grab;
+  pointer-events: auto;
+  touch-action: none;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.35);
+}}
+.corner-handle:active {{ cursor: grabbing; }}
+.corner-handle:focus-visible {{
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
+}}
 .info-bar {{
   margin-top: 12px;
   font-size: 13px;
@@ -215,6 +261,17 @@ canvas {{ display: block; }}
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15);
   display: none;
+}}
+.visually-hidden {{
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }}
 </style>
 </head>
@@ -236,14 +293,18 @@ canvas {{ display: block; }}
   <div class="stage">
     <div class="canvas-wrap" id="wrap">
       <canvas id="cv"></canvas>
+      <div class="corner-handles" id="handles" aria-label="Slide corner controls"></div>
     </div>
     <div class="info-bar" id="info"></div>
+    <p class="visually-hidden" id="cornerKeyboardHelp" data-i18n="cornerHelp">Focus a corner control and use the arrow keys to move it by one pixel. Hold Shift to move by ten pixels.</p>
   </div>
 </div>
 <div class="toast" id="toast"></div>
+<div class="visually-hidden" id="status" aria-live="polite" aria-atomic="true"></div>
 
+<script id="review-data" type="application/json">{payload}</script>
 <script>
-const items = {payload};
+const items = JSON.parse(document.getElementById("review-data").textContent);
 const defaultPrefs = {{ theme: "auto", locale: "auto" }};
 let prefs = Object.assign({{}}, defaultPrefs);
 try {{
@@ -263,7 +324,13 @@ const translations = {{
     needsReview: "Needs Review",
     ok: "OK",
     confidence: "Confidence",
-    method: "Method"
+    method: "Method",
+    status: "Status",
+    corner: "Corner",
+    cornerHelp: "Focus a corner control and use the arrow keys to move it by one pixel. Hold Shift to move by ten pixels.",
+    moved: "moved",
+    slide: "Slide",
+    of: "of"
   }},
   zh: {{
     title: "Slide Lens 手动透视校正标注",
@@ -276,7 +343,13 @@ const translations = {{
     needsReview: "待人工复核",
     ok: "自动通过",
     confidence: "置信度",
-    method: "检测算法"
+    method: "检测算法",
+    status: "状态",
+    corner: "角点",
+    cornerHelp: "聚焦角点控件后使用方向键移动 1 像素；按住 Shift 可移动 10 像素。",
+    moved: "已移动",
+    slide: "第",
+    of: "张，共"
   }}
 }};
 
@@ -335,27 +408,90 @@ const ctx = cv.getContext("2d");
 const sidebar = document.getElementById("sidebar");
 const info = document.getElementById("info");
 const toast = document.getElementById("toast");
+const handles = document.getElementById("handles");
+const status = document.getElementById("status");
+let handleElements = [];
+let dragPointerId = null;
 
 function renderSidebar() {{
-  sidebar.innerHTML = "";
+  sidebar.textContent = "";
   items.forEach((item, idx) => {{
-    const div = document.createElement("div");
-    div.className = "thumb" + (idx === activeIdx ? " active" : "") + (item.needsReview ? " flagged" : "");
-    div.onclick = () => loadPage(idx);
-    div.innerHTML = `
-      <div class="thumb-info">
-        <div class="thumb-title">${{item.filename}}</div>
-        <div class="thumb-meta">${{item.needsReview ? '⚠️ Flagged' : '✓ Auto'}} | conf: ${{item.confidence}}</div>
-      </div>
-    `;
-    sidebar.appendChild(div);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "thumb" + (idx === activeIdx ? " active" : "") + (item.needsReview ? " flagged" : "");
+    button.setAttribute("aria-current", idx === activeIdx ? "true" : "false");
+    button.setAttribute("aria-label", `${{item.filename}}, ${{idx + 1}}`);
+    button.addEventListener("click", () => loadPage(idx));
+
+    const thumbInfo = document.createElement("span");
+    thumbInfo.className = "thumb-info";
+    const title = document.createElement("span");
+    title.className = "thumb-title";
+    title.textContent = item.filename;
+    const meta = document.createElement("span");
+    meta.className = "thumb-meta";
+    meta.textContent = `${{item.needsReview ? "⚠️ Flagged" : "✓ Auto"}} | conf: ${{item.confidence}}`;
+    thumbInfo.append(title, meta);
+    button.appendChild(thumbInfo);
+    sidebar.appendChild(button);
   }});
+}}
+
+function announce(message) {{
+  status.textContent = "";
+  window.requestAnimationFrame(() => {{ status.textContent = message; }});
+}}
+
+function updateControls() {{
+  document.getElementById("prevBtn").disabled = activeIdx <= 0;
+  document.getElementById("nextBtn").disabled = activeIdx >= items.length - 1;
+}}
+
+function updateHandlePositions() {{
+  handleElements.forEach((handle, idx) => {{
+    const point = points[idx];
+    handle.style.left = `${{point[0]}}px`;
+    handle.style.top = `${{point[1]}}px`;
+  }});
+}}
+
+function setCustomQuad() {{
+  items[activeIdx].customQuad = points.map(pt => [pt[0] / scale, pt[1] / scale]);
+}}
+
+function announceCornerPosition(index) {{
+  const lang = getLocale();
+  const t = translations[lang] || translations.en;
+  announce(`${{t.corner}} ${{index + 1}} ${{t.moved}}: (${{Math.round(points[index][0] / scale)}}, ${{Math.round(points[index][1] / scale)}})`);
+}}
+
+function createCornerHandles() {{
+  handles.textContent = "";
+  const lang = getLocale();
+  const t = translations[lang] || translations.en;
+  handleElements = points.map((_, idx) => {{
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "corner-handle";
+    button.textContent = String(idx + 1);
+    button.setAttribute("aria-label", `${{t.corner}} ${{idx + 1}}`);
+    button.setAttribute("aria-describedby", "cornerKeyboardHelp");
+    button.setAttribute("aria-keyshortcuts", "ArrowUp ArrowDown ArrowLeft ArrowRight");
+    button.addEventListener("pointerdown", event => beginDrag(idx, event));
+    button.addEventListener("keydown", event => moveCornerWithKeyboard(idx, event));
+    handles.appendChild(button);
+    return button;
+  }});
+  updateHandlePositions();
 }}
 
 function loadPage(idx) {{
   activeIdx = idx;
   const item = items[idx];
   renderSidebar();
+  updateControls();
+  handles.textContent = "";
+  handleElements = [];
   img = new Image();
   img.onload = () => {{
     const maxW = Math.min(window.innerWidth - 340, 1200);
@@ -366,18 +502,26 @@ function loadPage(idx) {{
 
     const assetQuad = item.customQuad || assetQuadForItem(item);
     points = assetQuad.map(pt => [pt[0] * scale, pt[1] * scale]);
+    createCornerHandles();
     draw();
   }};
   img.src = item.image;
 
   const lang = getLocale();
   const t = translations[lang] || translations.en;
-  info.innerHTML = `
-    <span><strong>${{item.filename}}</strong></span>
-    <span>${{t.method}}: ${{item.method}}</span>
-    <span>${{t.confidence}}: ${{item.confidence}}</span>
-    <span>Status: ${{item.needsReview ? t.needsReview : t.ok}}</span>
-  `;
+  info.textContent = "";
+  const filename = document.createElement("span");
+  const filenameStrong = document.createElement("strong");
+  filenameStrong.textContent = item.filename;
+  filename.appendChild(filenameStrong);
+  const method = document.createElement("span");
+  method.textContent = `${{t.method}}: ${{item.method}}`;
+  const confidence = document.createElement("span");
+  confidence.textContent = `${{t.confidence}}: ${{item.confidence}}`;
+  const itemStatus = document.createElement("span");
+  itemStatus.textContent = `${{t.status}}: ${{item.needsReview ? t.needsReview : t.ok}}`;
+  info.append(filename, method, confidence, itemStatus);
+  announce(`${{t.slide}} ${{idx + 1}} ${{t.of}} ${{items.length}}: ${{item.filename}}`);
 }}
 
 function draw() {{
@@ -394,41 +538,82 @@ function draw() {{
 
   ctx.fillStyle = "rgba(226, 75, 60, 0.15)";
   ctx.fill();
-
-  points.forEach((pt, i) => {{
-    ctx.fillStyle = "#ffd84a";
-    ctx.strokeStyle = "#1f272c";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(pt[0], pt[1], 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.stroke();
-
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 12px sans-serif";
-    ctx.fillText((i + 1).toString(), pt[0] + 12, pt[1] + 4);
-  }});
 }}
 
-cv.addEventListener("mousedown", e => {{
+function canvasPointFromEvent(event) {{
   const rect = cv.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  dragIdx = points.findIndex(pt => Math.hypot(pt[0] - x, pt[1] - y) < 16);
-}});
-
-cv.addEventListener("mousemove", e => {{
-  if (dragIdx < 0) return;
-  const rect = cv.getBoundingClientRect();
-  points[dragIdx] = [
-    Math.max(0, Math.min(cv.width, e.clientX - rect.left)),
-    Math.max(0, Math.min(cv.height, e.clientY - rect.top))
+  const xScale = cv.width / rect.width || 1;
+  const yScale = cv.height / rect.height || 1;
+  return [
+    (event.clientX - rect.left) * xScale,
+    (event.clientY - rect.top) * yScale
   ];
-  items[activeIdx].customQuad = points.map(pt => [pt[0] / scale, pt[1] / scale]);
-  draw();
-}});
+}}
 
-window.addEventListener("mouseup", () => dragIdx = -1);
+function setPointFromEvent(index, event) {{
+  const [x, y] = canvasPointFromEvent(event);
+  points[index] = [
+    Math.max(0, Math.min(cv.width, x)),
+    Math.max(0, Math.min(cv.height, y))
+  ];
+  setCustomQuad();
+  updateHandlePositions();
+  draw();
+}}
+
+function beginDrag(index, event) {{
+  if (event.pointerType === "mouse" && event.button !== 0) return;
+  event.preventDefault();
+  dragIdx = index;
+  dragPointerId = event.pointerId;
+  if (event.currentTarget.setPointerCapture) event.currentTarget.setPointerCapture(event.pointerId);
+  setPointFromEvent(index, event);
+}}
+
+function updateDrag(event) {{
+  if (dragIdx < 0 || dragPointerId !== event.pointerId) return;
+  setPointFromEvent(dragIdx, event);
+}}
+
+function endDrag(event) {{
+  if (dragPointerId === null || dragPointerId !== event.pointerId) return;
+  if (event.currentTarget.releasePointerCapture) event.currentTarget.releasePointerCapture(event.pointerId);
+  announceCornerPosition(dragIdx);
+  dragIdx = -1;
+  dragPointerId = null;
+}}
+
+function moveCornerWithKeyboard(index, event) {{
+  const deltas = {{
+    ArrowLeft: [-1, 0],
+    ArrowRight: [1, 0],
+    ArrowUp: [0, -1],
+    ArrowDown: [0, 1]
+  }};
+  const delta = deltas[event.key];
+  if (!delta) return;
+  event.preventDefault();
+  const step = event.shiftKey ? 10 : 1;
+  points[index] = [
+    Math.max(0, Math.min(cv.width, points[index][0] + delta[0] * step)),
+    Math.max(0, Math.min(cv.height, points[index][1] + delta[1] * step))
+  ];
+  setCustomQuad();
+  updateHandlePositions();
+  draw();
+  announceCornerPosition(index);
+}}
+
+cv.addEventListener("pointerdown", event => {{
+  const [x, y] = canvasPointFromEvent(event);
+  const index = points.findIndex(pt => Math.hypot(pt[0] - x, pt[1] - y) < 24);
+  if (index >= 0) beginDrag(index, event);
+}});
+cv.addEventListener("pointermove", updateDrag);
+
+window.addEventListener("pointermove", updateDrag);
+window.addEventListener("pointerup", endDrag);
+window.addEventListener("pointercancel", endDrag);
 
 document.getElementById("prevBtn").onclick = () => {{
   if (activeIdx > 0) loadPage(activeIdx - 1);

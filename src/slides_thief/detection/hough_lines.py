@@ -7,11 +7,13 @@ import math
 
 import numpy as np
 
+from .config import DETECTION_CONFIG
 from .gradient import GradientMap
 
+_HOUGH_CONFIG = DETECTION_CONFIG["houghLines"]
 
-ANGLE_STEP = math.pi / 90
-RHO_STEP = 3.0
+ANGLE_STEP = math.pi / int(_HOUGH_CONFIG["angleBins"])
+RHO_STEP = float(_HOUGH_CONFIG["rhoStep"])
 
 
 @dataclass
@@ -27,7 +29,7 @@ class Segment:
 def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     height, width = gradient.magnitude.shape
     points = _edge_points(gradient)
-    if len(points) < 48:
+    if len(points) < int(_HOUGH_CONFIG["minimumEdgePoints"]):
         return []
     peaks = _vote(points, width, height)
     segments = _extract_segments(peaks, points, width, height)
@@ -36,7 +38,10 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
         return []
     first_family, second_family = families
     family_angle = _orientation_difference(first_family[0], second_family[0])
-    if family_angle < math.radians(35) or family_angle > math.radians(145):
+    if (
+        family_angle < math.radians(float(_HOUGH_CONFIG["minimumFamilyAngleDegrees"]))
+        or family_angle > math.radians(float(_HOUGH_CONFIG["maximumFamilyAngleDegrees"]))
+    ):
         return []
 
     first_pairs = _line_pairs(first_family[1], width, height)
@@ -59,7 +64,7 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
                 {
                     "quad": quad,
                     "method": "hough-lines",
-                    "detector_score": float(np.mean(supports) + min(0.8, area)),
+                    "detector_score": float(np.mean(supports) + min(float(_HOUGH_CONFIG["areaScoreCap"]), area)),
                     "detector_diagnostics": {
                         "edge_point_count": len(points),
                         "hough_peak_count": len(peaks),
@@ -75,18 +80,22 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     candidates.sort(key=lambda item: item["detector_score"], reverse=True)
     selected = []
     for candidate in candidates:
-        if any(_quad_distance(candidate["quad"], kept["quad"], width, height) < 0.012 for kept in selected):
+        if any(
+            _quad_distance(candidate["quad"], kept["quad"], width, height)
+            < float(DETECTION_CONFIG["deduplication"]["cornerDistanceThreshold"])
+            for kept in selected
+        ):
             continue
         selected.append(candidate)
-        if len(selected) >= 5:
+        if len(selected) >= int(_HOUGH_CONFIG["outputCandidateLimit"]):
             break
     return selected
 
 
 def _edge_points(gradient: GradientMap) -> np.ndarray:
     ys, xs = np.nonzero(gradient.magnitude >= gradient.threshold)
-    if len(xs) > 28000:
-        keep = np.arange(len(xs)) % 2 == 0
+    if len(xs) > int(_HOUGH_CONFIG["maximumEdgePointsBeforeStride"]):
+        keep = np.arange(len(xs)) % int(_HOUGH_CONFIG["strideWhenDense"]) == 0
         xs = xs[keep]
         ys = ys[keep]
     magnitude = gradient.magnitude[ys, xs]
@@ -96,12 +105,15 @@ def _edge_points(gradient: GradientMap) -> np.ndarray:
 
 def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, float]]:
     diagonal = math.hypot(width, height)
-    angle_bins = 90
+    angle_bins = int(_HOUGH_CONFIG["angleBins"])
     rho_bins = math.ceil(diagonal * 2 / RHO_STEP) + 1
     accumulator = np.zeros((angle_bins, rho_bins), dtype=np.float64)
     center_indices = np.rint(points[:, 3] / ANGLE_STEP).astype(np.int32) % angle_bins
-    weights = 0.35 + np.minimum(1.0, points[:, 2])
-    for offset in (-2, -1, 0, 1, 2):
+    weights = float(_HOUGH_CONFIG["voteWeightBase"]) + np.minimum(
+        float(_HOUGH_CONFIG["voteMagnitudeCap"]), points[:, 2]
+    )
+    vote_radius = int(_HOUGH_CONFIG["voteAngleRadius"])
+    for offset in range(-vote_radius, vote_radius + 1):
         angle_indices = (center_indices + offset) % angle_bins
         angles = angle_indices * ANGLE_STEP
         rho_indices = np.rint(
@@ -109,7 +121,7 @@ def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, f
         ).astype(np.int32)
         np.add.at(accumulator, (angle_indices, rho_indices), weights)
 
-    minimum_votes = max(8.0, min(width, height) * 0.018)
+    minimum_votes = max(float(_HOUGH_CONFIG["minimumVotes"]), min(width, height) * float(_HOUGH_CONFIG["minimumVotesRatio"]))
     angle_indices, rho_indices = np.nonzero(accumulator >= minimum_votes)
     candidates = sorted(
         (
@@ -122,11 +134,13 @@ def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, f
     peaks: list[tuple[int, int, float]] = []
     for candidate in candidates:
         if all(
-            _circular_bin_distance(candidate[0], peak[0], angle_bins) > 2 or abs(candidate[1] - peak[1]) > 3
+            _circular_bin_distance(candidate[0], peak[0], angle_bins)
+            > int(_HOUGH_CONFIG["peakAngleDistance"])
+            or abs(candidate[1] - peak[1]) > int(_HOUGH_CONFIG["peakRhoDistance"])
             for peak in peaks
         ):
             peaks.append(candidate)
-        if len(peaks) >= 40:
+        if len(peaks) >= int(_HOUGH_CONFIG["maximumPeaks"]):
             break
     return peaks
 
@@ -149,16 +163,22 @@ def _extract_segments(
             np.abs(points[:, 3] - normal_angle),
             math.pi - np.abs(points[:, 3] - normal_angle),
         )
-        support_points = points[(distances <= 2.75) & (alignment <= math.radians(12))]
-        if len(support_points) < 8:
+        support_points = points[
+            (distances <= float(_HOUGH_CONFIG["lineDistance"]))
+            & (alignment <= math.radians(float(_HOUGH_CONFIG["orientationToleranceDegrees"])))
+        ]
+        if len(support_points) < int(_HOUGH_CONFIG["minimumEdgePoints"]):
             continue
         projections = np.sort(support_points[:, 0] * direction[0] + support_points[:, 1] * direction[1])
-        split_indices = np.flatnonzero(np.diff(projections) > max(5.0, diagonal * 0.012)) + 1
+        split_indices = np.flatnonzero(
+            np.diff(projections)
+            > max(float(_HOUGH_CONFIG["maximumGapFloor"]), diagonal * float(_HOUGH_CONFIG["maximumGapRatio"]))
+        ) + 1
         for group in np.split(projections, split_indices):
             if len(group) < 2:
                 continue
             length = float(group[-1] - group[0])
-            if length < diagonal * 0.08:
+            if length < diagonal * float(_HOUGH_CONFIG["minimumSegmentLengthRatio"]):
                 continue
             candidates.append(
                 Segment(
@@ -175,12 +195,13 @@ def _extract_segments(
     selected = []
     for segment in candidates:
         if all(
-            _orientation_difference(segment.normal_angle, kept.normal_angle) > math.radians(4)
-            or abs(segment.rho - kept.rho) > 5
+            _orientation_difference(segment.normal_angle, kept.normal_angle)
+            > math.radians(float(_HOUGH_CONFIG["lineDeduplicationAngleDegrees"]))
+            or abs(segment.rho - kept.rho) > float(_HOUGH_CONFIG["lineDeduplicationRho"])
             for kept in selected
         ):
             selected.append(segment)
-        if len(selected) >= 28:
+        if len(selected) >= int(_HOUGH_CONFIG["maximumSegments"]):
             break
     return selected
 
@@ -200,7 +221,13 @@ def _cluster_directions(segments: list[Segment]) -> tuple[tuple[float, list[Segm
             indices = np.flatnonzero(assignments == family)
             if not len(indices):
                 continue
-            weights = np.asarray([segments[index].length * max(0.15, segments[index].support) for index in indices])
+            weights = np.asarray(
+                [
+                    segments[index].length
+                    * max(float(_HOUGH_CONFIG["supportWeightFloor"]), segments[index].support)
+                    for index in indices
+                ]
+            )
             centers[family] = np.average(vectors[indices], axis=0, weights=weights)
     grouped = [[segment for index, segment in enumerate(segments) if assignments[index] == family] for family in (0, 1)]
     if any(len(group) < 2 for group in grouped):
@@ -222,7 +249,7 @@ def _line_pairs(segments: list[Segment], width: int, height: int) -> list[tuple[
     for first_index, first in enumerate(positioned):
         for second in positioned[first_index + 1 :]:
             separation = abs(first[1] - second[1])
-            if separation < min(width, height) * 0.16:
+            if separation < min(width, height) * float(_HOUGH_CONFIG["pairSeparationRatio"]):
                 continue
             straddles = first[1] * second[1] <= 0
             score = (
@@ -233,7 +260,7 @@ def _line_pairs(segments: list[Segment], width: int, height: int) -> list[tuple[
             )
             pairs.append(((first[0], second[0]), score))
     pairs.sort(key=lambda item: item[1], reverse=True)
-    return [pair for pair, _ in pairs[:6]]
+    return [pair for pair, _ in pairs[: int(_HOUGH_CONFIG["maximumPairs"])] ]
 
 
 def _intersection(first: np.ndarray, second: np.ndarray) -> np.ndarray:
@@ -257,7 +284,9 @@ def _order_quad(points: np.ndarray) -> np.ndarray:
 
 
 def _coarse_geometry_valid(quad: np.ndarray, width: int, height: int) -> bool:
-    if not np.isfinite(quad).all() or _polygon_area(quad) < width * height * 0.08:
+    if not np.isfinite(quad).all() or _polygon_area(quad) < width * height * float(
+        DETECTION_CONFIG["geometry"]["minimumAreaRatio"]
+    ):
         return False
     if np.any(quad[:, 0] < -width * 0.2) or np.any(quad[:, 0] > width * 1.2):
         return False
