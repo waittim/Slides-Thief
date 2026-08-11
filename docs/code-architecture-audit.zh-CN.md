@@ -162,13 +162,11 @@ flowchart LR
 - **ROI**：4 / 高；**工作量**：M。
 - **最佳方案**：将数据放入 `application/json` script 并转义 `<`，所有动态内容使用 `textContent`；改用按钮和 Pointer Events，为四个角点提供可聚焦控件、方向键微调和状态播报。最好把复核页模板从 380 行 f-string 独立为可测试资产。
 
-### F-11 [P2] `SlidesThiefApp` 仍是 1296 行的“上帝组件”
+### F-11 [已处理] `SlidesThiefApp` 的领域职责已拆分
 
-- **位置**：`site/app/SlidesThiefApp.tsx`
-- **证据**：单组件同时管理文件导入、HEIC 转换、Worker 生命周期、历史、缩略图、画布渲染、拖拽、键盘、主题、i18n、导出和弹窗。当前已有 20 个未使用导入/变量及多个 Hook 依赖警告，说明拆分过程未完成。
-- **影响范围**：几乎所有 Web 功能；改动容易产生闭包、生命周期和状态同步回归。
-- **ROI**：4 / 高；**工作量**：L。
-- **最佳方案**：按领域拆成 `useImportPipeline`、`useCanvasViewport`、`useQuadEditor`、`useKeyboardShortcuts`、`usePreferences`；主组件只负责组合。优先围绕已出现缺陷的键盘和 Worker 任务边界拆分，不做纯粹搬代码式重构。
+- **处理**：主组件已从约 1260 行收敛到约 630 行，导入、画布视口、四边形编辑、键盘监听和偏好设置分别由 `site/app/hooks/useImportPipeline.ts`、`useCanvasViewport.ts`、`useQuadEditor.ts`、`useKeyboardShortcuts.ts`、`usePreferences.ts` 负责；检测与导出 Worker 继续复用现有 hooks。
+- **额外修复**：四边形方向键调整现在会写入 undo history；键盘全局监听改为稳定 listener + 最新 action ref，避免闭包过期和重复绑定。
+- **验证**：当前 `typecheck`、严格 lint、服务器端构建、GitHub Pages 构建及 Web 测试（47/47）通过。原审查中提到的“20 个未使用项及 Hook 警告”在当前基线无法复现。
 
 ### F-12 [P2] Header 承担过多设置状态转换，重复 UI 也未复用
 
