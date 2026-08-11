@@ -2,35 +2,161 @@
 
 :root {
   color-scheme: light;
-  --bg: light-dark(#f6f8fa, #101416);
-  --panel: light-dark(#ffffff, #171d20);
-  --panel-strong: light-dark(#edf3f5, #222b2f);
-  --topbar-bg: light-dark(rgba(255, 255, 255, 0.92), rgba(23, 29, 32, 0.94));
-  --text: light-dark(#172026, #eef4f6);
-  --muted: light-dark(#526069, #a8b6bd);
-  --line: light-dark(#d8e1e7, #344147);
-  --accent: light-dark(#c84535, #ff7b68);
-  --accent-2: light-dark(#0f766e, #32c8ba);
-  --accent-2-text: light-dark(#ffffff, #081513);
-  --danger-text: light-dark(#ffffff, #160907);
-  --warn: light-dark(#b7791f, #e5ae4c);
-  --handle: #ffd84a;
-  --control-bg: light-dark(#ffffff, #1d2529);
-  --control-hover: light-dark(#aebbc4, #5b6b73);
-  --primary-bg: light-dark(#172026, #eef4f6);
-  --primary-text: light-dark(#ffffff, #101416);
-  --drop-line: light-dark(#7d8d97, #7a8c95);
-  --drop-bg: light-dark(#fbfcfd, #14191c);
-  --drop-active-bg: light-dark(#edf8f6, #132c2a);
-  --thumb-bg: light-dark(#f8fafb, #11181b);
-  --chip-bg: light-dark(#eef2f5, #253035);
-  --low-bg: light-dark(#fff3d6, #3a2d16);
-  --low-text: light-dark(#7c4304, #ffd385);
-  --stage-grid: light-dark(rgba(23, 32, 38, 0.04), rgba(238, 244, 246, 0.055));
-  --empty-bg: light-dark(rgba(255, 255, 255, 0.74), rgba(20, 25, 28, 0.78));
-  --shadow: light-dark(0 10px 28px rgba(21, 32, 38, 0.08), 0 10px 28px rgba(0, 0, 0, 0.34));
-  --logo-slide: light-dark(#F5F7F2, #171d20);
-  --logo-lines: light-dark(#526069, #a8b6bd);
+
+  /* Primitive tokens: the small, reusable vocabulary of the product. */
+  --color-ink-950: #101416;
+  --color-ink-900: #172026;
+  --color-ink-800: #222b2f;
+  --color-ink-700: #253035;
+  --color-ink-600: #344147;
+  --color-ink-500: #5b6b73;
+  --color-ink-panel-dark: #171d20;
+  --color-ink-text-dark: #eef4f6;
+  --color-ink-muted-dark: #a8b6bd;
+  --color-ink-control-dark: #1d2529;
+  --color-ink-drop-dark: #14191c;
+  --color-ink-thumb-dark: #11181b;
+  --color-paper-0: #ffffff;
+  --color-paper-50: #fbfcfd;
+  --color-paper-100: #f8fafb;
+  --color-paper-200: #f6f8fa;
+  --color-paper-300: #edf3f5;
+  --color-paper-400: #eef2f5;
+  --color-slate-500: #526069;
+  --color-slate-400: #7d8d97;
+  --color-slate-300: #aebbc4;
+  --color-slate-200: #d8e1e7;
+  --color-slate-dark: #7a8c95;
+  --color-paper-strong: #eef4f6;
+  --color-teal-50: #edf8f6;
+  --color-teal-950: #132c2a;
+  --color-teal-700: #0f766e;
+  --color-teal-500: #32c8ba;
+  --color-teal-text-dark: #081513;
+  --color-terra-700: #c84535;
+  --color-terra-400: #ff7b68;
+  --color-terra-text-dark: #160907;
+  --color-warn-100: #fff3d6;
+  --color-warn-800: #7c4304;
+  --color-warn-900: #3a2d16;
+  --color-warn-700: #b7791f;
+  --color-warn-500: #e5ae4c;
+  --color-warn-300: #ffd385;
+  --color-handle: #ffd84a;
+  --color-logo-paper: #f5f7f2;
+  --color-white: #ffffff;
+  --color-black: #000000;
+  --color-topbar-light: rgba(255, 255, 255, 0.92);
+  --color-topbar-dark: rgba(23, 29, 32, 0.94);
+  --color-stage-grid-light: rgba(23, 32, 38, 0.04);
+  --color-stage-grid-dark: rgba(238, 244, 246, 0.055);
+  --color-empty-light: rgba(255, 255, 255, 0.74);
+  --color-empty-dark: rgba(20, 25, 28, 0.78);
+
+  --font-family-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-family-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 12px;
+  --font-size-md: 13px;
+  --font-size-base: 14px;
+  --font-size-lg: 16px;
+  --font-size-xl: 18px;
+  --font-size-2xl: 24px;
+  --line-height-tight: 1.2;
+  --line-height-ui: 1.45;
+  --line-height-body: 1.5;
+  --line-height-relaxed: 1.6;
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+  --font-weight-brand: 750;
+  --font-weight-strong: 760;
+  --font-weight-emphasis: 780;
+  --font-weight-black: 800;
+
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 12px;
+  --space-5: 16px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-control-compact: 9px;
+  --space-control-inline: 11px;
+  --space-control-touch: 13px;
+
+  --radius-xs: 5px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-switch: 10px;
+  --radius-feedback: 7px;
+  --radius-pill: 9999px;
+  --radius-circle: 50%;
+
+  --control-height-sm: 30px;
+  --control-height-md: 34px;
+  --control-height-touch: 44px;
+  --focus-ring-width: 3px;
+  --breakpoint-tablet: 1040px;
+  --breakpoint-mobile: 834px;
+
+  --shadow-control-light: 0 10px 28px rgba(21, 32, 38, 0.08);
+  --shadow-control-dark: 0 10px 28px rgba(0, 0, 0, 0.34);
+  --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.12);
+  --shadow-small-dark: 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-loupe: 0 8px 28px rgba(0, 0, 0, 0.45);
+  --shadow-crosshair: 0 0 2px rgba(0, 0, 0, 0.8);
+  --shadow-keycap: 0 1px 2px rgba(0, 0, 0, 0.08);
+
+  /* Semantic tokens: theme-aware roles consumed by the application. */
+  --bg: light-dark(var(--color-paper-200), var(--color-ink-950));
+  --panel: light-dark(var(--color-paper-0), var(--color-ink-panel-dark));
+  --panel-strong: light-dark(var(--color-paper-300), var(--color-ink-800));
+  --topbar-bg: light-dark(var(--color-topbar-light), var(--color-topbar-dark));
+  --text: light-dark(var(--color-ink-900), var(--color-ink-text-dark));
+  --muted: light-dark(var(--color-slate-500), var(--color-ink-muted-dark));
+  --line: light-dark(var(--color-slate-200), var(--color-ink-600));
+  --accent: light-dark(var(--color-terra-700), var(--color-terra-400));
+  --accent-2: light-dark(var(--color-teal-700), var(--color-teal-500));
+  --accent-2-text: light-dark(var(--color-white), var(--color-teal-text-dark));
+  --danger-text: light-dark(var(--color-white), var(--color-terra-text-dark));
+  --warn: light-dark(var(--color-warn-700), var(--color-warn-500));
+  --handle: var(--color-handle);
+  --control-bg: light-dark(var(--color-paper-0), var(--color-ink-control-dark));
+  --control-hover: light-dark(var(--color-slate-300), var(--color-ink-500));
+  --primary-bg: light-dark(var(--color-ink-900), var(--color-paper-strong));
+  --primary-text: light-dark(var(--color-white), var(--color-ink-950));
+  --drop-line: light-dark(var(--color-slate-400), var(--color-slate-dark));
+  --drop-bg: light-dark(var(--color-paper-50), var(--color-ink-drop-dark));
+  --drop-active-bg: light-dark(var(--color-teal-50), var(--color-teal-950));
+  --thumb-bg: light-dark(var(--color-paper-100), var(--color-ink-thumb-dark));
+  --chip-bg: light-dark(var(--color-paper-400), var(--color-ink-700));
+  --low-bg: light-dark(var(--color-warn-100), var(--color-warn-900));
+  --low-text: light-dark(var(--color-warn-800), var(--color-warn-300));
+  --stage-grid: light-dark(var(--color-stage-grid-light), var(--color-stage-grid-dark));
+  --empty-bg: light-dark(var(--color-empty-light), var(--color-empty-dark));
+  --shadow: light-dark(var(--shadow-control-light), var(--shadow-control-dark));
+  --logo-slide: light-dark(var(--color-logo-paper), var(--color-ink-panel-dark));
+  --logo-lines: light-dark(var(--color-slate-500), var(--color-ink-muted-dark));
+
+  /* Component tokens: stable contracts for recurring UI pieces. */
+  --component-control-height: var(--control-height-md);
+  --component-control-radius: var(--radius-sm);
+  --component-control-padding-inline: var(--space-control-inline);
+  --component-compact-padding-inline: var(--space-control-compact);
+  --component-touch-padding-inline: var(--space-control-touch);
+  --component-surface-radius: var(--radius-md);
+  --component-modal-radius: var(--radius-lg);
+  --component-input-radius: var(--radius-sm);
+  --component-input-padding-inline: var(--space-control-compact);
+  --component-chip-radius: var(--radius-pill);
+  --component-focus-ring: var(--focus-ring-width);
+  --component-feedback-padding-block: var(--space-control-compact);
+  --component-modal-padding: calc(var(--space-5) + var(--space-1));
+  --component-shadow-accent-hover: 0 2px 6px color-mix(in srgb, var(--accent), transparent 65%);
 }
 
 :root[data-theme="dark"] {
@@ -74,7 +200,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font: var(--font-size-base)/var(--line-height-ui) var(--font-family-sans);
   letter-spacing: 0;
 }
 
@@ -88,11 +214,11 @@ select,
 
 button,
 .moreSettings summary {
-  height: 34px;
+  height: var(--component-control-height);
   border: 1px solid var(--line);
   background: var(--control-bg);
-  border-radius: 6px;
-  padding: 0 11px;
+  border-radius: var(--component-control-radius);
+  padding: 0 var(--component-control-padding-inline);
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   transition:
@@ -127,7 +253,7 @@ button:disabled {
 }
 
 :where(button, a, input, select, summary):focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--accent-2), transparent 35%);
+  outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%);
   outline-offset: 2px;
 }
 
@@ -156,7 +282,7 @@ button:disabled {
 
 .uiButton--icon {
   padding: 0;
-  font-size: 18px;
+  font-size: var(--font-size-xl);
 }
 
 .uiButton--danger {
@@ -166,57 +292,57 @@ button:disabled {
 }
 
 .uiButton--sm {
-  height: 30px;
-  min-height: 30px;
-  padding: 0 9px;
-  font-size: 13px;
+  height: var(--control-height-sm);
+  min-height: var(--control-height-sm);
+  padding: 0 var(--component-compact-padding-inline);
+  font-size: var(--font-size-md);
 }
 
 .uiButton--md {
-  height: 34px;
-  min-height: 34px;
+  height: var(--control-height-md);
+  min-height: var(--control-height-md);
 }
 
 .uiButton--touch {
-  height: 44px;
-  min-height: 44px;
-  padding: 0 13px;
+  height: var(--control-height-touch);
+  min-height: var(--control-height-touch);
+  padding: 0 var(--component-touch-padding-inline);
 }
 
 :where(.uiButton--icon).uiButton--sm,
 :where(.iconOnlyButton).uiButton--sm {
-  width: 30px;
-  min-width: 30px;
+  width: var(--control-height-sm);
+  min-width: var(--control-height-sm);
 }
 
 :where(.uiButton--icon).uiButton--md,
 :where(.iconOnlyButton).uiButton--md {
-  width: 34px;
-  min-width: 34px;
+  width: var(--control-height-md);
+  min-width: var(--control-height-md);
 }
 
 :where(.uiButton--icon).uiButton--touch,
 :where(.iconOnlyButton).uiButton--touch {
-  width: 44px;
-  min-width: 44px;
+  width: var(--control-height-touch);
+  min-width: var(--control-height-touch);
 }
 
 select,
 input[type="number"],
 input[type="text"] {
-  height: 34px;
+  height: var(--component-control-height);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--component-input-radius);
   background: var(--control-bg);
-  padding: 0 9px;
+  padding: 0 var(--component-input-padding-inline);
   min-width: 0;
 }
 
 label {
   display: grid;
-  gap: 4px;
+  gap: var(--space-1);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 label > span {
@@ -250,9 +376,9 @@ a:hover {
   min-height: 58px;
   display: grid;
   grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
-  gap: 22px;
+  gap: var(--space-6);
   align-items: center;
-  padding: max(10px, env(safe-area-inset-top)) 0 10px max(14px, env(safe-area-inset-left));
+  padding: max(var(--space-3), env(safe-area-inset-top)) 0 var(--space-3) max(var(--space-4), env(safe-area-inset-left));
   border-bottom: 1px solid var(--line);
   background: var(--topbar-bg);
   position: sticky;
@@ -264,9 +390,9 @@ a:hover {
   grid-area: prefs;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   min-height: 58px;
-  padding: max(10px, env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px 8px;
+  padding: max(var(--space-3), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--line);
   background: var(--topbar-bg);
   position: sticky;
@@ -277,24 +403,24 @@ a:hover {
 .brand {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .mark {
-  width: 30px;
-  height: 30px;
+  width: var(--control-height-sm);
+  height: var(--control-height-sm);
   display: grid;
   place-items: center;
-  border-radius: 7px;
+  border-radius: var(--radius-sm);
   background: var(--primary-bg);
   color: var(--primary-text);
-  font-weight: 750;
+  font-weight: var(--font-weight-brand);
 }
 
 .brandText {
-  font-weight: 760;
-  font-size: 16px;
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-lg);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -330,7 +456,7 @@ a:hover {
   --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
   grid-template-columns: var(--settings-columns);
-  gap: 8px;
+  gap: var(--space-3);
   align-items: center;
   min-width: 0;
 }
@@ -360,16 +486,16 @@ a:hover {
 .prefsBar label {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 34px;
+  gap: var(--space-2);
+  height: var(--component-control-height);
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .settings label:not(.checks) > span,
 .prefsBar label > span {
   flex: 0 0 auto;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .settings label:not(.checks) > select,
@@ -379,7 +505,7 @@ a:hover {
   flex: 1 1 auto;
   width: 100%;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .settings label:not(.checks) > select,
@@ -387,18 +513,18 @@ a:hover {
   flex: 0 0 auto;
   min-width: 74px;
   width: auto;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .settings label:not(.checks) > input[type="number"] {
   flex: 0 0 74px;
   width: 74px;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .settings .fileSuffix {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-md);
   margin-left: -2px;
 }
 
@@ -406,25 +532,25 @@ a:hover {
   display: grid;
   grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
-  font-size: 13px;
+  gap: var(--space-3);
+  min-height: var(--component-control-height);
+  font-size: var(--font-size-md);
 }
 
 .orientationSetting > span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .switchToggle {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
-  font-size: 13px;
+  font-size: var(--font-size-md);
   color: var(--text);
 }
 
@@ -435,7 +561,7 @@ a:hover {
   height: 20px;
   background: var(--panel-strong);
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: var(--radius-switch);
   transition: border-color 0.2s ease, background-color 0.2s ease;
   flex-shrink: 0;
 }
@@ -451,8 +577,8 @@ a:hover {
   width: 16px;
   height: 16px;
   background: var(--text);
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-circle);
+  box-shadow: var(--shadow-small-dark);
   transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
@@ -461,8 +587,8 @@ a:hover {
 }
 
 .switchLabel {
-  font-size: 13px;
-  font-weight: 400;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
   color: var(--text);
 }
 
@@ -483,7 +609,7 @@ a:hover {
   display: inline-flex;
   align-items: center;
   list-style: none;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .moreSettings summary::-webkit-details-marker {
@@ -496,10 +622,10 @@ a:hover {
   right: 0;
   min-width: 250px;
   display: grid;
-  gap: 10px;
-  padding: 12px;
+  gap: var(--space-3);
+  padding: var(--space-4);
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--component-surface-radius);
   background: var(--panel);
   box-shadow: var(--shadow);
   z-index: 50;
@@ -509,15 +635,15 @@ a:hover {
   display: grid;
   grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   height: auto;
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .morePanel select,
 .morePanel input[type="number"],
 .morePanel input[type="text"] {
-  font-size: 13px;
+  font-size: var(--font-size-md);
 }
 
 .morePanel .checks {
@@ -525,8 +651,8 @@ a:hover {
 }
 
 .morePanel input[type="checkbox"] {
-  width: 16px;
-  height: 16px;
+  width: var(--font-size-lg);
+  height: var(--font-size-lg);
   accent-color: var(--accent-2);
 }
 
@@ -534,7 +660,7 @@ a:hover {
   width: 44px;
   height: 28px;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--component-input-radius);
   background: var(--control-bg);
   padding: 2px;
 }
@@ -543,11 +669,11 @@ a:hover {
   display: grid;
   grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   color: var(--muted);
-  font-size: 13px;
-  font-weight: 400;
-  line-height: 1.45;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-ui);
 }
 
 .morePanel .colorSetting > span {
@@ -558,17 +684,17 @@ a:hover {
 .colorControls {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .colorControls button {
   min-width: 44px;
   height: 28px;
-  padding: 0 8px;
+  padding: 0 var(--space-3);
   color: var(--muted);
   font: inherit;
-  font-weight: 400;
-  line-height: 1.45;
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-ui);
 }
 
 .colorControls button[aria-pressed="true"] {
@@ -601,8 +727,8 @@ a:hover {
   background: var(--panel);
   display: grid;
   align-content: start;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-4);
+  padding: var(--space-4);
   overflow: hidden;
 }
 
@@ -624,7 +750,7 @@ a:hover {
 .inspector.collapsed {
   gap: 0;
   grid-template-rows: auto;
-  padding: 8px 6px;
+  padding: var(--space-3) var(--space-2);
 }
 
 .inspector.collapsed .sectionHead {
@@ -641,12 +767,12 @@ a:hover {
 .sidebarActions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .sidebarRunMeta {
   display: grid;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .sidebarStatus {
@@ -654,7 +780,7 @@ a:hover {
   min-width: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-3);
   color: var(--muted);
 }
 
@@ -662,7 +788,7 @@ a:hover {
   flex: none;
   width: 9px;
   height: 9px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--muted);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted), transparent 82%);
 }
@@ -692,7 +818,7 @@ a:hover {
 
 .links {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
   min-height: 0;
 }
 
@@ -701,13 +827,13 @@ a:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
+  gap: var(--space-3);
   border: 1px solid var(--primary-bg);
-  border-radius: 6px;
+  border-radius: var(--component-control-radius);
   background: var(--primary-bg);
   color: var(--primary-text);
-  padding: 7px 11px;
-  font-weight: 700;
+  padding: var(--space-3) var(--component-control-padding-inline);
+  font-weight: var(--font-weight-bold);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -731,14 +857,14 @@ a:hover {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
-  gap: 8px;
-  min-height: 34px;
+  gap: var(--space-3);
+  min-height: var(--control-height-md);
 }
 
 .sectionHead h2 {
   margin: 0;
-  font-size: 13px;
-  font-weight: 760;
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-strong);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0;
@@ -749,21 +875,21 @@ a:hover {
   min-height: 22px;
   display: grid;
   place-items: center;
-  border-radius: 999px;
+  border-radius: var(--component-chip-radius);
   background: var(--chip-bg);
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 720;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-strong);
 }
 
 button.clearAction {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
   color: var(--muted);
   background: transparent;
   border: none;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px var(--space-2);
+  border-radius: var(--space-1);
   cursor: pointer;
   transition: color 0.12s ease, background 0.12s ease;
 }
@@ -790,9 +916,9 @@ button.clearAction:disabled {
   display: grid;
   align-items: center;
   border: 1px dashed var(--drop-line);
-  border-radius: 8px;
+  border-radius: var(--component-surface-radius);
   background: var(--drop-bg);
-  padding: 14px;
+  padding: var(--space-4);
   cursor: pointer;
   color: inherit;
   text-align: left;
@@ -811,9 +937,9 @@ button.clearAction:disabled {
 }
 
 .dropzoneContent > span {
-  margin-top: 5px;
+  margin-top: var(--space-1);
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .sidebarFilePicker {
@@ -824,12 +950,12 @@ button.clearAction:disabled {
 
 .files {
   min-height: 0;
-  max-height: calc(100% - 10px);
+  max-height: calc(100% - var(--space-3));
   align-self: start;
   overflow: auto;
   display: grid;
-  gap: 7px;
-  margin-top: 10px;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
   margin-left: 0;
   padding-left: 0;
   padding-right: 2px;
@@ -851,12 +977,12 @@ button.clearAction:disabled {
   grid-template-columns: 30px 52px minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
-  column-gap: 8px;
+  column-gap: var(--space-3);
   row-gap: 2px;
   text-align: left;
-  padding: 7px 56px 7px 7px;
+  padding: var(--space-3) 56px var(--space-3) var(--space-3);
   border-color: var(--line);
-  border-radius: 8px;
+  border-radius: var(--component-surface-radius);
   background: var(--thumb-bg);
   color: var(--text);
 }
@@ -872,12 +998,12 @@ button.clearAction:disabled {
   top: 6px;
   right: 6px;
   margin: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--panel);
   border-color: var(--line);
   color: var(--accent);
   opacity: 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-small);
   transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
   z-index: 2;
 }
@@ -900,7 +1026,7 @@ button.clearAction:disabled {
   border-color: var(--accent);
   color: var(--danger-text);
   transform: scale(1.08);
-  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent), transparent 65%);
+  box-shadow: var(--component-shadow-accent-hover);
 }
 
 
@@ -915,7 +1041,7 @@ button.clearAction:disabled {
 .idx {
   grid-row: 1 / 3;
   color: var(--accent);
-  font-weight: 780;
+  font-weight: var(--font-weight-emphasis);
   text-align: center;
 }
 
@@ -924,7 +1050,7 @@ button.clearAction:disabled {
   width: 52px;
   height: 38px;
   object-fit: contain;
-  border-radius: 5px;
+  border-radius: var(--radius-xs);
   background: var(--panel-strong);
 }
 
@@ -932,8 +1058,8 @@ button.clearAction:disabled {
   display: grid;
   place-items: center;
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 760;
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-strong);
   letter-spacing: 0.04em;
 }
 
@@ -942,7 +1068,7 @@ button.clearAction:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 650;
+  font-weight: var(--font-weight-semibold);
 }
 
 .sub {
@@ -951,18 +1077,18 @@ button.clearAction:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--font-size-sm);
 }
 
 .badge {
   justify-self: start;
   min-width: 44px;
-  border-radius: 999px;
+  border-radius: var(--component-chip-radius);
   background: var(--chip-bg);
   color: var(--muted);
-  font-size: 11px;
-  font-weight: 760;
-  padding: 3px 8px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-strong);
+  padding: 3px var(--space-3);
 }
 
 .badge.low {
@@ -986,8 +1112,8 @@ button.clearAction:disabled {
   min-height: 50px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 10px;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--line);
   background: var(--panel);
 }
@@ -998,13 +1124,13 @@ button.clearAction:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 .zoomControls {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .zoomValue {
@@ -1019,7 +1145,7 @@ button.clearAction:disabled {
   display: grid;
   place-items: center;
   place-items: safe center;
-  padding: 14px;
+  padding: var(--space-4);
   overflow: auto;
   background:
     linear-gradient(45deg, var(--stage-grid) 25%, transparent 25%),
@@ -1061,7 +1187,7 @@ canvas {
   min-height: 48px;
   padding: 0;
   border: 0;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: transparent;
   box-shadow: none;
   transform: translate(-50%, -50%);
@@ -1085,10 +1211,10 @@ canvas {
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--component-surface-radius);
   background: var(--empty-bg);
   color: var(--muted);
-  padding: 18px;
+  padding: var(--space-5);
   text-align: center;
 }
 
@@ -1097,19 +1223,19 @@ canvas {
   overflow: auto;
   display: grid;
   align-content: start;
-  gap: 14px;
+  gap: var(--space-4);
 }
 
 .metrics {
   display: grid;
-  gap: 8px;
+  gap: var(--space-3);
 }
 
 .metric {
   display: grid;
   grid-template-columns: 96px minmax(0, 1fr);
-  gap: 8px;
-  padding: 8px 0;
+  gap: var(--space-3);
+  padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
 }
 
@@ -1124,13 +1250,13 @@ canvas {
 
 .cornerTable {
   display: grid;
-  gap: 6px;
+  gap: var(--space-2);
 }
 
 .cornerRow {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 6px;
+  gap: var(--space-2);
   align-items: center;
 }
 
@@ -1139,11 +1265,11 @@ canvas {
   height: 24px;
   display: grid;
   place-items: center;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   background: var(--handle);
-  color: #172026;
-  font-size: 12px;
-  font-weight: 800;
+  color: var(--color-ink-900);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-black);
 }
 
 .cornerRow code {
@@ -1151,25 +1277,26 @@ canvas {
   overflow: hidden;
   text-overflow: ellipsis;
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: var(--component-input-radius);
   background: var(--panel-strong);
-  padding: 4px 6px;
-  font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+  padding: var(--space-1) var(--space-2);
+  font: var(--font-size-sm)/var(--line-height-tight) var(--font-family-mono);
 }
 
 .errorText {
   margin: 0;
   border: 1px solid color-mix(in srgb, var(--accent), transparent 45%);
-  border-radius: 7px;
+  border-radius: var(--radius-feedback);
   background: color-mix(in srgb, var(--accent), transparent 88%);
   color: var(--accent);
-  padding: 9px 11px;
+  padding: var(--component-feedback-padding-block) var(--component-control-padding-inline);
 }
 
+/* CSS media queries cannot consume custom properties; keep this threshold in sync with --breakpoint-tablet. */
 @media (max-width: 1040px) {
   .topbar {
     grid-template-columns: minmax(150px, 170px) minmax(0, 1fr);
-    gap: 16px;
+    gap: var(--space-5);
   }
 
   .shell {
@@ -1207,10 +1334,11 @@ canvas {
   }
 
   .stage {
-    padding: 8px;
+    padding: var(--space-3);
   }
 }
 
+/* Keep this threshold in sync with --breakpoint-mobile. */
 @media (max-width: 834px), (max-height: 600px) and (max-width: 1040px) {
   html {
     height: auto;
@@ -1289,7 +1417,7 @@ canvas {
     min-width: 0;
     overflow-x: hidden;
     overflow-y: visible;
-    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
   }
 
   .sidebar > * {
@@ -1307,10 +1435,10 @@ canvas {
     max-width: 100%;
     min-width: 0;
     display: flex;
-    gap: 8px;
+    gap: var(--space-3);
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 2px 2px 6px;
+    padding: 2px 2px var(--space-2);
     scroll-snap-type: x proximity;
     overscroll-behavior-x: contain;
     -webkit-overflow-scrolling: touch;
@@ -1334,11 +1462,11 @@ canvas {
   }
 
   .reviewBar {
-    padding-inline: max(10px, env(safe-area-inset-left)) max(10px, env(safe-area-inset-right));
+    padding-inline: max(var(--space-3), env(safe-area-inset-left)) max(var(--space-3), env(safe-area-inset-right));
   }
 
   .stage {
-    padding-inline: max(8px, env(safe-area-inset-left)) max(8px, env(safe-area-inset-right));
+    padding-inline: max(var(--space-3), env(safe-area-inset-left)) max(var(--space-3), env(safe-area-inset-right));
     -webkit-overflow-scrolling: touch;
   }
 
@@ -1351,14 +1479,14 @@ canvas {
     min-width: 0;
     overflow-x: hidden;
     overflow-y: visible;
-    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
-    padding-bottom: 12px;
+    padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
+    padding-bottom: var(--space-4);
   }
 
   .inspector.collapsed {
     gap: 0;
     grid-template-rows: auto;
-    padding: 12px max(12px, env(safe-area-inset-right)) 12px max(12px, env(safe-area-inset-left));
+    padding: var(--space-4) max(var(--space-4), env(safe-area-inset-right)) var(--space-4) max(var(--space-4), env(safe-area-inset-left));
   }
 
   .inspector.collapsed .sectionHead {
@@ -1392,8 +1520,8 @@ canvas {
   .topbar {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    gap: 12px;
-    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+    gap: var(--space-4);
+    padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
   }
 
   .settings {
@@ -1413,11 +1541,11 @@ canvas {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 44px;
-    min-height: 44px;
-    padding: 0 14px;
+    height: var(--control-height-touch);
+    min-height: var(--control-height-touch);
+    padding: 0 var(--component-touch-padding-inline);
     border: 1px solid var(--line);
-    border-radius: 6px;
+    border-radius: var(--component-control-radius);
     background: var(--control-bg);
     cursor: pointer;
     -webkit-tap-highlight-color: transparent;
@@ -1435,10 +1563,10 @@ canvas {
     right: 0;
     z-index: 60;
     width: min(320px, calc(100vw - 24px));
-    gap: 10px;
-    padding: 12px;
+    gap: var(--space-3);
+    padding: var(--space-4);
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: var(--component-surface-radius);
     background: var(--panel);
     box-shadow: var(--shadow);
   }
@@ -1464,18 +1592,18 @@ canvas {
   .settingsMenuBody > .settingsMenuInfo {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: var(--space-3);
     width: 100%;
-    min-height: 44px;
-    padding: 0 12px;
+    min-height: var(--control-height-touch);
+    padding: 0 var(--space-4);
     border: 1px solid var(--line);
-    border-radius: 6px;
+    border-radius: var(--component-control-radius);
     background: var(--control-bg);
     color: var(--text);
     cursor: pointer;
     text-align: left;
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-medium);
     grid-column: 1 / -1;
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
@@ -1497,18 +1625,18 @@ canvas {
     display: grid;
     grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
     align-items: center;
-    gap: 8px;
+    gap: var(--space-3);
     height: auto;
-    min-height: 44px;
+    min-height: var(--control-height-touch);
   }
 
   .settingsMenuBody > .pdfNameSetting {
     display: grid;
     grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr) auto;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-3);
     height: auto;
-    min-height: 44px;
+    min-height: var(--control-height-touch);
     width: 100%;
     max-width: none;
     justify-self: stretch;
@@ -1544,7 +1672,7 @@ canvas {
 
   .dropzone {
     min-height: 48px;
-    padding: 10px 14px;
+    padding: var(--space-3) var(--space-4);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1559,8 +1687,8 @@ canvas {
 
   .dropzoneContent strong {
     display: inline;
-    font-size: 14px;
-    font-weight: 600;
+    font-size: var(--font-size-base);
+    font-weight: var(--font-weight-semibold);
     text-align: center;
   }
 
@@ -1568,7 +1696,7 @@ canvas {
     min-height: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-3);
   }
 
   .reviewPrevious,
@@ -1583,14 +1711,14 @@ canvas {
     min-width: 0;
     width: auto;
     align-items: center;
-    gap: 6px;
+    gap: var(--space-2);
   }
 
   .reviewBar .reviewFitButton {
     flex: 0 0 auto;
     width: auto;
     min-width: 0;
-    padding: 0 12px;
+    padding: 0 var(--space-4);
   }
 
   .reviewBar .reviewResetButton {
@@ -1605,7 +1733,7 @@ canvas {
   select,
   input[type="number"],
   input[type="text"] {
-    font-size: 16px;
+    font-size: var(--font-size-lg);
   }
 
   .settings label,
@@ -1617,7 +1745,7 @@ canvas {
   .settings input,
   .morePanel input,
   .moreSettings summary {
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .empty {
@@ -1628,18 +1756,18 @@ canvas {
 @media (max-width: 834px), (pointer: coarse) {
   button,
   .moreSettings summary {
-    height: 44px;
-    min-height: 44px;
+    height: var(--control-height-touch);
+    min-height: var(--control-height-touch);
   }
 
   .uiButton--sm {
-    height: 44px;
-    min-height: 44px;
+    height: var(--control-height-touch);
+    min-height: var(--control-height-touch);
   }
 
   .uiButton--md {
-    height: 44px;
-    min-height: 44px;
+    height: var(--control-height-touch);
+    min-height: var(--control-height-touch);
   }
 
   .uiButton--icon,
@@ -1647,17 +1775,17 @@ canvas {
   :where(.uiButton--icon).uiButton--md,
   :where(.iconOnlyButton).uiButton--sm,
   :where(.iconOnlyButton).uiButton--md {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: var(--control-height-touch);
+    height: var(--control-height-touch);
+    min-width: var(--control-height-touch);
+    min-height: var(--control-height-touch);
   }
 
   select,
   input[type="number"],
   input[type="text"] {
-    height: 44px;
-    font-size: 16px;
+    height: var(--control-height-touch);
+    font-size: var(--font-size-lg);
   }
 
   .settings label,
@@ -1669,17 +1797,17 @@ canvas {
   .settings input,
   .morePanel input,
   .moreSettings summary {
-    font-size: 13px;
+    font-size: var(--font-size-md);
   }
 
   .settings label,
   .prefsBar label {
-    height: 44px;
+    height: var(--control-height-touch);
   }
 
   .morePanel label,
   .morePanel .checks {
-    min-height: 44px;
+    min-height: var(--control-height-touch);
     height: auto;
   }
 
@@ -1690,21 +1818,21 @@ canvas {
 
   .morePanel input[type="color"] {
     width: 52px;
-    height: 44px;
+    height: var(--control-height-touch);
   }
 
   .colorControls button {
     min-width: 52px;
-    height: 44px;
-    font-size: 16px;
+    height: var(--control-height-touch);
+    font-size: var(--font-size-lg);
   }
 
   .links a {
-    min-height: 44px;
+    min-height: var(--control-height-touch);
   }
 
   .sectionHead {
-    min-height: 44px;
+    min-height: var(--control-height-touch);
   }
 }
 
@@ -1729,11 +1857,11 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  min-width: 34px;
-  min-height: 34px;
-  border-radius: 6px;
+  width: var(--control-height-md);
+  height: var(--control-height-md);
+  min-width: var(--control-height-md);
+  min-height: var(--control-height-md);
+  border-radius: var(--component-control-radius);
   color: var(--muted);
   background: var(--control-bg);
   border: 1px solid var(--line);
@@ -1758,10 +1886,10 @@ canvas {
 
 @media (max-width: 834px), (pointer: coarse) {
   .infoButton {
-    width: 44px;
-    height: 44px;
-    min-width: 44px;
-    min-height: 44px;
+    width: var(--control-height-touch);
+    height: var(--control-height-touch);
+    min-width: var(--control-height-touch);
+    min-height: var(--control-height-touch);
   }
 }
 
@@ -1786,7 +1914,7 @@ canvas {
 .modalCard {
   background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--component-modal-radius);
   width: 90%;
   max-width: 440px;
   box-shadow: var(--shadow);
@@ -1800,29 +1928,29 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 20px;
+  padding: var(--space-5) var(--component-modal-padding);
   border-bottom: 1px solid var(--line);
 }
 
 .modalTitle {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-3);
   min-width: 0;
 }
 
 .modalHeader h3 {
   margin: 0;
-  font-size: 16px;
-  font-weight: 750;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-bold);
   color: var(--text);
 }
 
 .modalVersion {
   flex: none;
   color: var(--muted);
-  font-size: 12px;
-  font-weight: 650;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.02em;
 }
 
@@ -1830,7 +1958,7 @@ canvas {
   border: none;
   background: transparent;
   cursor: pointer;
-  font-size: 24px;
+  font-size: var(--font-size-2xl);
   color: var(--muted);
   width: 32px;
   height: 32px;
@@ -1838,7 +1966,7 @@ canvas {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
+  border-radius: var(--component-control-radius);
   transition: background 0.15s, color 0.15s;
   padding: 0;
 }
@@ -1850,40 +1978,40 @@ canvas {
 }
 
 .modalBody {
-  padding: 20px;
+  padding: var(--component-modal-padding);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-5);
 }
 
 .modalDesc {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.6;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
   color: var(--text);
 }
 
 /* Local-only highlight container */
 .modalPrivacy {
   margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-  padding: 12px 16px;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-body);
+  padding: var(--space-4) var(--space-5);
   background: color-mix(in srgb, var(--accent-2), transparent 92%);
   border: 1px solid color-mix(in srgb, var(--accent-2), transparent 62%);
-  border-radius: 8px;
+  border-radius: var(--component-surface-radius);
   color: var(--text);
 }
 
 .modalPrivacy strong {
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
 }
 
 /* Styled link buttons in modal */
 .modalLinks {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--space-3);
   margin-top: 4px;
 }
 
@@ -1891,12 +2019,12 @@ canvas {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: var(--space-4) var(--space-5);
   background: var(--control-bg);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  font-size: 14px;
-  font-weight: 600;
+  border-radius: var(--component-surface-radius);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   color: var(--text);
   transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
   text-decoration: none;
@@ -1912,7 +2040,7 @@ canvas {
 
 .modalLink::after {
   content: "→";
-  font-size: 16px;
+  font-size: var(--font-size-lg);
   transition: transform 0.2s ease;
 }
 
@@ -1963,20 +2091,20 @@ canvas {
   z-index: 100;
   width: 120px;
   height: 120px;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
   border: 3px solid var(--accent-2);
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--shadow-loupe);
   overflow: hidden;
   background: var(--panel);
   transform: translate(-50%, -100%);
-  margin-top: -16px;
+  margin-top: calc(-1 * var(--space-5));
 }
 
 .loupeCanvas {
   display: block;
   width: 100%;
   height: 100%;
-  border-radius: 50%;
+  border-radius: var(--radius-circle);
 }
 
 .loupeCrosshair {
@@ -1994,7 +2122,7 @@ canvas {
   content: "";
   position: absolute;
   background: var(--handle);
-  box-shadow: 0 0 2px rgba(0, 0, 0, 0.8);
+  box-shadow: var(--shadow-crosshair);
 }
 
 .loupeCrosshair::before {
@@ -2013,29 +2141,29 @@ canvas {
 
 /* Modal Keyboard Shortcuts Section & Keycaps */
 .modalShortcuts {
-  margin-top: 16px;
-  padding-top: 14px;
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
   border-top: 1px solid var(--line);
 }
 
 .modalShortcuts h4 {
-  margin: 0 0 10px;
-  font-size: 0.875rem;
-  font-weight: 600;
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
   color: var(--text);
 }
 
 .shortcutGrid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 8px 12px;
+  gap: var(--space-3) var(--space-4);
 }
 
 .shortcutItem {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 0.8125rem;
+  gap: var(--space-2);
+  font-size: var(--font-size-md);
   color: var(--muted);
 }
 
@@ -2045,11 +2173,11 @@ kbd {
   justify-content: center;
   min-width: 22px;
   height: 22px;
-  padding: 0 5px;
-  font: 500 11px/1 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 0 var(--space-1);
+  font: var(--font-weight-medium) var(--font-size-xs)/1 var(--font-family-mono);
   color: var(--text);
   background: var(--panel-strong);
   border: 1px solid var(--line);
-  border-radius: 4px;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  border-radius: var(--space-1);
+  box-shadow: var(--shadow-keycap);
 }

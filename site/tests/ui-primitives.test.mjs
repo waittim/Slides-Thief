@@ -51,5 +51,7 @@ test("Button variant and size rules allow page-purpose classes to win the cascad
   assert.doesNotMatch(css, /button\.uiButton--(?:sm|md|touch)\s*\{/);
   assert.match(css, /\.uiButton--ghost\s*\{[^}]*background:\s*transparent/s);
   assert.match(css, /\.uiButton--danger\s*\{[^}]*background:\s*var\(--accent\)/s);
-  assert.match(css, /\.uiButton--touch\s*\{[^}]*min-height:\s*44px[^}]*padding:\s*0 13px/s);
+  assert.match(css, /--control-height-touch:\s*44px/);
+  assert.match(css, /--space-control-touch:\s*13px/);
+  assert.match(css, /\.uiButton--touch\s*\{[^}]*min-height:\s*var\(--control-height-touch\)[^}]*padding:\s*0 var\(--component-touch-padding-inline\)/s);
 });

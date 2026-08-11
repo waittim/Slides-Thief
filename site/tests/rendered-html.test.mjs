@@ -313,10 +313,12 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(css, /\.sidebar\s*>\s*\*\s*\{[^}]*min-width:\s*0/s);
   assert.match(css, /\.sidebarStatus\s*\{[^}]*min-width:\s*0/s);
   assert.match(css, /\.statusLine\s*\{[^}]*flex:\s*1;[^}]*min-width:\s*0;[^}]*text-overflow:\s*ellipsis/s);
-  assert.match(css, /\.files\s*\{[^}]*max-height:\s*calc\(100%\s*-\s*10px\);[^}]*align-self:\s*start;[^}]*overflow:\s*auto/s);
+  assert.match(css, /\.files\s*\{[^}]*max-height:\s*calc\(100%\s*-\s*var\(--space-3\)\);[^}]*align-self:\s*start;[^}]*overflow:\s*auto/s);
   assert.doesNotMatch(css, /\.files\s*\{[^}]*max-height:\s*calc\(100vh/s);
-  assert.match(css, /font-size:\s*16px/);
-  assert.match(css, /min-height:\s*44px/);
+  assert.match(css, /--font-size-lg:\s*16px/);
+  assert.match(css, /font-size:\s*var\(--font-size-lg\)/);
+  assert.match(css, /--control-height-touch:\s*44px/);
+  assert.match(css, /min-height:\s*var\(--control-height-touch\)/);
   assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
   assert.match(css, /button:not\(:disabled\):not\(\.cornerHandle\):active/);
   assert.match(css, /transform:\s*translateY\(1px\)/);

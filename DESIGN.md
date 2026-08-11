@@ -17,44 +17,89 @@ colors:
   neutral-text: "#172026"
   muted: "#526069"
   line: "#d8e1e7"
+  chip-bg: "#eef2f5"
+  chip-bg-dark: "#253035"
 typography:
-  display:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    fontSize: "clamp(1.5rem, 3vw, 2.25rem)"
-    fontWeight: 700
-    lineHeight: 1.2
   body:
-    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
-    fontSize: "0.9375rem"
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontSize: "14px"
     fontWeight: 400
-    lineHeight: 1.5
+    lineHeight: 1.45
+  title:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontSize: "16px"
+    fontWeight: 700
+    lineHeight: 1.45
+  compact:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontSize: "13px"
+    fontWeight: 400
+    lineHeight: 1.45
+  label:
+    fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    fontSize: "12px"
+    fontWeight: 400
+    lineHeight: 1.45
   mono:
     fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace"
-    fontSize: "0.8125rem"
+    fontSize: "12px"
     fontWeight: 500
-    lineHeight: 1.4
+    lineHeight: 1.2
 rounded:
-  sm: "4px"
+  xs: "5px"
+  sm: "6px"
   md: "8px"
   lg: "12px"
-  full: "9999px"
+  switch: "10px"
+  feedback: "7px"
+  pill: "9999px"
+  circle: "50%"
 spacing:
-  xs: "4px"
-  sm: "8px"
-  md: "16px"
-  lg: "24px"
-  xl: "32px"
+  1: "4px"
+  2: "6px"
+  3: "8px"
+  4: "12px"
+  5: "16px"
+  6: "24px"
+  7: "32px"
+  control-compact: "9px"
+  control-inline: "11px"
+  control-touch: "13px"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
     textColor: "#ffffff"
-    rounded: "{rounded.md}"
-    padding: "10px 20px"
+    rounded: "{rounded.sm}"
+    padding: "0 11px"
+    height: "34px"
   button-accent:
     backgroundColor: "{colors.accent-teal}"
     textColor: "#ffffff"
+    rounded: "{rounded.sm}"
+    padding: "0 11px"
+    height: "34px"
+  input-field:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.neutral-text}"
+    rounded: "{rounded.sm}"
+    padding: "0 9px"
+    height: "34px"
+  surface-panel:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.neutral-text}"
     rounded: "{rounded.md}"
-    padding: "10px 20px"
+    padding: "12px"
+  chip-status:
+    backgroundColor: "{colors.chip-bg}"
+    textColor: "{colors.muted}"
+    rounded: "{rounded.pill}"
+    padding: "3px 8px"
+  quad-handle:
+    backgroundColor: "transparent"
+    rounded: "{rounded.circle}"
+    size: "48px"
+  title:
+    typography: "{typography.title}"
 ---
 
 # Design System: Slides Thief (PPT捕手)
@@ -63,90 +108,118 @@ components:
 
 **Creative North Star: "The Precision Desk"**
 
-Slides Thief balances professional utility with minimalist elegance. Designed for high-density document editing and perspective correction, the interface uses a structured 3-column workspace (thumbnail navigation drawer, active canvas stage, and inspector controls panel). All interactions are fast, client-side, and tokenized for dark and light modes.
+Slides Thief is a focused, browser-local workbench for correcting photographed slides and documents. The visual language is compact and technical without becoming industrial: slate text and surfaces provide a quiet base, teal marks precision and confirmation, terracotta carries identity and attention, and the yellow handle remains reserved for direct manipulation on the canvas.
+
+The interface is intentionally dense enough for repeated correction work while retaining clear borders, stable control heights, and strong keyboard focus. The system supports light, dark, and automatic themes without changing component geometry.
 
 **Key Characteristics:**
-- **Local-First Confidence**: Clean UI cues assuring users that no data leaves their device.
-- **Direct Interactive Manipulation**: High-contrast corner handles with numeric coordinate overlays.
-- **Tonal Contrast**: Slate surfaces with terracotta (`#c84535`) and teal (`#0f766e`) accents.
+- **Local-First Confidence**: Clear UI cues reinforce that photos stay in the browser.
+- **Direct Interactive Manipulation**: Four-corner handles, coordinate readouts, and the magnifying loupe support precise correction.
+- **Tonal Contrast**: Slate surfaces with terracotta identity and teal precision accents.
+- **Tokenized Density**: Repeated spacing, shape, type, control, and elevation decisions come from shared CSS variables.
 
 ## Colors
 
-The color system relies on theme variables with automatic system dark mode support.
+The palette is restrained and functional: dark slate anchors the workspace, paper surfaces keep light mode open, and the two accents have distinct jobs.
 
 ### Primary
-- **Slate Ink** (`#172026` / `#eef4f6` dark): Primary text, header bar, and default action backgrounds.
+- **Slate Ink** (`#172026` / `#eef4f6` dark): Brand mark, primary actions, headings, and structural emphasis.
 
 ### Secondary
-- **Terracotta Accent** (`#c84535` / `#ff7b68` dark): Brand identity mark, critical alerts, and review badges.
-- **Teal Precision** (`#0f766e` / `#32c8ba` dark): Active quad polygon boundary line and confirmation actions.
-- **Handle Gold** (`#ffd84a`): High-visibility corner handle grab targets in canvas stage.
+- **Terracotta Accent** (`#c84535` / `#ff7b68` dark): Brand identity, critical attention, and destructive actions.
+- **Teal Precision** (`#0f766e` / `#32c8ba` dark): Active quad boundary, confirmation, links, and focus treatment.
+- **Handle Gold** (`#ffd84a`): High-visibility corner manipulation targets and coordinate markers.
 
 ### Neutral
-- **Paper Canvas** (`#f6f8fa` / `#101416` dark): Main background surface.
-- **Panel Surface** (`#ffffff` / `#171d20` dark): Card, modal, and inspector containers.
-- **Divider Line** (`#d8e1e7` / `#344147` dark): Subtle 1px structural borders.
+- **Paper Canvas** (`#f6f8fa` / `#101416` dark): Application background and canvas surroundings.
+- **Panel Surface** (`#ffffff` / `#171d20` dark): Sidebar, inspector, controls, and modal surfaces.
+- **Divider Line** (`#d8e1e7` / `#344147` dark): Crisp 1px structural boundaries.
+- **Muted Slate** (`#526069` / `#a8b6bd` dark): Secondary labels, metadata, and status copy.
 
 ### Named Rules
-**The Single Accent Rule.** Terracotta accent is used exclusively for key identity and critical attention states. Functional quad overlays use Teal Precision for high contrast over slide images.
+**The Single Accent Rule.** Terracotta is for identity and attention. Functional quad overlays, confirmation, and focus use Teal Precision.
 
 ## Typography
 
-**Display Font:** System UI (`-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`)  
-**Body Font:** System UI  
-**Mono Font:** Monospace (`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`)
+**UI Font:** System UI (`-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`)
+**Body Font:** System UI
+**Label/Mono Font:** System UI labels; monospace (`ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`) for coordinates, keycaps, and metadata.
+
+**Character:** System UI keeps the workbench fast to scan at compact sizes. Weight, color, and spacing create hierarchy instead of decorative type treatments.
 
 ### Hierarchy
-- **Display** (700, 1.5–2.25rem, 1.2): Main header branding and modal titles.
-- **Title** (600, 1.125rem, 1.3): Inspector section headings and slide status labels.
-- **Body** (400, 0.9375rem, 1.5): Descriptive copy, instructions, and list labels.
-- **Mono** (500, 0.8125rem, 1.4): Coordinate values (X, Y), aspect ratios, and file size metadata.
+- **Title** (700, `16px`, `1.45`): Brand text, active slide title, modal headings, and primary content labels.
+- **Body** (400, `14px`, `1.45`): Default interface copy, controls, and descriptive text.
+- **Compact** (400–700, `13px`, `1.45`): Settings, buttons, status lines, and dense metadata.
+- **Label** (400, `12px`, `1.45`): Field labels and inspector keys.
+- **Mono** (500, `12px`, `1.2`): Corner coordinates and keyboard shortcut keycaps.
 
 ## Layout
 
-The application employs a 3-column shell layout:
-- **Left Sidebar** (260px fixed width): Slide thumbnails, status indicators, and reorder controls.
-- **Center Stage** (flex 1): Interactive canvas editor with checkerboard background and zoom controls.
-- **Right Inspector** (300px fixed width): Source format, output ratio, readability filters, and export action.
-- **Responsive Behavior**: Below 900px, the inspector collapses into a bottom drawer to maximize canvas viewport space.
+Desktop uses a three-column workbench: a `280px` slide sidebar, a flexible center canvas, and a `320px` inspector. The top bar carries brand and settings controls. The recurring spacing rhythm is `4 / 6 / 8 / 12 / 16 / 24 / 32px`, exposed as `--space-1` through `--space-7`. Component control insets are separate primitives at `9 / 11 / 13px`.
+
+At the tablet breakpoint (`1040px`), the workbench becomes a stacked grid so the sidebar and inspector can share vertical space with the canvas. At the mobile breakpoint (`834px`), the top bar becomes a compact settings menu, the slide list becomes a horizontal scroller, and the workbench becomes a single-column flow. Short viewports use the tablet stack as well. Touch/coarse-pointer controls use the `44px` control height.
+
+CSS media queries cannot consume custom properties in the current build, so the threshold literals remain next to comments that point to `--breakpoint-tablet` and `--breakpoint-mobile`; these variables are the documented breakpoint contracts.
 
 ## Elevation & Depth
 
-Slides Thief relies primarily on 1px crisp borders (`var(--line)`) and subtle ambient shadows for floating controls.
+The system uses crisp borders for structure and restrained shadows only for floating or interactive surfaces. Canvas output, modal cards, and settings panels share the ambient control shadow; small delete controls and keycaps use a smaller shadow. Selection and focus halos are state indicators, not elevation.
 
 ### Shadow Vocabulary
-- **Control Shadow** (`0 10px 28px rgba(21, 32, 38, 0.08)` / dark: `rgba(0,0,0,0.34)`): Applied to floating zoom toolbars, topbar, and active modal dialogs.
+- **Control Shadow** (`var(--shadow)`; light `0 10px 28px rgba(21, 32, 38, 0.08)`, dark `0 10px 28px rgba(0, 0, 0, 0.34)`): Canvas output, settings panels, and modal card.
+- **Small Control Shadow** (`var(--shadow-small)`): Floating delete affordance.
+- **Loupe Shadow** (`var(--shadow-loupe)`): Magnifying loupe while dragging a corner.
+- **Keycap Shadow** (`var(--shadow-keycap)`): Keyboard shortcut keycaps.
 
 ## Shapes
 
-- **Corner Radius**: `8px` (`var(--radius-md)`) for cards, buttons, and select dropdowns; `4px` for small chips; `9999px` for status badges.
-- **Quad Handles**: Circular `16px` interactive touch targets (`var(--handle)` yellow fill with crisp 2px border).
+Controls and fields use `6px` (`var(--radius-sm)`) corners. Cards, dropzones, slide rows, and modal links use the `8px` surface radius. Modal cards use `12px`; thumbnails use `5px`; switches use `10px`; feedback messages use `7px`; pills use `9999px`; circular handles and status dots use `50%`.
+
+The base desktop control height is `34px`, compact controls use `30px`, and touch/coarse-pointer controls use `44px`. The corner handle keeps a `48px` hit area for accurate mouse and touch manipulation.
 
 ## Components
 
-### Primary Button
-- **Shape**: `8px` radius
-- **Color**: Background `var(--primary-bg)`, text `var(--primary-text)`
-- **Hover**: Subtle brightness transform and 1px Y translation.
+### Buttons
+- **Shape:** `6px` control radius with `34px` default height; `44px` on mobile or coarse pointer.
+- **Primary:** Slate Ink background, light text, `0 11px` inline padding.
+- **Accent:** Teal Precision background, theme-aware high-contrast text, same geometry as primary.
+- **Compact / Touch:** Compact buttons use `30px` height and `0 9px` padding; touch buttons use `44px` height and `0 13px` padding.
+- **Hover / Focus:** Borders strengthen on hover; focus-visible uses a teal `3px` outline; active controls move down by `1px`.
 
-### Accent Button (Export PDF)
-- **Shape**: `8px` radius
-- **Color**: Background `var(--accent-2)` (`#0f766e`), text `#ffffff`
-- **Hover**: Deepened teal background with focus ring.
+### Chips and Status
+- **Style:** Muted chip background, muted text, `9999px` radius, and small type.
+- **State:** Low-confidence uses the warn palette; errors use a translucent terracotta surface.
 
-### Quad Handle
-- **Shape**: `16px` circular handle
-- **Color**: Yellow `#ffd84a` with high-contrast border
-- **Keyboard State**: Visible yellow/teal focus ring when focused via Tab.
+### Cards / Containers
+- **Corner Style:** `8px` surface radius; modal cards use `12px`.
+- **Background:** `var(--panel)` or the relevant themed surface role.
+- **Shadow Strategy:** Borders define resting structure; `var(--shadow)` is reserved for floating output, panels, and modals.
+- **Internal Padding:** Common panel padding is `12px`; modal content uses `20px` with `12px` callout padding.
+
+### Inputs / Fields
+- **Style:** `34px` height, `6px` radius, 1px line, themed control background, and `0 9px` inline padding.
+- **Focus:** Teal focus-visible outline and a stronger active border.
+- **Mobile:** Inputs remain at least `44px` high and use `16px` text to avoid mobile browser zoom.
+
+### Navigation
+- **Desktop:** Brand and settings share a sticky top bar with a compact settings row.
+- **Mobile:** Settings collapse into a top-right menu; the slide sidebar becomes a horizontal snap-scrolling list.
+
+### Quad Handle and Loupe
+- **Shape:** A `48px` transparent circular hit area centered on the `16px` visual handle.
+- **State:** Hover and active states tint the handle gold; the loupe uses a circular `120px` surface with a teal border and crosshair.
 
 ## Do's and Don'ts
 
 ### Do:
-- **Do** use CSS custom variables (`var(--...)`) for all surface and text colors.
-- **Do** preserve 100% browser-local processing notice in header and footer.
-- **Do** include keyboard accessibility and ARIA descriptions for interactive canvas elements.
+- **Do** use primitive, semantic, and component CSS variables for recurring geometry and visual roles.
+- **Do** keep the `1040px` tablet and `834px` mobile thresholds synchronized with their named breakpoint tokens.
+- **Do** preserve the browser-local processing notice and keyboard/ARIA behavior.
+- **Do** use Teal Precision for functional canvas overlays and confirmations.
 
 ### Don't:
-- **Don't** add fixed pixel height constraints to slide list containers.
-- **Don't** use generic vibrant SaaS gradients (purple/cyan) on card backgrounds.
-- **Don't** execute image processing on the main UI thread; use Web Workers.
+- **Don't** introduce a new radius, control height, or spacing value when an existing token matches the intent.
+- **Don't** use terracotta for ordinary canvas geometry; reserve it for identity, attention, and destructive actions.
+- **Don't** add fixed pixel height constraints to the slide list container.
+- **Don't** use generic vibrant SaaS gradients or move image processing onto the main UI thread.
