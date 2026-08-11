@@ -31,7 +31,7 @@ export function PreferencesControls({
       <Button
         ref={infoButtonRef}
         type="button"
-        variant={isMenu ? "default" : "icon"}
+        variant={isMenu ? "secondary" : "icon"}
         className={`infoButton${isMenu ? " settingsMenuInfoRow settingsMenuInfo" : ""}`}
         title={text.infoTitle}
         aria-label={text.infoTitle}

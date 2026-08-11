@@ -1,4 +1,5 @@
 import React from "react";
+import { Button } from "./Button";
 
 export interface ModalShellProps {
   isOpen: boolean;
@@ -38,15 +39,16 @@ export function ModalShell({
             <h3 id="info-modal-title">{title}</h3>
             {appVersion && <span className="modalVersion">v{appVersion}</span>}
           </div>
-          <button
+          <Button
             ref={closeButtonRef}
-            className="closeButton"
-            type="button"
+            variant="icon"
+            size="sm"
+            className="modalCloseButton"
             onClick={onClose}
             aria-label={closeLabel}
           >
             &times;
-          </button>
+          </Button>
         </div>
         <div className="modalBody">{children}</div>
       </div>

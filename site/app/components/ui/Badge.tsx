@@ -6,8 +6,7 @@ export interface StatusDotProps {
 }
 
 export function StatusDot({ status, className = "" }: StatusDotProps) {
-  const statusClass = status === "default" ? "" : status;
-  return <div className={`statusDot ${statusClass} ${className}`.trim()} />;
+  return <span className={`uiStatusDot uiStatusDot--${status} ${className}`.trim()} aria-hidden="true" />;
 }
 
 export interface CountBadgeProps {
@@ -16,5 +15,5 @@ export interface CountBadgeProps {
 }
 
 export function CountBadge({ count, className = "" }: CountBadgeProps) {
-  return <span className={`count ${className}`.trim()}>{count}</span>;
+  return <span className={`uiCountBadge ${className}`.trim()}>{count}</span>;
 }

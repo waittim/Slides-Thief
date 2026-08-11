@@ -6,8 +6,10 @@ export const Select = forwardRef<HTMLSelectElement, SelectProps>(function Select
   { className = "", children, ...props },
   ref
 ) {
+  const combinedClassName = ["uiSelect", className].filter(Boolean).join(" ");
+
   return (
-    <select ref={ref} className={className || undefined} {...props}>
+    <select ref={ref} className={combinedClassName} {...props}>
       {children}
     </select>
   );

@@ -65,7 +65,7 @@ export function SlideSidebar({
         <Button variant="primary" disabled={busy || !slides.length} onClick={runAuto}>
           {text.runAuto}
         </Button>
-        <Button variant="green" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
+        <Button variant="accent" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
           {text.generatePdf}
         </Button>
       </div>
@@ -75,8 +75,9 @@ export function SlideSidebar({
           <span className="statusLine">{statusText}</span>
           {exporting && cancelExport ? (
             <Button
-              variant="clear"
-              className="cancelExportBtn"
+              variant="ghost"
+              size="sm"
+              className="cancelExportButton"
               title={text.cancelExport}
               onClick={cancelExport}
             >
@@ -102,7 +103,9 @@ export function SlideSidebar({
         <CountBadge count={slides.length} />
         {slides.length > 0 && (
           <Button
-            variant="clear"
+            variant="ghost"
+            size="sm"
+            className="clearAction"
             disabled={busy}
             title={text.clearAll}
             onClick={clearAllSlides}
@@ -148,73 +151,70 @@ export function SlideSidebar({
             {!isMobile && <span>{text.dropSubtitle}</span>}
           </span>
         </button>
-        <div className="files">
+        <ul className="files">
           {slides.map((slide, index) => {
             const active = selectedId === slide.id || (!selectedId && index === 0);
             const className = `${hasRun ? "slideRow" : "fileRow"} ${active ? "active" : ""}`;
             return (
-              <div
-                role="button"
-                tabIndex={0}
+              <li
                 key={slide.id}
                 className={className}
-                aria-pressed={active}
-                onClick={() => selectAt(index)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    selectAt(index);
-                  }
-                }}
               >
-                <div className="idx">{String(index + 1).padStart(2, "0")}</div>
-                {slide.url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
-                  <img
-                    className="thumb"
-                    src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                  />
-                ) : (
-                  <div className="thumb thumbPlaceholder" aria-hidden="true">
-                    HEIC
-                  </div>
-                )}
-                <div className="name" title={slide.name}>
-                  {displayFileName(slide.name, isMobile)}
-                </div>
-                {hasRun ? (
-                  <div className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
-                    {slide.status === "ready"
-                      ? slide.needsReview
-                        ? `! ${reviewText.reviewSuggested}`
-                        : slide.method === "manual"
-                          ? `✓ ${text.manualAdjusted}`
-                          : `✓ ${reviewText.automaticRecognized}`
-                      : slide.status === "error"
-                        ? `× ${text.failed}`
-                        : slideStatusText(slide)}
-                  </div>
-                ) : (
-                  <div className="sub">
-                    {slide.status === "converting"
-                      ? text.converting
-                      : slide.status === "error"
-                        ? text.failed
-                        : formatBytes(slide.file.size)}
-                  </div>
-                )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="touch"
+                  className="slideSelectButton"
+                  aria-pressed={active}
+                  onClick={() => selectAt(index)}
+                >
+                  <span className="idx">{String(index + 1).padStart(2, "0")}</span>
+                  {slide.url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
+                    <img
+                      className="thumb"
+                      src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  ) : (
+                    <span className="thumb thumbPlaceholder" aria-hidden="true">
+                      HEIC
+                    </span>
+                  )}
+                  <span className="name" title={slide.name}>
+                    {displayFileName(slide.name, isMobile)}
+                  </span>
+                  {hasRun ? (
+                    <span className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
+                      {slide.status === "ready"
+                        ? slide.needsReview
+                          ? `! ${reviewText.reviewSuggested}`
+                          : slide.method === "manual"
+                            ? `✓ ${text.manualAdjusted}`
+                            : `✓ ${reviewText.automaticRecognized}`
+                        : slide.status === "error"
+                          ? `× ${text.failed}`
+                          : slideStatusText(slide)}
+                    </span>
+                  ) : (
+                    <span className="sub">
+                      {slide.status === "converting"
+                        ? text.converting
+                        : slide.status === "error"
+                          ? text.failed
+                          : formatBytes(slide.file.size)}
+                    </span>
+                  )}
+                </Button>
+                <Button
+                  variant="danger"
+                  size="touch"
+                  className="slideDeleteButton iconOnlyButton"
                   type="button"
-                  className="slideDeleteBtn"
                   title={text.deleteSlideHint}
                   aria-label={`${text.deleteSlideHint}: ${slide.name}`}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    deleteSlide(slide.id);
-                  }}
+                  onClick={() => deleteSlide(slide.id)}
                 >
                   <svg
                     width="14"
@@ -231,11 +231,11 @@ export function SlideSidebar({
                     <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
                     <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
                   </svg>
-                </button>
-              </div>
+                </Button>
+              </li>
             );
           })}
-        </div>
+        </ul>
       </div>
     </aside>
   );

@@ -89,11 +89,24 @@ export function CanvasQuadEditor({
           <Button variant="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
             +
           </Button>
-          <Button variant="fit" disabled={!selectedSlide} title={text.fit} onClick={() => setZoomMode("fit")}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="reviewFitButton"
+            disabled={!selectedSlide}
+            title={text.fit}
+            onClick={() => setZoomMode("fit")}
+          >
             {text.fit}
           </Button>
         </div>
-        <Button variant="reset" disabled={!selectedSlide || selectedSlide.status !== "ready"} onClick={resetSelected}>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="reviewResetButton"
+          disabled={!selectedSlide || selectedSlide.status !== "ready"}
+          onClick={resetSelected}
+        >
           {text.resetSlide}
         </Button>
       </div>

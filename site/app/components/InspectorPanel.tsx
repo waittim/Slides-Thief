@@ -29,6 +29,7 @@ export function InspectorPanel({
         <CountBadge count={readySlides.length} />
         <Button
           variant="icon"
+          size="sm"
           className="inspectorToggle"
           type="button"
           title={inspectorCollapsed ? text.expand : text.collapse}

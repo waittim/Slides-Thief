@@ -12,6 +12,7 @@
   --accent: light-dark(#c84535, #ff7b68);
   --accent-2: light-dark(#0f766e, #32c8ba);
   --accent-2-text: light-dark(#ffffff, #081513);
+  --danger-text: light-dark(#ffffff, #160907);
   --warn: light-dark(#b7791f, #e5ae4c);
   --handle: #ffd84a;
   --control-bg: light-dark(#ffffff, #1d2529);
@@ -114,8 +115,9 @@ button:not(:disabled):not(.cornerHandle):active,
   transform: translateY(1px);
 }
 
-button.primary:not(:disabled):active,
-button.green:not(:disabled):active {
+.uiButton--primary:not(:disabled):active,
+.uiButton--accent:not(:disabled):active,
+.uiButton--danger:not(:disabled):active {
   filter: brightness(0.9);
 }
 
@@ -129,22 +131,74 @@ button:disabled {
   outline-offset: 2px;
 }
 
-button.primary {
+.uiButton--primary {
   background: var(--primary-bg);
   border-color: var(--primary-bg);
   color: var(--primary-text);
 }
 
-button.green {
+.uiButton--accent {
   background: var(--accent-2);
   border-color: var(--accent-2);
   color: var(--accent-2-text);
 }
 
-button.icon {
-  width: 36px;
+.uiButton--secondary {
+  background: var(--control-bg);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.uiButton--ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.uiButton--icon {
   padding: 0;
   font-size: 18px;
+}
+
+.uiButton--danger {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--danger-text);
+}
+
+.uiButton--sm {
+  height: 30px;
+  min-height: 30px;
+  padding: 0 9px;
+  font-size: 13px;
+}
+
+.uiButton--md {
+  height: 34px;
+  min-height: 34px;
+}
+
+.uiButton--touch {
+  height: 44px;
+  min-height: 44px;
+  padding: 0 13px;
+}
+
+:where(.uiButton--icon).uiButton--sm,
+:where(.iconOnlyButton).uiButton--sm {
+  width: 30px;
+  min-width: 30px;
+}
+
+:where(.uiButton--icon).uiButton--md,
+:where(.iconOnlyButton).uiButton--md {
+  width: 34px;
+  min-width: 34px;
+}
+
+:where(.uiButton--icon).uiButton--touch,
+:where(.iconOnlyButton).uiButton--touch {
+  width: 44px;
+  min-width: 44px;
 }
 
 select,
@@ -579,7 +633,7 @@ a:hover {
 }
 
 .inspector.collapsed .sectionHead h2,
-.inspector.collapsed .sectionHead .count,
+.inspector.collapsed .sectionHead .uiCountBadge,
 .inspector.collapsed .inspectorBody {
   display: none;
 }
@@ -604,7 +658,7 @@ a:hover {
   color: var(--muted);
 }
 
-.statusDot {
+.uiStatusDot {
   flex: none;
   width: 9px;
   height: 9px;
@@ -613,17 +667,17 @@ a:hover {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--muted), transparent 82%);
 }
 
-.statusDot.good {
+.uiStatusDot--good {
   background: var(--accent-2);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-2), transparent 82%);
 }
 
-.statusDot.busy {
+.uiStatusDot--busy {
   background: var(--warn);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--warn), transparent 82%);
 }
 
-.statusDot.bad {
+.uiStatusDot--bad {
   background: var(--accent);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent), transparent 82%);
 }
@@ -690,7 +744,7 @@ a:hover {
   letter-spacing: 0;
 }
 
-.count {
+.uiCountBadge {
   min-width: 24px;
   min-height: 22px;
   display: grid;
@@ -702,7 +756,7 @@ a:hover {
   font-weight: 720;
 }
 
-.clearAllBtn {
+button.clearAction {
   font-size: 11px;
   font-weight: 600;
   color: var(--muted);
@@ -714,12 +768,12 @@ a:hover {
   transition: color 0.12s ease, background 0.12s ease;
 }
 
-.clearAllBtn:hover:not(:disabled) {
+button.clearAction:hover:not(:disabled) {
   color: var(--accent);
   background: color-mix(in srgb, var(--accent), transparent 90%);
 }
 
-.clearAllBtn:disabled {
+button.clearAction:disabled {
   opacity: 0.4;
   cursor: not-allowed;
 }
@@ -776,12 +830,21 @@ a:hover {
   display: grid;
   gap: 7px;
   margin-top: 10px;
+  margin-left: 0;
+  padding-left: 0;
   padding-right: 2px;
+  list-style: none;
 }
 
 .fileRow,
 .slideRow {
   position: relative;
+  width: 100%;
+  min-height: 58px;
+  margin: 0;
+}
+
+.slideSelectButton {
   width: 100%;
   min-height: 58px;
   display: grid;
@@ -791,64 +854,58 @@ a:hover {
   column-gap: 8px;
   row-gap: 2px;
   text-align: left;
-  padding: 7px;
+  padding: 7px 56px 7px 7px;
+  border-color: var(--line);
   border-radius: 8px;
   background: var(--thumb-bg);
+  color: var(--text);
 }
 
-.fileRow.active,
-.slideRow.active {
+.fileRow.active .slideSelectButton,
+.slideRow.active .slideSelectButton {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2), transparent 82%);
 }
 
-.slideDeleteBtn {
+.slideDeleteButton {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 24px;
-  height: 24px;
-  padding: 0;
   margin: 0;
-  display: grid;
-  place-items: center;
   border-radius: 50%;
   background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--muted);
-  cursor: pointer;
+  border-color: var(--line);
+  color: var(--accent);
   opacity: 0;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
   transition: opacity 0.15s ease, background 0.12s ease, color 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
   z-index: 2;
 }
 
-.slideDeleteBtn svg {
+.slideDeleteButton svg {
   display: block;
-  width: 14px;
-  height: 14px;
   margin: auto;
   pointer-events: none;
 }
 
-.fileRow:hover .slideDeleteBtn,
-.slideRow:hover .slideDeleteBtn,
-.fileRow:focus-within .slideDeleteBtn,
-.slideRow:focus-within .slideDeleteBtn {
+.fileRow:hover .slideDeleteButton,
+.slideRow:hover .slideDeleteButton,
+.fileRow:focus-within .slideDeleteButton,
+.slideRow:focus-within .slideDeleteButton {
   opacity: 1;
 }
 
-.slideDeleteBtn:hover {
+.slideDeleteButton:hover {
   background: var(--accent);
   border-color: var(--accent);
-  color: #ffffff;
+  color: var(--danger-text);
   transform: scale(1.08);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--accent), transparent 65%);
 }
 
 
 @media (pointer: coarse) {
-  .slideDeleteBtn {
+  .slideDeleteButton {
     opacity: 0.85;
   }
 }
@@ -1313,7 +1370,7 @@ canvas {
     display: block;
   }
 
-  .inspector.collapsed .sectionHead .count {
+  .inspector.collapsed .sectionHead .uiCountBadge {
     display: grid;
   }
 
@@ -1529,14 +1586,14 @@ canvas {
     gap: 6px;
   }
 
-  .reviewBar .fitButton {
+  .reviewBar .reviewFitButton {
     flex: 0 0 auto;
     width: auto;
     min-width: 0;
     padding: 0 12px;
   }
 
-  .reviewBar .resetButton {
+  .reviewBar .reviewResetButton {
     flex: 0 0 auto;
     margin-left: auto;
     max-width: none;
@@ -1575,7 +1632,21 @@ canvas {
     min-height: 44px;
   }
 
-  button.icon {
+  .uiButton--sm {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .uiButton--md {
+    height: 44px;
+    min-height: 44px;
+  }
+
+  .uiButton--icon,
+  :where(.uiButton--icon).uiButton--sm,
+  :where(.uiButton--icon).uiButton--md,
+  :where(.iconOnlyButton).uiButton--sm,
+  :where(.iconOnlyButton).uiButton--md {
     width: 44px;
     height: 44px;
     min-width: 44px;
@@ -1755,7 +1826,7 @@ canvas {
   letter-spacing: 0.02em;
 }
 
-.modalHeader .closeButton {
+.modalHeader .modalCloseButton {
   border: none;
   background: transparent;
   cursor: pointer;
@@ -1772,7 +1843,7 @@ canvas {
   padding: 0;
 }
 
-.modalHeader .closeButton:hover {
+.modalHeader .modalCloseButton:hover {
   background: var(--panel-strong);
   color: var(--text);
   border-color: transparent;
@@ -1873,7 +1944,7 @@ canvas {
   }
 
   .infoButton,
-  .modalHeader .closeButton,
+  .modalHeader .modalCloseButton,
   .modalLink,
   .modalLink::after {
     transition: none;
@@ -1982,4 +2053,3 @@ kbd {
   border-radius: 4px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
-
