@@ -36,6 +36,7 @@ export function useCanvasViewport({
   const scaleRef = useRef(1);
   const fitZoomRef = useRef(1);
   const maxZoomRef = useRef(3);
+  const redrawFrameRef = useRef<number | null>(null);
 
   const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
     const loupeCanvas = loupeCanvasRef.current;
@@ -201,8 +202,10 @@ export function useCanvasViewport({
       const width = Math.max(1, Math.round(totalWidth * scale));
       const height = Math.max(1, Math.round(totalHeight * scale));
 
-      canvas.width = width;
-      canvas.height = height;
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
+      }
       scaleRef.current = scale;
       fitZoomRef.current = fitScale;
       maxZoomRef.current = maxScale;
@@ -236,15 +239,27 @@ export function useCanvasViewport({
     image.src = slide.url;
   }, [latestDragQuadRef, paintCanvas, selectedSlide, setSlides, zoom, zoomMode]);
 
+  const scheduleRedraw = useCallback(() => {
+    if (redrawFrameRef.current !== null) return;
+
+    redrawFrameRef.current = window.requestAnimationFrame(() => {
+      redrawFrameRef.current = null;
+      redrawCanvas();
+    });
+  }, [redrawCanvas]);
+
   useEffect(() => {
-    const initialFrame = window.requestAnimationFrame(redrawCanvas);
-    const observer = new ResizeObserver(redrawCanvas);
+    scheduleRedraw();
+    const observer = new ResizeObserver(scheduleRedraw);
     if (stageRef.current) observer.observe(stageRef.current);
     return () => {
-      window.cancelAnimationFrame(initialFrame);
       observer.disconnect();
+      if (redrawFrameRef.current !== null) {
+        window.cancelAnimationFrame(redrawFrameRef.current);
+        redrawFrameRef.current = null;
+      }
     };
-  }, [redrawCanvas]);
+  }, [scheduleRedraw]);
 
   const resetViewport = useCallback(() => {
     imageCacheRef.current = null;

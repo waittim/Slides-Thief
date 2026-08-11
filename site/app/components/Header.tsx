@@ -1,20 +1,10 @@
 import React from "react";
-import type { EnhancementMode } from "../enhance";
 import { PDF_BASENAME_MAX_LENGTH, sanitizePdfBaseName } from "../filename";
-import { localeOptions, type LocaleCopy, type LocaleValue, type RatioUiCopy } from "../i18n";
-import {
-  defaultOrientationForBaseFormat,
-  deriveSourceFormat,
-  isPaperRatio,
-  outputPageRatioValue,
-  sourceFormatRatioValue,
-  splitSourceFormat,
-  type BaseFormat,
-  type OutputPageRatio,
-  type PageLayoutMode,
-} from "../ratio";
+import type { LocaleCopy, LocaleValue, RatioUiCopy } from "../i18n";
 import type { Settings, ThemeValue } from "../lib/types";
-import { Button, Select, Switch } from "./ui";
+import { OutputPageControls } from "./OutputPageControls";
+import { PreferencesControls } from "./PreferencesControls";
+import { SourceFormatControls, SourceOrientationControl } from "./SourceFormatControls";
 
 interface HeaderProps {
   isInfoOpen: boolean;
@@ -36,7 +26,6 @@ interface HeaderProps {
   updateSettings: (updater: (current: Settings) => Settings) => void;
   runAutoWithSettings: (settings: Settings) => void;
   setIsInfoOpen: (open: boolean) => void;
-  currentPageLayout: PageLayoutMode;
 }
 
 export function Header({
@@ -59,7 +48,6 @@ export function Header({
   updateSettings,
   runAutoWithSettings,
   setIsInfoOpen,
-  currentPageLayout,
 }: HeaderProps) {
   return (
     <header className="topbar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
@@ -91,63 +79,14 @@ export function Header({
           <summary className="settingsMenuToggle">{text.settings}</summary>
           {settingsOpen && (
             <div className="settingsMenuBody">
-              {(() => {
-                const { baseFormat: currentBaseFormat } = splitSourceFormat(
-                  settings.sourceFormat,
-                  settings.sourceOrientation,
-                );
-                return (
-                  <label className="ratioSetting">
-                    <span>{ratioUi.sourceFormat}</span>
-                    <Select
-                      value={currentBaseFormat}
-                      onChange={(event) => {
-                        const nextBaseFormat = event.target.value as BaseFormat;
-                        const defaultOrient = defaultOrientationForBaseFormat(nextBaseFormat);
-                        const sourceFormat = deriveSourceFormat(nextBaseFormat, defaultOrient);
-                        const nextSettings: Settings = {
-                          ...settings,
-                          sourceFormat,
-                          sourceOrientation: defaultOrient,
-                        };
-                        updateSettings(() => nextSettings);
-                        if (hasRun) {
-                          runAutoWithSettings(nextSettings);
-                        }
-                      }}
-                    >
-                      <optgroup label={ratioUi.presentationGroup}>
-                        <option value="16:9">{text.ratio16x9}</option>
-                        <option value="4:3">{text.ratio4x3}</option>
-                        <option value="16:10">16:10</option>
-                      </optgroup>
-                      <optgroup label={ratioUi.documentGroup}>
-                        <option value="A4">A4</option>
-                        <option value="letter">Letter</option>
-                      </optgroup>
-                      <option value="custom">{ratioUi.custom}</option>
-                    </Select>
-                  </label>
-                );
-              })()}
-              {settings.sourceFormat === "custom" && (
-                <label className="sourceCustomSetting">
-                  <span>{ratioUi.customRatio}</span>
-                  <input
-                    type="number"
-                    min={0.2}
-                    max={5}
-                    step={0.01}
-                    value={settings.sourceCustomRatio ?? 16 / 9}
-                    onChange={(event) => {
-                      const sourceCustomRatio = Math.max(0.2, Math.min(5, Number(event.target.value) || 16 / 9));
-                      const nextSettings = { ...settings, sourceCustomRatio };
-                      updateSettings(() => nextSettings);
-                      if (hasRun) runAutoWithSettings(nextSettings);
-                    }}
-                  />
-                </label>
-              )}
+              <SourceFormatControls
+                hasRun={hasRun}
+                runAutoWithSettings={runAutoWithSettings}
+                settings={settings}
+                text={text}
+                ratioUi={ratioUi}
+                updateSettings={updateSettings}
+              />
               <details
                 className="moreSettings"
                 ref={moreSettingsRef}
@@ -160,183 +99,19 @@ export function Header({
               >
                 <summary>{text.more}</summary>
                 <div className="morePanel">
-                  {(() => {
-                    const { baseFormat: currentBaseFormat, orientation: currentOrientation } = splitSourceFormat(
-                      settings.sourceFormat,
-                      settings.sourceOrientation,
-                    );
-                    const isPortrait = currentOrientation === "portrait";
-                    return (
-                      <div className="orientationSetting">
-                        <span>{ratioUi.orientation}</span>
-                        <Switch
-                          checked={isPortrait}
-                          label={isPortrait ? ratioUi.portrait : ratioUi.landscape}
-                          onChange={() => {
-                            const nextOrientation = isPortrait ? "landscape" : "portrait";
-                            const nextFormat = deriveSourceFormat(currentBaseFormat, nextOrientation);
-                            const nextSettings: Settings = {
-                              ...settings,
-                              sourceFormat: nextFormat,
-                              sourceOrientation: nextOrientation,
-                            };
-                            updateSettings(() => nextSettings);
-                            if (hasRun) runAutoWithSettings(nextSettings);
-                          }}
-                        />
-                      </div>
-                    );
-                  })()}
-                  <label>
-                    <span>{ratioUi.pageLayout}</span>
-                    <Select
-                      value={currentPageLayout}
-                      onChange={(event) => {
-                        const nextLayout = event.target.value as PageLayoutMode;
-                        updateSettings((current) => {
-                          if (nextLayout === "paper") {
-                            const sourceRatio = sourceFormatRatioValue(current);
-                            const outputPageRatio = isPaperRatio(current.outputPageRatio)
-                              ? current.outputPageRatio
-                              : sourceRatio >= 1
-                                ? "A4-landscape"
-                                : "A4-portrait";
-                            return {
-                              ...current,
-                              outputPageRatio,
-                              height: null,
-                            };
-                          }
-                          if (nextLayout === "custom-size") {
-                            const sourceRatio = sourceFormatRatioValue(current);
-                            const ratio = outputPageRatioValue(current.outputPageRatio, sourceRatio);
-                            return {
-                              ...current,
-                              outputPageRatio: "match-source",
-                              height: Math.max(600, Math.min(6000, Math.round(current.width / ratio))),
-                            };
-                          }
-                          return {
-                            ...current,
-                            outputPageRatio: "match-source",
-                            height: null,
-                          };
-                        });
-                      }}
-                    >
-                      <option value="match-source">{ratioUi.matchSource}</option>
-                      <option value="paper">{ratioUi.standardPaper}</option>
-                      <option value="custom-size">{ratioUi.customPage}</option>
-                    </Select>
-                  </label>
-                  {currentPageLayout === "paper" && (
-                    <label>
-                      <span>{ratioUi.paperFormat}</span>
-                      <Select
-                        value={settings.outputPageRatio}
-                        onChange={(event) => {
-                          const outputPageRatio = event.target.value as OutputPageRatio;
-                          updateSettings((current) => ({
-                            ...current,
-                            outputPageRatio,
-                            height: null,
-                          }));
-                        }}
-                      >
-                        <option value="A4-landscape">{text.ratioA4Landscape}</option>
-                        <option value="A4-portrait">{text.ratioA4Portrait}</option>
-                        <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-                        <option value="letter-portrait">{text.ratioLetterPortrait}</option>
-                      </Select>
-                    </label>
-                  )}
-                  <label>
-                    <span>{text.width}</span>
-                    <input
-                      type="number"
-                      min={800}
-                      max={6000}
-                      value={settings.width}
-                      onChange={(event) =>
-                        updateSettings((current) => ({
-                          ...current,
-                          width: Math.max(800, Math.min(6000, Number(event.target.value) || current.width)),
-                        }))
-                      }
-                    />
-                  </label>
-                  {currentPageLayout === "custom-size" && (
-                    <label>
-                      <span>{text.height}</span>
-                      <input
-                        type="number"
-                        min={600}
-                        max={6000}
-                        value={settings.height ?? 1350}
-                        onChange={(event) =>
-                          updateSettings((current) => ({
-                            ...current,
-                            height: Math.max(600, Math.min(6000, Number(event.target.value) || 600)),
-                          }))
-                        }
-                      />
-                    </label>
-                  )}
-                  <label>
-                    <span>{text.quality}</span>
-                    <input
-                      type="number"
-                      min={60}
-                      max={98}
-                      value={Math.round(settings.quality * 100)}
-                      onChange={(event) =>
-                        updateSettings((current) => ({
-                          ...current,
-                          quality: Math.max(60, Math.min(98, Number(event.target.value) || 92)) / 100,
-                        }))
-                      }
-                    />
-                  </label>
-                  <label>
-                    <span>{text.enhancement}</span>
-                    <Select
-                      value={settings.enhancement}
-                      onChange={(event) =>
-                        updateSettings((current) => ({
-                          ...current,
-                          enhancement: event.target.value as EnhancementMode,
-                        }))
-                      }
-                    >
-                      <option value="original">{text.enhancementOriginal}</option>
-                      <option value="clean">{text.enhancementClean}</option>
-                      <option value="high-contrast">{text.enhancementHighContrast}</option>
-                      <option value="bw">{text.enhancementBw}</option>
-                    </Select>
-                  </label>
-                  <div
-                    className="colorSetting"
-                    role="group"
-                    aria-labelledby="fill-color-label"
-                  >
-                    <span id="fill-color-label">{text.fillColor}</span>
-                    <div className="colorControls">
-                      <Button
-                        type="button"
-                        aria-pressed={settings.fillColor === "auto"}
-                        onClick={() => updateSettings((current) => ({ ...current, fillColor: "auto" }))}
-                      >
-                        {text.auto}
-                      </Button>
-                      <input
-                        type="color"
-                        className={settings.fillColor === "auto" ? undefined : "isActive"}
-                        aria-label={text.fillColor}
-                        value={settings.fillColor === "auto" ? "#FFFFFF" : settings.fillColor}
-                        onChange={(event) => updateSettings((current) => ({ ...current, fillColor: event.target.value }))}
-                      />
-                    </div>
-                  </div>
+                  <SourceOrientationControl
+                    hasRun={hasRun}
+                    ratioUi={ratioUi}
+                    runAutoWithSettings={runAutoWithSettings}
+                    settings={settings}
+                    updateSettings={updateSettings}
+                  />
+                  <OutputPageControls
+                    ratioUi={ratioUi}
+                    settings={settings}
+                    text={text}
+                    updateSettings={updateSettings}
+                  />
                 </div>
               </details>
               <label className="pdfNameSetting">
@@ -350,36 +125,15 @@ export function Header({
                 <span className="fileSuffix">.pdf</span>
               </label>
               <hr className="settingsMenuDivider" />
-              <label className="themeSetting settingsMenuTheme">
-                <span>{text.theme}</span>
-                <Select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
-                  <option value="auto">{text.auto}</option>
-                  <option value="light">{text.light}</option>
-                  <option value="dark">{text.dark}</option>
-                </Select>
-              </label>
-              <label className="languageSetting settingsMenuLanguage">
-                <span>{text.language}</span>
-                <Select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
-                  {localeOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </Select>
-              </label>
-              <Button
-                type="button"
-                className="settingsMenuInfoRow settingsMenuInfo"
-                onClick={() => setIsInfoOpen(true)}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="M12 16v-4" />
-                  <path d="M12 8h.01" />
-                </svg>
-                <span>{text.infoTitle}</span>
-              </Button>
+              <PreferencesControls
+                placement="menu"
+                text={text}
+                theme={theme}
+                setTheme={setTheme}
+                locale={locale}
+                setLocale={setLocale}
+                setIsInfoOpen={setIsInfoOpen}
+              />
             </div>
           )}
         </details>

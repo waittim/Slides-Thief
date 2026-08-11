@@ -77,6 +77,10 @@ test("client code uses browser-local processing contracts", async () => {
     usePreferences,
     useQuadEditor,
     header,
+    preferencesControls,
+    sourceFormatControls,
+    outputPageControls,
+    settingsTransitions,
     slideSidebar,
     canvasQuadEditor,
     inspectorPanel,
@@ -107,6 +111,10 @@ test("client code uses browser-local processing contracts", async () => {
     readFile(new URL("../app/hooks/usePreferences.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/hooks/useQuadEditor.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/Header.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/PreferencesControls.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/SourceFormatControls.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/components/OutputPageControls.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/settingsTransitions.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/components/SlideSidebar.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/CanvasQuadEditor.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/components/InspectorPanel.tsx", import.meta.url), "utf8"),
@@ -138,6 +146,10 @@ test("client code uses browser-local processing contracts", async () => {
     usePreferences,
     useQuadEditor,
     header,
+    preferencesControls,
+    sourceFormatControls,
+    outputPageControls,
+    settingsTransitions,
     slideSidebar,
     canvasQuadEditor,
     inspectorPanel,
@@ -234,6 +246,9 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /const fitScale = Math\.min\(maxWidth \/ totalWidth, maxHeight \/ totalHeight, 1\)/);
   assert.doesNotMatch(app, /Math\.max\(320, stage\.client/);
   assert.match(app, /const maxPixels = compact \? 8_000_000 : 24_000_000/);
+  assert.match(app, /const redrawFrameRef = useRef<number \| null>\(null\)/);
+  assert.match(app, /const observer = new ResizeObserver\(scheduleRedraw\)/);
+  assert.match(app, /if \(canvas\.width !== width \|\| canvas\.height !== height\)/);
   assert.match(app, /quadHandlePositions/);
   assert.match(app, /className=\{`cornerHandle/);
   assert.match(app, /aria-describedby="cornerKeyboardHelp"/);

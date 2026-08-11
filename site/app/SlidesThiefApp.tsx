@@ -4,14 +4,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import packageMetadata from "../package.json";
 import type { Quad } from "./detection/types";
 import { normalizePdfName } from "./filename";
-import { pageLayoutMode } from "./ratio";
 import {
   copy,
   detectionMethodText,
-  localeOptions,
   ratioUiCopy,
   reviewUiCopy,
-  type LocaleValue,
 } from "./i18n";
 import {
   confidenceText,
@@ -19,7 +16,7 @@ import {
   quadsMatch,
   resolvedSlideRatio,
 } from "./lib/slide-utils";
-import type { Settings, SlideItem, ThemeValue } from "./lib/types";
+import type { Settings, SlideItem } from "./lib/types";
 import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
 import { useExportWorker } from "./hooks/useExportWorker";
@@ -32,8 +29,8 @@ import { AboutModal } from "./components/AboutModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { Header } from "./components/Header";
 import { InspectorPanel } from "./components/InspectorPanel";
+import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
-import { Button, Select } from "./components/ui";
 
 const APP_VERSION = packageMetadata.version;
 
@@ -481,7 +478,6 @@ export function SlidesThiefApp() {
       ]
     : [];
   const ratioUi = ratioUiCopy[locale];
-  const currentPageLayout = pageLayoutMode(settings.outputPageRatio, settings.height);
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
@@ -505,7 +501,6 @@ export function SlidesThiefApp() {
         updateSettings={updateSettings}
         runAutoWithSettings={runAutoWithSettings}
         setIsInfoOpen={setIsInfoOpen}
-        currentPageLayout={currentPageLayout}
       />
 
       <main
@@ -582,39 +577,16 @@ export function SlidesThiefApp() {
       </p>
 
       <footer className="prefsBar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
-        <Button
-          ref={infoButtonRef}
-          type="button"
-          variant="icon"
-          className="infoButton"
-          title={text.infoTitle}
-          aria-label={text.infoTitle}
-          onClick={() => setIsInfoOpen(true)}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 16v-4" />
-            <path d="M12 8h.01" />
-          </svg>
-        </Button>
-        <label className="themeSetting">
-          <span>{text.theme}</span>
-          <Select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>
-            <option value="auto">{text.auto}</option>
-            <option value="light">{text.light}</option>
-            <option value="dark">{text.dark}</option>
-          </Select>
-        </label>
-        <label className="languageSetting">
-          <span>{text.language}</span>
-          <Select value={locale} onChange={(event) => setLocale(event.target.value as LocaleValue)}>
-            {localeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </Select>
-        </label>
+        <PreferencesControls
+          infoButtonRef={infoButtonRef}
+          placement="footer"
+          text={text}
+          theme={theme}
+          setTheme={setTheme}
+          locale={locale}
+          setLocale={setLocale}
+          setIsInfoOpen={setIsInfoOpen}
+        />
       </footer>
 
       <AboutModal
