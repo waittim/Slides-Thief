@@ -1,16 +1,9 @@
 import type { Quad } from "../detection/types";
-import { applyEnhancement } from "../enhance";
 import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio";
-import { containedRect, perspectiveCoefficients } from "./perspective";
 import {
-  contentPixelBounds,
-  extractContent,
-  fillAndBlitContent,
   loadImage,
-  parseHexColor,
-  resolveFillColor,
-  sampleBlurredEdgeRgb,
 } from "./canvas-utils";
+import { renderPerspectivePage } from "./perspective-render";
 import {
   heifExtensions,
   heifMimeTypes,
@@ -130,14 +123,6 @@ export function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
 }
 
-export function quadsMatch(first: Quad | null, second: Quad | null, tolerance = 0.01): boolean {
-  if (!first || !second) return first === second;
-  return first.every(([x, y], index) =>
-    Math.abs(x - second[index][0]) <= tolerance
-    && Math.abs(y - second[index][1]) <= tolerance
-  );
-}
-
 export function quadHandlePositions(quad: Quad, padX: number, padY: number, scale: number): HandlePosition[] {
   return quad.map(([x, y]) => ({
     left: (padX + x) * scale,
@@ -176,7 +161,7 @@ export async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, setti
   const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
   if (!sourceCtx) throw new Error("Cannot render thumbnail in this browser.");
   sourceCtx.drawImage(image, 0, 0, sourceWidth, sourceHeight);
-  const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight).data;
+  const source = sourceCtx.getImageData(0, 0, sourceWidth, sourceHeight);
 
   const sourceRatio = resolvedSlideRatio(slide, settings);
   const outWidth = 160;
@@ -186,57 +171,17 @@ export async function buildAdjustedThumbnail(slide: SlideItem, quad: Quad, setti
   outputCanvas.height = outHeight;
   const outputCtx = outputCanvas.getContext("2d");
   if (!outputCtx) throw new Error("Cannot render thumbnail in this browser.");
-  const output = outputCtx.createImageData(outWidth, outHeight);
   const scaledQuad = quad.map(([x, y]) => [x * sourceScale, y * sourceScale]) as Quad;
-  const dst = containedRect(outWidth, outHeight, sourceRatio);
-  const coeffs = perspectiveCoefficients(scaledQuad, dst);
-  const provisionalFill = settings.fillColor === "auto"
-    ? [255, 255, 255] as [number, number, number]
-    : parseHexColor(settings.fillColor);
-
-  for (let y = 0; y < outHeight; y += 1) {
-    for (let x = 0; x < outWidth; x += 1) {
-      const den = coeffs[6] * x + coeffs[7] * y + 1;
-      const sx = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / den;
-      const sy = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / den;
-      const outIndex = (y * outWidth + x) * 4;
-      const insideContent = x >= dst[0][0] && x < dst[1][0] && y >= dst[0][1] && y < dst[3][1];
-      if (insideContent) {
-        const dx = sx < 0 ? -sx : sx >= sourceWidth ? sx - (sourceWidth - 1) : 0;
-        const dy = sy < 0 ? -sy : sy >= sourceHeight ? sy - (sourceHeight - 1) : 0;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 0) {
-          const cx = Math.max(0, Math.min(sourceWidth - 1, sx));
-          const cy = Math.max(0, Math.min(sourceHeight - 1, sy));
-          const radius = Math.min(14, 2 + Math.floor(dist * 0.25));
-          const [er, eg, eb] = sampleBlurredEdgeRgb(source, sourceWidth, sourceHeight, cx, cy, radius);
-          output.data[outIndex] = er;
-          output.data[outIndex + 1] = eg;
-          output.data[outIndex + 2] = eb;
-          output.data[outIndex + 3] = 255;
-        } else {
-          const ix = Math.round(sx);
-          const iy = Math.round(sy);
-          const srcIndex = (iy * sourceWidth + ix) * 4;
-          output.data[outIndex] = source[srcIndex];
-          output.data[outIndex + 1] = source[srcIndex + 1];
-          output.data[outIndex + 2] = source[srcIndex + 2];
-          output.data[outIndex + 3] = 255;
-        }
-      } else {
-        output.data[outIndex] = provisionalFill[0];
-        output.data[outIndex + 1] = provisionalFill[1];
-        output.data[outIndex + 2] = provisionalFill[2];
-        output.data[outIndex + 3] = 255;
-      }
-    }
-  }
-  const contentBounds = contentPixelBounds(dst);
-  const content = extractContent(output, contentBounds);
-  applyEnhancement(content.data, content.width, content.height, settings.enhancement);
-  const fill = resolveFillColor(settings.fillColor, content);
-  fillAndBlitContent(output, content, contentBounds, fill, provisionalFill);
+  const rendered = renderPerspectivePage(source, scaledQuad, {
+    outputWidth: outWidth,
+    outputHeight: outHeight,
+    sourceRatio,
+    fillColor: settings.fillColor,
+    enhancement: settings.enhancement,
+    interpolation: "nearest",
+  });
+  const output = outputCtx.createImageData(rendered.width, rendered.height);
+  output.data.set(rendered.data);
   outputCtx.putImageData(output, 0, 0);
   return outputCanvas.toDataURL("image/png");
 }
@@ -245,10 +190,15 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
   return items.map((slide) => ({
     ...slide,
     quad: slide.quad ? cloneQuad(slide.quad) : null,
-    autoQuad: slide.autoQuad ? cloneQuad(slide.autoQuad) : null,
+    autoDetection: slide.autoDetection
+      ? {
+          ...slide.autoDetection,
+          quad: cloneQuad(slide.autoDetection.quad),
+          reviewReasons: [...slide.autoDetection.reviewReasons],
+        }
+      : null,
     reviewReasons: [...slide.reviewReasons],
-  }));
+  } as SlideItem));
 }
 
 export { exportManualQuads } from "./export-utils";
-

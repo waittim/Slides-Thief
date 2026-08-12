@@ -8,6 +8,7 @@ import {
   maxQuadOutside,
   quadHandlePositions,
 } from "../lib/slide-utils";
+import { restoreAutoDetection } from "../lib/slide-transitions";
 import { trackEvent, type CanvasRenderState, type HandlePosition, type Settings, type SlideItem } from "../lib/types";
 
 type DragQuadRef = MutableRefObject<{ id: string; quad: Quad } | null>;
@@ -82,16 +83,39 @@ export function useQuadEditor({
       setSlides((current) =>
         current.map((slide) => {
           if (slide.id !== id) return slide;
+          if (slide.status === "converting" || slide.status === "queued") return slide;
           if (slide.method !== "manual") trackEvent("corner_adjusted", { slide_id: id });
-          return {
-            ...slide,
+          const nextMetadata = {
             quad: nextQuad,
-            method: "manual",
-            confidence: 1,
-            needsReview: false,
+            method: "manual" as const,
+            confidence: 1 as const,
+            needsReview: false as const,
             reviewReasons: [],
-            reviewedByUser: true,
           };
+          if (slide.status === "detecting") {
+            return {
+              ...slide,
+              ...nextMetadata,
+              status: "detecting" as const,
+              detectionState: "manual" as const,
+            };
+          }
+          if (slide.status === "error") {
+            return {
+              ...slide,
+              ...nextMetadata,
+              status: "ready" as const,
+              error: undefined,
+            };
+          }
+          if (slide.status === "ready") {
+            return {
+              ...slide,
+              ...nextMetadata,
+              status: "ready" as const,
+            };
+          }
+          return slide;
         }),
       );
     },
@@ -245,9 +269,15 @@ export function useQuadEditor({
     if (!selectedSlide) return;
     clearExport();
     cancelActiveDrag();
-    if (selectedSlide.autoQuad) {
-      const next = cloneQuad(selectedSlide.autoQuad);
-      updateSlideQuad(selectedSlide.id, next);
+    if (selectedSlide.autoDetection) {
+      const snapshot = selectedSlide.autoDetection;
+      const next = cloneQuad(snapshot.quad);
+      setSlides((current) =>
+        current.map((slide) => {
+          if (slide.id !== selectedSlide.id) return slide;
+          return restoreAutoDetection(slide);
+        }),
+      );
       void refreshSlideThumbnail(selectedSlide.id, next);
       return;
     }
@@ -257,7 +287,7 @@ export function useQuadEditor({
       settings,
     );
     if (jobId !== null) setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-  }, [cancelActiveDrag, clearExport, refreshSlideThumbnail, selectedSlide, settings, setBusyText, startDetection, text.stretching, updateSlideQuad]);
+  }, [cancelActiveDrag, clearExport, refreshSlideThumbnail, selectedSlide, setBusyText, setSlides, settings, startDetection, text.stretching]);
 
   return {
     dragHandle,

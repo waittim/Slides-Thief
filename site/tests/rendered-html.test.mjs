@@ -68,6 +68,7 @@ test("client code uses browser-local processing contracts", async () => {
     types,
     canvasUtils,
     perspective,
+    perspectiveRender,
     useSlideDeck,
     useDetectionWorker,
     useExportWorker,
@@ -102,6 +103,7 @@ test("client code uses browser-local processing contracts", async () => {
     readFile(new URL("../app/lib/types.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/canvas-utils.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/lib/perspective.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/lib/perspective-render.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/hooks/useSlideDeck.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/hooks/useDetectionWorker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/hooks/useExportWorker.ts", import.meta.url), "utf8"),
@@ -137,6 +139,7 @@ test("client code uses browser-local processing contracts", async () => {
     types,
     canvasUtils,
     perspective,
+    perspectiveRender,
     useSlideDeck,
     useDetectionWorker,
     useExportWorker,
@@ -166,7 +169,16 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /new Worker\(new URL\("\.\.\/slides-worker\.ts"/);
   assert.match(app, /new Worker\(new URL\("\.\.\/slides-export-worker\.ts"/);
   assert.match(app, /runAuto/);
-  assert.match(app, /isManual =[\s\S]*slide\.reviewedByUser/);
+  assert.match(app, /slide\.method === "manual" && slide\.quad !== null/);
+  assert.match(app, /SlideDetectionMethod = DetectionMethod \| "manual" \| null/);
+  assert.doesNotMatch(app, /method: string/);
+  assert.match(app, /SlideErrorCode =/);
+  assert.match(app, /export type SlideItem = PendingSlide \| DetectingSlide \| ReadySlide \| FailedSlide/);
+  assert.match(app, /autoDetection: AutoDetectionSnapshot \| null/);
+  assert.match(app, /detectionState: "empty"/);
+  assert.match(app, /detectionState: "preview"/);
+  assert.match(app, /detectionState: "manual"/);
+  assert.doesNotMatch(app, /autoQuad/);
   assert.match(app, /buildAdjustedThumbnail/);
   assert.match(app, /refreshSlideThumbnail/);
   assert.match(app, /x \/ scale - padX/);
@@ -230,13 +242,18 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /previewError: "无法显示此照片的预览"/);
   assert.match(app, /setPreviewErrorSlideId\(slide\.id\)/);
   assert.doesNotMatch(app, /setWorkerError\("Cannot render this image in the browser\."\)/);
-  assert.match(app, /reviewedByUser: true/);
-  assert.match(app, /method: preserveManualReview \? "manual" : message\.result\.method/);
-  assert.match(app, /needsReview: preserveManualReview \? false : message\.result\.needsReview/);
+  assert.doesNotMatch(app, /reviewedByUser/);
+  assert.match(app, /autoDetection,/);
+  assert.match(app, /detectionState: "preview"/);
+  assert.match(app, /method: message\.result\.method/);
+  assert.match(app, /needsReview: message\.result\.needsReview/);
   assert.match(app, /enhancement: "original"/);
   assert.match(app, /enhancementOriginal: "Original"/);
   assert.match(app, /enhancementClean: "清晰增强"/);
-  assert.match(exportWorker, /applyEnhancement/);
+  assert.match(exportWorker, /renderPerspectivePage/);
+  assert.match(slideUtils, /renderPerspectivePage/);
+  assert.match(slideUtils, /interpolation:\s*"nearest"/);
+  assert.match(exportWorker, /interpolation:\s*"bilinear"/);
   assert.match(exportWorker, /enhancement/);
   assert.match(exportWorker, /sourceFormatRatioValue\(settings\)/);
   assert.doesNotMatch(exportWorker, /sourceRatio = slide\.sourceRatio/);
@@ -266,8 +283,10 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(app, /window\.requestAnimationFrame/);
   assert.match(app, /if \(workerRef\.current === worker\) workerRef\.current = null/);
   assert.match(useDetectionWorker, /message\.jobId !== activeJobIdRef\.current/);
+  assert.match(useDetectionWorker, /parseDetectionWorkerMessage/);
   assert.match(useDetectionWorker, /type: "detect", jobId, files, settings/);
   assert.match(worker, /createLatestJobRunner/);
+  assert.match(worker, /parseDetectionWorkerRequest/);
   assert.match(worker, /data\.type === "cancel-detect"/);
   assert.match(worker, /jobId,\s*phase/);
   assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);
@@ -283,17 +302,14 @@ test("client code uses browser-local processing contracts", async () => {
   assert.match(exportWorker, /^import\s+\{\s*PDFDocument\s*\}\s+from\s+"pdf-lib"/m);
   assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
   assert.match(exportWorker, /fillColor/);
-  assert.match(exportWorker, /parseHexColor/);
+  assert.match(exportWorker, /new ImageData\(output\.data(?: as ImageDataArray)?, output\.width, output\.height\)/);
+  assert.doesNotMatch(exportWorker, /createImageData\(output\.width, output\.height\)/);
   assert.match(
-    app,
-    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
-  );
-  assert.match(
-    exportWorker,
-    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
+    perspectiveRender,
+    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(options\.fillColor, content\)[\s\S]*fillAndBlitContent/,
   );
   assert.doesNotMatch(app, /applyEnhancement\(output\.data/);
-  assert.doesNotMatch(exportWorker, /applyEnhancement\(output\.data/);
+  assert.doesNotMatch(perspectiveRender, /applyEnhancement\(output\.data/);
   assert.match(exportWorker, /OffscreenCanvas/);
   assert.match(worker, /detectQuad/);
   assert.match(detector, /contrast-lines/);

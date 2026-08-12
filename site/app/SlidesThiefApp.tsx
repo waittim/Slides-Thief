@@ -13,7 +13,6 @@ import {
 import {
   confidenceText,
   buildAdjustedThumbnail,
-  quadsMatch,
   resolvedSlideRatio,
 } from "./lib/slide-utils";
 import type { Settings, SlideItem } from "./lib/types";
@@ -152,7 +151,7 @@ export function SlidesThiefApp() {
     (slide) =>
       slide.status === "ready" ||
       slide.status === "detecting" ||
-      (slide.status === "error" && slide.method !== "conversion-error"),
+      (slide.status === "error" && slide.error?.code !== "conversion-failed"),
   );
   const detecting = slides.some((slide) => slide.status === "detecting");
   const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
@@ -380,7 +379,7 @@ export function SlidesThiefApp() {
   const runAutoWithSettings = useCallback(
     (overrideSettings?: Settings) => {
       const processableSlides = slides.filter(
-        (slide) => slide.status !== "converting" && slide.method !== "conversion-error" && slide.url,
+        (slide) => slide.status !== "converting" && slide.error?.code !== "conversion-failed" && slide.url,
       );
       if (!processableSlides.length) return;
       cancelQuadDrag();
@@ -398,16 +397,31 @@ export function SlidesThiefApp() {
       setSlides((current) =>
         current.map((slide) => {
           if (!processableIds.has(slide.id)) return slide;
-          const isManual =
-            slide.reviewedByUser ||
-            Boolean(slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad));
+          if (slide.method === "manual" && slide.quad !== null) {
+            const manualQuad = slide.quad;
+            return {
+              ...slide,
+              status: "detecting",
+              detectionState: "manual" as const,
+              quad: manualQuad,
+              method: "manual" as const,
+              confidence: 1 as const,
+              needsReview: false as const,
+              reviewReasons: [],
+              thumbnailUrl: slide.thumbnailUrl,
+              error: undefined,
+            };
+          }
           return {
             ...slide,
             status: "detecting",
-            method: isManual ? "manual" : "detecting",
-            reviewedByUser: isManual,
-            quad: isManual ? slide.quad : null,
-            thumbnailUrl: isManual ? slide.thumbnailUrl : undefined,
+            detectionState: "empty" as const,
+            quad: null,
+            method: null,
+            confidence: 0 as const,
+            needsReview: false as const,
+            reviewReasons: [],
+            thumbnailUrl: undefined,
             error: undefined,
           };
         }),

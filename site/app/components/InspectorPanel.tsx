@@ -62,7 +62,7 @@ export function InspectorPanel({
             : null}
         </div>
         {workerError ? <p className="errorText" role="alert">{workerError}</p> : null}
-        {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error}</p> : null}
+        {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error.message}</p> : null}
       </div>
     </aside>
   );

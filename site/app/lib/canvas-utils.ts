@@ -1,5 +1,15 @@
 import type { Quad } from "../detection/types";
 
+/**
+ * Platform-neutral RGBA image data shared by canvas adapters and the
+ * perspective renderer. DOM and OffscreenCanvas ImageData objects satisfy it.
+ */
+export type PixelImage = {
+  width: number;
+  height: number;
+  data: Uint8ClampedArray;
+};
+
 export function parseHexColor(value: string): [number, number, number] {
   const clean = /^#[0-9a-f]{6}$/i.test(value) ? value.slice(1) : "111111";
   return [
@@ -15,7 +25,7 @@ export const AUTO_FILL_FALLBACK: [number, number, number] = [255, 255, 255];
  * Finds the dominant colour inside the corrected slide, deliberately skipping
  * its edge so a projector bezel or photographed screen border is not used.
  */
-export function resolveFillColor(value: string, content: ImageData) {
+export function resolveFillColor(value: string, content: PixelImage) {
   if (value !== "auto") return parseHexColor(value);
   const inset = 0.12;
   const left = content.width * inset;
@@ -57,8 +67,12 @@ export function contentPixelBounds(target: Quad) {
   };
 }
 
-export function extractContent(page: ImageData, bounds: ReturnType<typeof contentPixelBounds>) {
-  const content = new ImageData(bounds.width, bounds.height);
+export function extractContent(page: PixelImage, bounds: ReturnType<typeof contentPixelBounds>): PixelImage {
+  const content: PixelImage = {
+    width: bounds.width,
+    height: bounds.height,
+    data: new Uint8ClampedArray(bounds.width * bounds.height * 4),
+  };
   for (let y = 0; y < bounds.height; y += 1) {
     const sourceStart = ((bounds.y + y) * page.width + bounds.x) * 4;
     const targetStart = y * bounds.width * 4;
@@ -68,8 +82,8 @@ export function extractContent(page: ImageData, bounds: ReturnType<typeof conten
 }
 
 export function fillAndBlitContent(
-  page: ImageData,
-  content: ImageData,
+  page: PixelImage,
+  content: PixelImage,
   bounds: ReturnType<typeof contentPixelBounds>,
   fill: [number, number, number],
   provisionalFill?: [number, number, number],

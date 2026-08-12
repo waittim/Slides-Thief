@@ -164,7 +164,7 @@ export function CanvasQuadEditor({
                 ? text.previewError
                 : selectedSlide?.status === "converting"
                 ? text.converting
-                : selectedSlide?.error ?? text.empty}
+                : selectedSlide?.error?.message ?? text.empty}
             </div>
           )}
         </div>

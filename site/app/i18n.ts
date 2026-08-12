@@ -1,3 +1,5 @@
+import type { SlideDetectionMethod } from "./lib/types";
+
 export type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
 export const localeOptions: { value: LocaleValue; label: string }[] = [
@@ -1110,11 +1112,11 @@ export function detectBrowserLocale(): LocaleValue {
   return "en";
 }
 
-export function detectionMethodText(method: string, locale: LocaleValue) {
+export function detectionMethodText(method: SlideDetectionMethod, locale: LocaleValue) {
   const reviewText = reviewUiCopy[locale];
   if (method === "manual") return reviewText.manualAdjustment;
   if (method === "fallback-frame") return reviewText.fallbackFrame;
-  if (["contrast-lines", "mask-lines", "hough-lines", "batch-prior"].includes(method)) {
+  if (typeof method === "string" && ["contrast-lines", "mask-lines", "hough-lines", "batch-prior"].includes(method)) {
     return reviewText.automaticDetection;
   }
   return "-";

@@ -5,11 +5,11 @@ import { detectQuad } from "./detection/detect";
 import { createLatestJobRunner } from "./detection/job-queue";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize } from "./image-sizing";
+import { parseDetectionWorkerRequest } from "./lib/types";
 import type {
   DetectionJobId,
   DetectionWorkerFile,
   DetectionWorkerMessage,
-  DetectionWorkerRequest,
   DetectResult,
 } from "./lib/types";
 import {
@@ -36,13 +36,17 @@ const detectionQueue = createLatestJobRunner<DetectionTask>(
     postDetectionMessage({
       type: "error",
       jobId: task.jobId,
-      error: error instanceof Error ? error.message : "The browser processing worker stopped unexpectedly.",
+      error: {
+        code: "worker-failed",
+        message: error instanceof Error ? error.message : "The browser processing worker stopped unexpectedly.",
+      },
     });
   },
 );
 
-scope.onmessage = (event: MessageEvent<DetectionWorkerRequest>) => {
-  const data = event.data;
+scope.onmessage = (event: MessageEvent<unknown>) => {
+  const data = parseDetectionWorkerRequest(event.data);
+  if (!data) return;
   if (data.type === "cancel-detect") {
     detectionQueue.cancel(data.jobId);
     return;
@@ -96,7 +100,10 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
         type: "slide-error",
         jobId,
         id: item.id,
-        error: error instanceof Error ? error.message : "Could not decode this image in the browser.",
+        error: {
+          code: "decode-failed",
+          message: error instanceof Error ? error.message : "Could not decode this image in the browser.",
+        },
       });
     } finally {
       bitmap?.close();

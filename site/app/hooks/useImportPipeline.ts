@@ -95,12 +95,11 @@ export function useImportPipeline({
           width: 0,
           height: 0,
           quad: null,
-          autoQuad: null,
-          method: converting ? "converting" : "queued",
+          autoDetection: null,
+          method: null,
           confidence: 0,
           needsReview: false,
           reviewReasons: [],
-          reviewedByUser: false,
           sourceRatio: 16 / 9,
           status: converting ? "converting" : "queued",
         };
@@ -127,14 +126,20 @@ export function useImportPipeline({
           const url = URL.createObjectURL(normalizedFile);
           setSlides((current) =>
             current.map((slide) =>
-              slide.id === id
+                slide.id === id
                 ? {
                     ...slide,
                     file: normalizedFile,
                     name: normalizedFile.name,
                     url,
-                    method: "queued",
+                    quad: null,
+                    autoDetection: null,
+                    method: null,
+                    confidence: 0,
+                    needsReview: false,
+                    reviewReasons: [],
                     status: "queued",
+                    error: undefined,
                   }
                 : slide,
             ),
@@ -146,7 +151,17 @@ export function useImportPipeline({
           setSlides((current) =>
             current.map((slide) =>
               slide.id === id
-                ? { ...slide, method: "conversion-error", status: "error", error: message }
+                ? {
+                    ...slide,
+                    status: "error",
+                    quad: null,
+                    autoDetection: null,
+                    method: null,
+                    confidence: 0,
+                    needsReview: false,
+                    reviewReasons: [],
+                    error: { code: "conversion-failed", message },
+                  }
                 : slide,
             ),
           );

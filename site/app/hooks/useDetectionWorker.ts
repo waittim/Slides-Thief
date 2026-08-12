@@ -1,16 +1,41 @@
 import { useCallback, useRef } from "react";
 import type { Quad } from "../detection/types";
 import { copy, type LocaleValue } from "../i18n";
-import { messageFromError, quadsMatch } from "../lib/slide-utils";
+import { messageFromError } from "../lib/slide-utils";
 import {
   trackEvent,
   type DetectionJobId,
   type DetectionWorkerFile,
-  type DetectionWorkerMessage,
   type DetectionWorkerSettings,
+  parseDetectionWorkerMessage,
+  type SlideError,
   type Settings,
   type SlideItem,
 } from "../lib/types";
+
+function toErrorSlide(slide: SlideItem, error: SlideError): SlideItem {
+  if (error.code === "conversion-failed") {
+    return {
+      ...slide,
+      status: "error",
+      autoDetection: null,
+      quad: null,
+      method: null,
+      confidence: 0,
+      needsReview: false,
+      reviewReasons: [],
+      error: { code: "conversion-failed", message: error.message },
+    };
+  }
+  return {
+    ...slide,
+    status: "error",
+    error: {
+      code: error.code === "decode-failed" ? "decode-failed" : "worker-failed",
+      message: error.message,
+    },
+  };
+}
 
 export function useDetectionWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
@@ -42,57 +67,150 @@ export function useDetectionWorker(
       setBusyText("");
       return null;
     }
-    worker.onmessage = (event: MessageEvent<DetectionWorkerMessage>) => {
-      const message = event.data;
+    const handleWorkerFailure = (message: string) => {
+      trackEvent("processing_error", {
+        error_type: "worker_failure",
+        error_message: message || "Worker terminated unexpectedly",
+      });
+      worker.terminate();
+      if (workerRef.current === worker) workerRef.current = null;
+      activeJobIdRef.current = null;
+      setSlides((current) =>
+        current.map((slide) =>
+          slide.status === "detecting"
+            ? toErrorSlide(slide, { code: "worker-failed", message })
+            : slide,
+        ),
+      );
+      setWorkerError(message);
+      setExporting(false);
+      setBusyText("");
+    };
+    worker.onmessage = (event: MessageEvent<unknown>) => {
+      const message = parseDetectionWorkerMessage(event.data);
+      if (!message) {
+        handleWorkerFailure("The image worker returned an invalid response.");
+        return;
+      }
       if (message.jobId !== activeJobIdRef.current) return;
       if (message.type === "detect-start") {
         const name = slidesRef.current.find((slide) => slide.id === message.id)?.name ?? "";
         const currentCopy = copy[localeRef.current];
         setBusyText(name ? `${currentCopy.stretching}: ${name}` : currentCopy.stretching);
         setSlides((current) =>
-          current.map((slide) =>
-            slide.id === message.id
-              ? {
-                  ...slide,
-                  status: "detecting",
-                  method: "detecting",
-                  reviewedByUser: false,
-                  thumbnailUrl: undefined,
-                  error: undefined,
-                }
-              : slide,
-          ),
+          current.map((slide) => {
+            if (slide.id !== message.id) return slide;
+            if (slide.method === "manual" && slide.quad !== null) {
+              const manualQuad = slide.quad;
+              return {
+                ...slide,
+                status: "detecting",
+                detectionState: "manual",
+                quad: manualQuad,
+                method: "manual",
+                confidence: 1,
+                needsReview: false,
+                reviewReasons: [],
+                thumbnailUrl: undefined,
+                error: undefined,
+              };
+            }
+            return {
+              ...slide,
+              status: "detecting",
+              detectionState: "empty",
+              quad: null,
+              method: null,
+              confidence: 0,
+              needsReview: false,
+              reviewReasons: [],
+              thumbnailUrl: undefined,
+              error: undefined,
+            };
+          }),
         );
       }
       if (message.type === "detect-result") {
         const existing = slidesRef.current.find((slide) => slide.id === message.result.id);
-        const preserveManualQuad = Boolean(
-          existing?.reviewedByUser
-          || (existing?.quad && existing.autoQuad && !quadsMatch(existing.quad, existing.autoQuad))
-        );
-        const displayedQuad = preserveManualQuad && existing?.quad
-          ? existing.quad
+        const existingQuad = existing?.quad;
+        const preserveManualQuad = existing?.method === "manual" && existingQuad !== null && existingQuad !== undefined;
+        const displayedQuad = preserveManualQuad && existingQuad
+          ? existingQuad
           : message.result.quad;
+        const autoDetection = {
+          quad: message.result.quad,
+          method: message.result.method,
+          confidence: message.result.confidence,
+          needsReview: message.result.needsReview,
+          reviewReasons: message.result.reviewReasons,
+          sourceRatio: message.result.sourceRatio,
+        };
         setSlides((current) =>
           current.map((slide) => {
             if (slide.id !== message.result.id) return slide;
-            const preserveManualReview = Boolean(
-              slide.reviewedByUser
-              || (slide.quad && slide.autoQuad && !quadsMatch(slide.quad, slide.autoQuad))
-            );
+            if (slide.method === "manual" && slide.quad !== null) {
+              const manualQuad = slide.quad;
+              if (message.phase === "preliminary") {
+                return {
+                  ...slide,
+                  width: message.result.width,
+                  height: message.result.height,
+                  quad: manualQuad,
+                  autoDetection,
+                  method: "manual",
+                  confidence: 1,
+                  needsReview: false,
+                  reviewReasons: [],
+                  sourceRatio: message.result.sourceRatio,
+                  status: "detecting",
+                  detectionState: "manual",
+                  error: undefined,
+                };
+              }
+              return {
+                ...slide,
+                width: message.result.width,
+                height: message.result.height,
+                quad: manualQuad,
+                autoDetection,
+                method: "manual",
+                confidence: 1,
+                needsReview: false,
+                reviewReasons: [],
+                sourceRatio: message.result.sourceRatio,
+                status: "ready",
+                error: undefined,
+              };
+            }
+            if (message.phase === "preliminary") {
+              return {
+                ...slide,
+                width: message.result.width,
+                height: message.result.height,
+                quad: message.result.quad,
+                autoDetection,
+                method: message.result.method,
+                confidence: message.result.confidence,
+                needsReview: message.result.needsReview,
+                reviewReasons: message.result.reviewReasons,
+                sourceRatio: message.result.sourceRatio,
+                status: "detecting",
+                detectionState: "preview",
+                error: undefined,
+              };
+            }
             return {
               ...slide,
               width: message.result.width,
               height: message.result.height,
-              quad: preserveManualReview ? slide.quad : message.result.quad,
-              autoQuad: message.result.quad,
-              method: preserveManualReview ? "manual" : message.result.method,
-              confidence: preserveManualReview ? 1 : message.result.confidence,
-              needsReview: preserveManualReview ? false : message.result.needsReview,
-              reviewReasons: preserveManualReview ? [] : message.result.reviewReasons,
-              reviewedByUser: preserveManualReview,
+              quad: message.result.quad,
+              autoDetection,
+              method: message.result.method,
+              confidence: message.result.confidence,
+              needsReview: message.result.needsReview,
+              reviewReasons: message.result.reviewReasons,
               sourceRatio: message.result.sourceRatio,
-              status: message.phase === "final" ? "ready" : "detecting",
+              status: "ready",
               error: undefined,
             };
           }),
@@ -108,12 +226,12 @@ export function useDetectionWorker(
       if (message.type === "slide-error") {
         trackEvent("processing_error", {
           error_type: "slide_error",
-          error_message: message.error || "Slide processing error",
+          error_message: message.error.message || "Slide processing error",
         });
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.id
-              ? { ...slide, status: "error", method: "error", error: message.error }
+              ? toErrorSlide(slide, message.error)
               : slide,
           ),
         );
@@ -122,36 +240,19 @@ export function useDetectionWorker(
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "worker_error",
-          error_message: message.error || "General worker error",
+          error_message: message.error.message || "General worker error",
         });
         setSlides((current) =>
           current.map((slide) =>
             slide.status === "detecting"
-              ? { ...slide, status: "error", method: "error", error: message.error }
+              ? toErrorSlide(slide, message.error)
               : slide,
           ),
         );
-        setWorkerError(message.error);
+        setWorkerError(message.error.message);
         setExporting(false);
         setBusyText("");
       }
-    };
-    const handleWorkerFailure = (message: string) => {
-      trackEvent("processing_error", {
-        error_type: "worker_failure",
-        error_message: message || "Worker terminated unexpectedly",
-      });
-      worker.terminate();
-      if (workerRef.current === worker) workerRef.current = null;
-      activeJobIdRef.current = null;
-      setSlides((current) =>
-        current.map((slide) =>
-          slide.status === "detecting" ? { ...slide, status: "error", method: "error", error: message } : slide,
-        ),
-      );
-      setWorkerError(message);
-      setExporting(false);
-      setBusyText("");
     };
     worker.onerror = (event) => handleWorkerFailure(event.message || "The image worker stopped unexpectedly.");
     worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
