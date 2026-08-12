@@ -6,7 +6,9 @@ import math
 
 import numpy as np
 
+from .candidate_factory import make_candidate
 from .config import DETECTION_CONFIG
+from .numeric import average
 
 
 _BATCH_CONFIG = DETECTION_CONFIG["batchPrior"]
@@ -43,7 +45,7 @@ def build_batch_priors(results: list[dict]) -> list[dict]:
             continue
         normalized_quad = _median_quad([item["normalized_quad"] for item in cluster])
         rms_deviation = math.sqrt(
-            float(np.mean([_quad_distance(item["normalized_quad"], normalized_quad) ** 2 for item in cluster]))
+            average([_quad_distance(item["normalized_quad"], normalized_quad) ** 2 for item in cluster])
         )
         if rms_deviation >= float(_BATCH_CONFIG["maximumRmsDeviation"]):
             continue
@@ -71,17 +73,17 @@ def batch_prior_candidates(priors: list[dict], width: int, height: int) -> list[
             continue
         scale = np.array([width, height], dtype=np.float64)
         candidates.append(
-            {
-                "quad": prior["normalized_quad"] * scale,
-                "method": "batch-prior",
-                "batch_consistency": prior["consistency"],
-                "detector_diagnostics": {
+            make_candidate(
+                prior["normalized_quad"] * scale,
+                "batch-prior",
+                {
                     "batch_prior_id": prior["id"],
                     "batch_prior_member_count": prior["member_count"],
                     "batch_prior_rms_deviation": round(prior["rms_deviation"], 5),
                     "batch_prior_consistency": round(prior["consistency"], 4),
                 },
-            }
+                batch_consistency=prior["consistency"],
+            )
         )
     return candidates
 

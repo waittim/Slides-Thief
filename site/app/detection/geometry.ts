@@ -98,23 +98,7 @@ export function normalizedCornerDistance(first: Quad, second: Quad, width: numbe
   return first.reduce((sum, point, index) => sum + distance(point, second[index]), 0) / (4 * diagonal);
 }
 
-export function quadIoU(first: Quad, second: Quad, width: number, height: number): number {
-  const scale = Math.max(1, Math.ceil(Math.max(width, height) / 240));
-  let intersection = 0;
-  let union = 0;
-  for (let y = 0; y < height; y += scale) {
-    for (let x = 0; x < width; x += scale) {
-      const point: Point = [x + scale / 2, y + scale / 2];
-      const insideFirst = isPointInside(point, first);
-      const insideSecond = isPointInside(point, second);
-      if (insideFirst || insideSecond) union += 1;
-      if (insideFirst && insideSecond) intersection += 1;
-    }
-  }
-  return union ? intersection / union : 0;
-}
-
-export function convexQuadIoU(first: Quad, second: Quad): number {
+export function quadIoU(first: Quad, second: Quad): number {
   const intersection = clipConvexPolygon(first, second);
   const intersectionArea = polygonAreaPoints(intersection);
   const unionArea = polygonArea(first) + polygonArea(second) - intersectionArea;

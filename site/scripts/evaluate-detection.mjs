@@ -6,6 +6,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { detectQuad } from "../app/detection/detect.ts";
+import { quadIoU } from "../app/detection/geometry.ts";
 
 const siteRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = resolve(siteRoot, "..");
@@ -49,33 +50,6 @@ function parsePpm(buffer) {
   return { width, height, data: rgba };
 }
 
-function pointInside(point, quad) {
-  let inside = false;
-  for (let i = 0, j = quad.length - 1; i < quad.length; j = i, i += 1) {
-    const [xi, yi] = quad[i];
-    const [xj, yj] = quad[j];
-    if ((yi > point[1]) !== (yj > point[1])) {
-      const crossingX = ((xj - xi) * (point[1] - yi)) / (yj - yi) + xi;
-      if (point[0] < crossingX) inside = !inside;
-    }
-  }
-  return inside;
-}
-
-function quadIou(predicted, expected, width, height) {
-  let intersection = 0;
-  let union = 0;
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      const inPredicted = pointInside([x + 0.5, y + 0.5], predicted);
-      const inExpected = pointInside([x + 0.5, y + 0.5], expected);
-      if (inPredicted || inExpected) union += 1;
-      if (inPredicted && inExpected) intersection += 1;
-    }
-  }
-  return union ? intersection / union : 0;
-}
-
 function percentile(values, fraction) {
   if (!values.length) return 0;
   const ordered = [...values].sort((a, b) => a - b);
@@ -108,7 +82,7 @@ for (const item of annotations.images) {
     quad: result.quad.map(([x, y]) => [Number(x.toFixed(4)), Number(y.toFixed(4))]),
     meanCornerError: errors ? errors.reduce((sum, value) => sum + value, 0) / errors.length : null,
     maxCornerError: errors ? Math.max(...errors) : null,
-    quadIou: errors ? quadIou(result.quad, item.quad, image.width, image.height) : null,
+    quadIou: errors ? quadIoU(result.quad, item.quad) : null,
     confidence: result.confidence,
     needsReview: result.needsReview,
     method: result.method,

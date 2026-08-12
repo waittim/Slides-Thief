@@ -1,9 +1,10 @@
 import { distance, lineIntersection, orderQuad, polygonArea, type Line } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
 import { sampleGray } from "./image-features.ts";
+import { createCandidate } from "./candidate-factory.ts";
+import { average, percentile, round } from "./numeric.ts";
 import type {
   CandidateDetector,
-  CandidateFeatures,
   DetectionSettings,
   ImageFeatures,
   Quad,
@@ -11,19 +12,6 @@ import type {
 } from "./types.ts";
 
 const CONTRAST_CONFIG = DETECTION_CONFIG.contrastLines;
-
-const EMPTY_FEATURES: CandidateFeatures = {
-  edgeStrength: 0,
-  edgeSupport: 0,
-  edgeContinuity: 0,
-  gradientAlignment: 0,
-  insideOutsideDifference: 0,
-  regionConsistency: 0,
-  normalizedArea: 0,
-  geometryValidity: 0,
-  aspectPrior: 0,
-  batchConsistency: 0,
-};
 
 export const contrastLineDetector: CandidateDetector = {
   name: "contrast-lines",
@@ -91,15 +79,12 @@ export const contrastLineDetector: CandidateDetector = {
     return candidates
       .sort((a, b) => b.detectorScore - a.detectorScore)
       .slice(0, CONTRAST_CONFIG.outputCandidateLimit)
-      .map((candidate) => ({
-        quad: candidate.quad,
-        method: "contrast-lines",
-        polarity: [],
-        features: { ...EMPTY_FEATURES },
-        rawScore: candidate.detectorScore,
-        warnings: [],
-        diagnostics: candidate.diagnostics,
-      }));
+      .map((candidate) => createCandidate(
+        "contrast-lines",
+        candidate.quad,
+        candidate.detectorScore,
+        candidate.diagnostics,
+      ));
   },
 };
 
@@ -219,7 +204,7 @@ function signedContrastScore(diffs: number[]): number {
     CONTRAST_CONFIG.minimumPositiveCount,
     diffs.length * CONTRAST_CONFIG.minimumPositiveFraction,
   )) return 0;
-  return percentileSorted(positive, CONTRAST_CONFIG.positivePercentile) +
+  return percentile(positive, CONTRAST_CONFIG.positivePercentile) +
     average(positive) * CONTRAST_CONFIG.positiveMeanWeight;
 }
 
@@ -238,21 +223,4 @@ function xAt(line: Line, y: number): number {
 function linspace(start: number, end: number, count: number): number[] {
   const step = (end - start) / Math.max(1, count - 1);
   return Array.from({ length: count }, (_, index) => start + step * index);
-}
-
-function percentileSorted(values: number[], fraction: number): number {
-  if (!values.length) return 0;
-  return values[Math.min(values.length - 1, Math.max(0, Math.floor((values.length - 1) * fraction)))];
-}
-
-function average(values: ArrayLike<number>): number {
-  if (!values.length) return 0;
-  let total = 0;
-  for (let index = 0; index < values.length; index += 1) total += values[index];
-  return total / values.length;
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }

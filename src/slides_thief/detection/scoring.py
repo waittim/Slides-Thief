@@ -9,8 +9,9 @@ from PIL import Image, ImageDraw
 
 from .config import DETECTION_CONFIG
 from .gradient import GradientMap
+from .geometry import geometry_is_valid, normalized_corner_distance as normalized_quad_distance, polygon_area
+from .numeric import average, percentile
 
-_GEOMETRY_CONFIG = DETECTION_CONFIG["geometry"]
 _SCORING_CONFIG = DETECTION_CONFIG["scoring"]
 _WEIGHTS = _SCORING_CONFIG["weights"]
 
@@ -20,46 +21,6 @@ def _sample_nearest(gray: np.ndarray, xs: np.ndarray, ys: np.ndarray) -> np.ndar
     xi = np.clip(np.rint(xs).astype(np.int32), 0, width - 1)
     yi = np.clip(np.rint(ys).astype(np.int32), 0, height - 1)
     return gray[yi, xi]
-
-
-def _polygon_area(quad: np.ndarray) -> float:
-    return 0.5 * abs(
-        float(np.dot(quad[:, 0], np.roll(quad[:, 1], -1)) - np.dot(quad[:, 1], np.roll(quad[:, 0], -1)))
-    )
-
-
-def _geometry_is_valid(quad: np.ndarray, width: int, height: int) -> bool:
-    if not np.isfinite(quad).all() or _polygon_area(quad) < width * height * float(
-        _GEOMETRY_CONFIG["minimumAreaRatio"]
-    ):
-        return False
-    bounds_ratio = float(_GEOMETRY_CONFIG["boundsRatio"])
-    if np.any(quad[:, 0] < -width * bounds_ratio) or np.any(quad[:, 0] > width * (1 + bounds_ratio)):
-        return False
-    if np.any(quad[:, 1] < -height * bounds_ratio) or np.any(quad[:, 1] > height * (1 + bounds_ratio)):
-        return False
-    crosses = []
-    for index in range(4):
-        first = quad[index]
-        second = quad[(index + 1) % 4]
-        third = quad[(index + 2) % 4]
-        first_vector = second - first
-        second_vector = third - second
-        crosses.append(float(first_vector[0] * second_vector[1] - first_vector[1] * second_vector[0]))
-        if np.linalg.norm(first_vector) < min(width, height) * float(_GEOMETRY_CONFIG["minimumEdgeRatio"]):
-            return False
-    if not (all(value > 1e-6 for value in crosses) or all(value < -1e-6 for value in crosses)):
-        return False
-    for index in range(4):
-        previous = quad[(index + 3) % 4] - quad[index]
-        following = quad[(index + 1) % 4] - quad[index]
-        cosine = float(np.dot(previous, following) / max(1e-9, np.linalg.norm(previous) * np.linalg.norm(following)))
-        angle = math.degrees(math.acos(max(-1.0, min(1.0, cosine))))
-        if angle < float(_GEOMETRY_CONFIG["minimumAngleDegrees"]) or angle > float(
-            _GEOMETRY_CONFIG["maximumAngleDegrees"]
-        ):
-            return False
-    return True
 
 
 def _longest_true_run(values: np.ndarray) -> int:
@@ -148,28 +109,18 @@ def evaluate_edge_evidence(
     largest_gap_ratio = _longest_true_run(~supported) / count
     return {
         "polarity": polarity,
-        "mean_strength": float(gradient_strengths.mean()),
-        "median_strength": float(
-            np.percentile(gradient_strengths, float(_SCORING_CONFIG["medianPercentile"]) * 100)
-        ),
-        "median_contrast": float(
-            np.percentile(strengths, float(_SCORING_CONFIG["medianPercentile"]) * 100)
-        ) if len(strengths) else 0.0,
-        "percentile_contrast": float(
-            np.percentile(strengths, float(_SCORING_CONFIG["contrastPercentile"]) * 100)
-        ) if len(strengths) else 0.0,
+        "mean_strength": average(gradient_strengths),
+        "median_strength": percentile(gradient_strengths, float(_SCORING_CONFIG["medianPercentile"])),
+        "median_contrast": percentile(strengths, float(_SCORING_CONFIG["medianPercentile"])),
+        "percentile_contrast": percentile(strengths, float(_SCORING_CONFIG["contrastPercentile"])),
         "support_ratio": float(supported.mean()) * (
             float(_SCORING_CONFIG["mixedPolarityScale"]) if mixed else 1.0
         ),
         "longest_run_ratio": longest_run_ratio,
         "largest_gap_ratio": largest_gap_ratio,
-        "gradient_alignment": float(gradient_alignments.mean()),
-        "localization_offset": float(
-            np.percentile(np.abs(gradient_offsets), float(_SCORING_CONFIG["medianPercentile"]) * 100)
-        ),
-        "signed_contrast": float(
-            np.percentile(signed, float(_SCORING_CONFIG["medianPercentile"]) * 100)
-        ),
+        "gradient_alignment": average(gradient_alignments),
+        "localization_offset": percentile(np.abs(gradient_offsets), float(_SCORING_CONFIG["medianPercentile"])),
+        "signed_contrast": percentile(signed, float(_SCORING_CONFIG["medianPercentile"])),
         "continuity": longest_run_ratio,
     }
 
@@ -188,13 +139,13 @@ def score_quad_candidate(
     batch_consistency: float = 0.0,
 ) -> tuple[float, dict] | None:
     height, width = gray.shape
-    if not _geometry_is_valid(quad, width, height):
+    if not geometry_is_valid(quad, width, height):
         return None
     evidence = [evaluate_edge_evidence(gray, quad[index], quad[(index + 1) % 4], gradient) for index in range(4)]
     if any(item["support_ratio"] < float(_SCORING_CONFIG["minimumEdgeSupport"]) for item in evidence):
         return None
 
-    area_norm = _polygon_area(quad) / (width * height)
+    area_norm = polygon_area(quad) / (width * height)
     top_len = float(np.linalg.norm(quad[1] - quad[0]))
     bottom_len = float(np.linalg.norm(quad[2] - quad[3]))
     left_len = float(np.linalg.norm(quad[3] - quad[0]))
@@ -220,46 +171,40 @@ def score_quad_candidate(
         region_consistency = 0.0
 
     features = {
-        "edge_strength": float(
-            np.mean(
-                [
-                    (
-                        float(_SCORING_CONFIG["edgeStrengthGradientWeight"])
-                        * min(
-                            1.0,
-                            item["median_strength"]
-                            / max(
-                                float(_SCORING_CONFIG["gradientEdgeStrengthFloor"]),
-                                gradient.threshold * float(_SCORING_CONFIG["gradientEdgeStrengthScale"]),
-                            ),
-                        )
-                        + float(_SCORING_CONFIG["edgeStrengthContrastWeight"])
-                        * min(1.0, item["percentile_contrast"] / float(_SCORING_CONFIG["contrastEdgeStrengthScale"]))
-                        if gradient is not None
-                        else min(1.0, item["percentile_contrast"] / float(_SCORING_CONFIG["contrastEdgeStrengthScale"]))
+        "edge_strength": average(
+            [
+                (
+                    float(_SCORING_CONFIG["edgeStrengthGradientWeight"])
+                    * min(
+                        1.0,
+                        item["median_strength"]
+                        / max(
+                            float(_SCORING_CONFIG["gradientEdgeStrengthFloor"]),
+                            gradient.threshold * float(_SCORING_CONFIG["gradientEdgeStrengthScale"]),
+                        ),
                     )
-                    for item in evidence
-                ]
-            )
+                    + float(_SCORING_CONFIG["edgeStrengthContrastWeight"])
+                    * min(1.0, item["percentile_contrast"] / float(_SCORING_CONFIG["contrastEdgeStrengthScale"]))
+                    if gradient is not None
+                    else min(1.0, item["percentile_contrast"] / float(_SCORING_CONFIG["contrastEdgeStrengthScale"]))
+                )
+                for item in evidence
+            ]
         ),
-        "edge_support": float(np.mean([item["support_ratio"] for item in evidence])),
-        "edge_continuity": float(
-            np.mean(
-                [
-                    item["longest_run_ratio"]
-                    * (1 - item["largest_gap_ratio"] * float(_SCORING_CONFIG["continuityGapWeight"]))
-                    for item in evidence
-                ]
-            )
+        "edge_support": average([item["support_ratio"] for item in evidence]),
+        "edge_continuity": average(
+            [
+                item["longest_run_ratio"]
+                * (1 - item["largest_gap_ratio"] * float(_SCORING_CONFIG["continuityGapWeight"]))
+                for item in evidence
+            ]
         ),
-        "gradient_alignment": float(np.mean([item["gradient_alignment"] for item in evidence])),
-        "inside_outside_difference": float(
-            np.mean(
-                [
-                    min(1.0, item["median_contrast"] / float(_SCORING_CONFIG["insideOutsideContrastScale"]))
-                    for item in evidence
-                ]
-            )
+        "gradient_alignment": average([item["gradient_alignment"] for item in evidence]),
+        "inside_outside_difference": average(
+            [
+                min(1.0, item["median_contrast"] / float(_SCORING_CONFIG["insideOutsideContrastScale"]))
+                for item in evidence
+            ]
         ),
         "region_consistency": region_consistency,
         "normalized_area": min(1.0, area_norm / float(_SCORING_CONFIG["normalizedAreaTarget"])),
@@ -295,7 +240,3 @@ def score_quad_candidate(
         "aspect_est": round(aspect, 3),
         "area_norm": round(area_norm, 3),
     }
-
-
-def normalized_quad_distance(first: np.ndarray, second: np.ndarray, width: int, height: int) -> float:
-    return float(np.linalg.norm(first - second, axis=1).mean() / math.hypot(width, height))

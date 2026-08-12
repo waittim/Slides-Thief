@@ -17,7 +17,7 @@ const { maskLineDetector } = await import(
 const { houghLineDetector } = await import(
   new URL("../app/detection/hough-lines.ts", import.meta.url).href
 );
-const { convexQuadIoU, quadIoU } = await import(
+const { quadIoU } = await import(
   new URL("../app/detection/geometry.ts", import.meta.url).href
 );
 const { refineCandidate } = await import(
@@ -165,8 +165,7 @@ test("candidate deduplication uses exact convex IoU instead of raster sampling",
     quad: [[100, 96.5], [900, 96.5], [900, 616.5], [100, 616.5]],
   };
 
-  assert.ok(convexQuadIoU(first.quad, second.quad) < 0.94);
-  assert.ok(quadIoU(first.quad, second.quad, 1000, 700) > 0.94);
+  assert.ok(quadIoU(first.quad, second.quad) < 0.94);
   assert.equal(deduplicateCandidates([first, second], 1000, 700).length, 2);
 });
 
@@ -177,7 +176,7 @@ test("orientation-guided Hough recovers a freely rotated perspective quad", () =
   const candidates = houghLineDetector.detect(features, settings);
 
   assert.ok(candidates.length > 0);
-  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected, 180, 125))) > 0.82);
+  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected))) > 0.82);
   assert.ok(candidates[0].diagnostics.familyAngleDegrees >= 35);
 });
 

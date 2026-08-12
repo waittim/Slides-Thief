@@ -9,7 +9,8 @@ import pytest
 from PIL import Image, ImageDraw, ImageFilter
 
 from slides_thief.cli import detect_quad
-from slides_thief.detection.confidence import AUTO_REVIEW_CONFIDENCE, quad_iou
+from slides_thief.detection.confidence import AUTO_REVIEW_CONFIDENCE
+from slides_thief.detection.geometry import quad_iou
 
 
 SIZE = (320, 240)
@@ -58,7 +59,7 @@ def test_supported_difficult_boundaries_remain_accurate(scene) -> None:
     )
 
     assert diagnostics["method"] != "fallback-frame"
-    assert quad_iou(predicted, EXPECTED_QUAD, *SIZE) >= 0.9
+    assert quad_iou(predicted, EXPECTED_QUAD) >= 0.9
     assert mean_corner_error < 0.02
 
 

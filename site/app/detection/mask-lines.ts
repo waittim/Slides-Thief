@@ -1,28 +1,16 @@
 import { lineIntersection, orderQuad, scaleQuad, type Line } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
-import { boxBlur, percentile } from "./image-features.ts";
+import { createCandidate } from "./candidate-factory.ts";
+import { boxBlur } from "./image-features.ts";
+import { percentile, round } from "./numeric.ts";
 import type {
   CandidateDetector,
-  CandidateFeatures,
   ImageFeatures,
   Point,
   QuadCandidate,
 } from "./types.ts";
 
 const MASK_CONFIG = DETECTION_CONFIG.maskLines;
-
-const EMPTY_FEATURES: CandidateFeatures = {
-  edgeStrength: 0,
-  edgeSupport: 0,
-  edgeContinuity: 0,
-  gradientAlignment: 0,
-  insideOutsideDifference: 0,
-  regionConsistency: 0,
-  normalizedArea: 0,
-  geometryValidity: 0,
-  aspectPrior: 0,
-  batchConsistency: 0,
-};
 
 export const maskLineDetector: CandidateDetector = {
   name: "mask-lines",
@@ -120,15 +108,12 @@ export const maskLineDetector: CandidateDetector = {
 
     return [
       ...MASK_CONFIG.variants.map(({ scale: factor, name: variant }) => ({ factor, variant })),
-    ].map(({ factor, variant }) => ({
-      quad: scaleQuad(baseQuad, factor),
-      method: "mask-lines",
-      polarity: [],
-      features: { ...EMPTY_FEATURES },
-      rawScore: 0,
-      warnings: [],
-      diagnostics: { ...diagnostics, variant },
-    }));
+    ].map(({ factor, variant }) => createCandidate(
+      "mask-lines",
+      scaleQuad(baseQuad, factor),
+      0,
+      { ...diagnostics, variant },
+    ));
   },
 };
 
@@ -190,9 +175,4 @@ function fitLinePca(points: Point[]): Line {
 
 function pointLineDistance(point: Point, line: Line): number {
   return Math.abs(line.a * point[0] + line.b * point[1] + line.c) / Math.max(1e-9, Math.hypot(line.a, line.b));
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }

@@ -9,15 +9,17 @@ from PIL import Image, ImageFilter, ImageOps
 
 from ..geometry import Line, intersect, order_quad, robust_fit
 from .batch_prior import batch_prior_candidates
+from .candidate_factory import make_candidate
 from .config import DETECTION_CONFIG
 from .confidence import (
     AUTO_REVIEW_CONFIDENCE,
     calculate_confidence,
     is_ambiguous_candidate,
-    quad_iou,
 )
+from .geometry import polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
+from .numeric import average, percentile
 from .refine import refine_quad
 from .scoring import normalized_quad_distance, score_quad_candidate
 
@@ -73,8 +75,8 @@ def contrast_score(diff: np.ndarray) -> float:
         else:
             scores.append(
                 float(
-                    np.percentile(positive, float(_CONTRAST_CONFIG["positivePercentile"]) * 100)
-                    + positive.mean() * float(_CONTRAST_CONFIG["positiveMeanWeight"])
+                    percentile(positive, float(_CONTRAST_CONFIG["positivePercentile"]))
+                    + average(positive) * float(_CONTRAST_CONFIG["positiveMeanWeight"])
                 )
             )
     return max(scores)
@@ -263,10 +265,7 @@ def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | N
                     mean_width = (top_len + bottom_len) / 2.0
                     mean_height = (left_len + right_len) / 2.0
                     aspect_est = mean_width / max(1.0, mean_height)
-                    area = 0.5 * abs(
-                        np.dot(quad[:, 0], np.roll(quad[:, 1], -1))
-                        - np.dot(quad[:, 1], np.roll(quad[:, 0], -1))
-                    )
+                    area = polygon_area(quad)
                     area_norm = area / (w * h)
                     if area_norm < float(_CONTRAST_CONFIG["minimumAreaRatio"]) or not (
                         ratio * float(_CONTRAST_CONFIG["aspectMinimumRatio"])
@@ -275,7 +274,7 @@ def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | N
                     ):
                         continue
                     aspect_error = abs(math.log(max(0.05, aspect_est / ratio)))
-                    edge_score = float(np.mean([top_score, bottom_score, left_score, right_score]))
+                    edge_score = average([top_score, bottom_score, left_score, right_score])
                     total = edge_score + 10.0 * area_norm - aspect_error
                     if best is None or total > best[0]:
                         best = (total, quad, [top_score, bottom_score, left_score, right_score], aspect_est, area_norm)
@@ -287,7 +286,7 @@ def contrast_quad(gray: np.ndarray, ratio: float) -> tuple[np.ndarray, dict] | N
 
     diagnostics = {
         "method": "contrast-lines",
-        "confidence": round(float(min(1.0, 0.42 + np.mean(scores) / 65.0 + area_norm * 0.25)), 3),
+        "confidence": round(float(min(1.0, 0.42 + average(scores) / 65.0 + area_norm * 0.25)), 3),
         "contrast_scores": [round(float(score), 2) for score in scores],
         "aspect_est": round(float(aspect_est), 3),
         "area_norm": round(float(area_norm), 3),
@@ -334,12 +333,15 @@ def detect_quad(
     # wall, curtains, and audience are either saturated or dark. Segmenting the
     # low-saturation screen body gives a better document boundary than raw
     # brightness, especially when the cyan wall is brighter than the slide.
-    p05, p25, p55, p92 = np.percentile(
-        gray,
-        [5, float(_MASK_CONFIG["grayPercentiles"]["lower"]) * 100,
-         float(_MASK_CONFIG["grayPercentiles"]["threshold"]) * 100,
-         float(_MASK_CONFIG["grayPercentiles"]["highlight"]) * 100],
-    )
+    p05, p25, p55, p92 = [
+        percentile(gray, fraction)
+        for fraction in (
+            0.05,
+            float(_MASK_CONFIG["grayPercentiles"]["lower"]),
+            float(_MASK_CONFIG["grayPercentiles"]["threshold"]),
+            float(_MASK_CONFIG["grayPercentiles"]["highlight"]),
+        )
+    ]
     rgb_max = rgb_small.max(axis=2)
     rgb_min = rgb_small.min(axis=2)
     sat = np.divide(
@@ -360,7 +362,7 @@ def detect_quad(
             float(_MASK_CONFIG["primarySaturationMinimum"]),
             min(
                 float(_MASK_CONFIG["primarySaturationMaximum"]),
-                np.percentile(sat, float(_MASK_CONFIG["primarySaturationPercentile"]) * 100)
+                percentile(sat, float(_MASK_CONFIG["primarySaturationPercentile"]))
                 + float(_MASK_CONFIG["primarySaturationOffset"]),
             ),
         )
@@ -447,15 +449,15 @@ def detect_quad(
     if contrast_result is not None:
         contrast_quad_value, contrast_diagnostics = contrast_result
         raw_candidates.append(
-            {
-                "quad": contrast_quad_value,
-                "method": "contrast-lines",
-                "detector_diagnostics": {
+            make_candidate(
+                contrast_quad_value,
+                "contrast-lines",
+                {
                     key: value
                     for key, value in contrast_diagnostics.items()
                     if key not in {"method", "confidence"}
                 },
-            }
+            )
         )
     if method == "mask-lines":
         center = quad.mean(axis=0)
@@ -463,10 +465,10 @@ def detect_quad(
             factor = float(variant_config["scale"])
             variant = str(variant_config["name"])
             raw_candidates.append(
-                {
-                    "quad": center + (quad - center) * factor,
-                    "method": "mask-lines",
-                    "detector_diagnostics": {
+                make_candidate(
+                    center + (quad - center) * factor,
+                    "mask-lines",
+                    {
                         "variant": variant,
                         "threshold": round(float(threshold), 2),
                         "sat_threshold": round(float(sat_threshold), 2),
@@ -477,14 +479,10 @@ def detect_quad(
                             "bottom": len(bottom_pts),
                         },
                     },
-                }
+                )
             )
     raw_candidates.extend(
-        {
-            "quad": candidate["quad"],
-            "method": "hough-lines",
-            "detector_diagnostics": candidate["detector_diagnostics"],
-        }
+        make_candidate(candidate["quad"], "hough-lines", candidate["detector_diagnostics"])
         for candidate in hough_candidates
     )
     if enable_batch_prior and batch_priors:
@@ -539,7 +537,7 @@ def detect_quad(
     ranked: list[dict] = []
     for candidate in scored_candidates:
         if any(
-            quad_iou(candidate["quad"], kept["quad"], w, h)
+            quad_iou(candidate["quad"], kept["quad"])
             > float(_DEDUP_CONFIG["iouThreshold"])
             or normalized_quad_distance(candidate["quad"], kept["quad"], w, h)
             < float(_DEDUP_CONFIG["cornerDistanceThreshold"])
@@ -627,7 +625,7 @@ def detect_quad(
     if (
         second
         and is_ambiguous_candidate(
-            quad_iou(best["quad"], second["quad"], w, h),
+            quad_iou(best["quad"], second["quad"]),
             confidence_breakdown,
         )
     ):

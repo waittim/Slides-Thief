@@ -9,6 +9,8 @@ import numpy as np
 
 from .config import DETECTION_CONFIG
 from .gradient import GradientMap
+from .geometry import geometry_is_valid, line_intersection, normalized_corner_distance, polygon_area
+from .numeric import average
 
 _HOUGH_CONFIG = DETECTION_CONFIG["houghLines"]
 
@@ -50,21 +52,21 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     for first_pair in first_pairs:
         for second_pair in second_pairs:
             corners = [
-                _intersection(first_pair[0].line, second_pair[0].line),
-                _intersection(first_pair[0].line, second_pair[1].line),
-                _intersection(first_pair[1].line, second_pair[1].line),
-                _intersection(first_pair[1].line, second_pair[0].line),
+                line_intersection(first_pair[0].line, second_pair[0].line),
+                line_intersection(first_pair[0].line, second_pair[1].line),
+                line_intersection(first_pair[1].line, second_pair[1].line),
+                line_intersection(first_pair[1].line, second_pair[0].line),
             ]
             quad = _order_quad(np.asarray(corners, dtype=np.float64))
-            if not _coarse_geometry_valid(quad, width, height):
+            if not geometry_is_valid(quad, width, height):
                 continue
-            area = _polygon_area(quad) / (width * height)
+            area = polygon_area(quad) / (width * height)
             supports = [segment.support for segment in (*first_pair, *second_pair)]
             candidates.append(
                 {
                     "quad": quad,
                     "method": "hough-lines",
-                    "detector_score": float(np.mean(supports) + min(float(_HOUGH_CONFIG["areaScoreCap"]), area)),
+                    "detector_score": average(supports) + min(float(_HOUGH_CONFIG["areaScoreCap"]), area),
                     "detector_diagnostics": {
                         "edge_point_count": len(points),
                         "hough_peak_count": len(peaks),
@@ -81,7 +83,7 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     selected = []
     for candidate in candidates:
         if any(
-            _quad_distance(candidate["quad"], kept["quad"], width, height)
+            normalized_corner_distance(candidate["quad"], kept["quad"], width, height)
             < float(DETECTION_CONFIG["deduplication"]["cornerDistanceThreshold"])
             for kept in selected
         ):
@@ -263,46 +265,11 @@ def _line_pairs(segments: list[Segment], width: int, height: int) -> list[tuple[
     return [pair for pair, _ in pairs[: int(_HOUGH_CONFIG["maximumPairs"])] ]
 
 
-def _intersection(first: np.ndarray, second: np.ndarray) -> np.ndarray:
-    denominator = first[0] * second[1] - second[0] * first[1]
-    if abs(denominator) < 1e-9:
-        return np.array([np.nan, np.nan])
-    return np.array(
-        [
-            (first[1] * second[2] - second[1] * first[2]) / denominator,
-            (first[2] * second[0] - second[2] * first[0]) / denominator,
-        ]
-    )
-
-
 def _order_quad(points: np.ndarray) -> np.ndarray:
     sums = points.sum(axis=1)
     differences = points[:, 0] - points[:, 1]
     return np.asarray(
         [points[np.argmin(sums)], points[np.argmax(differences)], points[np.argmax(sums)], points[np.argmin(differences)]]
-    )
-
-
-def _coarse_geometry_valid(quad: np.ndarray, width: int, height: int) -> bool:
-    if not np.isfinite(quad).all() or _polygon_area(quad) < width * height * float(
-        DETECTION_CONFIG["geometry"]["minimumAreaRatio"]
-    ):
-        return False
-    if np.any(quad[:, 0] < -width * 0.2) or np.any(quad[:, 0] > width * 1.2):
-        return False
-    if np.any(quad[:, 1] < -height * 0.2) or np.any(quad[:, 1] > height * 1.2):
-        return False
-    crosses = []
-    for index in range(4):
-        first = quad[(index + 1) % 4] - quad[index]
-        second = quad[(index + 2) % 4] - quad[(index + 1) % 4]
-        crosses.append(first[0] * second[1] - first[1] * second[0])
-    return all(value > 1e-6 for value in crosses) or all(value < -1e-6 for value in crosses)
-
-
-def _polygon_area(quad: np.ndarray) -> float:
-    return 0.5 * abs(
-        float(np.dot(quad[:, 0], np.roll(quad[:, 1], -1)) - np.dot(quad[:, 1], np.roll(quad[:, 0], -1)))
     )
 
 
@@ -314,7 +281,3 @@ def _orientation_difference(first: float, second: float) -> float:
 def _circular_bin_distance(first: int, second: int, count: int) -> int:
     difference = abs(first - second)
     return min(difference, count - difference)
-
-
-def _quad_distance(first: np.ndarray, second: np.ndarray, width: int, height: int) -> float:
-    return float(np.linalg.norm(first - second, axis=1).mean() / math.hypot(width, height))

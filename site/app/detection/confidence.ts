@@ -1,5 +1,6 @@
-import { convexQuadIoU, normalizedCornerDistance } from "./geometry.ts";
+import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
+import { clamp } from "./numeric.ts";
 import type { QuadCandidate } from "./types.ts";
 
 const CONFIDENCE_CONFIG = DETECTION_CONFIG.confidence;
@@ -44,7 +45,7 @@ export function calculateConfidence(
         (
           normalizedCornerDistance(best.quad, candidate.quad, width, height) <
             SCORING_CONFIG.agreementCornerDistance &&
-          convexQuadIoU(best.quad, candidate.quad) > SCORING_CONFIG.agreementIoU
+          quadIoU(best.quad, candidate.quad) > SCORING_CONFIG.agreementIoU
         )
       )
       .map((candidate) => candidate.method)
@@ -94,8 +95,4 @@ export function isAmbiguousCandidate(
 
 function numeric(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
 }

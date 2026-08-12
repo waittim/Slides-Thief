@@ -16,3 +16,11 @@ def test_python_and_typescript_detection_contract() -> None:
         cwd=ROOT,
         check=True,
     )
+
+
+def test_python_and_typescript_detection_primitives_contract() -> None:
+    subprocess.run(
+        [sys.executable, str(ROOT / "scripts" / "check_detection_primitives.py")],
+        cwd=ROOT,
+        check=True,
+    )

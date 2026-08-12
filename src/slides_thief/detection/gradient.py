@@ -8,6 +8,7 @@ import numpy as np
 from PIL import Image
 
 from .config import DETECTION_CONFIG
+from .numeric import percentile
 
 _GRADIENT_CONFIG = DETECTION_CONFIG["gradient"]
 PYRAMID_SCALES = tuple(float(value) for value in _GRADIENT_CONFIG["pyramidScales"])
@@ -71,7 +72,7 @@ def build_gradient_pyramid(rgb: np.ndarray) -> GradientMap:
 
     threshold = max(
         float(_GRADIENT_CONFIG["thresholdFloor"]),
-        float(np.percentile(fused_magnitude, float(_GRADIENT_CONFIG["thresholdPercentile"]) * 100)),
+        percentile(fused_magnitude, float(_GRADIENT_CONFIG["thresholdPercentile"])),
     )
     return GradientMap(fused_magnitude, fused_orientation, source_scale, threshold)
 

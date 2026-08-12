@@ -13,6 +13,7 @@ import type {
   QuadCandidate,
 } from "./types.ts";
 import { DETECTION_CONFIG } from "./config.ts";
+import { clamp, round } from "./numeric.ts";
 
 const REFINEMENT_CONFIG = DETECTION_CONFIG.refinement;
 
@@ -199,13 +200,4 @@ function edgeObjective(evidence: EdgeEvidence, image: ImageFeatures): number {
     REFINEMENT_CONFIG.edgeObjectiveWeights.gradientAlignment * evidence.gradientAlignment +
     REFINEMENT_CONFIG.edgeObjectiveWeights.signedContrast * signedContrast
   );
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }

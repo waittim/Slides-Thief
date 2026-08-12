@@ -1,5 +1,6 @@
 import type { GradientMap, ImageDataLike } from "./types.ts";
 import { DETECTION_CONFIG } from "./config.ts";
+import { clamp, percentile } from "./numeric.ts";
 
 const GRADIENT_CONFIG = DETECTION_CONFIG.gradient;
 const PYRAMID_SCALES = [...GRADIENT_CONFIG.pyramidScales];
@@ -50,16 +51,6 @@ export function buildGradientPyramid(imageData: ImageDataLike): GradientMap {
     ),
     scales: [...PYRAMID_SCALES],
   };
-}
-
-function percentile(values: ArrayLike<number>, fraction: number): number {
-  const ordered = Array.from(values).sort((first, second) => first - second);
-  if (!ordered.length) return 0;
-  return ordered[Math.min(ordered.length - 1, Math.max(0, Math.floor((ordered.length - 1) * fraction)))];
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
 }
 
 function gradientAtScale(imageData: ImageDataLike, width: number, height: number): ScaleGradient {

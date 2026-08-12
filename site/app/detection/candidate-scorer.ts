@@ -1,6 +1,7 @@
 import { distance, geometryIsValid, isPointInside, polygonArea } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
-import { clamp, percentile, sampleGray } from "./image-features.ts";
+import { sampleGray } from "./image-features.ts";
+import { average, clamp, percentile, round, variance } from "./numeric.ts";
 import type {
   DetectionSettings,
   EdgeEvidence,
@@ -232,20 +233,4 @@ function longestRun(values: boolean[]): number {
     longest = Math.max(longest, current);
   }
   return longest;
-}
-
-function variance(values: number[], mean: number): number {
-  return values.reduce((sum, value) => sum + (value - mean) ** 2, 0) / values.length;
-}
-
-function average(values: ArrayLike<number>): number {
-  if (!values.length) return 0;
-  let total = 0;
-  for (let index = 0; index < values.length; index += 1) total += values[index];
-  return total / values.length;
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }

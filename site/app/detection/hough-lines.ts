@@ -1,14 +1,16 @@
 import {
   geometryIsValid,
   lineIntersection,
+  normalizedCornerDistance,
   orderQuad,
   polygonArea,
   type Line,
 } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
+import { createCandidate } from "./candidate-factory.ts";
+import { average, round } from "./numeric.ts";
 import type {
   CandidateDetector,
-  CandidateFeatures,
   ImageFeatures,
   Point,
   Quad,
@@ -39,19 +41,6 @@ type HoughPeak = {
   angleIndex: number;
   rhoIndex: number;
   votes: number;
-};
-
-const EMPTY_FEATURES: CandidateFeatures = {
-  edgeStrength: 0,
-  edgeSupport: 0,
-  edgeContinuity: 0,
-  gradientAlignment: 0,
-  insideOutsideDifference: 0,
-  regionConsistency: 0,
-  normalizedArea: 0,
-  geometryValidity: 0,
-  aspectPrior: 0,
-  batchConsistency: 0,
 };
 
 const ANGLE_STEP = Math.PI / HOUGH_CONFIG.angleBins;
@@ -96,20 +85,17 @@ export const houghLineDetector: CandidateDetector = {
       .sort((first, second) => second.detectorScore - first.detectorScore)
       .filter((candidate, index, all) =>
         all.findIndex((other) =>
-          quadDistance(candidate.quad, other.quad, features.width, features.height) <
+          normalizedCornerDistance(candidate.quad, other.quad, features.width, features.height) <
             DETECTION_CONFIG.deduplication.cornerDistanceThreshold
         ) ===
           index
       )
       .slice(0, HOUGH_CONFIG.outputCandidateLimit)
-      .map((candidate) => ({
-        quad: candidate.quad,
-        method: "hough-lines",
-        polarity: [],
-        features: { ...EMPTY_FEATURES },
-        rawScore: candidate.detectorScore,
-        warnings: [],
-        diagnostics: {
+      .map((candidate) => createCandidate(
+        "hough-lines",
+        candidate.quad,
+        candidate.detectorScore,
+        {
           edgePointCount: edgePoints.length,
           houghPeakCount: peaks.length,
           segmentCount: segments.length,
@@ -118,7 +104,7 @@ export const houghLineDetector: CandidateDetector = {
           gradientThreshold: round(features.gradient.threshold, 4),
           gradientScales: features.gradient.scales,
         },
-      }));
+      ));
   },
 };
 
@@ -336,22 +322,4 @@ function modulo(value: number, modulus: number): number {
 
 function squaredDistance(first: Point, second: Point): number {
   return (first[0] - second[0]) ** 2 + (first[1] - second[1]) ** 2;
-}
-
-function quadDistance(first: Quad, second: Quad, width: number, height: number): number {
-  const diagonal = Math.hypot(width, height);
-  return average(first.map((point, index) => Math.hypot(point[0] - second[index][0], point[1] - second[index][1]))) /
-    diagonal;
-}
-
-function average(values: ArrayLike<number>): number {
-  if (!values.length) return 0;
-  let total = 0;
-  for (let index = 0; index < values.length; index += 1) total += values[index];
-  return total / values.length;
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }

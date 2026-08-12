@@ -6,8 +6,9 @@ import math
 
 import numpy as np
 
-from .gradient import GradientMap
 from .config import DETECTION_CONFIG
+from .gradient import GradientMap
+from .geometry import geometry_is_valid, line_intersection
 from .scoring import evaluate_edge_evidence
 
 
@@ -25,15 +26,15 @@ def refine_quad(
     ]
     refined = np.asarray(
         [
-            _intersection(edges[3]["line"], edges[0]["line"]),
-            _intersection(edges[0]["line"], edges[1]["line"]),
-            _intersection(edges[1]["line"], edges[2]["line"]),
-            _intersection(edges[2]["line"], edges[3]["line"]),
+            line_intersection(edges[3]["line"], edges[0]["line"]),
+            line_intersection(edges[0]["line"], edges[1]["line"]),
+            line_intersection(edges[1]["line"], edges[2]["line"]),
+            line_intersection(edges[2]["line"], edges[3]["line"]),
         ],
         dtype=np.float64,
     )
     height, width = gray.shape
-    if not _geometry_is_valid(refined, width, height):
+    if not geometry_is_valid(refined, width, height):
         return None
     movements = np.linalg.norm(refined - quad, axis=1)
     movement_limit = math.hypot(width, height) * float(_REFINEMENT_CONFIG["movementRatio"])
@@ -176,37 +177,3 @@ def _edge_objective(evidence: dict, gradient: GradientMap) -> float:
         + float(weights["gradientAlignment"]) * evidence["gradient_alignment"]
         + float(weights["signedContrast"]) * signed_contrast
     )
-
-
-def _intersection(first: np.ndarray, second: np.ndarray) -> np.ndarray:
-    denominator = first[0] * second[1] - second[0] * first[1]
-    if abs(denominator) < 1e-9:
-        return np.array([np.nan, np.nan])
-    return np.array(
-        [
-            (first[1] * second[2] - second[1] * first[2]) / denominator,
-            (first[2] * second[0] - second[2] * first[0]) / denominator,
-        ]
-    )
-
-
-def _geometry_is_valid(quad: np.ndarray, width: int, height: int) -> bool:
-    if not np.isfinite(quad).all():
-        return False
-    area = 0.5 * abs(
-        float(np.dot(quad[:, 0], np.roll(quad[:, 1], -1)) - np.dot(quad[:, 1], np.roll(quad[:, 0], -1)))
-    )
-    if area < width * height * 0.08:
-        return False
-    if np.any(quad[:, 0] < -width * 0.2) or np.any(quad[:, 0] > width * 1.2):
-        return False
-    if np.any(quad[:, 1] < -height * 0.2) or np.any(quad[:, 1] > height * 1.2):
-        return False
-    crosses = []
-    for index in range(4):
-        first = quad[(index + 1) % 4] - quad[index]
-        second = quad[(index + 2) % 4] - quad[(index + 1) % 4]
-        if np.linalg.norm(first) < min(width, height) * 0.1:
-            return False
-        crosses.append(first[0] * second[1] - first[1] * second[0])
-    return all(value > 1e-6 for value in crosses) or all(value < -1e-6 for value in crosses)

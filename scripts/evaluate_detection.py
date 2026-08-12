@@ -12,13 +12,14 @@ import time
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageOps
+from PIL import Image, ImageOps
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from slides_thief.cli import detect_quad  # noqa: E402
+from slides_thief.detection.geometry import quad_iou  # noqa: E402
 
 
 FEATURE_NAME_MAP = {
@@ -37,17 +38,6 @@ FEATURE_NAME_MAP = {
 
 def canonical_features(features: dict) -> dict[str, float]:
     return {FEATURE_NAME_MAP[name]: float(value) for name, value in features.items()}
-
-
-def quad_iou(predicted: np.ndarray, expected: np.ndarray, width: int, height: int) -> float:
-    predicted_mask = Image.new("1", (width, height))
-    expected_mask = Image.new("1", (width, height))
-    ImageDraw.Draw(predicted_mask).polygon([tuple(point) for point in predicted], fill=1)
-    ImageDraw.Draw(expected_mask).polygon([tuple(point) for point in expected], fill=1)
-    predicted_arr = np.asarray(predicted_mask, dtype=bool)
-    expected_arr = np.asarray(expected_mask, dtype=bool)
-    union = np.logical_or(predicted_arr, expected_arr).sum()
-    return float(np.logical_and(predicted_arr, expected_arr).sum() / union) if union else 0.0
 
 
 def percentile(values: list[float], fraction: float) -> float:
@@ -91,7 +81,7 @@ def evaluate(annotations_path: Path) -> tuple[dict, dict]:
             expected = np.asarray(expected, dtype=np.float64)
             diagonal = math.hypot(image.width, image.height)
             errors = np.linalg.norm(predicted - expected, axis=1) / diagonal
-            iou = quad_iou(predicted, expected, image.width, image.height)
+            iou = quad_iou(predicted, expected)
         rows.append(
             {
                 "file": item["file"],

@@ -6,11 +6,12 @@ import {
   isAmbiguousCandidate,
 } from "./confidence.ts";
 import { contrastLineDetector } from "./contrast-lines.ts";
-import { convexQuadIoU, normalizedCornerDistance } from "./geometry.ts";
+import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
 import { buildImageFeatures } from "./image-features.ts";
 import { houghLineDetector } from "./hough-lines.ts";
 import { maskLineDetector } from "./mask-lines.ts";
+import { round } from "./numeric.ts";
 import { refineCandidate } from "./quad-refiner.ts";
 import type {
   CandidateDetector,
@@ -95,7 +96,7 @@ export function detectQuad(
   if (
     second &&
     isAmbiguousCandidate(
-      convexQuadIoU(best.quad, second.quad),
+      quadIoU(best.quad, second.quad),
       confidenceBreakdown,
     )
   ) {
@@ -144,7 +145,7 @@ export function deduplicateCandidates(
   const kept: QuadCandidate[] = [];
   for (const candidate of ranked) {
     const duplicate = kept.some((existing) =>
-      convexQuadIoU(candidate.quad, existing.quad) > DETECTION_CONFIG.deduplication.iouThreshold ||
+      quadIoU(candidate.quad, existing.quad) > DETECTION_CONFIG.deduplication.iouThreshold ||
       normalizedCornerDistance(candidate.quad, existing.quad, width, height) <
         DETECTION_CONFIG.deduplication.cornerDistanceThreshold
     );
@@ -188,9 +189,4 @@ function candidateSummary(candidate: QuadCandidate): Record<string, unknown> {
     warnings: candidate.warnings,
     features: candidate.features,
   };
-}
-
-function round(value: number, digits: number): number {
-  const scale = 10 ** digits;
-  return Math.round(value * scale) / scale;
 }
