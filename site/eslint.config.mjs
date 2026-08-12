@@ -11,6 +11,9 @@ const eslintConfig = defineConfig([
     ".next/**",
     "out/**",
     "build/**",
+    "playwright/.cache/**",
+    "test-results/**",
+    "playwright-report/**",
     "next-env.d.ts",
     // Generated schema declarations are not hand-maintained source files.
     "app/schemas/*.d.ts",
