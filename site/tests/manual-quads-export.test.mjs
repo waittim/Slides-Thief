@@ -4,6 +4,10 @@ import assert from "node:assert/strict";
 const { exportManualQuads } = await import(
   new URL("../app/lib/export-utils.ts", import.meta.url).href
 );
+const {
+  parseManualQuadsJson,
+  validateManualQuadForImage,
+} = await import(new URL("../app/schemas/validators.ts", import.meta.url).href);
 
 test("exportManualQuads formats slides into valid ManualQuads object", () => {
   const dummyFile = { name: "slide_001.jpg" };
@@ -42,4 +46,23 @@ test("exportManualQuads formats slides into valid ManualQuads object", () => {
       [10, 80],
     ],
   });
+});
+
+test("manual-quads parser rejects malformed corners with a useful path", () => {
+  assert.throws(
+    () => parseManualQuadsJson('{"slide.jpg": [[10, 20], [100, 20], [100, 80]]}'),
+    /slide\.jpg.*4 corner points/,
+  );
+});
+
+test("manual-quads image validator rejects out-of-bounds corners", () => {
+  assert.throws(
+    () => validateManualQuadForImage(
+      [[-1, 10], [90, 10], [90, 90], [10, 90]],
+      "slide.jpg",
+      100,
+      100,
+    ),
+    /slide\.jpg.*outside.*image bounds/,
+  );
 });

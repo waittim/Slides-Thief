@@ -15,6 +15,12 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
+from .contracts import (
+    ContractValidationError,
+    load_manual_quads,
+    validate_manual_quad_for_image,
+    validate_slide_lens_report,
+)
 from .detection.batch_prior import build_batch_priors, normalize_result
 from .detection.detector import contrast_quad, detect_quad
 from .exporter import draw_overlay, make_contact_sheet, make_manual_review_html, make_pdf, scale_quad
@@ -41,13 +47,6 @@ from .image_processing import (
     warp_slide_contained,
 )
 from .report import BatchSummary, ReportSlide, SlideLensReport
-
-
-def load_manual_quads(path: Path | None) -> dict[str, list[list[float]]]:
-    if not path:
-        return {}
-    with path.open("r", encoding="utf-8") as fh:
-        return json.load(fh)
 
 
 def process(args: argparse.Namespace) -> dict:
@@ -77,12 +76,26 @@ def process(args: argparse.Namespace) -> dict:
     if not sources:
         raise SystemExit(f"No supported images found in {input_dir}")
 
+    known_manual_keys = {key for src in sources for key in (src.name, src.stem)}
+    unknown_manual_keys = sorted(set(manual_quads) - known_manual_keys)
+    if unknown_manual_keys:
+        joined = ", ".join(repr(key) for key in unknown_manual_keys)
+        raise ContractValidationError(
+            f"manual quads contains entries that do not match an input filename or stem: {joined}"
+        )
+
     detections: dict[Path, tuple[np.ndarray, dict]] = {}
     preliminary_results = []
     for src in sources:
         readable = readable_image(src, converted_dir)
         image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
         manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
+        if manual is not None:
+            validate_manual_quad_for_image(
+                manual,
+                filename=src.name,
+                image_size=(image.width, image.height),
+            )
         quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
         detections[src] = (quad, diagnostics)
         preliminary_results.append(
@@ -202,6 +215,7 @@ def process(args: argparse.Namespace) -> dict:
         "batch_summary": batch_summary,
         "slides": report,
     }
+    validate_slide_lens_report(report_document)
     with report_path.open("w", encoding="utf-8") as fh:
         json.dump(report_document, fh, indent=2, ensure_ascii=False)
 
@@ -272,7 +286,11 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> None:
-    process(build_parser().parse_args())
+    parser = build_parser()
+    try:
+        process(parser.parse_args())
+    except ContractValidationError as exc:
+        parser.error(str(exc))
 
 
 if __name__ == "__main__":
@@ -306,6 +324,8 @@ __all__ = [
     "contrast_quad",
     "detect_quad",
     "load_manual_quads",
+    "validate_manual_quad_for_image",
+    "validate_slide_lens_report",
     "process",
     "resolve_enhancement_mode",
     "build_parser",

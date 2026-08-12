@@ -1,4 +1,5 @@
 import type { ManualQuads } from "../schemas";
+import { parseManualQuads } from "../schemas/validators.ts";
 import type { SlideItem } from "./types";
 
 export function exportManualQuads(slides: SlideItem[]): ManualQuads {
@@ -13,5 +14,5 @@ export function exportManualQuads(slides: SlideItem[]): ManualQuads {
       ];
     }
   }
-  return result;
+  return parseManualQuads(result);
 }

@@ -4,9 +4,16 @@ from pathlib import Path
 
 import jsonschema
 import numpy as np
+import pytest
 from PIL import Image
 
 from slides_thief.cli import process
+from slides_thief.contracts import (
+    ContractValidationError,
+    load_manual_quads,
+    validate_manual_quad_for_image,
+    validate_slide_lens_report,
+)
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 SCHEMAS_DIR = ROOT_DIR / "schemas"
@@ -79,3 +86,114 @@ def test_manual_quads_schema_validates_sample_manual_quads() -> None:
         "slide_001.jpg": [[10.5, 12.0], [1910.0, 15.5], [1905.0, 1075.0], [12.0, 1068.0]]
     }
     jsonschema.validate(instance=sample_manual_quads, schema=schema)
+
+
+def test_manual_quads_schema_rejects_empty_entry_keys() -> None:
+    schema = load_schema("manual-quads.schema.json")
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(
+            instance={"": [[10, 12], [190, 12], [190, 108], [10, 108]]},
+            schema=schema,
+        )
+
+
+def test_cli_manual_quads_loader_reports_file_and_corner_for_bad_shape(tmp_path: Path) -> None:
+    manual_path = tmp_path / "manual-quads.json"
+    manual_path.write_text(
+        json.dumps({"slide.jpg": [[10, 20], [100, 20], [100, 80]]}),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ContractValidationError, match=r"manual-quads\.json entry 'slide\.jpg'.*4 corner"):
+        load_manual_quads(manual_path)
+
+
+def test_cli_manual_quads_loader_rejects_non_finite_coordinates(tmp_path: Path) -> None:
+    manual_path = tmp_path / "manual-quads.json"
+    manual_path.write_text('{"slide.jpg": [[NaN, 20], [100, 20], [100, 80], [10, 80]]}', encoding="utf-8")
+
+    with pytest.raises(ContractValidationError, match=r"manual-quads\.json.*non-finite"):
+        load_manual_quads(manual_path)
+
+
+def test_cli_manual_quad_validation_reports_bounds_and_order() -> None:
+    with pytest.raises(ContractValidationError, match="outside image bounds"):
+        validate_manual_quad_for_image(
+            [[-1, 10], [90, 10], [90, 90], [10, 90]],
+            filename="slide.jpg",
+            image_size=(100, 100),
+        )
+
+    with pytest.raises(ContractValidationError, match="top-left, top-right"):
+        validate_manual_quad_for_image(
+            [[90, 90], [10, 90], [10, 10], [90, 10]],
+            filename="slide.jpg",
+            image_size=(100, 100),
+        )
+
+
+def test_process_rejects_bad_manual_quad_before_detection(tmp_path: Path, monkeypatch) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    input_dir.mkdir()
+    Image.new("RGB", (100, 100), (80, 80, 80)).save(input_dir / "slide.jpg")
+    manual_path = tmp_path / "manual.json"
+    manual_path.write_text(
+        json.dumps({"slide.jpg": [[-1, 10], [90, 10], [90, 90], [10, 90]]}),
+        encoding="utf-8",
+    )
+
+    def should_not_detect(*args, **kwargs):
+        raise AssertionError("invalid manual input reached the detector")
+
+    monkeypatch.setattr("slides_thief.cli.detect_quad", should_not_detect)
+    with pytest.raises(ContractValidationError, match="outside image bounds"):
+        process(
+            Namespace(
+                input=str(input_dir),
+                output_dir=str(output_dir),
+                work_dir=str(work_dir),
+                ratio=None,
+                source_ratio="16:9",
+                output_ratio="match-slide",
+                width=320,
+                height=None,
+                pdf_name="slides.pdf",
+                manual=str(manual_path),
+                jpeg_quality=92,
+                enhancement="original",
+                grayscale=False,
+                clean_converted=False,
+            )
+        )
+
+
+def test_runtime_report_validator_rejects_invalid_confidence() -> None:
+    report = {
+        "input_dir": "input",
+        "output_pdf": "output.pdf",
+        "ratio": "16:9",
+        "source_slide_ratio": "16:9",
+        "output_page_ratio": "match-slide",
+        "size": [100, 56],
+        "batch_summary": {
+            "preliminary_count": 0,
+            "reliable_count": 0,
+            "prior_count": 0,
+            "priors": [],
+        },
+        "slides": [
+            {
+                "index": 1,
+                "source": "slide.jpg",
+                "output": "slide-out.jpg",
+                "quad": [[0, 0], [100, 0], [100, 56], [0, 56]],
+                "method": "manual",
+                "confidence": 1.5,
+            }
+        ],
+    }
+
+    with pytest.raises(ContractValidationError, match="confidence"):
+        validate_slide_lens_report(report)

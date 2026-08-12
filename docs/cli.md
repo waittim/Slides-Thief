@@ -76,6 +76,11 @@ The web app exposes 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscap
 
 When automatic detection needs correction, edit corners in `manual_review.html`, export `manual_quads.json`, and run again with `--manual PATH_TO_JSON`. Point order is top-left, top-right, bottom-right, bottom-left.
 
+The CLI validates this file before any perspective transform. Every entry must
+contain four finite `[x, y]` points, the filename or stem must match an input
+image, and all points must be inside that image in the documented order. An
+invalid entry names the manual file, source image, and corner in the error.
+
 ```bash
 slides-thief INPUT_DIRECTORY \
   --output-dir OUTPUT_DIRECTORY_REFINED \
