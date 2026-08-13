@@ -1,4 +1,6 @@
 from argparse import Namespace
+from copy import deepcopy
+from importlib import resources
 import json
 from pathlib import Path
 
@@ -197,3 +199,80 @@ def test_runtime_report_validator_rejects_invalid_confidence() -> None:
 
     with pytest.raises(ContractValidationError, match="confidence"):
         validate_slide_lens_report(report)
+
+
+def test_packaged_schemas_match_public_schemas() -> None:
+    for filename in ("manual-quads.schema.json", "slide-lens-report.schema.json"):
+        packaged = json.loads(
+            resources.files("slides_thief.schemas").joinpath(filename).read_text(encoding="utf-8")
+        )
+        assert packaged == load_schema(filename)
+
+
+def test_runtime_report_validator_uses_all_public_schema_constraints() -> None:
+    report = {
+        "input_dir": "input",
+        "output_pdf": "output.pdf",
+        "ratio": "16:9",
+        "source_slide_ratio": "16:9",
+        "output_page_ratio": "match-slide",
+        "size": [100, 56],
+        "batch_summary": {
+            "preliminary_count": 3,
+            "reliable_count": 3,
+            "prior_count": 1,
+            "priors": [
+                {
+                    "id": "landscape-1",
+                    "orientation": "landscape",
+                    "normalized_quad": [[0.1, 0.1], [0.9, 0.1], [0.9, 0.9], [0.1, 0.9]],
+                    "member_count": 3,
+                    "rms_deviation": 0.01,
+                    "consistency": 0.9,
+                }
+            ],
+        },
+        "slides": [],
+    }
+    validate_slide_lens_report(report)
+
+    invalid_reports = []
+
+    member_count = deepcopy(report)
+    member_count["batch_summary"]["priors"][0]["member_count"] = 1
+    invalid_reports.append(("member_count", member_count))
+
+    top_level_extra = deepcopy(report)
+    top_level_extra["unexpected"] = True
+    invalid_reports.append(("top-level additional property", top_level_extra))
+
+    summary_extra = deepcopy(report)
+    summary_extra["batch_summary"]["unexpected"] = True
+    invalid_reports.append(("batch summary additional property", summary_extra))
+
+    prior_extra = deepcopy(report)
+    prior_extra["batch_summary"]["priors"][0]["unexpected"] = True
+    invalid_reports.append(("batch prior additional property", prior_extra))
+
+    feature_type = deepcopy(report)
+    feature_type["slides"] = [
+        {
+            "index": 1,
+            "source": "slide.jpg",
+            "output": "slide-out.jpg",
+            "quad": [[0, 0], [100, 0], [100, 56], [0, 56]],
+            "method": "manual",
+            "confidence": 1,
+            "features": {"edge_strength": "not-a-number"},
+        }
+    ]
+    invalid_reports.append(("known feature type", feature_type))
+
+    for label, candidate in invalid_reports:
+        with pytest.raises(ContractValidationError):
+            validate_slide_lens_report(candidate)
+        try:
+            jsonschema.validate(instance=candidate, schema=load_schema("slide-lens-report.schema.json"))
+        except jsonschema.ValidationError:
+            continue
+        raise AssertionError(f"public schema accepted invalid {label}")

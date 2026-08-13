@@ -22,4 +22,15 @@ test("file selection, straighten, and export controls follow the user-visible st
   await component.getByRole("button", { name: "Generate PDF" }).click();
   await expect(component.getByTestId("workflow-status")).toHaveText("exported");
   await expect(component.getByRole("link", { name: "Download PDF" })).toHaveAttribute("download", "deck.pdf");
+
+  await expect(component.getByRole("button", { name: "Export corners" })).toBeEnabled();
+  await component.getByRole("button", { name: "Export corners" }).click();
+  await expect(component.getByTestId("workflow-status")).toHaveText("manual-exported");
+
+  await component.locator('input[type="file"][accept="application/json,.json"]').setInputFiles({
+    name: "manual_quads.json",
+    mimeType: "application/json",
+    buffer: Buffer.from('{"deck.png":[[12,10],[108,10],[108,70],[12,70]]}'),
+  });
+  await expect(component.getByTestId("workflow-status")).toHaveText("manual-imported");
 });

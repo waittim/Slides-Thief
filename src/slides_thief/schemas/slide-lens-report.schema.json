@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://slidesthief.com/schemas/slide-lens-report.schema.json",
+  "title": "SlideLensReport",
+  "type": "object",
+  "required": [
+    "input_dir",
+    "output_pdf",
+    "ratio",
+    "source_slide_ratio",
+    "output_page_ratio",
+    "size",
+    "batch_summary",
+    "slides"
+  ],
+  "properties": {
+    "input_dir": { "type": "string" },
+    "output_pdf": { "type": "string" },
+    "ratio": { "type": "string" },
+    "source_slide_ratio": { "type": "string" },
+    "output_page_ratio": { "type": "string" },
+    "size": {
+      "type": "array",
+      "prefixItems": [{ "type": "integer", "minimum": 1 }, { "type": "integer", "minimum": 1 }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "batch_summary": { "$ref": "#/$defs/batchSummary" },
+    "slides": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["index", "source", "output", "quad", "method", "confidence"],
+        "properties": {
+          "index": { "type": "integer", "minimum": 1 },
+          "source": { "type": "string" },
+          "output": { "type": "string" },
+          "quad": { "$ref": "#/$defs/quad" },
+          "method": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "needs_review": { "type": "boolean" },
+          "review_reasons": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "best_score": { "type": "number" },
+          "second_best_score": { "type": ["number", "null"] },
+          "candidates_evaluated": { "type": "integer", "minimum": 0 },
+          "features": { "$ref": "#/$defs/features" },
+          "diagnostics": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": true
+      }
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "point": {
+      "type": "array",
+      "prefixItems": [{ "type": "number" }, { "type": "number" }],
+      "items": false,
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "quad": {
+      "description": "Points ordered top-left, top-right, bottom-right, bottom-left.",
+      "type": "array",
+      "prefixItems": [
+        { "$ref": "#/$defs/point" }, { "$ref": "#/$defs/point" },
+        { "$ref": "#/$defs/point" }, { "$ref": "#/$defs/point" }
+      ],
+      "items": false,
+      "minItems": 4,
+      "maxItems": 4
+    },
+    "features": {
+      "type": "object",
+      "properties": {
+        "edge_strength": { "type": "number" },
+        "edge_support": { "type": "number" },
+        "edge_continuity": { "type": "number" },
+        "gradient_alignment": { "type": "number" },
+        "inside_outside_difference": { "type": "number" },
+        "region_consistency": { "type": "number" },
+        "normalized_area": { "type": "number" },
+        "geometry_validity": { "type": "number" },
+        "aspect_prior": { "type": "number" },
+        "batch_consistency": { "type": "number" }
+      },
+      "additionalProperties": true
+    },
+    "batchPrior": {
+      "type": "object",
+      "required": [
+        "id",
+        "orientation",
+        "normalized_quad",
+        "member_count",
+        "rms_deviation",
+        "consistency"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "orientation": { "enum": ["landscape", "portrait"] },
+        "normalized_quad": { "$ref": "#/$defs/quad" },
+        "member_count": { "type": "integer", "minimum": 3 },
+        "rms_deviation": { "type": "number", "minimum": 0 },
+        "consistency": { "type": "number", "minimum": 0, "maximum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "batchSummary": {
+      "type": "object",
+      "required": ["preliminary_count", "reliable_count", "prior_count", "priors"],
+      "properties": {
+        "preliminary_count": { "type": "integer", "minimum": 0 },
+        "reliable_count": { "type": "integer", "minimum": 0 },
+        "prior_count": { "type": "integer", "minimum": 0 },
+        "priors": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/batchPrior" }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

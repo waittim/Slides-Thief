@@ -12,6 +12,8 @@ interface SlideSidebarProps {
   readySlides: SlideItem[];
   runAuto: () => void;
   exportPdf: () => void;
+  importManualQuads: (file: File) => void | Promise<void>;
+  exportManualQuads: () => void;
   text: LocaleCopy;
   reviewText: ReviewUiCopy;
   statusTone: StatusDotProps["status"];
@@ -21,6 +23,7 @@ interface SlideSidebarProps {
   isIOS: boolean;
   clearAllSlides: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
+  manualInputRef: React.RefObject<HTMLInputElement | null>;
   loadFiles: (files: FileList | File[]) => void;
   dragActive: boolean;
   setDragActive: (active: boolean) => void;
@@ -40,6 +43,8 @@ export function SlideSidebar({
   readySlides,
   runAuto,
   exportPdf,
+  importManualQuads,
+  exportManualQuads,
   text,
   reviewText,
   statusTone,
@@ -49,6 +54,7 @@ export function SlideSidebar({
   isIOS,
   clearAllSlides,
   inputRef,
+  manualInputRef,
   loadFiles,
   dragActive,
   setDragActive,
@@ -69,6 +75,38 @@ export function SlideSidebar({
           {text.generatePdf}
         </Button>
       </div>
+      {slides.length > 0 ? (
+        <div className="manualQuadsActions">
+          <input
+            ref={manualInputRef}
+            className="fileInput"
+            type="file"
+            accept="application/json,.json"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.currentTarget.files?.[0];
+              event.currentTarget.value = "";
+              if (file) void importManualQuads(file);
+            }}
+          />
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || !slides.length}
+            onClick={() => manualInputRef.current?.click()}
+          >
+            {text.importCorners}
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            disabled={busy || !readySlides.length}
+            onClick={exportManualQuads}
+          >
+            {text.exportCorners}
+          </Button>
+        </div>
+      ) : null}
       <div className="sidebarRunMeta">
         <div className="sidebarStatus" role="status" aria-live="polite">
           <StatusDot status={statusTone} />

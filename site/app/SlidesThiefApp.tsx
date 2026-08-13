@@ -13,9 +13,13 @@ import {
 import {
   confidenceText,
   buildAdjustedThumbnail,
+  exportManualQuads as buildManualQuads,
+  messageFromError,
   resolvedSlideRatio,
+  stripFileExtension,
 } from "./lib/slide-utils";
 import type { Settings, SlideItem } from "./lib/types";
+import { parseManualQuadsJson, validateManualQuadForImage } from "./schemas/validators.ts";
 import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
 import { useExportWorker } from "./hooks/useExportWorker";
@@ -45,6 +49,7 @@ export function SlidesThiefApp() {
   const [isIOS, setIsIOS] = useState(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const manualInputRef = useRef<HTMLInputElement | null>(null);
   const exportUrlRef = useRef<string | null>(null);
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
   const dragHandleRef = useRef<number | null>(null);
@@ -217,6 +222,78 @@ export function SlidesThiefApp() {
     onHandlePointerUp,
     onHandleKeyDown,
   } = quadEditor;
+
+  const exportManualQuadsFile = useCallback(() => {
+    if (!readySlides.length) return;
+    try {
+      const manualQuads = buildManualQuads(readySlides);
+      const blob = new Blob([`${JSON.stringify(manualQuads, null, 2)}\n`], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "manual_quads.json";
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setWorkerError("");
+      setCornerAnnouncement(text.exportCorners);
+    } catch (error) {
+      setWorkerError(messageFromError(error));
+    }
+  }, [readySlides, setWorkerError, text.exportCorners]);
+
+  const importManualQuads = useCallback(async (file: File) => {
+    try {
+      const manualQuads = parseManualQuadsJson(await file.text());
+      const currentSlides = slidesRef.current;
+      if (!currentSlides.length) throw new Error("Import images before importing corner coordinates.");
+
+      const matched = new Map<string, Quad>();
+      for (const [key, quad] of Object.entries(manualQuads)) {
+        const exactMatch = currentSlides.find((slide) => slide.name === key);
+        const stemMatches = currentSlides.filter((slide) => stripFileExtension(slide.name) === key);
+        const slide = exactMatch ?? (stemMatches.length === 1 ? stemMatches[0] : undefined);
+        if (!slide) {
+          throw new Error(`No loaded image matches manual corners for ${JSON.stringify(key)}.`);
+        }
+        if (matched.has(slide.id)) {
+          throw new Error(`Manual corners contain duplicate entries for ${JSON.stringify(slide.name)}.`);
+        }
+        if (slide.width <= 0 || slide.height <= 0) {
+          throw new Error(`Image dimensions are not ready for ${JSON.stringify(slide.name)}.`);
+        }
+        matched.set(
+          slide.id,
+          validateManualQuadForImage(quad, slide.name, slide.width, slide.height),
+        );
+      }
+      if (!matched.size) throw new Error("The manual corner file does not contain any entries.");
+
+      cancelQuadDrag();
+      pushHistory();
+      clearExport();
+      setWorkerError("");
+      setSlides((current) => current.map((slide) => {
+        const quad = matched.get(slide.id);
+        if (!quad) return slide;
+        return {
+          ...slide,
+          status: "ready" as const,
+          quad,
+          method: "manual" as const,
+          confidence: 1,
+          needsReview: false,
+          reviewReasons: [],
+          error: undefined,
+        };
+      }));
+      setSelectedId(matched.keys().next().value ?? null);
+      setZoomMode("fit");
+      for (const [id, quad] of matched) void refreshSlideThumbnail(id, quad);
+      setCornerAnnouncement(text.manualImportSuccess(matched.size));
+    } catch (error) {
+      setWorkerError(messageFromError(error));
+    }
+  }, [cancelQuadDrag, clearExport, pushHistory, refreshSlideThumbnail, setSelectedId, setSlides, setWorkerError, setZoomMode, slidesRef, text]);
 
   const { loadFiles } = useImportPipeline({
     pdfBaseName,
@@ -530,6 +607,8 @@ export function SlidesThiefApp() {
           readySlides={readySlides}
           runAuto={runAuto}
           exportPdf={exportPdf}
+          importManualQuads={importManualQuads}
+          exportManualQuads={exportManualQuadsFile}
           text={text}
           reviewText={reviewText}
           statusTone={statusTone}
@@ -539,6 +618,7 @@ export function SlidesThiefApp() {
           isIOS={isIOS}
           clearAllSlides={clearAllSlides}
           inputRef={inputRef}
+          manualInputRef={manualInputRef}
           loadFiles={loadFiles}
           dragActive={dragActive}
           setDragActive={setDragActive}

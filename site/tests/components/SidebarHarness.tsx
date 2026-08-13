@@ -39,9 +39,12 @@ export function SidebarHarness() {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [hasRun, setHasRun] = useState(false);
   const [exported, setExported] = useState(false);
+  const [manualExported, setManualExported] = useState(false);
+  const [manualImported, setManualImported] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const manualInputRef = useRef<HTMLInputElement | null>(null);
   const text = copy.en;
   const reviewText = reviewUiCopy.en;
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
@@ -57,6 +60,8 @@ export function SidebarHarness() {
           setSlides((current) => current.map(readySlide));
         }}
         exportPdf={() => setExported(true)}
+        importManualQuads={() => setManualImported(true)}
+        exportManualQuads={() => setManualExported(true)}
         text={text}
         reviewText={reviewText}
         statusTone={hasRun ? "good" : "default"}
@@ -66,6 +71,7 @@ export function SidebarHarness() {
         isIOS={false}
         clearAllSlides={() => setSlides([])}
         inputRef={inputRef}
+        manualInputRef={manualInputRef}
         loadFiles={(files) => {
           const file = Array.from(files)[0];
           if (!file) return;
@@ -83,7 +89,9 @@ export function SidebarHarness() {
         slideStatusText={(slide) => (slide.status === "ready" ? reviewText.corrected : text.pending)}
         deleteSlide={(id) => setSlides((current) => current.filter((slide) => slide.id !== id))}
       />
-      <output data-testid="workflow-status">{exported ? "exported" : hasRun ? "straightened" : "waiting"}</output>
+      <output data-testid="workflow-status">
+        {manualImported ? "manual-imported" : manualExported ? "manual-exported" : exported ? "exported" : hasRun ? "straightened" : "waiting"}
+      </output>
     </>
   );
 }

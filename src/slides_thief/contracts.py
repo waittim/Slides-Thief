@@ -4,9 +4,12 @@ from __future__ import annotations
 
 import json
 import math
+from functools import lru_cache
+from importlib import resources
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any
 
+import jsonschema
 import numpy as np
 
 
@@ -37,6 +40,28 @@ def _reject_duplicate_keys(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 def _format_path(path: Path, location: str | None = None) -> str:
     return f"{path}{location or ''}"
+
+
+@lru_cache(maxsize=None)
+def _load_schema(filename: str) -> dict:
+    try:
+        resource = resources.files("slides_thief.schemas").joinpath(filename)
+        return json.loads(resource.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ModuleNotFoundError, OSError, json.JSONDecodeError) as exc:
+        raise RuntimeError(f"Could not load packaged JSON Schema {filename!r}") from exc
+
+
+def _validate_schema(value: object, *, schema_name: str, source: str) -> None:
+    schema = _load_schema(schema_name)
+    validator = jsonschema.Draft202012Validator(schema)
+    error = next(
+        iter(sorted(validator.iter_errors(value), key=lambda item: list(item.absolute_path))),
+        None,
+    )
+    if error is None:
+        return
+    location = ".".join(str(part) for part in error.absolute_path) or "$"
+    raise ContractValidationError(f"{source} at {location}: {error.message}")
 
 
 def _order_quad(quad: np.ndarray) -> np.ndarray:
@@ -106,7 +131,9 @@ def load_manual_quads(path: Path | None) -> ManualQuads:
     except OSError as exc:
         detail = exc.strerror or str(exc)
         raise ContractValidationError(f"{path}: could not read manual quads file: {detail}") from exc
-    return _validate_manual_shape(raw, path)
+    validated = _validate_manual_shape(raw, path)
+    _validate_schema(raw, schema_name="manual-quads.schema.json", source=str(path))
+    return validated
 
 
 def validate_manual_quad_for_image(
@@ -144,125 +171,10 @@ def validate_manual_quad_for_image(
         raise ContractValidationError(f"{prefix} must form a non-degenerate convex quadrilateral")
     return quad
 
-
-def _require_mapping(value: object, path: str) -> Mapping[str, Any]:
-    if not isinstance(value, Mapping):
-        raise ContractValidationError(f"{path}: expected an object")
-    return value
-
-
-def _require_string(value: object, path: str) -> None:
-    if not isinstance(value, str):
-        raise ContractValidationError(f"{path}: expected a string")
-
-
-def _require_non_negative_integer(value: object, path: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 0:
-        raise ContractValidationError(f"{path}: expected a non-negative integer")
-
-
-def _require_positive_integer(value: object, path: str) -> None:
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
-        raise ContractValidationError(f"{path}: expected a positive integer")
-
-
-def _require_finite_number(value: object, path: str, *, minimum: float | None = None, maximum: float | None = None) -> None:
-    if not _is_number(value):
-        raise ContractValidationError(f"{path}: expected a finite number")
-    numeric = float(value)
-    if minimum is not None and numeric < minimum:
-        raise ContractValidationError(f"{path}: expected a number >= {minimum}")
-    if maximum is not None and numeric > maximum:
-        raise ContractValidationError(f"{path}: expected a number <= {maximum}")
-
-
-def _validate_report_quad(value: object, path: str) -> None:
-    if not isinstance(value, list) or len(value) != 4:
-        raise ContractValidationError(f"{path}: expected exactly 4 points")
-    for index, point in enumerate(value, 1):
-        if not isinstance(point, list) or len(point) != 2:
-            raise ContractValidationError(f"{path}[{index}]: expected [x, y]")
-        for axis, coordinate in zip(("x", "y"), point):
-            _require_finite_number(coordinate, f"{path}[{index}].{axis}")
-
-
 def validate_slide_lens_report(value: object) -> None:
-    """Validate the report shape before it is persisted to disk.
+    """Validate a report against the packaged public Draft 2020-12 Schema."""
 
-    This is deliberately a small runtime counterpart to the public JSON
-    Schema. It catches producer regressions without requiring the CLI package
-    to discover a source-tree-only schema file at runtime.
-    """
-
-    report = _require_mapping(value, "report")
-    required_strings = (
-        "input_dir",
-        "output_pdf",
-        "ratio",
-        "source_slide_ratio",
-        "output_page_ratio",
-    )
-    for field in required_strings:
-        if field not in report:
-            raise ContractValidationError(f"report.{field}: missing required field")
-        _require_string(report[field], f"report.{field}")
-
-    if "size" not in report or not isinstance(report["size"], list) or len(report["size"]) != 2:
-        raise ContractValidationError("report.size: expected [width, height]")
-    for index, dimension in enumerate(report["size"]):
-        _require_positive_integer(dimension, f"report.size[{index}]")
-
-    summary = _require_mapping(report.get("batch_summary"), "report.batch_summary")
-    for field in ("preliminary_count", "reliable_count", "prior_count"):
-        if field not in summary:
-            raise ContractValidationError(f"report.batch_summary.{field}: missing required field")
-        _require_non_negative_integer(summary[field], f"report.batch_summary.{field}")
-    priors = summary.get("priors")
-    if not isinstance(priors, list):
-        raise ContractValidationError("report.batch_summary.priors: expected an array")
-    for index, raw_prior in enumerate(priors):
-        prior = _require_mapping(raw_prior, f"report.batch_summary.priors[{index}]")
-        for field in ("id", "orientation"):
-            if field not in prior:
-                raise ContractValidationError(f"report.batch_summary.priors[{index}].{field}: missing required field")
-            _require_string(prior[field], f"report.batch_summary.priors[{index}].{field}")
-        if prior["orientation"] not in {"landscape", "portrait"}:
-            raise ContractValidationError(f"report.batch_summary.priors[{index}].orientation: invalid value")
-        _validate_report_quad(prior.get("normalized_quad"), f"report.batch_summary.priors[{index}].normalized_quad")
-        _require_positive_integer(prior.get("member_count"), f"report.batch_summary.priors[{index}].member_count")
-        _require_finite_number(prior.get("rms_deviation"), f"report.batch_summary.priors[{index}].rms_deviation", minimum=0)
-        _require_finite_number(prior.get("consistency"), f"report.batch_summary.priors[{index}].consistency", minimum=0, maximum=1)
-
-    slides = report.get("slides")
-    if not isinstance(slides, list):
-        raise ContractValidationError("report.slides: expected an array")
-    for index, raw_slide in enumerate(slides):
-        slide = _require_mapping(raw_slide, f"report.slides[{index}]")
-        for field in ("index", "source", "output", "quad", "method", "confidence"):
-            if field not in slide:
-                raise ContractValidationError(f"report.slides[{index}].{field}: missing required field")
-        _require_positive_integer(slide["index"], f"report.slides[{index}].index")
-        _require_string(slide["source"], f"report.slides[{index}].source")
-        _require_string(slide["output"], f"report.slides[{index}].output")
-        _validate_report_quad(slide["quad"], f"report.slides[{index}].quad")
-        _require_string(slide["method"], f"report.slides[{index}].method")
-        _require_finite_number(slide["confidence"], f"report.slides[{index}].confidence", minimum=0, maximum=1)
-        if "needs_review" in slide and not isinstance(slide["needs_review"], bool):
-            raise ContractValidationError(f"report.slides[{index}].needs_review: expected a boolean")
-        if "review_reasons" in slide and (
-            not isinstance(slide["review_reasons"], list)
-            or not all(isinstance(reason, str) for reason in slide["review_reasons"])
-        ):
-            raise ContractValidationError(f"report.slides[{index}].review_reasons: expected an array of strings")
-        if "best_score" in slide:
-            _require_finite_number(slide["best_score"], f"report.slides[{index}].best_score")
-        if "second_best_score" in slide and slide["second_best_score"] is not None:
-            _require_finite_number(slide["second_best_score"], f"report.slides[{index}].second_best_score")
-        if "candidates_evaluated" in slide:
-            _require_non_negative_integer(slide["candidates_evaluated"], f"report.slides[{index}].candidates_evaluated")
-        for field in ("features", "diagnostics"):
-            if field in slide:
-                _require_mapping(slide[field], f"report.slides[{index}].{field}")
+    _validate_schema(value, schema_name="slide-lens-report.schema.json", source="slide-lens report")
 
 
 __all__ = [
