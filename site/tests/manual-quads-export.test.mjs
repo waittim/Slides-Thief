@@ -22,6 +22,8 @@ test("exportManualQuads formats slides into valid ManualQuads object", () => {
     {
       id: "1",
       file: dummyFile,
+      width: 120,
+      height: 100,
       quad: mockQuad,
       autoDetection: {
         quad: mockQuad,
@@ -65,4 +67,15 @@ test("manual-quads image validator rejects out-of-bounds corners", () => {
     ),
     /slide\.jpg.*outside.*image bounds/,
   );
+});
+
+test("exportManualQuads rejects coordinates outside the source image", () => {
+  const slide = {
+    id: "1",
+    file: { name: "slide.jpg" },
+    width: 100,
+    height: 100,
+    quad: [[-1, 10], [90, 10], [90, 90], [10, 90]],
+  };
+  assert.throws(() => exportManualQuads([slide]), /outside.*image bounds/);
 });
