@@ -5,6 +5,8 @@ export type ConstrainedImageSize = {
   pixels: number;
 };
 
+export const DETECTION_MAX_PIXELS = 1_200_000;
+
 export function constrainedImageSize(
   sourceWidth: number,
   sourceHeight: number,

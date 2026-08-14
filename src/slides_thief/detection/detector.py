@@ -19,10 +19,12 @@ from .confidence import (
 from .geometry import polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
+from .image_sizing import constrained_image_size
 from .numeric import average, percentile
 from .refine import refine_quad
 from .scoring import normalized_quad_distance, score_quad_candidate
 
+DETECTION_MAX_PIXELS = 1_200_000
 _CONTRAST_CONFIG = DETECTION_CONFIG["contrastLines"]
 _MASK_CONFIG = DETECTION_CONFIG["maskLines"]
 _DEDUP_CONFIG = DETECTION_CONFIG["deduplication"]
@@ -301,6 +303,7 @@ def detect_quad(
     manual_quad: list[list[float]] | None = None,
     batch_priors: list[dict] | None = None,
     enable_batch_prior: bool = False,
+    max_pixels: int = DETECTION_MAX_PIXELS,
 ) -> tuple[np.ndarray, dict]:
     if manual_quad:
         return np.asarray(manual_quad, dtype=np.float64), {
@@ -315,10 +318,15 @@ def detect_quad(
         }
 
     orig_w, orig_h = image.size
-    scale = min(1.0, max_width / orig_w)
+    constrained = constrained_image_size(orig_w, orig_h, max_width, max_pixels)
     small = image.convert("RGB")
-    if scale < 1:
-        small = small.resize((round(orig_w * scale), round(orig_h * scale)), Image.Resampling.LANCZOS)
+    if (small.width, small.height) != (constrained.width, constrained.height):
+        small = small.resize((constrained.width, constrained.height), Image.Resampling.LANCZOS)
+
+    detection_to_source = np.array(
+        [orig_w / small.width, orig_h / small.height],
+        dtype=np.float64,
+    )
 
     rgb_small = np.asarray(small, dtype=np.float64)
     gray_img = ImageOps.grayscale(small).filter(ImageFilter.GaussianBlur(radius=2.0))
@@ -558,7 +566,7 @@ def detect_quad(
             ],
             dtype=np.float64,
         )
-        return fallback_quad / scale, {
+        return fallback_quad * detection_to_source, {
             "method": "fallback-frame",
             "confidence": 0.0,
             "needs_review": True,
@@ -631,7 +639,7 @@ def detect_quad(
     ):
         review_reasons.append("ambiguous_candidates")
 
-    return best["quad"] / scale, {
+    return best["quad"] * detection_to_source, {
         "method": best["method"],
         "confidence": round(float(confidence), 3),
         "needs_review": bool(review_reasons),

@@ -4,7 +4,7 @@ import { buildBatchPriors, normalizeResult } from "./detection/batch-prior";
 import { detectQuad } from "./detection/detect";
 import { createLatestJobRunner } from "./detection/job-queue";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
-import { constrainedImageSize } from "./image-sizing";
+import { constrainedImageSize, DETECTION_MAX_PIXELS } from "./image-sizing";
 import { parseDetectionWorkerRequest } from "./lib/types";
 import type {
   DetectionJobId,
@@ -22,7 +22,6 @@ type Settings = SourceFormatSettings;
 type JobFile = DetectionWorkerFile;
 
 const scope = self as DedicatedWorkerGlobalScope;
-const DETECTION_MAX_PIXELS = 1_200_000;
 type DetectionTask = {
   jobId: DetectionJobId;
   files: JobFile[];

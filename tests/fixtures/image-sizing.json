@@ -1,0 +1,50 @@
+{
+  "maxWidth": 900,
+  "maxPixels": 1200000,
+  "cases": [
+    {
+      "name": "landscape width budget",
+      "sourceWidth": 12000,
+      "sourceHeight": 3000,
+      "expected": {
+        "width": 900,
+        "height": 225,
+        "scale": 0.075,
+        "pixels": 202500
+      }
+    },
+    {
+      "name": "portrait pixel budget",
+      "sourceWidth": 900,
+      "sourceHeight": 12000,
+      "expected": {
+        "width": 300,
+        "height": 4000,
+        "scale": 0.3333333333333333,
+        "pixels": 1200000
+      }
+    },
+    {
+      "name": "width and pixel budgets",
+      "sourceWidth": 4000,
+      "sourceHeight": 3000,
+      "expected": {
+        "width": 900,
+        "height": 675,
+        "scale": 0.225,
+        "pixels": 607500
+      }
+    },
+    {
+      "name": "small image unchanged",
+      "sourceWidth": 320,
+      "sourceHeight": 240,
+      "expected": {
+        "width": 320,
+        "height": 240,
+        "scale": 1,
+        "pixels": 76800
+      }
+    }
+  ]
+}
