@@ -7,30 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-08-21
+
+### Added
+
+- Export cancellation support allowing users to abort ongoing PDF or image ZIP exports.
+- Detection job queue with cancellation so superseded or aborted detect runs do not overwrite newer results.
+- Manual quads import/export in the web app, plus CLI schema and per-image geometry validation with clearer error messages.
+- CLI `--image-cache-pixels` option to cap decoded RGB pixels retained across processing passes (`0` disables full-image caching).
+- Canonical product capability metadata (`metadata/product.json`) generated into docs, site, and Python consumers.
+- Automated JSON Schema to TypeScript build script (`build:schemas`) for schema contracts.
+- Orientation settings and enhanced aspect ratio / source-format handling in the web UI.
+- Keyboard shortcuts modal section and displayed app version in product info modal.
+- Explicit distinction between manual corner adjustments and automatic candidate detection.
+
+### Changed
+
+- Refactored web app architecture into hooks and components; modularized canvas utilities, slide management, preferences, and sidebar accessibility.
+- Constrained detection image sizing with a max pixel budget and side limit for large phone photos.
+- Improved edge candidate limits, scoring, and aspect ratio handling in candidate detection.
+- Updated JSON schemas for manual quadrilaterals and dataset report specifications, including `batch_summary` and camera-position priors.
+- Streamlined CLI functionality and internal import structures.
+- Removed unused Drizzle ORM database dependencies and obsolete design specs.
+- Added site TypeScript typechecking and Playwright-backed component tests in CI-oriented workflows.
+
 ### Fixed
 
 - Declared the CLI report's `batch_summary` and camera-position prior structure
   in the public JSON Schema, and added process-level schema validation coverage.
 - Preserved Python mask-detector blur dimensions and aligned its edge handling
   with the browser detector.
-
-## [2.2.0] - 2026-08-07
-
-### Added
-
-- Export cancellation support allowing users to abort ongoing PDF or image ZIP exports.
-- Automated JSON Schema to TypeScript build script (`build:schemas`) for schema contracts.
-- Orientation settings and enhanced aspect ratio handling in the web UI.
-- Keyboard shortcuts modal section and displayed app version in product info modal.
-- Explicit distinction between manual corner adjustments and automatic candidate detection.
-
-### Changed
-
-- Refactored web app architecture, modularized canvas utilities, slide management, and sidebar accessibility.
-- Improved edge candidate limits and aspect ratio handling in candidate detection.
-- Updated JSON schemas for manual quadrilaterals and dataset report specifications.
-- Streamlined CLI functionality and internal import structures.
-- Removed unused Drizzle ORM database dependencies and obsolete design specs.
 
 ## [2.1.0] - 2026-07-29
 
