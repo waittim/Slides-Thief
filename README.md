@@ -32,6 +32,7 @@ your source photos to a server.
 
 ## Supported Files
 
+<!-- BEGIN GENERATED: formats-en -->
 | Format | Web app | CLI |
 | --- | --- | --- |
 | JPEG / JPG | Yes | Yes |
@@ -39,6 +40,7 @@ your source photos to a server.
 | WebP | Yes | No |
 | TIFF | No | Yes |
 | HEIC / HEIF | Yes | Yes |
+<!-- END GENERATED: formats-en -->
 
 HEIC and HEIF files are converted to JPEG before processing. The web app does
 this in the browser; the CLI uses macOS `sips`. Large HEIC/HEIF batches may
@@ -57,12 +59,16 @@ take longer to start than JPEG batches.
 
 - Automatic slide boundary detection.
 - Manual four-corner correction.
-- 16:9, 4:3, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios. Paper presets fill margins with white.
+<!-- BEGIN GENERATED: web-feature-en -->
+- 16:9, 4:3, 16:10, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios. Paper presets fill margins with white.
+<!-- END GENERATED: web-feature-en -->
 - Custom output width, quality, optional readability enhancement, and fill color.
 - Light/dark themes and UI in nine languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Browser-local PDF generation.
 
-The Web PDF paper presets include A3, A4, and US Letter in landscape and portrait. The CLI additionally supports A5 paper presets and arbitrary custom ratios such as `16:10`.
+<!-- BEGIN GENERATED: web-summary-en -->
+The Web PDF paper presets include A4, A3, Letter in landscape and portrait. The CLI additionally supports A5 paper presets and arbitrary numeric custom ratios.
+<!-- END GENERATED: web-summary-en -->
 
 Product name, URLs, input capabilities, and ratio presets are maintained in
 [`metadata/product.json`](metadata/product.json). Runtime metadata is generated

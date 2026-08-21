@@ -33,9 +33,16 @@ def derived_values(metadata: dict) -> tuple[dict[str, float], list[str], dict[st
     paper_presets: set[str] = set()
     page_dimensions: dict[str, list[float]] = {}
     for item in ratios["paper"]:
-        page_dimensions[item["id"]] = [item["width_points"], item["height_points"]]
+        if "ratio" in item:
+            raise SystemExit(f"paper preset {item['id']} must derive ratio from point dimensions")
+        width_points = float(item["width_points"])
+        height_points = float(item["height_points"])
+        if width_points <= 0 or height_points <= 0:
+            raise SystemExit(f"paper preset {item['id']} must have positive point dimensions")
+        page_dimensions[item["id"]] = [width_points, height_points]
+        paper_ratio = width_points / height_points
         for alias in item["aliases"]:
-            ratio_presets[alias] = item["ratio"]
+            ratio_presets[alias] = paper_ratio
             paper_presets.add(alias)
     return ratio_presets, sorted(paper_presets), page_dimensions
 
@@ -63,12 +70,223 @@ def render_public(metadata: dict) -> str:
     return json.dumps(metadata, ensure_ascii=False, indent=2) + "\n"
 
 
+def render_format_table(metadata: dict, chinese: bool = False) -> str:
+    header = "| 格式 | 网页版 | CLI |" if chinese else "| Format | Web app | CLI |"
+    separator = "| --- | --- | --- |"
+    rows = [header, separator]
+    for item in metadata["input_formats"]:
+        web = ("支持" if item["web"] else "不支持") if chinese else ("Yes" if item["web"] else "No")
+        cli = ("支持" if item["cli"] else "不支持") if chinese else ("Yes" if item["cli"] else "No")
+        rows.append(f"| {item['label']} | {web} | {cli} |")
+    return "\n".join(rows)
+
+
+def web_source_labels(metadata: dict) -> list[str]:
+    return [
+        item.get("label", item["id"])
+        for item in metadata["ratios"]["web_source_base_formats"]
+        if item["kind"] != "custom"
+    ]
+
+
+def paper_families(metadata: dict, predicate) -> list[str]:
+    families = []
+    for item in metadata["ratios"]["paper"]:
+        if predicate(item) and item["family"] not in families:
+            families.append(item["family"])
+    return families
+
+
+def presentation_labels(metadata: dict) -> list[str]:
+    source_ids = {item["id"] for item in metadata["ratios"]["web_source_base_formats"]}
+    return [item.get("label", item["id"]) for item in metadata["ratios"]["presentation"] if item["id"] in source_ids]
+
+
+def unique_labels(values: list[str]) -> list[str]:
+    return list(dict.fromkeys(values))
+
+
+def paper_orientation_labels(metadata: dict, predicate) -> list[str]:
+    return [f"{family} landscape/portrait" for family in paper_families(metadata, predicate)]
+
+
+def web_feature_line(metadata: dict, chinese: bool = False) -> str:
+    presentations = presentation_labels(metadata)
+    iso_families = [family for family in paper_families(metadata, lambda item: item["web"]) if family != "Letter"]
+    letter_families = [family for family in paper_families(metadata, lambda item: item["web"]) if family == "Letter"]
+    if chinese:
+        iso = "/".join(iso_families)
+        letter = "/".join(letter_families)
+        return f"- 支持 {'、'.join(presentations)}、ISO {iso}（横向与纵向）与 US {letter}（横向与纵向）输出比例；纸张预设会自动以白色填充边距。"
+    return (
+        f"- {', '.join(presentations)}, ISO {'/'.join(iso_families)} (landscape and portrait), "
+        f"and US {', '.join(letter_families)} (landscape and portrait) output ratios. Paper presets fill margins with white."
+    )
+
+
+def cli_summary_chinese(metadata: dict) -> str:
+    cli_only_papers = "、".join(paper_families(metadata, lambda item: item["cli"] and not item["web"]))
+    return f"CLI 额外支持 {cli_only_papers} 纸张预设和任意数字自定义比例（如 `1.777`）。"
+
+
+def web_summary(metadata: dict, prefix: str) -> str:
+    papers = ", ".join(paper_families(metadata, lambda item: item["web"]))
+    cli_only_papers = ", ".join(
+        paper_families(metadata, lambda item: item["cli"] and not item["web"])
+    )
+    if prefix == "README":
+        return (
+            f"The Web PDF paper presets include {papers} in landscape and portrait. "
+            f"The CLI additionally supports {cli_only_papers} paper presets and arbitrary numeric custom ratios."
+        )
+    if prefix == "FAQ":
+        return f"The web app offers {', '.join(web_source_labels(metadata)[:2])}, and PDF paper presets for {papers} in landscape and portrait. Paper presets fill margins with white."
+    if prefix == "SITE":
+        return f"The Web PDF paper presets include {papers} in landscape and portrait."
+    source = web_source_labels(metadata)
+    return (
+        f"The web app exposes {', '.join(source[:2])}, and PDF paper presets for {papers} in landscape and portrait. "
+        f"{cli_only_papers} paper presets and arbitrary custom ratios are CLI-only."
+    )
+
+
+def cli_input_bullets(metadata: dict) -> str:
+    lines = []
+    for item in metadata["input_formats"]:
+        if item["cli"]:
+            suffix = " (converted with macOS `sips`)" if item["id"] == "heic-heif" else ""
+            lines.append(f"- {item['label']}{suffix}")
+    return "\n".join(lines)
+
+
+def cli_input_sentence(metadata: dict) -> str:
+    labels = [item["label"] for item in metadata["input_formats"] if item["cli"]]
+    web_only = [item["label"] for item in metadata["input_formats"] if item["web"] and not item["cli"]]
+    conversion = next(
+        (item["label"] for item in metadata["input_formats"] if item["id"] == "heic-heif"),
+        "HEIC / HEIF",
+    )
+    web_only_sentence = ", ".join(web_only) + " is web-only." if web_only else ""
+    return ", ".join(labels[:-1]) + f", and {labels[-1]}. {web_only_sentence} {conversion} conversion uses macOS `sips`."
+
+
+def cli_ratio_bullets(metadata: dict) -> str:
+    ratios = metadata["ratios"]
+    source_ids = ratios["cli_source_ids"]
+    output_presentation_ids = [
+        item["id"] for item in ratios["presentation"] if item["id"] in ratios["cli_output_ids"]
+    ]
+    paper_lines = []
+    for family in paper_families(metadata, lambda item: item["cli"]):
+        items = [item for item in ratios["paper"] if item["family"] == family and item["cli"]]
+        landscape = next(item for item in items if item["orientation"] == "landscape")
+        portrait = next(item for item in items if item["orientation"] == "portrait")
+        family_token = f"`{family}` / " if family.lower() in landscape["aliases"] else ""
+        paper_lines.append(f"{family_token}`{landscape['id']}`, `{portrait['id']}`")
+    iso_lines = ", ".join(paper_lines[:-1])
+    letter_line = paper_lines[-1]
+    return "\n".join(
+        [
+            f"- Source presentation ratios: `{source_ids[0]}` (default), "
+            f"{', '.join(f'`{value}`' for value in source_ids[1:])}, or a numeric custom ratio",
+            f"- Output presentation ratios: `match-slide` (default), "
+            f"{', '.join(f'`{value}`' for value in output_presentation_ids)}",
+            f"- ISO paper sizes: {iso_lines}",
+            f"- US Letter paper sizes: {letter_line}",
+            f"- Custom ratios: e.g. `{source_ids[-1]}` or a numeric decimal ratio (e.g. `1.777`)",
+        ]
+    )
+
+
+def cli_ratio_sentence(metadata: dict) -> str:
+    source_ids = metadata["ratios"]["cli_source_ids"]
+    families = ", ".join(paper_families(metadata, lambda item: item["cli"]))
+    presentation = f"{source_ids[0]} (default)"
+    if len(source_ids) > 1:
+        presentation += f", {', '.join(source_ids[1:])}"
+    return f"Presentation: {presentation}. Paper: {families} in landscape and portrait. Numeric custom ratios such as 1.777 are also accepted. Paper presets fill margins with white."
+
+
+def generated_document_outputs(metadata: dict) -> dict[Path, str]:
+    format_en = render_format_table(metadata)
+    format_zh = render_format_table(metadata, chinese=True)
+    outputs: dict[Path, str] = {}
+    document_blocks = {
+        ROOT / "README.md": {
+            "formats-en": format_en,
+            "web-feature-en": web_feature_line(metadata),
+            "web-summary-en": web_summary(metadata, "README"),
+        },
+        ROOT / "README.zh-CN.md": {
+            "formats-zh": format_zh,
+            "web-feature-zh": web_feature_line(metadata, chinese=True),
+            "cli-summary-zh": cli_summary_chinese(metadata),
+        },
+        ROOT / "docs" / "faq.md": {
+            "formats-en": format_en,
+            "web-summary-en": web_summary(metadata, "FAQ"),
+            "cli-summary-en": f"The CLI adds {', '.join(paper_families(metadata, lambda item: item['cli'] and not item['web']))} presets and arbitrary numeric custom ratios.",
+        },
+        ROOT / "site" / "README.md": {
+            "formats-en": format_en,
+            "web-summary-en": web_summary(metadata, "SITE"),
+        },
+        ROOT / "docs" / "cli.md": {
+            "cli-input-en": cli_input_bullets(metadata),
+            "cli-ratios-en": cli_ratio_bullets(metadata),
+            "web-summary-en": web_summary(metadata, "CLI"),
+        },
+        ROOT / "site" / "public" / "llms.txt": {
+            "llms-core-en": "\n".join(
+                [
+                    f"- Web formats: {', '.join(item['label'] for item in metadata['input_formats'] if item['web'])}. CLI formats: {', '.join(item['label'] for item in metadata['input_formats'] if item['cli'])}.",
+                    f"- Web source formats: {', '.join(web_source_labels(metadata)[:-1])}, {web_source_labels(metadata)[-1]}, and custom ratios.",
+                    f"- Web PDF layouts: match the selected source format, physical {', '.join(paper_families(metadata, lambda item: item['web']))} paper, or a custom page size.",
+                ]
+            )
+        },
+        ROOT / "site" / "public" / "llms-full.txt": {
+            "llms-web-en": "\n".join(
+                [
+                    f"- Source formats: {web_source_labels(metadata)[0]} by default, with explicit {', '.join(web_source_labels(metadata)[1:])}, and custom ratios.",
+                    f"- PDF layouts: match the selected source format, physical {', '.join(paper_orientation_labels(metadata, lambda item: item['web']))} paper, or custom pixel dimensions. Paper presets fill margins with white.",
+                ]
+            ),
+            "cli-input-en": cli_input_sentence(metadata),
+            "cli-ratios-en": cli_ratio_sentence(metadata),
+        },
+        ROOT / "PRODUCT.md": {
+            "product-capabilities-en": "\n".join(
+                [
+                    f"- Pre-set and custom aspect ratios ({', '.join(unique_labels(presentation_labels(metadata) + paper_families(metadata, lambda item: item['web'])))}).",
+                    f"- PDF paper output includes {', '.join(paper_families(metadata, lambda item: item['web']))} in landscape and portrait.",
+                    f"- Supports {', '.join(item['label'] for item in metadata['input_formats'] if item['web'])} in the web app.",
+                ]
+            )
+        },
+    }
+    for path, blocks in document_blocks.items():
+        content = path.read_text(encoding="utf-8")
+        for marker, block in blocks.items():
+            start = f"<!-- BEGIN GENERATED: {marker} -->"
+            end = f"<!-- END GENERATED: {marker} -->"
+            pattern = re.compile(re.escape(start) + r"[\s\S]*?" + re.escape(end))
+            replacement = f"{start}\n{block}\n{end}"
+            content, count = pattern.subn(replacement, content)
+            if count != 1:
+                raise SystemExit(f"expected exactly one generated block {marker} in {path.relative_to(ROOT)}")
+        outputs[path] = content
+    return outputs
+
+
 def expected_outputs(metadata: dict) -> dict[Path, str]:
-    return {
+    outputs = {
         PYTHON_OUTPUT: render_python(metadata),
         TYPESCRIPT_OUTPUT: render_typescript(metadata),
         PUBLIC_OUTPUT: render_public(metadata),
     }
+    outputs.update(generated_document_outputs(metadata))
+    return outputs
 
 
 def main() -> None:

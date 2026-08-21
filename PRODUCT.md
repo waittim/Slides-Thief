@@ -21,11 +21,13 @@ Used during or after lectures, conferences, or document scanning sessions on des
 ## Capabilities and Constraints
 - Automatic 4-corner slide and document boundary detection.
 - Manual 4-corner adjustments with keyboard and touch support.
+<!-- BEGIN GENERATED: product-capabilities-en -->
 - Pre-set and custom aspect ratios (16:9, 4:3, 16:10, A4, A3, Letter).
-- PDF paper output includes A3, A4, and Letter in landscape and portrait.
+- PDF paper output includes A4, A3, Letter in landscape and portrait.
+- Supports JPEG / JPG, PNG, WebP, HEIC / HEIF in the web app.
+<!-- END GENERATED: product-capabilities-en -->
 - Local image enhancement filters (Original, Clean, High contrast, Black & White).
 - Browser-side PDF generation via Web Workers.
-- Supports JPEG, PNG, WebP, HEIC, and HEIF.
 - Privacy constraint: Photo processing MUST remain 100% local; no server-side image upload endpoints.
 
 ## Brand Commitments

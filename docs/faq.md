@@ -6,6 +6,7 @@ No. The web application processes them locally in the browser.
 
 ## Which formats are supported?
 
+<!-- BEGIN GENERATED: formats-en -->
 | Format | Web app | CLI |
 | --- | --- | --- |
 | JPEG / JPG | Yes | Yes |
@@ -13,14 +14,19 @@ No. The web application processes them locally in the browser.
 | WebP | Yes | No |
 | TIFF | No | Yes |
 | HEIC / HEIF | Yes | Yes |
+<!-- END GENERATED: formats-en -->
 
 HEIC/HEIF conversion uses the browser on the web and macOS `sips` in the CLI.
 
 ## Which output ratios are available?
 
-The web app offers 16:9, 4:3, and PDF paper presets for A3, A4, and Letter in landscape and portrait. Paper presets fill margins with white.
+<!-- BEGIN GENERATED: web-summary-en -->
+The web app offers 16:9, 4:3, and PDF paper presets for A4, A3, Letter in landscape and portrait. Paper presets fill margins with white.
+<!-- END GENERATED: web-summary-en -->
 
-The CLI adds A5 presets and arbitrary custom ratios such as `16:10` or `1.777`.
+<!-- BEGIN GENERATED: cli-summary-en -->
+The CLI adds A5 presets and arbitrary numeric custom ratios.
+<!-- END GENERATED: cli-summary-en -->
 
 ## Can I fix an incorrect detection?
 

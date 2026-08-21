@@ -29,6 +29,7 @@ from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
 from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 from slides_thief.exporter import make_manual_review_html, scale_quad
+from slides_thief.product_metadata import PAPER_PAGE_DIMENSIONS
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -319,11 +320,20 @@ def test_manual_review_html_escapes_untrusted_data_and_uses_accessible_controls(
 
 
 def test_parse_ratio_accepts_named_paper_aliases() -> None:
-    assert abs(parse_ratio("A4") - (297 / 210)) < 1e-5
-    assert abs(parse_ratio("A4-portrait") - (210 / 297)) < 1e-5
+    assert abs(parse_ratio("A4") - (841.89 / 595.28)) < 1e-12
+    assert abs(parse_ratio("A4-portrait") - (595.28 / 841.89)) < 1e-12
     assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
     assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
-    assert abs(parse_ratio("A3") - (297 / 210)) < 1e-5
+    assert abs(parse_ratio("A3") - (1190.55 / 841.89)) < 1e-12
+    assert abs(parse_ratio("A5") - (595.28 / 419.53)) < 1e-12
+
+
+def test_paper_ratio_aliases_are_derived_from_physical_dimensions() -> None:
+    for paper_id, (width_points, height_points) in PAPER_PAGE_DIMENSIONS.items():
+        family = paper_id.split("-", 1)[0]
+        alias = family if paper_id.endswith("-landscape") else paper_id
+        expected = width_points / height_points
+        assert abs(parse_ratio(alias) - expected) < 1e-12
 
 
 def test_is_paper_ratio_recognizes_paper_presets() -> None:

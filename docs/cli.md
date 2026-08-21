@@ -17,10 +17,12 @@ Use a new output directory for each run. A successful run produces the requested
 
 ## Supported input formats
 
+<!-- BEGIN GENERATED: cli-input-en -->
 - JPEG / JPG
 - PNG
 - TIFF
 - HEIC / HEIF (converted with macOS `sips`)
+<!-- END GENERATED: cli-input-en -->
 
 The web app additionally accepts WebP but does not accept TIFF. See [FAQ](faq.md).
 
@@ -41,17 +43,21 @@ The web app additionally accepts WebP but does not accept TIFF. See [FAQ](faq.md
 the PDF page. Detection only receives the source ratio; changing the PDF page
 does not change detected corners.
 
+<!-- BEGIN GENERATED: cli-ratios-en -->
 - Source presentation ratios: `16:9` (default), `4:3`, `16:10`, or a numeric custom ratio
 - Output presentation ratios: `match-slide` (default), `16:9`, `4:3`
-- ISO paper sizes: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5`, `A5-portrait`
+- ISO paper sizes: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5` / `A5-landscape`, `A5-portrait`
 - US Letter paper sizes: `Letter` / `letter-landscape`, `letter-portrait`
 - Custom ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
+<!-- END GENERATED: cli-ratios-en -->
 
 The corrected slide keeps its source ratio and is contained on the output page.
 Standard paper sizes use white margins. `--ratio` remains as a deprecated
 compatibility option that sets both ratios.
 
-The web app exposes 16:9, 4:3, A3/A4 landscape and portrait, and Letter landscape and portrait. A5 and arbitrary custom ratios are CLI-only.
+<!-- BEGIN GENERATED: web-summary-en -->
+The web app exposes 16:9, 4:3, and PDF paper presets for A4, A3, Letter in landscape and portrait. A5 paper presets and arbitrary custom ratios are CLI-only.
+<!-- END GENERATED: web-summary-en -->
 
 ## Options
 

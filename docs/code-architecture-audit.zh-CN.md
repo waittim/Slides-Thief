@@ -264,10 +264,13 @@ flowchart LR
 - **ROI**：4 / 高仍合理；**工作量**：XS-S（删除残留和同步 lockfile）。
 - **处理方式**：移除无调用方文件、空配置、Hough 未使用字段、Tailwind 导入及两项开发依赖；保留仍在产品路径中的 API，并通过类型检查、Lint、双构建和测试验证。
 
-### F-24 [P3] 产品能力、比例预设和品牌文案在代码/文档间不一致
+### F-24 [P3] 产品能力、比例预设和品牌文案在代码/文档间不一致（已关闭）
 
 - **位置**：`site/README.md:17`、`docs/faq.md:21-23`、`README.md:60-65`、`site/app/components/Header.tsx:117-249`、`src/slides_thief/exporter.py:56,205`
-- **修复记录（F-24）**：Web README 已改为混合检测器表述；Web 已补齐 A3 横/纵向纸张输出、类型与 PDF 点尺寸；CLI 复核页统一使用 Slides Thief 品牌名；比例、格式能力、品牌和版本现由 `metadata/product.json` 生成到运行时与公开元数据。
+- **修复记录（F-24）**：Web README 已改为混合检测器表述；Web 已补齐 A3 横/纵向纸张输出、类型与 PDF 点尺寸；CLI 复核页统一使用 Slides Thief 品牌名。比例、格式能力、品牌和版本现由 `metadata/product.json` 生成到 Python、TypeScript、公开 JSON、SEO 能力列表和带标记的公开文档片段。
+- **比例约束**：纸张预设不再手写 `ratio`，统一由 `width_points / height_points` 计算；生成器拒绝纸张条目重新引入 `ratio`，并覆盖 A3/A4/A5/Letter 的 Python 与 Web 回归测试。
+- **文档约束**：README、FAQ、CLI 文档、站点 README、`llms.txt`、`llms-full.txt`、PRODUCT.md 和中英文产品能力片段均由生成器写入；CI 的生成物 `--check` 会同时发现这些文档片段漂移。
+- **验证结果**：元数据生成检查、Python 70/70、Ruff、TypeScript、ESLint、Node 77/77、组件 1/1、Server/Pages E2E 2/2、双构建和 `git diff --check` 均通过。
 - **影响范围**：用户预期、支持请求、自动化文档消费者和品牌一致性。
 - **ROI**：4 / 高；**工作量**：S。
 - **最佳方案**：先决定 Web 是否真正支持 A3；若支持则加入类型、UI 和 PDF 点尺寸，否则修正文档。把产品名、URL、版本、格式能力和比例预设集中为可生成的元数据源。
@@ -336,7 +339,7 @@ Python/TS 检测器和 Next/Vite 两套页面入口是产品要求，但当前�
 2. 统一 UI 原语和设计 token（F-13、F-14）。
 3. 合并检测 helper 与透视渲染核心（F-15、F-16）。
 4. 将源码正则测试迁移为行为测试（F-18）。
-5. F-23 已完成；继续修正文档与产品能力漂移（F-24）。
+5. F-23、F-24 已完成；后续新增产品能力应继续通过 `metadata/product.json` 和生成器进入代码、文档与 SEO。
 
 ## 9. 建议质量门禁
 

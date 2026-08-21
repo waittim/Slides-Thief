@@ -23,12 +23,14 @@ test("parseRatio parses preset ratios correctly", () => {
   assert.equal(parseRatio("3:4"), 3 / 4);
   assert.equal(parseRatio("16:10"), 16 / 10);
   assert.equal(parseRatio("10:16"), 10 / 16);
-  assert.equal(parseRatio("A4-landscape"), 297 / 210);
-  assert.equal(parseRatio("a4-landscape"), 297 / 210);
-  assert.equal(parseRatio("A4-portrait"), 210 / 297);
-  assert.equal(parseRatio("A3-landscape"), 297 / 210);
-  assert.equal(parseRatio("A3-portrait"), 210 / 297);
-  assert.equal(parseRatio("a4-portrait"), 210 / 297);
+  assert.equal(parseRatio("A4-landscape"), 841.89 / 595.28);
+  assert.equal(parseRatio("a4-landscape"), 841.89 / 595.28);
+  assert.equal(parseRatio("A4-portrait"), 595.28 / 841.89);
+  assert.equal(parseRatio("A3-landscape"), 1190.55 / 841.89);
+  assert.equal(parseRatio("A3-portrait"), 841.89 / 1190.55);
+  assert.equal(parseRatio("A5-landscape"), 595.28 / 419.53);
+  assert.equal(parseRatio("A5-portrait"), 419.53 / 595.28);
+  assert.equal(parseRatio("a4-portrait"), 595.28 / 841.89);
   assert.equal(parseRatio("letter-landscape"), 11 / 8.5);
   assert.equal(parseRatio("LETTER-LANDSCAPE"), 11 / 8.5);
   assert.equal(parseRatio("letter-portrait"), 8.5 / 11);
@@ -96,7 +98,7 @@ test("source formats support presentation, document, and custom ratios", () => {
   const cases = [
     { sourceFormat: "16:9", sourceOrientation: "landscape", expected: 16 / 9 },
     { sourceFormat: "9:16", sourceOrientation: "portrait", expected: 9 / 16 },
-    { sourceFormat: "A4-portrait", sourceOrientation: "portrait", expected: 210 / 297 },
+    { sourceFormat: "A4-portrait", sourceOrientation: "portrait", expected: 595.28 / 841.89 },
     { sourceFormat: "letter-landscape", sourceOrientation: "landscape", expected: 11 / 8.5 },
     { sourceFormat: "custom", sourceOrientation: "landscape", sourceCustomRatio: 1.5, expected: 1.5 },
     { sourceFormat: "custom", sourceOrientation: "portrait", sourceCustomRatio: 1.5, expected: 1 / 1.5 },

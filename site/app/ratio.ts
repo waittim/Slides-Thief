@@ -28,8 +28,9 @@ const ratioPresets: Record<string, number> = Object.fromEntries(
 const paperPresetKeys = new Set<string>();
 
 for (const item of PRODUCT_METADATA.ratios.paper) {
+  const paperRatio = item.width_points / item.height_points;
   for (const alias of item.aliases) {
-    ratioPresets[alias.toLowerCase()] = item.ratio;
+    ratioPresets[alias.toLowerCase()] = paperRatio;
     paperPresetKeys.add(alias.toLowerCase());
   }
 }
