@@ -2,7 +2,7 @@ import { lineIntersection, orderQuad, scaleQuad, type Line } from "./geometry.ts
 import { DETECTION_CONFIG } from "./config.ts";
 import { createCandidate } from "./candidate-factory.ts";
 import { boxBlur } from "./image-features.ts";
-import { percentile, round } from "./numeric.ts";
+import { boundedPercentiles, round } from "./numeric.ts";
 import type {
   CandidateDetector,
   ImageFeatures,
@@ -16,9 +16,11 @@ export const maskLineDetector: CandidateDetector = {
   name: "mask-lines",
   detect(features: ImageFeatures): QuadCandidate[] {
     const { width, height, gray, saturation } = features;
-    const p25 = percentile(gray, MASK_CONFIG.grayPercentiles.lower);
-    const p55 = percentile(gray, MASK_CONFIG.grayPercentiles.threshold);
-    const p92 = percentile(gray, MASK_CONFIG.grayPercentiles.highlight);
+    const [p25, p55, p92] = boundedPercentiles(gray, [
+      MASK_CONFIG.grayPercentiles.lower,
+      MASK_CONFIG.grayPercentiles.threshold,
+      MASK_CONFIG.grayPercentiles.highlight,
+    ]);
     const threshold = Math.max(
       MASK_CONFIG.primaryMinimumGray,
       Math.min(
@@ -30,7 +32,8 @@ export const maskLineDetector: CandidateDetector = {
       MASK_CONFIG.primarySaturationMinimum,
       Math.min(
         MASK_CONFIG.primarySaturationMaximum,
-        percentile(saturation, MASK_CONFIG.primarySaturationPercentile) + MASK_CONFIG.primarySaturationOffset,
+        boundedPercentiles(saturation, [MASK_CONFIG.primarySaturationPercentile])[0]
+          + MASK_CONFIG.primarySaturationOffset,
       ),
     );
     const mask = new Float64Array(width * height);
