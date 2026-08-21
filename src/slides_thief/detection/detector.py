@@ -19,7 +19,7 @@ from .confidence import (
 from .geometry import polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
-from .image_sizing import constrained_image_size
+from .image_sizing import DETECTION_MAX_SIDE, constrained_image_size
 from .numeric import average, percentile
 from .refine import refine_quad
 from .scoring import normalized_quad_distance, score_quad_candidate
@@ -304,6 +304,7 @@ def detect_quad(
     batch_priors: list[dict] | None = None,
     enable_batch_prior: bool = False,
     max_pixels: int = DETECTION_MAX_PIXELS,
+    max_side: int = DETECTION_MAX_SIDE,
 ) -> tuple[np.ndarray, dict]:
     if manual_quad:
         return np.asarray(manual_quad, dtype=np.float64), {
@@ -318,7 +319,7 @@ def detect_quad(
         }
 
     orig_w, orig_h = image.size
-    constrained = constrained_image_size(orig_w, orig_h, max_width, max_pixels)
+    constrained = constrained_image_size(orig_w, orig_h, max_width, max_pixels, max_side)
     small = image.convert("RGB")
     if (small.width, small.height) != (constrained.width, constrained.height):
         small = small.resize((constrained.width, constrained.height), Image.Resampling.LANCZOS)

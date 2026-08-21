@@ -27,8 +27,9 @@ def test_constrained_image_size_matches_shared_boundary_fixture(case: dict) -> N
     result = constrained_image_size(
         case["sourceWidth"],
         case["sourceHeight"],
-        FIXTURE["maxWidth"],
+        case.get("maxWidth", FIXTURE["maxWidth"]),
         FIXTURE["maxPixels"],
+        case.get("maxSide", FIXTURE["maxSide"]),
     )
 
     expected = case["expected"]

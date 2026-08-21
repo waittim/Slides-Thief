@@ -5,6 +5,8 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+DETECTION_MAX_SIDE = 4_096
+
 
 @dataclass(frozen=True)
 class ConstrainedImageSize:
@@ -19,12 +21,14 @@ def constrained_image_size(
     source_height: int | float,
     max_width: int | float,
     max_pixels: int | float,
+    max_side: int | float = DETECTION_MAX_SIDE,
 ) -> ConstrainedImageSize:
-    """Return a proportional image size within width and pixel budgets.
+    """Return a proportional image size within width, side, and pixel budgets.
 
     The floor operation intentionally matches the browser implementation. The
     actual integer dimensions are returned so callers can map coordinates back
-    using independent X/Y scales after rounding.
+    using independent X/Y scales after rounding. The final pixel check handles
+    the case where a very narrow source dimension was rounded up to one pixel.
     """
     if (
         not math.isfinite(float(source_width))
@@ -40,9 +44,24 @@ def constrained_image_size(
         if max_pixels > 0
         else 1.0
     )
-    scale = min(1.0, width_scale, pixel_scale)
+    side_scale = (
+        max_side / max(source_width, source_height)
+        if max_side > 0
+        else 1.0
+    )
+    scale = min(1.0, width_scale, pixel_scale, side_scale)
     width = max(1, math.floor(source_width * scale))
     height = max(1, math.floor(source_height * scale))
+
+    pixel_budget = max(1, math.floor(max_pixels)) if max_pixels > 0 else None
+    while pixel_budget is not None and width * height > pixel_budget:
+        if height >= width and height > 1:
+            height = max(1, min(height - 1, pixel_budget // width))
+        elif width > 1:
+            width = max(1, min(width - 1, pixel_budget // height))
+        else:
+            break
+
     return ConstrainedImageSize(
         width=width,
         height=height,

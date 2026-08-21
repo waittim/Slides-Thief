@@ -13,15 +13,17 @@ const fixture = JSON.parse(await readFile(
 
 for (const item of fixture.cases) {
   test(`image sizing matches shared boundary fixture: ${item.name}`, () => {
-    assert.deepEqual(
-      constrainedImageSize(
-        item.sourceWidth,
-        item.sourceHeight,
-        fixture.maxWidth,
-        fixture.maxPixels,
-      ),
-      item.expected,
+    const result = constrainedImageSize(
+      item.sourceWidth,
+      item.sourceHeight,
+      item.maxWidth ?? fixture.maxWidth,
+      fixture.maxPixels,
+      item.maxSide ?? fixture.maxSide,
     );
+    assert.equal(result.width, item.expected.width);
+    assert.equal(result.height, item.expected.height);
+    assert.equal(result.pixels, item.expected.pixels);
+    assert.ok(Math.abs(result.scale - item.expected.scale) <= 1e-15);
   });
 }
 

@@ -1,6 +1,7 @@
 {
   "maxWidth": 900,
   "maxPixels": 1200000,
+  "maxSide": 4096,
   "cases": [
     {
       "name": "landscape width budget",
@@ -44,6 +45,54 @@
         "height": 240,
         "scale": 1,
         "pixels": 76800
+      }
+    },
+    {
+      "name": "extreme narrow image respects max side",
+      "sourceWidth": 1,
+      "sourceHeight": 1000000000,
+      "expected": {
+        "width": 1,
+        "height": 4096,
+        "scale": 0.000004096,
+        "pixels": 4096
+      }
+    },
+    {
+      "name": "minimum width clamp is tightened to pixel budget",
+      "sourceWidth": 1,
+      "sourceHeight": 1000000000,
+      "maxSide": 1000000000,
+      "expected": {
+        "width": 1,
+        "height": 1200000,
+        "scale": 0.034641016151377546,
+        "pixels": 1200000
+      }
+    },
+    {
+      "name": "extreme portrait clamp stays within pixel budget",
+      "sourceWidth": 100,
+      "sourceHeight": 1000000000,
+      "maxSide": 1000000000,
+      "expected": {
+        "width": 1,
+        "height": 1200000,
+        "scale": 0.0034641016151377543,
+        "pixels": 1200000
+      }
+    },
+    {
+      "name": "extreme landscape clamp stays within pixel budget",
+      "sourceWidth": 1000000000,
+      "sourceHeight": 1,
+      "maxWidth": 1000000000,
+      "maxSide": 1000000000,
+      "expected": {
+        "width": 1200000,
+        "height": 1,
+        "scale": 0.034641016151377546,
+        "pixels": 1200000
       }
     }
   ]
