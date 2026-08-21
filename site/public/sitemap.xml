@@ -5,6 +5,7 @@
   </url>
   <url><loc>https://slidesthief.com/llms.txt</loc></url>
   <url><loc>https://slidesthief.com/llms-full.txt</loc></url>
+  <url><loc>https://slidesthief.com/product-metadata.json</loc></url>
   <url><loc>https://slidesthief.com/schemas/slide-lens-report.schema.json</loc></url>
   <url><loc>https://slidesthief.com/schemas/manual-quads.schema.json</loc></url>
 </urlset>

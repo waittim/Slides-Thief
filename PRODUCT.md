@@ -21,7 +21,8 @@ Used during or after lectures, conferences, or document scanning sessions on des
 ## Capabilities and Constraints
 - Automatic 4-corner slide and document boundary detection.
 - Manual 4-corner adjustments with keyboard and touch support.
-- Pre-set and custom aspect ratios (16:9, 4:3, 16:10, A4, Letter).
+- Pre-set and custom aspect ratios (16:9, 4:3, 16:10, A4, A3, Letter).
+- PDF paper output includes A3, A4, and Letter in landscape and portrait.
 - Local image enhancement filters (Original, Clean, High contrast, Black & White).
 - Browser-side PDF generation via Web Workers.
 - Supports JPEG, PNG, WebP, HEIC, and HEIF.

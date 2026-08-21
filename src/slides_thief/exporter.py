@@ -11,6 +11,8 @@ from PIL import Image, ImageDraw
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
+from .product_metadata import PRODUCT_METADATA
+
 
 def scale_quad(
     quad: np.ndarray | list[list[float]],
@@ -84,12 +86,13 @@ def _json_for_html_script(value: object) -> str:
 
 def make_manual_review_html(items: list[dict], output: Path) -> None:
     payload = _json_for_html_script(items)
+    product_name = PRODUCT_METADATA["name"]
     html = f"""<!doctype html>
 <html lang="en" data-theme="auto">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Slide Lens Manual Review</title>
+<title>{product_name} Manual Review</title>
 <style>
 :root {{
   color-scheme: light;
@@ -279,7 +282,7 @@ canvas {{ display: block; touch-action: none; }}
 <body>
 <header>
   <div>
-    <h1 data-i18n="title">Slide Lens Manual Review</h1>
+  <h1 data-i18n="title">{product_name} Manual Review</h1>
     <p data-i18n="subtitle">Drag the four yellow corner handles to fix any misaligned slide quad.</p>
   </div>
   <div class="controls">
@@ -315,7 +318,7 @@ try {{
 
 const translations = {{
   en: {{
-    title: "Slide Lens Manual Review",
+    title: "{product_name} Manual Review",
     subtitle: "Drag the four yellow corner handles to fix any misaligned slide quad.",
     prev: "Previous",
     next: "Next",
@@ -334,7 +337,7 @@ const translations = {{
     of: "of"
   }},
   zh: {{
-    title: "Slide Lens 手动透视校正标注",
+    title: "{product_name} 手动透视校正标注",
     subtitle: "拖动 4 个黄色角点控件，修正检测偏离的幻灯片边缘。",
     prev: "上一张",
     next: "下一张",

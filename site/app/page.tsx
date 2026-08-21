@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { ProductInfo } from "./ProductInfo";
 import { SlidesThiefApp } from "./SlidesThiefApp";
+import { PRODUCT_METADATA } from "./product-metadata";
 
-const siteUrl = "https://slidesthief.com/";
-const title = "Slides Thief - Straighten Slide & Document Photos into PDFs";
-const description =
-  "Straighten skewed photos of slides or documents and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
+const siteUrl = PRODUCT_METADATA.website;
+const title = PRODUCT_METADATA.title;
+const description = PRODUCT_METADATA.description;
 
 export const metadata: Metadata = {
   title,
@@ -16,18 +16,19 @@ const structuredData = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
   "@id": `${siteUrl}#software`,
-  name: "Slides Thief",
-  alternateName: ["PPT捕手", "Slide Photo Straightener", "Document Photo Straightener"],
+  name: PRODUCT_METADATA.name,
+  alternateName: PRODUCT_METADATA.alternate_names,
   applicationCategory: "MultimediaApplication",
   operatingSystem: "Web",
   url: siteUrl,
   description,
-  codeRepository: "https://github.com/waittim/Slides-Thief",
+  codeRepository: PRODUCT_METADATA.repository,
   license: "https://opensource.org/license/mit",
   author: { "@type": "Person", name: "Zekun Wang", url: "https://github.com/waittim" },
   featureList: [
     "Automatic slide and document boundary detection",
     "16:9 default source format with explicit alternatives",
+    "A3, A4, and Letter PDF paper output in landscape and portrait",
     "Manual four-corner correction",
     "Perspective correction",
     "HEIC and HEIF support",

@@ -18,7 +18,7 @@ export function makeId(file: File, index: number) {
   return `${index}-${file.name}-${file.lastModified}-${file.size}`;
 }
 
-export function hasExtension(file: File, extensions: string[]) {
+export function hasExtension(file: File, extensions: ReadonlyArray<string>) {
   const lower = file.name.toLowerCase();
   return extensions.some((ext) => lower.endsWith(ext));
 }

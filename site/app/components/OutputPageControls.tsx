@@ -1,7 +1,12 @@
 import React from "react";
 import type { EnhancementMode } from "../enhance";
 import type { LocaleCopy, RatioUiCopy } from "../i18n";
-import { pageLayoutMode, type OutputPageRatio, type PageLayoutMode } from "../ratio";
+import {
+  pageLayoutMode,
+  WEB_OUTPUT_PAPER_FORMATS,
+  type OutputPageRatio,
+  type PageLayoutMode,
+} from "../ratio";
 import { settingsReducer, type SettingsAction } from "../lib/settingsTransitions";
 import type { Settings } from "../lib/types";
 import { Button, Select } from "./ui";
@@ -48,10 +53,11 @@ export function OutputPageControls({
               applyAction({ type: "paper-format", value: event.target.value as OutputPageRatio })
             }
           >
-            <option value="A4-landscape">{text.ratioA4Landscape}</option>
-            <option value="A4-portrait">{text.ratioA4Portrait}</option>
-            <option value="letter-landscape">{text.ratioLetterLandscape}</option>
-            <option value="letter-portrait">{text.ratioLetterPortrait}</option>
+            {WEB_OUTPUT_PAPER_FORMATS.map((format) => (
+              <option key={format.id} value={format.id}>
+                {String(text[format.label_key as keyof LocaleCopy])}
+              </option>
+            ))}
           </Select>
         </label>
       )}

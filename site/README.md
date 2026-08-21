@@ -14,9 +14,10 @@ to a server.
 - JPEG, PNG, WebP, HEIC, and HEIF input.
 - HEIC/HEIF files are converted to JPEG in the browser before the existing slide
   processing pipeline runs.
-- Automatic contrast-line slide boundary detection in a Web Worker.
+- Automatic hybrid slide-boundary detection in a Web Worker.
 - Manual four-corner correction on a canvas.
-- Browser-local PDF generation with `pdf-lib`.
+- Browser-local PDF generation with `pdf-lib`, including A3, A4, and Letter paper presets in landscape and portrait.
+- Source and output ratio presets are defined in [`metadata/product.json`](../metadata/product.json) and generated into the web and CLI runtimes.
 - No server persistence and no upload endpoint.
 
 Large HEIC/HEIF batches can take longer to start because browser-side decoding

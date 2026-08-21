@@ -1,5 +1,6 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n";
+import { PRODUCT_METADATA } from "../product-metadata";
 import { ModalShell } from "./ui";
 
 interface AboutModalProps {
@@ -57,10 +58,10 @@ export function AboutModal({
         </div>
       </div>
       <div className="modalLinks">
-        <a href="https://github.com/waittim/Slides-Thief" target="_blank" rel="noopener noreferrer" className="modalLink">
+        <a href={PRODUCT_METADATA.repository} target="_blank" rel="noopener noreferrer" className="modalLink">
           {text.infoRepo}
         </a>
-        <a href="https://www.zekun.blog/2026/07/13/slides-thief/" target="_blank" rel="noopener noreferrer" className="modalLink">
+        <a href={PRODUCT_METADATA.blog} target="_blank" rel="noopener noreferrer" className="modalLink">
           {text.infoBlog}
         </a>
       </div>

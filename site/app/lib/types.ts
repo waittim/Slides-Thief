@@ -1,5 +1,6 @@
 import type { BatchPrior, DetectionMethod, Quad, ReviewReason } from "../detection/types";
 import type { EnhancementMode } from "../enhance";
+import { PRODUCT_METADATA } from "../product-metadata.ts";
 import type { OutputPageRatio, SourceFormatSettings } from "../ratio";
 
 export interface GtagWindow extends Window {
@@ -201,19 +202,7 @@ const REVIEW_REASONS: ReviewReason[] = [
   "candidate_out_of_bounds",
   "batch_inconsistency",
 ];
-const SOURCE_FORMATS = [
-  "16:9",
-  "9:16",
-  "4:3",
-  "3:4",
-  "16:10",
-  "10:16",
-  "A4-landscape",
-  "A4-portrait",
-  "letter-landscape",
-  "letter-portrait",
-  "custom",
-] as const;
+const SOURCE_FORMATS = PRODUCT_METADATA.ratios.web_source_format_ids;
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -372,15 +361,17 @@ export const defaultSettings: Settings = {
   fillColor: "auto",
 };
 
-export const heifExtensions = [".heic", ".heif"];
-export const supportedExtensions = [".jpg", ".jpeg", ".png", ".webp", ...heifExtensions];
+const webInputFormats = PRODUCT_METADATA.input_formats.filter((format) => format.web);
+export const heifExtensions = webInputFormats.find((format) => format.id === "heic-heif")?.extensions ?? [];
+export const supportedExtensions = webInputFormats.flatMap((format) => format.extensions);
 export const supportedMimeTypes = new Set([
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/heic",
-  "image/heif",
+  ...webInputFormats.flatMap((format) => format.mime_types),
   "image/heic-sequence",
   "image/heif-sequence",
 ]);
-export const heifMimeTypes = new Set(["image/heic", "image/heif", "image/heic-sequence", "image/heic-sequence"]);
+const heifFormat = webInputFormats.find((format) => format.id === "heic-heif");
+export const heifMimeTypes = new Set([
+  ...(heifFormat?.mime_types ?? []),
+  "image/heic-sequence",
+  "image/heif-sequence",
+]);

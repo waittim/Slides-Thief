@@ -8,6 +8,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from .detection.config import DETECTION_CONFIG
+from .product_metadata import PAPER_PRESETS, RATIO_PRESETS
 
 
 _MASK_CONFIG = DETECTION_CONFIG["maskLines"]
@@ -30,37 +31,6 @@ class Line:
         if abs(self.a) < 1e-9:
             return float("nan")
         return -(self.b * y + self.c) / self.a
-
-
-RATIO_PRESETS: dict[str, float] = {
-    "16:9": 16 / 9,
-    "4:3": 4 / 3,
-    "a4": 297 / 210,
-    "a4-landscape": 297 / 210,
-    "a3": 297 / 210,
-    "a3-landscape": 297 / 210,
-    "a5": 297 / 210,
-    "a4-portrait": 210 / 297,
-    "a3-portrait": 210 / 297,
-    "a5-portrait": 210 / 297,
-    "letter": 11 / 8.5,
-    "letter-landscape": 11 / 8.5,
-    "letter-portrait": 8.5 / 11,
-}
-
-PAPER_PRESETS: set[str] = {
-    "a4",
-    "a4-landscape",
-    "a3",
-    "a3-landscape",
-    "a5",
-    "a4-portrait",
-    "a3-portrait",
-    "a5-portrait",
-    "letter",
-    "letter-landscape",
-    "letter-portrait",
-}
 
 
 def is_paper_ratio(value: str) -> bool:

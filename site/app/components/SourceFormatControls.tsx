@@ -1,6 +1,7 @@
 import React from "react";
 import type { LocaleCopy, RatioUiCopy } from "../i18n";
 import {
+  WEB_SOURCE_BASE_FORMATS,
   splitSourceFormat,
   type BaseFormat,
 } from "../ratio";
@@ -34,6 +35,13 @@ export function SourceFormatControls({
     updateSettings(() => nextSettings);
     if (hasRun) runAutoWithSettings(nextSettings);
   };
+  const formatLabel = (format: (typeof WEB_SOURCE_BASE_FORMATS)[number]) => {
+    if ("label_key" in format && format.label_key) {
+      return String(text[format.label_key as keyof LocaleCopy]);
+    }
+    const fallback = format as { label?: string; id: string };
+    return fallback.label ?? fallback.id;
+  };
 
   return (
     <>
@@ -46,13 +54,14 @@ export function SourceFormatControls({
           }
         >
           <optgroup label={ratioUi.presentationGroup}>
-            <option value="16:9">{text.ratio16x9}</option>
-            <option value="4:3">{text.ratio4x3}</option>
-            <option value="16:10">16:10</option>
+            {WEB_SOURCE_BASE_FORMATS.filter((format) => format.kind === "presentation").map((format) => (
+              <option key={format.id} value={format.id}>{formatLabel(format)}</option>
+            ))}
           </optgroup>
           <optgroup label={ratioUi.documentGroup}>
-            <option value="A4">A4</option>
-            <option value="letter">Letter</option>
+            {WEB_SOURCE_BASE_FORMATS.filter((format) => format.kind === "document").map((format) => (
+              <option key={format.id} value={format.id}>{formatLabel(format)}</option>
+            ))}
           </optgroup>
           <option value="custom">{ratioUi.custom}</option>
         </Select>

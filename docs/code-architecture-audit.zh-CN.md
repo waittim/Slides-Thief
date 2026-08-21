@@ -267,7 +267,7 @@ flowchart LR
 ### F-24 [P3] 产品能力、比例预设和品牌文案在代码/文档间不一致
 
 - **位置**：`site/README.md:17`、`docs/faq.md:21-23`、`README.md:60-65`、`site/app/components/Header.tsx:117-249`、`src/slides_thief/exporter.py:56,205`
-- **证据**：Web README 仍称“contrast-line detector”，实际是混合检测器；FAQ/README 宣称 Web 提供 A3，但 UI 只有 A4 和 Letter；CLI 复核页仍使用旧名 “Slide Lens”。Python、TS、文档各自维护比例表。
+- **修复记录（F-24）**：Web README 已改为混合检测器表述；Web 已补齐 A3 横/纵向纸张输出、类型与 PDF 点尺寸；CLI 复核页统一使用 Slides Thief 品牌名；比例、格式能力、品牌和版本现由 `metadata/product.json` 生成到运行时与公开元数据。
 - **影响范围**：用户预期、支持请求、自动化文档消费者和品牌一致性。
 - **ROI**：4 / 高；**工作量**：S。
 - **最佳方案**：先决定 Web 是否真正支持 A3；若支持则加入类型、UI 和 PDF 点尺寸，否则修正文档。把产品名、URL、版本、格式能力和比例预设集中为可生成的元数据源。

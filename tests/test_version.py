@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 from slides_thief import __version__
+from slides_thief.product_metadata import PRODUCT_METADATA
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -19,6 +20,7 @@ def test_version_markers_match() -> None:
     cff_match = re.search(r"(?m)^version:\s*([^\s#]+)\s*$", citation_cff)
 
     assert package["version"] == __version__
+    assert PRODUCT_METADATA["version"] == __version__
     assert lock["version"] == __version__
     assert lock["packages"][""]["version"] == __version__
     assert citation["version"] == __version__

@@ -62,7 +62,11 @@ take longer to start than JPEG batches.
 - Light/dark themes and UI in nine languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Browser-local PDF generation.
 
-The CLI additionally supports A5 paper presets and arbitrary custom ratios such as `16:10`.
+The Web PDF paper presets include A3, A4, and US Letter in landscape and portrait. The CLI additionally supports A5 paper presets and arbitrary custom ratios such as `16:10`.
+
+Product name, URLs, input capabilities, and ratio presets are maintained in
+[`metadata/product.json`](metadata/product.json). Runtime metadata is generated
+with `scripts/generate_product_metadata.py`.
 
 ## Local CLI
 

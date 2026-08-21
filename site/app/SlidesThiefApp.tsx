@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import packageMetadata from "../package.json";
 import type { Quad } from "./detection/types";
 import { normalizePdfName } from "./filename";
 import {
@@ -34,8 +33,9 @@ import { Header } from "./components/Header";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
+import { PRODUCT_METADATA } from "./product-metadata";
 
-const APP_VERSION = packageMetadata.version;
+const APP_VERSION = PRODUCT_METADATA.version;
 
 export function SlidesThiefApp() {
   const [dragActive, setDragActive] = useState(false);

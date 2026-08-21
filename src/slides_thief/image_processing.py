@@ -12,9 +12,15 @@ import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
 
 from .geometry import perspective_coefficients
+from .product_metadata import PRODUCT_METADATA
 
 
-SUPPORTED = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".heif"}
+SUPPORTED = {
+    extension
+    for item in PRODUCT_METADATA["input_formats"]
+    if item["cli"]
+    for extension in item["extensions"]
+}
 DEFAULT_IMAGE_CACHE_PIXELS = 32_000_000
 
 

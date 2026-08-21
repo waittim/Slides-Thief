@@ -16,13 +16,13 @@ from .confidence import (
     calculate_confidence,
     is_ambiguous_candidate,
 )
-from .geometry import polygon_area, quad_iou
+from .geometry import normalized_corner_distance, polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
 from .image_sizing import DETECTION_MAX_SIDE, constrained_image_size
 from .numeric import average, percentile
 from .refine import refine_quad
-from .scoring import normalized_quad_distance, score_quad_candidate
+from .scoring import score_quad_candidate
 
 DETECTION_MAX_PIXELS = 1_200_000
 _CONTRAST_CONFIG = DETECTION_CONFIG["contrastLines"]
@@ -548,7 +548,7 @@ def detect_quad(
         if any(
             quad_iou(candidate["quad"], kept["quad"])
             > float(_DEDUP_CONFIG["iouThreshold"])
-            or normalized_quad_distance(candidate["quad"], kept["quad"], w, h)
+            or normalized_corner_distance(candidate["quad"], kept["quad"], w, h)
             < float(_DEDUP_CONFIG["cornerDistanceThreshold"])
             for kept in ranked
         ):

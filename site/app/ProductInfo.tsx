@@ -1,3 +1,5 @@
+import { PRODUCT_METADATA } from "./product-metadata";
+
 export function ProductInfo() {
   return (
     <section className="productInfo" aria-hidden="true" inert>
@@ -12,7 +14,7 @@ export function ProductInfo() {
       <div className="productInfoGrid">
         <article>
           <h3>Supported images</h3>
-          <p>JPEG, PNG, WebP, HEIC, and HEIF. The source format defaults to 16:9, with 4:3, 16:10, A4, Letter, and custom alternatives.</p>
+          <p>JPEG, PNG, WebP, HEIC, and HEIF. The source format defaults to 16:9, with 4:3, 16:10, A4, Letter, and custom alternatives; PDF paper output includes A3, A4, and Letter.</p>
         </article>
         <article>
           <h3>Automatic and manual correction</h3>
@@ -37,7 +39,7 @@ export function ProductInfo() {
           <h3>CLI and machine-readable reports</h3>
           <p>
             Batch jobs can produce corrected images, review pages, and JSON reports. See the{" "}
-            <a href="https://github.com/waittim/Slides-Thief#local-cli">CLI documentation</a>.
+            <a href={`${PRODUCT_METADATA.repository}#local-cli`}>CLI documentation</a>.
           </p>
         </article>
       </div>

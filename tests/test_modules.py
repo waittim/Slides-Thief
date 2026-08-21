@@ -90,7 +90,7 @@ def test_exporter_pdf_and_html(tmp_path: Path) -> None:
 
     html_path = tmp_path / "review.html"
     make_manual_review_html([{"filename": "test.jpg", "image": "test.jpg", "quad": [[0, 0], [10, 0], [10, 10], [0, 10]], "confidence": 0.9, "needsReview": False, "method": "test"}], html_path)
-    assert html_path.exists() and "Slide Lens Manual Review" in html_path.read_text(encoding="utf-8")
+    assert html_path.exists() and "Slides Thief Manual Review" in html_path.read_text(encoding="utf-8")
 
 
 def test_decoded_image_cache_reuses_entries_within_pixel_budget_and_closes_files(

@@ -51,7 +51,7 @@ The corrected slide keeps its source ratio and is contained on the output page.
 Standard paper sizes use white margins. `--ratio` remains as a deprecated
 compatibility option that sets both ratios.
 
-The web app exposes 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscape and portrait. A5 and arbitrary custom ratios are CLI-only.
+The web app exposes 16:9, 4:3, A3/A4 landscape and portrait, and Letter landscape and portrait. A5 and arbitrary custom ratios are CLI-only.
 
 ## Options
 

@@ -38,6 +38,9 @@ jobs:
       - name: Check generated detection configuration
         run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/generate_detection_config.py --check
 
+      - name: Check generated product metadata
+        run: PYTHONDONTWRITEBYTECODE=1 python scripts/generate_product_metadata.py --check
+
       - name: Check packaged JSON Schemas
         run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/sync_python_schemas.py --check
 

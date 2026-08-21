@@ -9,7 +9,7 @@ Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run
 ### Web features
 
 - Source formats: 16:9 by default, with explicit 4:3, 16:10, A4 portrait/landscape, Letter portrait/landscape, and custom ratios.
-- PDF layouts: match the selected source format, physical A4 or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
+- PDF layouts: match the selected source format, physical A3, A4, or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
 - Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
 - UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Light and dark themes.
@@ -47,6 +47,7 @@ Edit corners in `manual_review.html`, export `manual_quads.json`, then run again
 
 ## Contracts
 
+- https://slidesthief.com/product-metadata.json
 - https://slidesthief.com/schemas/slide-lens-report.schema.json
 - https://slidesthief.com/schemas/manual-quads.schema.json
 - Homepage HTML discovery: `describedby` → /llms.txt, `service-doc` → /llms-full.txt, `sitemap` → /sitemap.xml

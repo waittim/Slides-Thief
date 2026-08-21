@@ -18,7 +18,7 @@ HEIC/HEIF conversion uses the browser on the web and macOS `sips` in the CLI.
 
 ## Which output ratios are available?
 
-The web app offers 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscape and portrait. Paper presets fill margins with white.
+The web app offers 16:9, 4:3, and PDF paper presets for A3, A4, and Letter in landscape and portrait. Paper presets fill margins with white.
 
 The CLI adds A5 presets and arbitrary custom ratios such as `16:10` or `1.777`.
 
