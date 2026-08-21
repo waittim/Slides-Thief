@@ -11,6 +11,7 @@ const {
   pdfPageDimensions,
   sourceFormatRatioValue,
   splitSourceFormat,
+  WEB_OUTPUT_PAPER_FORMATS,
 } = await import(
   new URL("../app/ratio.ts", import.meta.url).href
 );
@@ -22,10 +23,14 @@ test("parseRatio parses preset ratios correctly", () => {
   assert.equal(parseRatio("3:4"), 3 / 4);
   assert.equal(parseRatio("16:10"), 16 / 10);
   assert.equal(parseRatio("10:16"), 10 / 16);
-  assert.equal(parseRatio("A4-landscape"), 297 / 210);
-  assert.equal(parseRatio("a4-landscape"), 297 / 210);
-  assert.equal(parseRatio("A4-portrait"), 210 / 297);
-  assert.equal(parseRatio("a4-portrait"), 210 / 297);
+  assert.equal(parseRatio("A4-landscape"), 841.89 / 595.28);
+  assert.equal(parseRatio("a4-landscape"), 841.89 / 595.28);
+  assert.equal(parseRatio("A4-portrait"), 595.28 / 841.89);
+  assert.equal(parseRatio("A3-landscape"), 1190.55 / 841.89);
+  assert.equal(parseRatio("A3-portrait"), 841.89 / 1190.55);
+  assert.equal(parseRatio("A5-landscape"), 595.28 / 419.53);
+  assert.equal(parseRatio("A5-portrait"), 419.53 / 595.28);
+  assert.equal(parseRatio("a4-portrait"), 595.28 / 841.89);
   assert.equal(parseRatio("letter-landscape"), 11 / 8.5);
   assert.equal(parseRatio("LETTER-LANDSCAPE"), 11 / 8.5);
   assert.equal(parseRatio("letter-portrait"), 8.5 / 11);
@@ -50,6 +55,7 @@ test("deriveSourceFormat and splitSourceFormat work symmetrically", () => {
   assert.deepEqual(splitSourceFormat("16:9"), { baseFormat: "16:9", orientation: "landscape" });
   assert.deepEqual(splitSourceFormat("A4-portrait"), { baseFormat: "A4", orientation: "portrait" });
   assert.deepEqual(splitSourceFormat("A4-landscape"), { baseFormat: "A4", orientation: "landscape" });
+  assert.deepEqual(splitSourceFormat("custom", "portrait"), { baseFormat: "custom", orientation: "portrait" });
 });
 
 test("parseRatio parses custom ratio strings and falls back gracefully", () => {
@@ -71,6 +77,7 @@ test("isPaperRatio recognizes paper ratios case-insensitively", () => {
   assert.equal(isPaperRatio("A4"), true);
   assert.equal(isPaperRatio("Letter"), true);
   assert.equal(isPaperRatio("A3"), true);
+  assert.equal(isPaperRatio("A3-landscape"), true);
 
   assert.equal(isPaperRatio("16:9"), false);
   assert.equal(isPaperRatio("4:3"), false);
@@ -88,17 +95,38 @@ test("pageLayoutMode progressively discloses paper and custom page settings", ()
 });
 
 test("source formats support presentation, document, and custom ratios", () => {
-  assert.equal(sourceFormatRatioValue("16:9"), 16 / 9);
-  assert.equal(sourceFormatRatioValue("9:16"), 9 / 16);
-  assert.equal(sourceFormatRatioValue("A4-portrait"), 210 / 297);
-  assert.equal(sourceFormatRatioValue("letter-landscape"), 11 / 8.5);
-  assert.equal(sourceFormatRatioValue("custom", 1.5), 1.5);
-  assert.equal(sourceFormatRatioValue("custom", 1.5, "portrait"), 1 / 1.5);
+  const cases = [
+    { sourceFormat: "16:9", sourceOrientation: "landscape", expected: 16 / 9 },
+    { sourceFormat: "9:16", sourceOrientation: "portrait", expected: 9 / 16 },
+    { sourceFormat: "A4-portrait", sourceOrientation: "portrait", expected: 595.28 / 841.89 },
+    { sourceFormat: "letter-landscape", sourceOrientation: "landscape", expected: 11 / 8.5 },
+    { sourceFormat: "custom", sourceOrientation: "landscape", sourceCustomRatio: 1.5, expected: 1.5 },
+    { sourceFormat: "custom", sourceOrientation: "portrait", sourceCustomRatio: 1.5, expected: 1 / 1.5 },
+  ];
+
+  for (const { expected, ...settings } of cases) {
+    assert.equal(sourceFormatRatioValue(settings), expected, JSON.stringify(settings));
+  }
   assert.equal(outputPageRatioValue("match-source", 4 / 3), 4 / 3);
 });
 
 test("standard paper outputs use physical PDF point dimensions", () => {
   assert.deepEqual(pdfPageDimensions("A4-portrait", 2400, 3394), [595.28, 841.89]);
+  assert.deepEqual(pdfPageDimensions("A3-landscape", 2400, 1697), [1190.55, 841.89]);
   assert.deepEqual(pdfPageDimensions("letter-landscape", 2400, 1855), [792, 612]);
   assert.deepEqual(pdfPageDimensions("match-source", 2400, 1350), [2400, 1350]);
+});
+
+test("web paper output metadata includes A3 in both orientations", () => {
+  assert.deepEqual(
+    WEB_OUTPUT_PAPER_FORMATS.map(({ id }) => id),
+    [
+      "A4-landscape",
+      "A4-portrait",
+      "A3-landscape",
+      "A3-portrait",
+      "letter-landscape",
+      "letter-portrait",
+    ],
+  );
 });

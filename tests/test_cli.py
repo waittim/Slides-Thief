@@ -1,24 +1,35 @@
+import json
 import math
+import re
+import shutil
+import subprocess
+import textwrap
+from argparse import Namespace
+from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
+    detect_quad,
     enhance_slide,
     is_paper_ratio,
     list_images,
     order_quad,
     parse_ratio,
+    process,
     resolve_enhancement_mode,
     warp_slide,
     warp_slide_contained,
-    detect_quad,
 )
 from slides_thief.detection.batch_prior import build_batch_priors
+from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
-from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
+from slides_thief.exporter import make_manual_review_html, scale_quad
+from slides_thief.product_metadata import PAPER_PAGE_DIMENSIONS
 
 
 def test_parse_ratio_accepts_colon_and_float_values() -> None:
@@ -26,12 +37,303 @@ def test_parse_ratio_accepts_colon_and_float_values() -> None:
     assert parse_ratio("1.25") == 1.25
 
 
+def test_cli_manual_review_round_trips_large_image_coordinates(tmp_path: Path, monkeypatch) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    input_dir.mkdir()
+    Image.new("RGB", (4000, 3000), (80, 90, 100)).save(input_dir / "slide.jpg")
+
+    source_quad = np.array(
+        [[250, 375], [3500, 300], [3600, 2550], [300, 2700]],
+        dtype=np.float64,
+    )
+
+    def fake_detect_quad(image, source_ratio, manual_quad=None, **kwargs):
+        quad = np.asarray(manual_quad, dtype=np.float64) if manual_quad is not None else source_quad
+        return quad, {
+            "method": "manual" if manual_quad is not None else "test",
+            "confidence": 0.9,
+            "needs_review": False,
+            "review_reasons": [],
+        }
+
+    monkeypatch.setattr("slides_thief.cli.detect_quad", fake_detect_quad)
+    args = Namespace(
+        input=str(input_dir),
+        output_dir=str(output_dir),
+        work_dir=str(work_dir),
+        ratio=None,
+        source_ratio="16:9",
+        output_ratio="match-slide",
+        width=800,
+        height=None,
+        pdf_name="slides.pdf",
+        manual=None,
+        jpeg_quality=92,
+        enhancement="original",
+        grayscale=False,
+        clean_converted=False,
+    )
+
+    result = process(args)
+    item = json.loads((output_dir / "manual_review_data.json").read_text(encoding="utf-8"))[0]
+
+    assert item["origWidth"] == 4000
+    assert item["origHeight"] == 3000
+    assert item["assetWidth"] == 1600
+    assert item["assetHeight"] == 1200
+    assert item["sourceQuad"] == source_quad.tolist()
+    assert item["assetQuad"] == [[100.0, 150.0], [1400.0, 120.0], [1440.0, 1020.0], [120.0, 1080.0]]
+    assert "quad" not in item
+
+    restored_quad = scale_quad(
+        item["assetQuad"],
+        source_size=(item["assetWidth"], item["assetHeight"]),
+        target_size=(item["origWidth"], item["origHeight"]),
+    )
+    assert restored_quad == item["sourceQuad"]
+    assert result["review_items"][0]["sourceQuad"] == item["sourceQuad"]
+
+
+def test_cli_reuses_decoded_source_across_detection_and_export_passes(tmp_path: Path, monkeypatch) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    input_dir.mkdir()
+    source_paths = [input_dir / f"slide-{index}.jpg" for index in range(3)]
+    for source_path in source_paths:
+        Image.new("RGB", (400, 300), (80, 90, 100)).save(source_path)
+
+    source_quad = np.array(
+        [[25, 30], [375, 30], [375, 270], [25, 270]],
+        dtype=np.float64,
+    )
+    detect_modes = []
+
+    def fake_detect_quad(image, source_ratio, manual_quad=None, **kwargs):
+        used_batch_prior = kwargs.get("enable_batch_prior", False)
+        detect_modes.append(used_batch_prior)
+        return source_quad.copy(), {
+            "method": "batch-prior" if used_batch_prior else "test",
+            "confidence": 0.9 if used_batch_prior else 0.5,
+            "needs_review": not used_batch_prior,
+            "review_reasons": [],
+        }
+
+    monkeypatch.setattr("slides_thief.cli.detect_quad", fake_detect_quad)
+    monkeypatch.setattr(
+        "slides_thief.cli.build_batch_priors",
+        lambda results: [
+            {
+                "id": "test-prior",
+                "orientation": "landscape",
+                "normalized_quad": source_quad / np.array([400, 300], dtype=np.float64),
+                "member_count": 3,
+                "rms_deviation": 0.0,
+                "consistency": 1.0,
+            }
+        ],
+    )
+    original_open = Image.open
+    opened_paths = []
+
+    def tracking_open(path, *args, **kwargs):
+        if isinstance(path, (str, bytes, Path)):
+            opened_paths.append(Path(path).resolve())
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Image, "open", tracking_open)
+    process(
+        Namespace(
+            input=str(input_dir),
+            output_dir=str(output_dir),
+            work_dir=str(work_dir),
+            ratio=None,
+            source_ratio="16:9",
+            output_ratio="match-slide",
+            width=320,
+            height=None,
+            pdf_name="slides.pdf",
+            manual=None,
+            jpeg_quality=92,
+            enhancement="original",
+            grayscale=False,
+            clean_converted=False,
+        )
+    )
+
+    assert detect_modes == [False, False, False, True, True, True]
+    assert all(opened_paths.count(source_path.resolve()) == 1 for source_path in source_paths)
+
+
+def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path: Path) -> None:
+    if shutil.which("node") is None:
+        pytest.skip("Node.js is required to execute the generated review page")
+
+    html_path = tmp_path / "manual_review.html"
+    make_manual_review_html(
+        [
+            {
+                "filename": "slide.jpg",
+                "image": "manual_review_images/slide.jpg",
+                "origWidth": 4000,
+                "origHeight": 3000,
+                "assetWidth": 1600,
+                "assetHeight": 1200,
+                "sourceQuad": [[250, 375], [3500, 300], [3600, 2550], [300, 2700]],
+                "assetQuad": [[100, 150], [1400, 120], [1440, 1020], [120, 1080]],
+                "confidence": 0.9,
+                "needsReview": True,
+                "method": "test",
+                "reviewReasons": [],
+            }
+        ],
+        html_path,
+    )
+
+    harness = textwrap.dedent(
+        r"""
+        const fs = require("fs");
+        const vm = require("vm");
+
+        const html = fs.readFileSync(process.argv[1], "utf8");
+        const script = html.match(/<script>\n([\s\S]*)\n<\/script>/)[1];
+        const reviewData = html.match(/<script id="review-data" type="application\/json">([\s\S]*?)<\/script>/)[1];
+        let exported = null;
+        const context2d = new Proxy({}, { get: () => () => {} });
+
+        class Element {
+          constructor(id) {
+            this.id = id;
+            this.listeners = {};
+            this.style = {};
+            this.children = [];
+            this.textContent = "";
+          }
+          addEventListener(name, callback) { this.listeners[name] = callback; }
+          append(...children) { this.children.push(...children); }
+          appendChild(child) { this.children.push(child); }
+          getBoundingClientRect() { return { left: 0, top: 0, width: this.width || 1200, height: this.height || 900 }; }
+          getContext() { return context2d; }
+          setAttribute() {}
+          setPointerCapture() {}
+          releasePointerCapture() {}
+          click() { if (this.onclick) this.onclick(); }
+        }
+
+        const elements = new Map(
+          ["cv", "sidebar", "info", "toast", "status", "handles", "cornerKeyboardHelp", "prevBtn", "nextBtn", "resetBtn", "exportBtn"]
+            .map((id) => [id, new Element(id)])
+        );
+        elements.set("review-data", new Element("review-data"));
+        elements.get("review-data").textContent = reviewData;
+        const document = {
+          getElementById(id) { return elements.get(id); },
+          querySelectorAll() { return []; },
+          createElement() { return new Element("created"); }
+        };
+        const window = {
+          innerWidth: 1600,
+          innerHeight: 1300,
+          listeners: {},
+          addEventListener(name, callback) { this.listeners[name] = callback; },
+          requestAnimationFrame(callback) { callback(); }
+        };
+        class FakeImage {
+          constructor() { this.width = 1600; this.height = 1200; this.onload = null; }
+          set src(value) { if (this.onload) this.onload(); }
+        }
+        class FakeBlob {
+          constructor(parts) { this.parts = parts; }
+        }
+
+        const navigator = {
+          language: "en",
+          clipboard: { writeText(value) { exported = value; } }
+        };
+        vm.runInNewContext(script, {
+          document,
+          window,
+          navigator,
+          Image: FakeImage,
+          Blob: FakeBlob,
+          URL: { createObjectURL() { return "blob:review"; } },
+          localStorage: { getItem() { return null; } },
+          setTimeout() {},
+          Math,
+          JSON,
+          Object,
+          Array
+        });
+
+        const canvas = elements.get("cv");
+        canvas.listeners.pointerdown({ clientX: 75, clientY: 112.5, pointerId: 1, pointerType: "mouse", button: 0, currentTarget: canvas, preventDefault() {} });
+        canvas.listeners.pointermove({ clientX: 150, clientY: 150, pointerId: 1, currentTarget: canvas });
+        window.listeners.pointerup({ pointerId: 1, currentTarget: window });
+        elements.get("exportBtn").onclick();
+        process.stdout.write(exported);
+        """
+    )
+    completed = subprocess.run(
+        ["node", "-e", harness, str(html_path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+    assert json.loads(completed.stdout) == {
+        "slide.jpg": [[500, 500], [3500, 300], [3600, 2550], [300, 2700]]
+    }
+
+
+def test_manual_review_html_escapes_untrusted_data_and_uses_accessible_controls(tmp_path: Path) -> None:
+    html_path = tmp_path / "manual_review.html"
+    filename = "</script><script>window.wasInjected = true</script>.jpg"
+    make_manual_review_html(
+        [
+            {
+                "filename": filename,
+                "image": "manual_review_images/slide.jpg",
+                "assetQuad": [[0, 0], [10, 0], [10, 10], [0, 10]],
+                "confidence": 0.9,
+                "needsReview": False,
+                "method": "test",
+            }
+        ],
+        html_path,
+    )
+
+    html = html_path.read_text(encoding="utf-8")
+    data_match = re.search(r'<script id="review-data" type="application/json">([\s\S]*?)</script>', html)
+    assert data_match is not None
+    assert json.loads(data_match.group(1))[0]["filename"] == filename
+    assert r"\u003c/script\u003e" in data_match.group(1)
+    assert html.count("</script>") == 2
+    assert "innerHTML" not in html
+    assert '<div class="thumb"' not in html
+    assert 'class="corner-handles"' in html
+    assert 'button.className = "corner-handle"' in html
+    assert 'addEventListener("pointerdown"' in html
+    assert 'addEventListener("keydown"' in html
+    assert 'aria-live="polite"' in html
+
+
 def test_parse_ratio_accepts_named_paper_aliases() -> None:
-    assert abs(parse_ratio("A4") - (297 / 210)) < 1e-5
-    assert abs(parse_ratio("A4-portrait") - (210 / 297)) < 1e-5
+    assert abs(parse_ratio("A4") - (841.89 / 595.28)) < 1e-12
+    assert abs(parse_ratio("A4-portrait") - (595.28 / 841.89)) < 1e-12
     assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
     assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
-    assert abs(parse_ratio("A3") - (297 / 210)) < 1e-5
+    assert abs(parse_ratio("A3") - (1190.55 / 841.89)) < 1e-12
+    assert abs(parse_ratio("A5") - (595.28 / 419.53)) < 1e-12
+
+
+def test_paper_ratio_aliases_are_derived_from_physical_dimensions() -> None:
+    for paper_id, (width_points, height_points) in PAPER_PAGE_DIMENSIONS.items():
+        family = paper_id.split("-", 1)[0]
+        alias = family if paper_id.endswith("-landscape") else paper_id
+        expected = width_points / height_points
+        assert abs(parse_ratio(alias) - expected) < 1e-12
 
 
 def test_is_paper_ratio_recognizes_paper_presets() -> None:
@@ -85,7 +387,6 @@ def test_list_images_filters_supported_extensions(tmp_path) -> None:
 def test_enhance_slide_original_preserves_pixels() -> None:
     image = Image.fromarray(
         np.full((8, 8, 3), (120, 130, 140), dtype=np.uint8),
-        "RGB",
     )
     enhanced = enhance_slide(image, mode="original")
     assert np.array_equal(np.asarray(enhanced), np.asarray(image))
@@ -94,7 +395,6 @@ def test_enhance_slide_original_preserves_pixels() -> None:
 def test_enhance_slide_bw_is_grayscale() -> None:
     image = Image.fromarray(
         np.array([[[200, 40, 40], [40, 200, 40]], [[40, 40, 200], [180, 180, 40]]], dtype=np.uint8),
-        "RGB",
     )
     enhanced = np.asarray(enhance_slide(image, mode="bw"))
     assert np.allclose(enhanced[..., 0], enhanced[..., 1])
@@ -108,7 +408,7 @@ def test_enhance_slide_stats_ignore_edge_fill() -> None:
     arr[-5:, :] = (255, 0, 0)
     arr[:, :5] = (255, 0, 0)
     arr[:, -5:] = (255, 0, 0)
-    enhanced = np.asarray(enhance_slide(Image.fromarray(arr, "RGB"), mode="clean"))
+    enhanced = np.asarray(enhance_slide(Image.fromarray(arr), mode="clean"))
     center = enhanced[40:60, 40:60]
     assert abs(float(center[..., 0].mean()) - float(center[..., 1].mean())) < 4
     assert abs(float(center[..., 1].mean()) - float(center[..., 2].mean())) < 4
@@ -151,7 +451,7 @@ def test_contained_warp_preserves_source_ratio_on_paper_page() -> None:
 def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
     arr = np.full((100, 160, 3), 230, dtype=np.uint8)
     arr[12:88, 15:145] = 20
-    image = Image.fromarray(arr, "RGB")
+    image = Image.fromarray(arr)
 
     _, diagnostics = detect_quad(image, 16 / 9)
 
@@ -163,7 +463,7 @@ def test_dark_slide_uses_reverse_polarity_without_fallback() -> None:
 def test_hybrid_detector_reports_ranked_candidate_fields() -> None:
     arr = np.full((100, 160, 3), 20, dtype=np.uint8)
     arr[12:88, 15:145] = 230
-    image = Image.fromarray(arr, "RGB")
+    image = Image.fromarray(arr)
 
     _, diagnostics = detect_quad(image, 16 / 9)
 

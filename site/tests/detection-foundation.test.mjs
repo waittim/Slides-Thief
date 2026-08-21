@@ -36,7 +36,10 @@ test("fallback detections are always marked for review", () => {
 test("output page choices do not enter the detection settings contract", () => {
   const detectionSettings = {
     maxDetectionWidth: 900,
-    sourceRatioHint: sourceFormatRatioValue("16:9"),
+    sourceRatioHint: sourceFormatRatioValue({
+      sourceFormat: "16:9",
+      sourceOrientation: "landscape",
+    }),
     enableBatchPrior: false,
   };
   const image = solidImage(120, 80);

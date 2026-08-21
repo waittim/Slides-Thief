@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 const { evaluateEdgeEvidence } = await import(
@@ -7,7 +8,7 @@ const { evaluateEdgeEvidence } = await import(
 const { detectQuad, deduplicateCandidates } = await import(
   new URL("../app/detection/detect.ts", import.meta.url).href
 );
-const { buildImageFeatures } = await import(
+const { boxBlur, buildImageFeatures } = await import(
   new URL("../app/detection/image-features.ts", import.meta.url).href
 );
 const { maskLineDetector } = await import(
@@ -73,6 +74,21 @@ const settings = {
   enableBatchPrior: false,
 };
 
+const boxBlurFixture = JSON.parse(
+  await readFile(new URL("../../tests/fixtures/detection/box-blur.json", import.meta.url), "utf8")
+);
+
+test("box blur preserves shape, constants, and edge-replicated shared values", () => {
+  const { width, height, radius, input, expected } = boxBlurFixture;
+  const blurred = boxBlur(new Float64Array(input), width, height, radius);
+  assert.equal(blurred.length, input.length);
+  assert.deepEqual(
+    Array.from(boxBlur(new Float64Array([7.5, 7.5, 7.5, 7.5, 7.5, 7.5]), 2, 3, 3)),
+    [7.5, 7.5, 7.5, 7.5, 7.5, 7.5],
+  );
+  assert.deepEqual(Array.from(blurred), expected);
+});
+
 test("edge evidence supports inside-brighter and inside-darker polarity", () => {
   const brighter = buildImageFeatures(rectangleImage(120, 80, 20, 230, [20, 15, 100, 65]));
   const darker = buildImageFeatures(rectangleImage(120, 80, 230, 20, [20, 15, 100, 65]));
@@ -132,6 +148,27 @@ test("candidate deduplication keeps the highest-scoring near-identical quad", ()
   assert.deepEqual(deduplicateCandidates([second, first], 100, 70), [first]);
 });
 
+test("candidate deduplication uses exact convex IoU instead of raster sampling", () => {
+  const first = {
+    quad: [[100, 80], [900, 80], [900, 600], [100, 600]],
+    method: "contrast-lines",
+    polarity: [],
+    features: {},
+    rawScore: 0.9,
+    warnings: [],
+    diagnostics: {},
+  };
+  const second = {
+    ...first,
+    method: "mask-lines",
+    rawScore: 0.8,
+    quad: [[100, 96.5], [900, 96.5], [900, 616.5], [100, 616.5]],
+  };
+
+  assert.ok(quadIoU(first.quad, second.quad) < 0.94);
+  assert.equal(deduplicateCandidates([first, second], 1000, 700).length, 2);
+});
+
 test("orientation-guided Hough recovers a freely rotated perspective quad", () => {
   const expected = [[36, 15], [159, 38], [139, 111], [18, 83]];
   const image = polygonImage(180, 125, 22, 225, expected);
@@ -139,7 +176,7 @@ test("orientation-guided Hough recovers a freely rotated perspective quad", () =
   const candidates = houghLineDetector.detect(features, settings);
 
   assert.ok(candidates.length > 0);
-  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected, 180, 125))) > 0.82);
+  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected))) > 0.82);
   assert.ok(candidates[0].diagnostics.familyAngleDegrees >= 35);
 });
 

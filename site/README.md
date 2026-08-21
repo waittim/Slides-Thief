@@ -11,12 +11,25 @@ to a server.
 
 ## User Features
 
-- JPEG, PNG, WebP, HEIC, and HEIF input.
+<!-- BEGIN GENERATED: formats-en -->
+| Format | Web app | CLI |
+| --- | --- | --- |
+| JPEG / JPG | Yes | Yes |
+| PNG | Yes | Yes |
+| WebP | Yes | No |
+| TIFF | No | Yes |
+| HEIC / HEIF | Yes | Yes |
+<!-- END GENERATED: formats-en -->
+
 - HEIC/HEIF files are converted to JPEG in the browser before the existing slide
   processing pipeline runs.
-- Automatic contrast-line slide boundary detection in a Web Worker.
+- Automatic hybrid slide-boundary detection in a Web Worker.
 - Manual four-corner correction on a canvas.
 - Browser-local PDF generation with `pdf-lib`.
+<!-- BEGIN GENERATED: web-summary-en -->
+The Web PDF paper presets include A4, A3, Letter in landscape and portrait.
+<!-- END GENERATED: web-summary-en -->
+- Source and output ratio presets are defined in [`metadata/product.json`](../metadata/product.json) and generated into the web and CLI runtimes.
 - No server persistence and no upload endpoint.
 
 Large HEIC/HEIF batches can take longer to start because browser-side decoding

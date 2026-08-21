@@ -4,13 +4,16 @@
 
 The CLI writes `slide_lens_report.json`, containing the input directory, PDF
 path, separate `source_slide_ratio` and `output_page_ratio` values, output
-dimensions, and one detection record per slide. Each record includes its source
-and output path, detection method, confidence, review state, and four
-source-image corner coordinates.
+dimensions, batch-detection summary, and one detection record per slide. The
+`batch_summary` records preliminary and reliable result counts plus any camera
+position priors. Each prior includes its orientation, normalized four-corner
+quadrilateral, member count, RMS deviation, and consistency score. Each slide
+record includes its source and output path, detection method, confidence, review
+state, and four source-image corner coordinates.
 
 ## Manual review data
 
-The CLI also writes `manual_review_data.json`, which backs the generated `manual_review.html` page. Export `manual_quads.json` from that page for a second pass with `--manual`.
+The CLI also writes `manual_review_data.json`, which backs the generated `manual_review.html` page. Each item records `origWidth`/`origHeight` for the source photo, `assetWidth`/`assetHeight` for the review JPEG, `sourceQuad` in source-photo coordinates, and `assetQuad` in review-asset coordinates. The page edits `assetQuad` and converts it back to source coordinates when exporting `manual_quads.json`. Export that file for a second pass with `--manual`.
 
 ## Manual corner input
 

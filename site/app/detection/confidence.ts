@@ -1,7 +1,12 @@
-import { convexQuadIoU, normalizedCornerDistance } from "./geometry.ts";
+import { normalizedCornerDistance, quadIoU } from "./geometry.ts";
+import { DETECTION_CONFIG } from "./config.ts";
+import { clamp } from "./numeric.ts";
 import type { QuadCandidate } from "./types.ts";
 
-export const AUTO_REVIEW_CONFIDENCE = 0.68;
+const CONFIDENCE_CONFIG = DETECTION_CONFIG.confidence;
+const SCORING_CONFIG = DETECTION_CONFIG.scoring;
+const FORMULA_WEIGHTS = SCORING_CONFIG.formulaWeights;
+export const AUTO_REVIEW_CONFIDENCE = CONFIDENCE_CONFIG.autoReviewThreshold;
 
 export type ConfidenceBreakdown = {
   bestNormalizedScore: number;
@@ -23,7 +28,7 @@ export function calculateConfidence(
   height: number,
 ): ConfidenceBreakdown {
   const rawMargin = second ? Math.max(0, best.rawScore - second.rawScore) : best.rawScore;
-  const normalizedMargin = clamp(rawMargin / 0.18, 0, 1);
+  const normalizedMargin = clamp(rawMargin / CONFIDENCE_CONFIG.marginScale, 0, 1);
   const edgeEvidence = Array.isArray(best.diagnostics.edgeEvidence)
     ? best.diagnostics.edgeEvidence as Array<Record<string, unknown>>
     : [];
@@ -38,8 +43,9 @@ export function calculateConfidence(
       .filter((candidate) =>
         candidate === best ||
         (
-          normalizedCornerDistance(best.quad, candidate.quad, width, height) < 0.035 &&
-          convexQuadIoU(best.quad, candidate.quad) > 0.9
+          normalizedCornerDistance(best.quad, candidate.quad, width, height) <
+            SCORING_CONFIG.agreementCornerDistance &&
+          quadIoU(best.quad, candidate.quad) > SCORING_CONFIG.agreementIoU
         )
       )
       .map((candidate) => candidate.method)
@@ -50,16 +56,16 @@ export function calculateConfidence(
   const detectorAgreement = agreeingMethods.length >= 3
     ? 1
     : agreeingMethods.length === 2
-      ? 0.8
-      : 0.2;
+      ? CONFIDENCE_CONFIG.twoDetectorAgreement
+      : CONFIDENCE_CONFIG.minimumDetectorAgreement;
   const bestNormalizedScore = clamp(best.rawScore, 0, 1);
   const geometryValidity = clamp(best.features.geometryValidity, 0, 1);
   const confidence = clamp(
-    0.3 * bestNormalizedScore +
-    0.25 * normalizedMargin +
-    0.2 * minimumEdgeSupport +
-    0.15 * detectorAgreement +
-    0.1 * geometryValidity,
+    FORMULA_WEIGHTS.bestScore * bestNormalizedScore +
+    FORMULA_WEIGHTS.margin * normalizedMargin +
+    FORMULA_WEIGHTS.edgeSupport * minimumEdgeSupport +
+    FORMULA_WEIGHTS.detectorAgreement * detectorAgreement +
+    FORMULA_WEIGHTS.geometryValidity * geometryValidity,
     0,
     1,
   );
@@ -81,16 +87,12 @@ export function isAmbiguousCandidate(
   breakdown: ConfidenceBreakdown,
 ): boolean {
   return (
-    breakdown.normalizedMargin < 0.33 &&
-    secondBestIoU < 0.75 &&
-    breakdown.detectorAgreement < 0.8
+    breakdown.normalizedMargin < CONFIDENCE_CONFIG.ambiguousMargin &&
+    secondBestIoU < CONFIDENCE_CONFIG.ambiguousIoU &&
+    breakdown.detectorAgreement < CONFIDENCE_CONFIG.ambiguousAgreement
   );
 }
 
 function numeric(value: unknown, fallback: number): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
-}
-
-function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
 }

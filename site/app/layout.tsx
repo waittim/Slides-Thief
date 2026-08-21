@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { PRODUCT_METADATA } from "./product-metadata";
 
-const siteUrl = "https://slidesthief.com/";
-const title = "Slides Thief - Straighten Slide & Document Photos into PDFs";
-const description =
-  "Straighten skewed photos of slides or documents and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.";
+const siteUrl = PRODUCT_METADATA.website;
+const title = PRODUCT_METADATA.title;
+const description = PRODUCT_METADATA.description;
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
  
 export const metadata: Metadata = {
-  metadataBase: new URL("https://slidesthief.com"),
+  metadataBase: new URL(siteUrl),
   title,
   description,
-  applicationName: "Slides Thief",
+  applicationName: PRODUCT_METADATA.name,
   creator: "Zekun",
   alternates: {
     canonical: siteUrl,
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
     title,
     description,
     url: siteUrl,
-    siteName: "Slides Thief",
+    siteName: PRODUCT_METADATA.name,
     locale: "en_US",
     alternateLocale: ["zh_CN"],
     type: "website",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
         url: "/og-image.png",
         width: 1024,
         height: 537,
-        alt: "Slides Thief - Turn photographed slides or documents into clean PDFs",
+        alt: `${PRODUCT_METADATA.name} - Turn photographed slides or documents into clean PDFs`,
       },
     ],
   },
@@ -68,7 +68,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="Slides Thief" />
+        <meta name="apple-mobile-web-app-title" content={PRODUCT_METADATA.name} />
         {/* Google tag (gtag.js) */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}
         <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH" />

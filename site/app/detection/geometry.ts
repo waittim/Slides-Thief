@@ -1,4 +1,7 @@
 import type { Point, Quad } from "./types.ts";
+import { DETECTION_CONFIG } from "./config.ts";
+
+const GEOMETRY_CONFIG = DETECTION_CONFIG.geometry;
 
 export type Line = {
   a: number;
@@ -65,12 +68,17 @@ export function isConvexQuad(quad: Quad): boolean {
 export function geometryIsValid(quad: Quad, width: number, height: number): boolean {
   if (!quad.every(([x, y]) => Number.isFinite(x) && Number.isFinite(y))) return false;
   if (!isConvexQuad(quad)) return false;
-  if (polygonArea(quad) < width * height * 0.08) return false;
-  if (quad.some(([x, y]) => x < -width * 0.2 || x > width * 1.2 || y < -height * 0.2 || y > height * 1.2)) {
+  if (polygonArea(quad) < width * height * GEOMETRY_CONFIG.minimumAreaRatio) return false;
+  if (quad.some(([x, y]) =>
+    x < -width * GEOMETRY_CONFIG.boundsRatio ||
+    x > width * (1 + GEOMETRY_CONFIG.boundsRatio) ||
+    y < -height * GEOMETRY_CONFIG.boundsRatio ||
+    y > height * (1 + GEOMETRY_CONFIG.boundsRatio)
+  )) {
     return false;
   }
   const shortestEdge = Math.min(...quad.map((point, index) => distance(point, quad[(index + 1) % 4])));
-  if (shortestEdge < Math.min(width, height) * 0.1) return false;
+  if (shortestEdge < Math.min(width, height) * GEOMETRY_CONFIG.minimumEdgeRatio) return false;
   for (let index = 0; index < 4; index += 1) {
     const previous = quad[(index + 3) % 4];
     const current = quad[index];
@@ -80,7 +88,7 @@ export function geometryIsValid(quad: Quad, width: number, height: number): bool
     const cosine = (first[0] * second[0] + first[1] * second[1]) /
       Math.max(1e-9, Math.hypot(...first) * Math.hypot(...second));
     const angle = Math.acos(Math.max(-1, Math.min(1, cosine))) * 180 / Math.PI;
-    if (angle < 12 || angle > 168) return false;
+    if (angle < GEOMETRY_CONFIG.minimumAngleDegrees || angle > GEOMETRY_CONFIG.maximumAngleDegrees) return false;
   }
   return true;
 }
@@ -90,23 +98,7 @@ export function normalizedCornerDistance(first: Quad, second: Quad, width: numbe
   return first.reduce((sum, point, index) => sum + distance(point, second[index]), 0) / (4 * diagonal);
 }
 
-export function quadIoU(first: Quad, second: Quad, width: number, height: number): number {
-  const scale = Math.max(1, Math.ceil(Math.max(width, height) / 240));
-  let intersection = 0;
-  let union = 0;
-  for (let y = 0; y < height; y += scale) {
-    for (let x = 0; x < width; x += scale) {
-      const point: Point = [x + scale / 2, y + scale / 2];
-      const insideFirst = isPointInside(point, first);
-      const insideSecond = isPointInside(point, second);
-      if (insideFirst || insideSecond) union += 1;
-      if (insideFirst && insideSecond) intersection += 1;
-    }
-  }
-  return union ? intersection / union : 0;
-}
-
-export function convexQuadIoU(first: Quad, second: Quad): number {
+export function quadIoU(first: Quad, second: Quad): number {
   const intersection = clipConvexPolygon(first, second);
   const intersectionArea = polygonAreaPoints(intersection);
   const unionArea = polygonArea(first) + polygonArea(second) - intersectionArea;

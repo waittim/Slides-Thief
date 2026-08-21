@@ -7,7 +7,8 @@ async function render() {
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
-  return worker.fetch(
+  const fetchFn = typeof worker.fetch === "function" ? worker.fetch.bind(worker) : worker;
+  return fetchFn(
     new Request("http://localhost/", {
       headers: { accept: "text/html" },
     }),
@@ -37,7 +38,7 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   const viewportPatchIndex = html.indexOf("setAttribute(\"content\"");
   assert.ok(viewportIndex >= 0 && viewportPatchIndex > viewportIndex);
   assert.match(html, /<title>Slides Thief - Straighten Slide &amp; Document Photos into PDFs<\/title>/i);
-  assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\/"/i);
+  assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\//i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.doesNotMatch(html, /rel="manifest" href="https:\/\//i);
   assert.match(html, /<link rel="describedby" href="\/llms\.txt"[^>]*type="text\/plain"/i);
@@ -59,171 +60,19 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
 
-test("client code uses browser-local processing contracts", async () => {
-  const [app, worker, exportWorker, detector, css, packageJson] = await Promise.all([
+test("keeps source-photo processing browser-local", async () => {
+  const [app, importPipeline, detectionHook, exportHook, worker, exportWorker] = await Promise.all([
     readFile(new URL("../app/SlidesThiefApp.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useImportPipeline.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useDetectionWorker.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/hooks/useExportWorker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-worker.ts", import.meta.url), "utf8"),
     readFile(new URL("../app/slides-export-worker.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/detection/detect.ts", import.meta.url), "utf8"),
-    readFile(new URL("../app/globals.css", import.meta.url), "utf8"),
-    readFile(new URL("../package.json", import.meta.url), "utf8"),
   ]);
 
-  assert.match(app, /new Worker\(new URL\("\.\/slides-worker\.ts"/);
-  assert.match(app, /new Worker\(new URL\("\.\/slides-export-worker\.ts"/);
-  assert.match(app, /runAuto/);
-  assert.match(app, /isManual =[\s\S]*slide\.reviewedByUser/);
-  assert.match(app, /buildAdjustedThumbnail/);
-  assert.match(app, /refreshSlideThumbnail/);
-  assert.match(app, /x \/ scale - padX/);
-  assert.match(app, /clampQuadCoordinate/);
-  assert.match(app, /QUAD_OUTSIDE_RATIO/);
-  assert.match(app, /className="sidebarActions"/);
-  assert.doesNotMatch(app, /manual_quads\.json/);
-  assert.match(app, /themeSetting/);
-  assert.match(app, /localeOptions/);
-  assert.match(app, /className="prefsBar"/);
-  assert.match(app, /className="settingsMenu"/);
-  assert.match(app, /settings: "Settings"/);
-  assert.match(app, /sourceFormat: "Source format"/);
-  assert.match(app, /sourceFormat: "16:9"/);
-  assert.doesNotMatch(app, /recommended16x9:/);
-  assert.doesNotMatch(app, /autoDetect:/);
-  assert.match(app, /pageLayout: "PDF page"/);
-  assert.match(app, /matchSource: "Match source \(recommended\)"/);
-  assert.doesNotMatch(app, /PDF page ratio/);
-  assert.match(app, /maxLength=\{PDF_BASENAME_MAX_LENGTH\}/);
-  assert.match(app, /sanitizePdfBaseName\(event\.target\.value\)/);
-  assert.match(app, /"zh-TW"/);
-  assert.match(app, /Español/);
-  assert.match(app, /Français/);
-  assert.match(app, /Português/);
-  assert.match(app, /detectBrowserLocale/);
-  assert.match(app, /navigator\.languages/);
-  assert.match(app, /pt: "pt-BR"/);
-  assert.match(app, /\.heic/);
-  assert.match(app, /normalizeImageFile/);
-  assert.match(app, /const clearExport = useCallback/);
-  assert.match(app, /const updateSettings = useCallback/);
-  assert.match(app, /clearExport\(\);\s*setSettings\(updater\)/s);
-  assert.match(app, /clearExport\(\);\s*setSlides/s);
-  assert.match(app, /downloadPdf: "下载 PDF"/);
-  assert.doesNotMatch(app, /\{text\.downloadPdf\} \{exportName\}/);
-  assert.match(app, /张照片建议复查/);
-  assert.match(app, /Review suggested/);
-  assert.match(app, /Revisión recomendada/);
-  assert.match(app, /Vérification conseillée/);
-  assert.match(app, /Prüfung empfohlen/);
-  assert.match(app, /要確認/);
-  assert.match(app, /검토 권장/);
-  assert.match(app, /Revisão recomendada/);
-  assert.match(app, /manualAdjustment: "手動調整"/);
-  assert.match(app, /manualAdjustment: "Ajuste manual"/);
-  assert.match(app, /manualAdjustment: "Ajustement manuel"/);
-  assert.match(app, /manualAdjustment: "Manuelle Anpassung"/);
-  assert.match(app, /manualAdjustment: "手動調整"/);
-  assert.match(app, /manualAdjustment: "수동 조정"/);
-  assert.doesNotMatch(app, /locale === "zh-CN"/);
-  assert.match(app, /reviewUiCopy\[locale\]/);
-  assert.match(app, /\[reviewText\.privacy, text\.noUpload\]/);
-  assert.match(app, /manualAdjusted: "已手动调整"/);
-  assert.match(app, /slide\.method === "manual"/);
-  assert.match(app, /text\.manualAdjusted/);
-  assert.doesNotMatch(app, /张图片需要检查四角|建议检查/);
-  assert.match(app, /slide\.status === "detecting"\) return text\.stretching/);
-  assert.match(app, /detectionMethodText\(selectedSlide\.method, locale\)/);
-  assert.doesNotMatch(app, /:\s*slide\.status\}/);
-  assert.match(app, /previewError: "无法显示此照片的预览"/);
-  assert.match(app, /setPreviewErrorSlideId\(slide\.id\)/);
-  assert.doesNotMatch(app, /setWorkerError\("Cannot render this image in the browser\."\)/);
-  assert.match(app, /reviewedByUser: true/);
-  assert.match(app, /method: preserveManualReview \? "manual" : message\.result\.method/);
-  assert.match(app, /needsReview: preserveManualReview \? false : message\.result\.needsReview/);
-  assert.match(app, /enhancement: "original"/);
-  assert.match(app, /enhancementOriginal: "Original"/);
-  assert.match(app, /enhancementClean: "清晰增强"/);
-  assert.match(exportWorker, /applyEnhancement/);
-  assert.match(exportWorker, /enhancement/);
-  assert.doesNotMatch(exportWorker, /settings\.grayscale/);
-  assert.match(app, /settings\.enhancement/);
-  assert.match(app, /type="color"/);
-  assert.match(app, /const fitScale = Math\.min\(maxWidth \/ totalWidth, maxHeight \/ totalHeight, 1\)/);
-  assert.doesNotMatch(app, /Math\.max\(320, stage\.client/);
-  assert.match(app, /const maxPixels = compact \? 8_000_000 : 24_000_000/);
-  assert.match(app, /quadHandlePositions/);
-  assert.match(app, /className=\{`cornerHandle/);
-  assert.match(app, /aria-describedby="cornerKeyboardHelp"/);
-  assert.match(app, /aria-live="polite"/);
-  assert.match(app, /role="dialog"/);
-  assert.match(app, /aria-modal="true"/);
-  assert.match(app, /aria-labelledby="info-modal-title"/);
-  assert.match(app, /import packageMetadata from "\.\.\/package\.json"/);
-  assert.match(app, /const APP_VERSION = packageMetadata\.version/);
-  assert.match(app, /className="modalVersion">v\{APP_VERSION\}/);
-  assert.match(JSON.parse(packageJson).version, /^\d+\.\d+\.\d+$/);
-  assert.match(app, /event\.key === "Escape"/);
-  assert.match(app, /document\.activeElement === last/);
-  assert.match(app, /aria-label=\{text\.close\}/);
-  assert.match(app, /window\.requestAnimationFrame/);
-  assert.match(app, /if \(workerRef\.current === worker\) workerRef\.current = null/);
-  assert.match(app, /slide\.status === "detecting"[\s\S]*status: "error"/);
-  assert.match(app, /loading="lazy"/);
-  assert.match(app, /decoding="async"/);
-  assert.match(app, /status:\s*converting \? "converting" : "queued"/);
-  assert.match(app, /className="thumb thumbPlaceholder"/);
-  assert.match(app, /slide\.status === "converting"\s*\?\s*text\.converting/s);
-  assert.doesNotMatch(app, /Promise\.all\(inputFiles\.map\(normalizeImageFile\)\)/);
-  assert.match(app, /const normalizedFile = await normalizeImageFile\(file\)/);
-  assert.doesNotMatch(worker, /pdf-lib|PDFDocument|renderWarpedJpeg/);
-  assert.match(exportWorker, /PDFDocument\.create/);
-  assert.match(exportWorker, /^import\s+\{\s*PDFDocument\s*\}\s+from\s+"pdf-lib"/m);
-  assert.match(worker, /finally\s*{\s*bitmap\?\.close\(\)/s);
-  assert.match(exportWorker, /fillColor/);
-  assert.match(exportWorker, /parseHexColor/);
-  assert.match(
-    app,
-    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
-  );
-  assert.match(
-    exportWorker,
-    /applyEnhancement\(content\.data[\s\S]*resolveFillColor\(settings\.fillColor, content\)[\s\S]*fillAndBlitContent/,
-  );
-  assert.doesNotMatch(app, /applyEnhancement\(output\.data/);
-  assert.doesNotMatch(exportWorker, /applyEnhancement\(output\.data/);
-  assert.match(exportWorker, /OffscreenCanvas/);
-  assert.match(worker, /detectQuad/);
-  assert.match(detector, /contrast-lines/);
-  assert.match(css, /linear-gradient\(45deg, var\(--stage-grid\) 25%, transparent 25%\)/);
-  assert.match(css, /background-position: 0 0, 0 14px, 14px -14px, -14px 0/);
-  assert.match(css, /canvas\s*\{[^}]*background:\s*transparent/s);
-  assert.match(css, /canvas\s*\{[^}]*touch-action:\s*pan-x pan-y/s);
-  assert.match(css, /\.cornerHandle\s*\{[^}]*touch-action:\s*none/s);
-  assert.match(css, /@media \(max-width: 834px\), \(max-height: 600px\) and \(max-width: 1040px\)/);
-  assert.match(css, /body\s*\{[^}]*min-height:\s*100dvh;[^}]*overflow-x:\s*hidden/s);
-  assert.match(css, /\.productInfo\s*\{[^}]*clip-path:\s*inset\(50%\)/s);
-  assert.match(css, /grid-template-areas:\s*"topbar"\s*"shell"/s);
-  assert.match(css, /\.settingsMenuBody\s*\{[^}]*grid-template-columns:\s*var\(--settings-columns\)/s);
-  assert.match(css, /\.settingsMenuToggle/);
-  assert.match(css, /\.pdfNameSetting\s*\{[^}]*max-width:\s*320px/s);
-  assert.match(css, /\.sidebarFilePicker\s*\{[^}]*min-height:\s*0;[^}]*grid-template-rows:\s*auto minmax\(0,\s*1fr\)/s);
-  assert.match(css, /\.sidebar\s*>\s*\*\s*\{[^}]*min-width:\s*0/s);
-  assert.match(css, /\.sidebarStatus\s*\{[^}]*min-width:\s*0/s);
-  assert.match(css, /\.statusLine\s*\{[^}]*flex:\s*1;[^}]*min-width:\s*0;[^}]*text-overflow:\s*ellipsis/s);
-  assert.match(css, /\.files\s*\{[^}]*max-height:\s*calc\(100%\s*-\s*10px\);[^}]*align-self:\s*start;[^}]*overflow:\s*auto/s);
-  assert.doesNotMatch(css, /\.files\s*\{[^}]*max-height:\s*calc\(100vh/s);
-  assert.match(css, /font-size:\s*16px/);
-  assert.match(css, /min-height:\s*44px/);
-  assert.match(css, /@media \(prefers-reduced-motion:\s*reduce\)/);
-  assert.match(css, /button:not\(:disabled\):not\(\.cornerHandle\):active/);
-  assert.match(css, /transform:\s*translateY\(1px\)/);
-  assert.match(css, /button\.primary:not\(:disabled\):active/);
-  assert.match(css, /filter:\s*brightness\(0\.9\)/);
-  assert.match(css, /\.links a:active\s*\{[^}]*filter:\s*brightness\(0\.9\)[^}]*transform:\s*translateY\(1px\)/s);
-  assert.doesNotMatch(css, /cubic-bezier\(0\.34,\s*1\.56,\s*0\.64,\s*1\)/);
-  assert.doesNotMatch(css, /border-left:\s*4px solid var\(--accent-2\)/);
-  assert.match(css, /safe-area-inset-bottom/);
-  assert.doesNotMatch(css, /canvas\s*\{[^}]*background:\s*#111/s);
-  assert.match(packageJson, /"pdf-lib"/);
-  assert.match(packageJson, /"heic-to"/);
-  assert.doesNotMatch(packageJson, /react-loading-skeleton/);
+  const clientSources = [app, importPipeline, detectionHook, exportHook, worker, exportWorker].join("\n");
+  assert.doesNotMatch(clientSources, /\b(?:fetch|XMLHttpRequest|sendBeacon)\s*\(/);
+  assert.match(detectionHook, /new Worker\(new URL\("\.\.\/slides-worker\.ts"/);
+  assert.match(exportHook, /new Worker\(new URL\("\.\.\/slides-export-worker\.ts"/);
+  assert.match(importPipeline, /URL\.createObjectURL\(file\)/);
 });

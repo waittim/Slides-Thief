@@ -95,7 +95,7 @@ for (const [name, createScene] of [
   test(`${name} keeps the supported outer boundary`, () => {
     const result = detectQuad(createScene(), SETTINGS);
     assert.notEqual(result.method, "fallback-frame");
-    assert.ok(quadIoU(result.quad, EXPECTED_QUAD, WIDTH, HEIGHT) >= 0.9);
+    assert.ok(quadIoU(result.quad, EXPECTED_QUAD) >= 0.9);
   });
 }
 

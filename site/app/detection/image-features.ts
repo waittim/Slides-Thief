@@ -1,4 +1,5 @@
 import { buildGradientPyramid } from "./gradient-pyramid.ts";
+import { clamp } from "./numeric.ts";
 import type { ImageDataLike, ImageFeatures } from "./types.ts";
 
 export function buildImageFeatures(imageData: ImageDataLike): ImageFeatures {
@@ -55,14 +56,4 @@ export function sampleGray(features: ImageFeatures, x: number, y: number): numbe
   const xi = clamp(Math.round(x), 0, features.width - 1);
   const yi = clamp(Math.round(y), 0, features.height - 1);
   return features.gray[yi * features.width + xi];
-}
-
-export function percentile(values: ArrayLike<number>, fraction: number): number {
-  const ordered = Array.from(values).sort((a, b) => a - b);
-  if (!ordered.length) return 0;
-  return ordered[Math.min(ordered.length - 1, Math.max(0, Math.floor((ordered.length - 1) * fraction)))];
-}
-
-export function clamp(value: number, minimum: number, maximum: number): number {
-  return Math.max(minimum, Math.min(maximum, value));
 }

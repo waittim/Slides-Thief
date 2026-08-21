@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-03T21:24:00Z",
+  "generatedAt": "2026-08-11T00:00:00Z",
   "title": "Design System: Slides Thief (PPT捕手)",
   "extensions": {
     "colorMeta": {
@@ -27,30 +27,58 @@
         "displayName": "Handle Gold",
         "canonical": "#ffd84a",
         "tonalRamp": ["#665100", "#997a00", "#cca300", "#ffd84a", "#ffe275", "#ffeb99", "#fff4c2", "#fffbe6"]
+      },
+      "panel": {
+        "role": "neutral",
+        "displayName": "Panel Surface",
+        "canonical": "#ffffff",
+        "tonalRamp": ["#11181b", "#171d20", "#222b2f", "#344147", "#526069", "#aebbc4", "#edf3f5", "#ffffff"]
       }
     },
     "typographyMeta": {
-      "display": { "displayName": "Display", "purpose": "App header and main titles." },
-      "body": { "displayName": "Body", "purpose": "UI controls, labels, and descriptions." },
-      "mono": { "displayName": "Monospace", "purpose": "Quad coordinates and metadata." }
+      "body": { "displayName": "Body", "purpose": "Default interface copy and control text." },
+      "title": { "displayName": "Title", "purpose": "Brand, active slide, and modal headings." },
+      "compact": { "displayName": "Compact", "purpose": "Settings, status lines, buttons, and dense metadata." },
+      "label": { "displayName": "Label", "purpose": "Field labels and inspector keys." },
+      "mono": { "displayName": "Monospace", "purpose": "Coordinates, measurements, and keyboard shortcut keycaps." }
     },
     "shadows": [
       {
         "name": "control-shadow",
-        "value": "0 10px 28px rgba(21, 32, 38, 0.08)",
-        "purpose": "Floating canvas toolbar and inspector panels."
+        "value": "var(--shadow)",
+        "purpose": "Canvas output, settings panels, and modal cards."
+      },
+      {
+        "name": "small-control-shadow",
+        "value": "var(--shadow-small)",
+        "purpose": "Floating delete affordances."
+      },
+      {
+        "name": "loupe-shadow",
+        "value": "var(--shadow-loupe)",
+        "purpose": "Magnifying loupe while dragging a corner."
+      },
+      {
+        "name": "keycap-shadow",
+        "value": "var(--shadow-keycap)",
+        "purpose": "Keyboard shortcut keycaps."
       }
     ],
     "motion": [
       {
-        "name": "ease-out-cubic",
+        "name": "ease-standard",
+        "value": "ease",
+        "purpose": "Short control, border, and color transitions."
+      },
+      {
+        "name": "ease-emphasized",
         "value": "cubic-bezier(0.16, 1, 0.3, 1)",
-        "purpose": "Modal dialog scale-in and drawer expansion."
+        "purpose": "Modal scale-in and larger surface transitions."
       }
     ],
     "breakpoints": [
-      { "name": "mobile", "value": "640px" },
-      { "name": "tablet", "value": "900px" }
+      { "name": "tablet", "value": "1040px", "purpose": "Stack the desktop workbench." },
+      { "name": "mobile", "value": "834px", "purpose": "Collapse settings and switch to a single-column flow." }
     ]
   },
   "components": [
@@ -58,42 +86,91 @@
       "name": "Primary Button",
       "kind": "button",
       "refersTo": "button-primary",
-      "description": "Standard action button.",
+      "description": "Default high-contrast action button.",
       "html": "<button class=\"ds-btn-primary\">Reset Corners</button>",
-      "css": ".ds-btn-primary { background: #172026; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9375rem; font-weight: 500; border: none; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; } .ds-btn-primary:hover { background: #25333d; transform: translateY(-1px); }"
+      "css": ".ds-btn-primary { background: var(--primary-bg); color: var(--primary-text); height: var(--component-control-height); padding: 0 var(--component-control-padding-inline); border: 1px solid var(--primary-bg); border-radius: var(--component-control-radius); font: var(--font-weight-semibold) var(--font-size-md)/var(--line-height-ui) var(--font-family-sans); cursor: pointer; transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease; } .ds-btn-primary:hover { filter: brightness(1.08); } .ds-btn-primary:focus-visible { outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%); outline-offset: 2px; } .ds-btn-primary:active { transform: translateY(1px); }"
     },
     {
-      "name": "Export PDF Button",
+      "name": "Accent Button",
       "kind": "button",
       "refersTo": "button-accent",
-      "description": "Primary call-to-action for compilation.",
+      "description": "Teal confirmation and export action.",
       "html": "<button class=\"ds-btn-accent\">Export PDF</button>",
-      "css": ".ds-btn-accent { background: #0f766e; color: #ffffff; padding: 10px 20px; border-radius: 8px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 0.9375rem; font-weight: 600; border: none; cursor: pointer; transition: background 0.15s ease, transform 0.15s ease; } .ds-btn-accent:hover { background: #149b91; transform: translateY(-1px); }"
+      "css": ".ds-btn-accent { background: var(--accent-2); color: var(--accent-2-text); height: var(--component-control-height); padding: 0 var(--component-control-padding-inline); border: 1px solid var(--accent-2); border-radius: var(--component-control-radius); font: var(--font-weight-semibold) var(--font-size-md)/var(--line-height-ui) var(--font-family-sans); cursor: pointer; transition: background-color 0.12s ease, border-color 0.12s ease, transform 0.08s ease; } .ds-btn-accent:hover { filter: brightness(1.08); } .ds-btn-accent:focus-visible { outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%); outline-offset: 2px; } .ds-btn-accent:active { transform: translateY(1px); }"
+    },
+    {
+      "name": "Brand Title",
+      "kind": "custom",
+      "refersTo": "title",
+      "description": "The shared title style used by brand and modal headings.",
+      "html": "<span class=\"ds-title\">Slides Thief</span>",
+      "css": ".ds-title { color: var(--text); font: var(--font-weight-bold) var(--font-size-lg)/var(--line-height-ui) var(--font-family-sans); }"
+    },
+    {
+      "name": "Modal Title",
+      "kind": "custom",
+      "refersTo": "title",
+      "description": "The same title contract applied inside the information modal.",
+      "html": "<h3 class=\"ds-modal-title\">About Slides Thief</h3>",
+      "css": ".ds-modal-title { margin: 0; color: var(--text); font: var(--font-weight-bold) var(--font-size-lg)/var(--line-height-ui) var(--font-family-sans); }"
+    },
+    {
+      "name": "Text Field",
+      "kind": "input",
+      "refersTo": "input-field",
+      "description": "Theme-aware text and numeric field.",
+      "html": "<input class=\"ds-input\" type=\"text\" value=\"slides.pdf\" aria-label=\"PDF name\" />",
+      "css": ".ds-input { height: var(--component-control-height); width: 100%; min-width: 0; padding: 0 var(--component-input-padding-inline); border: 1px solid var(--line); border-radius: var(--component-input-radius); background: var(--control-bg); color: var(--text); font: var(--font-weight-regular) var(--font-size-md)/var(--line-height-ui) var(--font-family-sans); } .ds-input:focus-visible { outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%); outline-offset: 2px; border-color: var(--accent-2); }"
+    },
+    {
+      "name": "Surface Panel",
+      "kind": "card",
+      "refersTo": "surface-panel",
+      "description": "Bordered panel surface for inspectors and menus.",
+      "html": "<section class=\"ds-panel\"><strong>Inspector</strong><p>Review the detected corners.</p></section>",
+      "css": ".ds-panel { padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--component-surface-radius); background: var(--panel); color: var(--text); } .ds-panel p { margin: var(--space-1) 0 0; color: var(--muted); font: var(--font-weight-regular) var(--font-size-sm)/var(--line-height-body) var(--font-family-sans); }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "chip-status",
+      "description": "Compact status and confidence indicator.",
+      "html": "<span class=\"ds-chip\">Ready</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; min-height: 22px; padding: 3px var(--space-3); border-radius: var(--component-chip-radius); background: var(--chip-bg); color: var(--muted); font: var(--font-weight-strong) var(--font-size-xs)/var(--line-height-ui) var(--font-family-sans); }"
+    },
+    {
+      "name": "Quad Handle",
+      "kind": "custom",
+      "refersTo": "quad-handle",
+      "description": "Circular touch target for direct corner correction.",
+      "html": "<button class=\"ds-handle\" aria-label=\"Move top-left corner\"></button>",
+      "css": ".ds-handle { width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-circle); background: transparent; cursor: grab; touch-action: none; } .ds-handle:hover, .ds-handle.is-active { background: color-mix(in srgb, var(--handle), transparent 72%); } .ds-handle:focus-visible { outline: var(--component-focus-ring) solid var(--accent-2); outline-offset: 2px; }"
     }
   ],
   "narrative": {
     "northStar": "The Precision Desk",
-    "overview": "Slides Thief balances professional utility with minimalist elegance. Designed for high-density document editing and perspective correction, the interface uses a structured 3-column workspace.",
+    "overview": "Slides Thief is a focused browser-local workbench for correcting photographed slides and documents. Its compact system uses slate surfaces, teal precision accents, terracotta identity, and a yellow direct-manipulation handle.",
     "keyCharacteristics": [
       "100% Local-First Execution Cues",
       "Direct Interactive 4-Corner Quad Manipulation",
-      "Slate Ink & Teal Precision Tonal Palette"
+      "Slate Ink & Teal Precision Tonal Palette",
+      "Tokenized Density Across Geometry and Type"
     ],
     "rules": [
       {
         "name": "The Single Accent Rule",
-        "body": "Terracotta accent is used exclusively for key identity and critical attention states. Functional quad overlays use Teal Precision.",
+        "body": "Terracotta is reserved for identity and attention. Functional quad overlays and confirmations use Teal Precision.",
         "section": "colors"
       }
     ],
     "dos": [
-      "Do use CSS custom variables (var(--...)) for all surface and text colors.",
-      "Do preserve 100% browser-local processing notice.",
-      "Do include keyboard accessibility and ARIA descriptions for canvas handles."
+      "Do use primitive, semantic, and component CSS variables for recurring geometry and visual roles.",
+      "Do keep the 1040px tablet and 834px mobile thresholds synchronized with their named breakpoint tokens.",
+      "Do preserve browser-local processing and keyboard/ARIA behavior."
     ],
     "donts": [
-      "Don't add fixed pixel height constraints to slide list containers.",
-      "Don't use generic vibrant SaaS gradients (purple/cyan) on card backgrounds.",
+      "Don't introduce a new radius, control height, or spacing value when an existing token matches the intent.",
+      "Don't use terracotta for ordinary canvas geometry.",
       "Don't execute image processing on the main UI thread."
     ]
   }

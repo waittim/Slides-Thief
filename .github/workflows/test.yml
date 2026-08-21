@@ -1,0 +1,66 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Install Python dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Install Web dependencies
+        working-directory: site
+        run: npm ci
+
+      - name: Check generated detection configuration
+        run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/generate_detection_config.py --check
+
+      - name: Check generated product metadata
+        run: PYTHONDONTWRITEBYTECODE=1 python scripts/generate_product_metadata.py --check
+
+      - name: Check packaged JSON Schemas
+        run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/sync_python_schemas.py --check
+
+      - name: Ruff
+        run: ruff check src scripts tests
+
+      - name: Python tests
+        run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python -m pytest --ignore=tests/test_detection_contract.py
+
+      - name: Cross-runtime detection contract
+        run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/check_detection_contract.py
+
+      - name: Web lint
+        working-directory: site
+        run: npm run lint
+
+      - name: Install Playwright browser
+        working-directory: site
+        run: npx playwright install --with-deps chromium
+
+      - name: Web tests and builds
+        working-directory: site
+        run: npm test

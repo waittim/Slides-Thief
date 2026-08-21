@@ -8,8 +8,10 @@ Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run
 
 ### Web features
 
-- Source formats: 16:9 by default, with explicit 4:3, 16:10, A4 portrait/landscape, Letter portrait/landscape, and custom ratios.
-- PDF layouts: match the selected source format, physical A4 or Letter paper, or custom pixel dimensions. Paper presets fill margins with white.
+<!-- BEGIN GENERATED: llms-web-en -->
+- Source formats: 16:9 by default, with explicit 4:3, 16:10, A4, Letter, and custom ratios.
+- PDF layouts: match the selected source format, physical A4 landscape/portrait, A3 landscape/portrait, Letter landscape/portrait paper, or custom pixel dimensions. Paper presets fill margins with white.
+<!-- END GENERATED: llms-web-en -->
 - Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
 - UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Light and dark themes.
@@ -22,7 +24,9 @@ Install the package and run:
 
 ### CLI input formats
 
-JPEG, PNG, TIFF, HEIC, and HEIF. WebP is web-only. HEIC/HEIF conversion uses macOS `sips`.
+<!-- BEGIN GENERATED: cli-input-en -->
+JPEG / JPG, PNG, TIFF, and HEIC / HEIF. WebP is web-only. HEIC / HEIF conversion uses macOS `sips`.
+<!-- END GENERATED: cli-input-en -->
 
 ### CLI outputs
 
@@ -30,7 +34,9 @@ The requested PDF, `corrected_images/`, `detection_overlays/`, contact sheets, `
 
 ### CLI ratios
 
-Presentation: 16:9 (default), 4:3. Paper: A4, A3, A5, and Letter in landscape and portrait. Custom ratios such as 16:10 or 1.777 are also accepted. Paper presets fill margins with white.
+<!-- BEGIN GENERATED: cli-ratios-en -->
+Presentation: 16:9 (default), 4:3, 16:10. Paper: A4, A3, A5, Letter in landscape and portrait. Numeric custom ratios such as 1.777 are also accepted. Paper presets fill margins with white.
+<!-- END GENERATED: cli-ratios-en -->
 
 ### Common CLI options
 
@@ -47,6 +53,7 @@ Edit corners in `manual_review.html`, export `manual_quads.json`, then run again
 
 ## Contracts
 
+- https://slidesthief.com/product-metadata.json
 - https://slidesthief.com/schemas/slide-lens-report.schema.json
 - https://slidesthief.com/schemas/manual-quads.schema.json
 - Homepage HTML discovery: `describedby` → /llms.txt, `service-doc` → /llms-full.txt, `sitemap` → /sitemap.xml

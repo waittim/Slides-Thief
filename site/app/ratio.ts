@@ -1,67 +1,45 @@
-export type BaseFormat = "16:9" | "4:3" | "16:10" | "A4" | "letter" | "custom";
+import { PRODUCT_METADATA } from "./product-metadata.ts";
+
+export type BaseFormat = typeof PRODUCT_METADATA.ratios.web_source_base_formats[number]["id"];
 export type Orientation = "landscape" | "portrait";
-
-export type SourceFormat =
-  | "16:9"
-  | "9:16"
-  | "4:3"
-  | "3:4"
-  | "16:10"
-  | "10:16"
-  | "A4-landscape"
-  | "A4-portrait"
-  | "letter-landscape"
-  | "letter-portrait"
-  | "custom";
-
+export type SourceFormat = typeof PRODUCT_METADATA.ratios.web_source_format_ids[number];
 export type OutputPageRatio =
   | "match-source"
-  | "16:9"
-  | "4:3"
-  | "A4-landscape"
-  | "A4-portrait"
-  | "letter-landscape"
-  | "letter-portrait";
+  | typeof PRODUCT_METADATA.ratios.web_output_ids[number];
+
+export type SourceFormatSettings = {
+  sourceFormat: SourceFormat;
+  sourceOrientation: Orientation;
+  sourceCustomRatio?: number;
+};
 
 export type PageLayoutMode = "match-source" | "paper" | "custom-size";
 
 /** @deprecated Use SourceFormat or OutputPageRatio at the appropriate boundary. */
 export type RatioValue = Exclude<OutputPageRatio, "match-source">;
 
-export const RATIO_PRESETS: Record<string, number> = {
-  "16:9": 16 / 9,
-  "9:16": 9 / 16,
-  "4:3": 4 / 3,
-  "3:4": 3 / 4,
-  "16:10": 16 / 10,
-  "10:16": 10 / 16,
-  "a4": 297 / 210,
-  "a4-landscape": 297 / 210,
-  "a3": 297 / 210,
-  "a3-landscape": 297 / 210,
-  "a4-portrait": 210 / 297,
-  "a3-portrait": 210 / 297,
-  "letter": 11 / 8.5,
-  "letter-landscape": 11 / 8.5,
-  "letter-portrait": 8.5 / 11,
-};
+export const WEB_SOURCE_BASE_FORMATS = PRODUCT_METADATA.ratios.web_source_base_formats;
+export const WEB_SOURCE_FORMATS = PRODUCT_METADATA.ratios.web_source_formats;
+export const WEB_OUTPUT_PAPER_FORMATS = PRODUCT_METADATA.ratios.paper.filter((item) => item.web);
 
-const PAPER_PRESET_KEYS = new Set([
-  "a4",
-  "a4-landscape",
-  "a3",
-  "a3-landscape",
-  "a4-portrait",
-  "a3-portrait",
-  "letter",
-  "letter-landscape",
-  "letter-portrait",
-]);
+const ratioPresets: Record<string, number> = Object.fromEntries(
+  PRODUCT_METADATA.ratios.presentation.map((item) => [item.id.toLowerCase(), item.ratio]),
+);
+const paperPresetKeys = new Set<string>();
+
+for (const item of PRODUCT_METADATA.ratios.paper) {
+  const paperRatio = item.width_points / item.height_points;
+  for (const alias of item.aliases) {
+    ratioPresets[alias.toLowerCase()] = paperRatio;
+    paperPresetKeys.add(alias.toLowerCase());
+  }
+}
+
+export const RATIO_PRESETS = ratioPresets;
 
 export function isPaperRatio(value: string): boolean {
   if (!value) return false;
-  const key = value.trim().toLowerCase();
-  return PAPER_PRESET_KEYS.has(key);
+  return paperPresetKeys.has(value.trim().toLowerCase());
 }
 
 export function parseRatio(value: string): number {
@@ -84,10 +62,7 @@ export function parseRatio(value: string): number {
 }
 
 export function defaultOrientationForBaseFormat(baseFormat: BaseFormat): Orientation {
-  if (baseFormat === "A4" || baseFormat === "letter") {
-    return "portrait";
-  }
-  return "landscape";
+  return WEB_SOURCE_BASE_FORMATS.find((format) => format.id === baseFormat)?.default_orientation ?? "landscape";
 }
 
 export function deriveSourceFormat(
@@ -95,41 +70,30 @@ export function deriveSourceFormat(
   orientation: Orientation,
 ): SourceFormat {
   if (baseFormat === "custom") return "custom";
-  if (baseFormat === "A4") return orientation === "portrait" ? "A4-portrait" : "A4-landscape";
-  if (baseFormat === "letter") return orientation === "portrait" ? "letter-portrait" : "letter-landscape";
-  if (baseFormat === "16:9") return orientation === "portrait" ? "9:16" : "16:9";
-  if (baseFormat === "4:3") return orientation === "portrait" ? "3:4" : "4:3";
-  if (baseFormat === "16:10") return orientation === "portrait" ? "10:16" : "16:10";
-  return baseFormat as SourceFormat;
+  return WEB_SOURCE_FORMATS.find(
+    (format) => format.base_id === baseFormat && format.orientation === orientation,
+  )?.id ?? (baseFormat as SourceFormat);
 }
 
 export function splitSourceFormat(
   sourceFormat: string,
+  customOrientation: Orientation = "landscape",
 ): { baseFormat: BaseFormat; orientation: Orientation } {
-  if (sourceFormat === "custom") return { baseFormat: "custom", orientation: "landscape" };
-  if (sourceFormat === "A4-portrait") return { baseFormat: "A4", orientation: "portrait" };
-  if (sourceFormat === "A4-landscape") return { baseFormat: "A4", orientation: "landscape" };
-  if (sourceFormat === "letter-portrait") return { baseFormat: "letter", orientation: "portrait" };
-  if (sourceFormat === "letter-landscape") return { baseFormat: "letter", orientation: "landscape" };
-  if (sourceFormat === "9:16") return { baseFormat: "16:9", orientation: "portrait" };
-  if (sourceFormat === "16:9") return { baseFormat: "16:9", orientation: "landscape" };
-  if (sourceFormat === "3:4") return { baseFormat: "4:3", orientation: "portrait" };
-  if (sourceFormat === "4:3") return { baseFormat: "4:3", orientation: "landscape" };
-  if (sourceFormat === "10:16") return { baseFormat: "16:10", orientation: "portrait" };
-  if (sourceFormat === "16:10") return { baseFormat: "16:10", orientation: "landscape" };
+  if (sourceFormat === "custom") return { baseFormat: "custom", orientation: customOrientation };
+  const format = WEB_SOURCE_FORMATS.find((item) => item.id === sourceFormat);
+  if (format) return { baseFormat: format.base_id, orientation: format.orientation };
   return { baseFormat: "16:9", orientation: "landscape" };
 }
 
-export function sourceFormatRatioValue(
-  value: SourceFormat,
-  customRatio?: number,
-  orientation?: Orientation,
-): number {
-  if (value === "custom") {
-    const raw = Number.isFinite(customRatio) && (customRatio ?? 0) > 0 ? customRatio! : 16 / 9;
-    return orientation === "portrait" ? 1 / raw : raw;
+export function sourceFormatRatioValue(settings: SourceFormatSettings): number {
+  if (settings.sourceFormat === "custom") {
+    const raw = Number.isFinite(settings.sourceCustomRatio)
+      && (settings.sourceCustomRatio ?? 0) > 0
+      ? settings.sourceCustomRatio ?? 16 / 9
+      : 16 / 9;
+    return settings.sourceOrientation === "portrait" ? 1 / raw : raw;
   }
-  return parseRatio(value);
+  return parseRatio(settings.sourceFormat);
 }
 
 export function outputPageRatioValue(
@@ -144,11 +108,8 @@ export function pdfPageDimensions(
   fallbackWidth: number,
   fallbackHeight: number,
 ): [number, number] {
-  if (value === "A4-landscape") return [841.89, 595.28];
-  if (value === "A4-portrait") return [595.28, 841.89];
-  if (value === "letter-landscape") return [792, 612];
-  if (value === "letter-portrait") return [612, 792];
-  return [fallbackWidth, fallbackHeight];
+  const paper = PRODUCT_METADATA.ratios.paper.find((item) => item.id === value);
+  return paper ? [paper.width_points, paper.height_points] : [fallbackWidth, fallbackHeight];
 }
 
 export function pageLayoutMode(
@@ -158,4 +119,3 @@ export function pageLayoutMode(
   if (outputHeight !== null) return "custom-size";
   return isPaperRatio(outputPageRatio) ? "paper" : "match-source";
 }
-

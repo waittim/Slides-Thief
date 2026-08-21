@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
 import numpy as np
 
+from .config import DETECTION_CONFIG
+from .geometry import geometry_is_valid, line_intersection, normalized_corner_distance, polygon_area
 from .gradient import GradientMap
+from .numeric import average
 
+_HOUGH_CONFIG = DETECTION_CONFIG["houghLines"]
 
-ANGLE_STEP = math.pi / 90
-RHO_STEP = 3.0
+ANGLE_STEP = math.pi / int(_HOUGH_CONFIG["angleBins"])
+RHO_STEP = float(_HOUGH_CONFIG["rhoStep"])
 
 
 @dataclass
@@ -27,7 +31,7 @@ class Segment:
 def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     height, width = gradient.magnitude.shape
     points = _edge_points(gradient)
-    if len(points) < 48:
+    if len(points) < int(_HOUGH_CONFIG["minimumEdgePoints"]):
         return []
     peaks = _vote(points, width, height)
     segments = _extract_segments(peaks, points, width, height)
@@ -36,7 +40,10 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
         return []
     first_family, second_family = families
     family_angle = _orientation_difference(first_family[0], second_family[0])
-    if family_angle < math.radians(35) or family_angle > math.radians(145):
+    if (
+        family_angle < math.radians(float(_HOUGH_CONFIG["minimumFamilyAngleDegrees"]))
+        or family_angle > math.radians(float(_HOUGH_CONFIG["maximumFamilyAngleDegrees"]))
+    ):
         return []
 
     first_pairs = _line_pairs(first_family[1], width, height)
@@ -45,21 +52,21 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     for first_pair in first_pairs:
         for second_pair in second_pairs:
             corners = [
-                _intersection(first_pair[0].line, second_pair[0].line),
-                _intersection(first_pair[0].line, second_pair[1].line),
-                _intersection(first_pair[1].line, second_pair[1].line),
-                _intersection(first_pair[1].line, second_pair[0].line),
+                line_intersection(first_pair[0].line, second_pair[0].line),
+                line_intersection(first_pair[0].line, second_pair[1].line),
+                line_intersection(first_pair[1].line, second_pair[1].line),
+                line_intersection(first_pair[1].line, second_pair[0].line),
             ]
             quad = _order_quad(np.asarray(corners, dtype=np.float64))
-            if not _coarse_geometry_valid(quad, width, height):
+            if not geometry_is_valid(quad, width, height):
                 continue
-            area = _polygon_area(quad) / (width * height)
+            area = polygon_area(quad) / (width * height)
             supports = [segment.support for segment in (*first_pair, *second_pair)]
             candidates.append(
                 {
                     "quad": quad,
                     "method": "hough-lines",
-                    "detector_score": float(np.mean(supports) + min(0.8, area)),
+                    "detector_score": average(supports) + min(float(_HOUGH_CONFIG["areaScoreCap"]), area),
                     "detector_diagnostics": {
                         "edge_point_count": len(points),
                         "hough_peak_count": len(peaks),
@@ -75,18 +82,22 @@ def hough_quad_candidates(gradient: GradientMap) -> list[dict]:
     candidates.sort(key=lambda item: item["detector_score"], reverse=True)
     selected = []
     for candidate in candidates:
-        if any(_quad_distance(candidate["quad"], kept["quad"], width, height) < 0.012 for kept in selected):
+        if any(
+            normalized_corner_distance(candidate["quad"], kept["quad"], width, height)
+            < float(DETECTION_CONFIG["deduplication"]["cornerDistanceThreshold"])
+            for kept in selected
+        ):
             continue
         selected.append(candidate)
-        if len(selected) >= 5:
+        if len(selected) >= int(_HOUGH_CONFIG["outputCandidateLimit"]):
             break
     return selected
 
 
 def _edge_points(gradient: GradientMap) -> np.ndarray:
     ys, xs = np.nonzero(gradient.magnitude >= gradient.threshold)
-    if len(xs) > 28000:
-        keep = np.arange(len(xs)) % 2 == 0
+    if len(xs) > int(_HOUGH_CONFIG["maximumEdgePointsBeforeStride"]):
+        keep = np.arange(len(xs)) % int(_HOUGH_CONFIG["strideWhenDense"]) == 0
         xs = xs[keep]
         ys = ys[keep]
     magnitude = gradient.magnitude[ys, xs]
@@ -96,12 +107,15 @@ def _edge_points(gradient: GradientMap) -> np.ndarray:
 
 def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, float]]:
     diagonal = math.hypot(width, height)
-    angle_bins = 90
+    angle_bins = int(_HOUGH_CONFIG["angleBins"])
     rho_bins = math.ceil(diagonal * 2 / RHO_STEP) + 1
     accumulator = np.zeros((angle_bins, rho_bins), dtype=np.float64)
     center_indices = np.rint(points[:, 3] / ANGLE_STEP).astype(np.int32) % angle_bins
-    weights = 0.35 + np.minimum(1.0, points[:, 2])
-    for offset in (-2, -1, 0, 1, 2):
+    weights = float(_HOUGH_CONFIG["voteWeightBase"]) + np.minimum(
+        float(_HOUGH_CONFIG["voteMagnitudeCap"]), points[:, 2]
+    )
+    vote_radius = int(_HOUGH_CONFIG["voteAngleRadius"])
+    for offset in range(-vote_radius, vote_radius + 1):
         angle_indices = (center_indices + offset) % angle_bins
         angles = angle_indices * ANGLE_STEP
         rho_indices = np.rint(
@@ -109,7 +123,7 @@ def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, f
         ).astype(np.int32)
         np.add.at(accumulator, (angle_indices, rho_indices), weights)
 
-    minimum_votes = max(8.0, min(width, height) * 0.018)
+    minimum_votes = max(float(_HOUGH_CONFIG["minimumVotes"]), min(width, height) * float(_HOUGH_CONFIG["minimumVotesRatio"]))
     angle_indices, rho_indices = np.nonzero(accumulator >= minimum_votes)
     candidates = sorted(
         (
@@ -122,11 +136,13 @@ def _vote(points: np.ndarray, width: int, height: int) -> list[tuple[int, int, f
     peaks: list[tuple[int, int, float]] = []
     for candidate in candidates:
         if all(
-            _circular_bin_distance(candidate[0], peak[0], angle_bins) > 2 or abs(candidate[1] - peak[1]) > 3
+            _circular_bin_distance(candidate[0], peak[0], angle_bins)
+            > int(_HOUGH_CONFIG["peakAngleDistance"])
+            or abs(candidate[1] - peak[1]) > int(_HOUGH_CONFIG["peakRhoDistance"])
             for peak in peaks
         ):
             peaks.append(candidate)
-        if len(peaks) >= 40:
+        if len(peaks) >= int(_HOUGH_CONFIG["maximumPeaks"]):
             break
     return peaks
 
@@ -149,16 +165,22 @@ def _extract_segments(
             np.abs(points[:, 3] - normal_angle),
             math.pi - np.abs(points[:, 3] - normal_angle),
         )
-        support_points = points[(distances <= 2.75) & (alignment <= math.radians(12))]
-        if len(support_points) < 8:
+        support_points = points[
+            (distances <= float(_HOUGH_CONFIG["lineDistance"]))
+            & (alignment <= math.radians(float(_HOUGH_CONFIG["orientationToleranceDegrees"])))
+        ]
+        if len(support_points) < int(_HOUGH_CONFIG["minimumEdgePoints"]):
             continue
         projections = np.sort(support_points[:, 0] * direction[0] + support_points[:, 1] * direction[1])
-        split_indices = np.flatnonzero(np.diff(projections) > max(5.0, diagonal * 0.012)) + 1
+        split_indices = np.flatnonzero(
+            np.diff(projections)
+            > max(float(_HOUGH_CONFIG["maximumGapFloor"]), diagonal * float(_HOUGH_CONFIG["maximumGapRatio"]))
+        ) + 1
         for group in np.split(projections, split_indices):
             if len(group) < 2:
                 continue
             length = float(group[-1] - group[0])
-            if length < diagonal * 0.08:
+            if length < diagonal * float(_HOUGH_CONFIG["minimumSegmentLengthRatio"]):
                 continue
             candidates.append(
                 Segment(
@@ -175,12 +197,13 @@ def _extract_segments(
     selected = []
     for segment in candidates:
         if all(
-            _orientation_difference(segment.normal_angle, kept.normal_angle) > math.radians(4)
-            or abs(segment.rho - kept.rho) > 5
+            _orientation_difference(segment.normal_angle, kept.normal_angle)
+            > math.radians(float(_HOUGH_CONFIG["lineDeduplicationAngleDegrees"]))
+            or abs(segment.rho - kept.rho) > float(_HOUGH_CONFIG["lineDeduplicationRho"])
             for kept in selected
         ):
             selected.append(segment)
-        if len(selected) >= 28:
+        if len(selected) >= int(_HOUGH_CONFIG["maximumSegments"]):
             break
     return selected
 
@@ -200,7 +223,13 @@ def _cluster_directions(segments: list[Segment]) -> tuple[tuple[float, list[Segm
             indices = np.flatnonzero(assignments == family)
             if not len(indices):
                 continue
-            weights = np.asarray([segments[index].length * max(0.15, segments[index].support) for index in indices])
+            weights = np.asarray(
+                [
+                    segments[index].length
+                    * max(float(_HOUGH_CONFIG["supportWeightFloor"]), segments[index].support)
+                    for index in indices
+                ]
+            )
             centers[family] = np.average(vectors[indices], axis=0, weights=weights)
     grouped = [[segment for index, segment in enumerate(segments) if assignments[index] == family] for family in (0, 1)]
     if any(len(group) < 2 for group in grouped):
@@ -222,7 +251,7 @@ def _line_pairs(segments: list[Segment], width: int, height: int) -> list[tuple[
     for first_index, first in enumerate(positioned):
         for second in positioned[first_index + 1 :]:
             separation = abs(first[1] - second[1])
-            if separation < min(width, height) * 0.16:
+            if separation < min(width, height) * float(_HOUGH_CONFIG["pairSeparationRatio"]):
                 continue
             straddles = first[1] * second[1] <= 0
             score = (
@@ -233,19 +262,7 @@ def _line_pairs(segments: list[Segment], width: int, height: int) -> list[tuple[
             )
             pairs.append(((first[0], second[0]), score))
     pairs.sort(key=lambda item: item[1], reverse=True)
-    return [pair for pair, _ in pairs[:6]]
-
-
-def _intersection(first: np.ndarray, second: np.ndarray) -> np.ndarray:
-    denominator = first[0] * second[1] - second[0] * first[1]
-    if abs(denominator) < 1e-9:
-        return np.array([np.nan, np.nan])
-    return np.array(
-        [
-            (first[1] * second[2] - second[1] * first[2]) / denominator,
-            (first[2] * second[0] - second[2] * first[0]) / denominator,
-        ]
-    )
+    return [pair for pair, _ in pairs[: int(_HOUGH_CONFIG["maximumPairs"])] ]
 
 
 def _order_quad(points: np.ndarray) -> np.ndarray:
@@ -253,27 +270,6 @@ def _order_quad(points: np.ndarray) -> np.ndarray:
     differences = points[:, 0] - points[:, 1]
     return np.asarray(
         [points[np.argmin(sums)], points[np.argmax(differences)], points[np.argmax(sums)], points[np.argmin(differences)]]
-    )
-
-
-def _coarse_geometry_valid(quad: np.ndarray, width: int, height: int) -> bool:
-    if not np.isfinite(quad).all() or _polygon_area(quad) < width * height * 0.08:
-        return False
-    if np.any(quad[:, 0] < -width * 0.2) or np.any(quad[:, 0] > width * 1.2):
-        return False
-    if np.any(quad[:, 1] < -height * 0.2) or np.any(quad[:, 1] > height * 1.2):
-        return False
-    crosses = []
-    for index in range(4):
-        first = quad[(index + 1) % 4] - quad[index]
-        second = quad[(index + 2) % 4] - quad[(index + 1) % 4]
-        crosses.append(first[0] * second[1] - first[1] * second[0])
-    return all(value > 1e-6 for value in crosses) or all(value < -1e-6 for value in crosses)
-
-
-def _polygon_area(quad: np.ndarray) -> float:
-    return 0.5 * abs(
-        float(np.dot(quad[:, 0], np.roll(quad[:, 1], -1)) - np.dot(quad[:, 1], np.roll(quad[:, 0], -1)))
     )
 
 
@@ -285,7 +281,3 @@ def _orientation_difference(first: float, second: float) -> float:
 def _circular_bin_distance(first: int, second: int, count: int) -> int:
     difference = abs(first - second)
     return min(difference, count - difference)
-
-
-def _quad_distance(first: np.ndarray, second: np.ndarray, width: int, height: int) -> float:
-    return float(np.linalg.norm(first - second, axis=1).mean() / math.hypot(width, height))

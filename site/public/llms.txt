@@ -15,6 +15,7 @@
 - Detection report schema: https://slidesthief.com/schemas/slide-lens-report.schema.json
 - Manual corner schema: https://slidesthief.com/schemas/manual-quads.schema.json
 - Citation metadata: https://slidesthief.com/citation.json
+- Product metadata: https://slidesthief.com/product-metadata.json
 
 ## Discovery
 
@@ -27,9 +28,11 @@ Homepage HTML `<link>` tags advertise:
 ## Core facts
 
 - Browser processing is local; source photos are not uploaded.
-- Web formats: JPEG, PNG, WebP, HEIC, HEIF. CLI formats: JPEG, PNG, TIFF, HEIC, HEIF.
-- Web source formats: 16:9 by default, with explicit 4:3, 16:10, A4, Letter, and custom ratios.
-- Web PDF layouts: match the selected source format, physical A4 or Letter paper, or a custom page size.
+<!-- BEGIN GENERATED: llms-core-en -->
+- Web formats: JPEG / JPG, PNG, WebP, HEIC / HEIF. CLI formats: JPEG / JPG, PNG, TIFF, HEIC / HEIF.
+- Web source formats: 16:9, 4:3, 16:10, A4, Letter, and custom ratios.
+- Web PDF layouts: match the selected source format, physical A4, A3, Letter paper, or a custom page size.
+<!-- END GENERATED: llms-core-en -->
 - Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR.
 - Corner order: top-left, top-right, bottom-right, bottom-left.
 - License: MIT.

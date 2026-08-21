@@ -25,6 +25,7 @@ Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并
 
 ## 支持文件
 
+<!-- BEGIN GENERATED: formats-zh -->
 | 格式 | 网页版 | CLI |
 | --- | --- | --- |
 | JPEG / JPG | 支持 | 支持 |
@@ -32,6 +33,7 @@ Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并
 | WebP | 支持 | 不支持 |
 | TIFF | 不支持 | 支持 |
 | HEIC / HEIF | 支持 | 支持 |
+<!-- END GENERATED: formats-zh -->
 
 HEIC 和 HEIF 会先转换为 JPEG 再处理：网页版在浏览器内转换，CLI 使用 macOS `sips`。大批量 HEIC/HEIF 照片可能会比 JPEG 慢一些。
 
@@ -46,12 +48,16 @@ HEIC 和 HEIF 会先转换为 JPEG 再处理：网页版在浏览器内转换，
 
 - 自动识别幻灯片边界。
 - 手动四角修正。
-- 支持 16:9、4:3、ISO A4/A3（横向与纵向）与 US Letter（横向与纵向）输出比例；纸张预设会自动以白色填充边距。
+<!-- BEGIN GENERATED: web-feature-zh -->
+- 支持 16:9、4:3、16:10、ISO A4/A3（横向与纵向）与 US Letter（横向与纵向）输出比例；纸张预设会自动以白色填充边距。
+<!-- END GENERATED: web-feature-zh -->
 - 支持自定义输出宽度、质量、可选清晰增强模式和填充色。
 - 支持浅色/深色主题，以及九种界面语言：简体中文、繁体中文、English、Español、Français、Deutsch、日本語、한국어、Português。
 - 在浏览器本地生成 PDF。
 
-CLI 额外支持 A5 纸张预设和任意自定义比例（如 `16:10`）。
+<!-- BEGIN GENERATED: cli-summary-zh -->
+CLI 额外支持 A5 纸张预设和任意数字自定义比例（如 `1.777`）。
+<!-- END GENERATED: cli-summary-zh -->
 
 ## 本地命令行
 
@@ -81,6 +87,7 @@ slides-thief ~/Downloads \
 - `--enhancement {original,clean,high-contrast,bw}`：校正后的可选可读性增强。
 - `--height`：可选输出高度（像素），会覆盖由比例推算的高度。
 - `--jpeg-quality`：校正图像的 JPEG 质量（默认 `92`）。
+- `--image-cache-pixels`：处理阶段之间保留的已解码 RGB 像素上限（默认 `32000000`；设为 `0` 可禁用完整图像缓存）。
 - `--work-dir`：中间工作目录（默认 `work/slide_lens_runtime`）。
 - `--clean-converted`：运行结束后删除中间转换的 JPEG。
 
