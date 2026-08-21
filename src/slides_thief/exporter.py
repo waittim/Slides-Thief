@@ -59,12 +59,13 @@ def make_contact_sheet(images: list[Path], output: Path, title: str) -> None:
     draw = ImageDraw.Draw(sheet)
     draw.text((12, 10), title, fill=(0, 0, 0))
     for idx, path in enumerate(images):
-        im = Image.open(path).convert("RGB")
-        im.thumbnail((cell_w, cell_h), Image.Resampling.LANCZOS)
-        x = (idx % cols) * cell_w
-        y = 36 + (idx // cols) * (cell_h + label_h)
-        sheet.paste(im, (x + (cell_w - im.width) // 2, y + (cell_h - im.height) // 2))
-        draw.text((x + 8, y + cell_h + 6), path.stem, fill=(0, 0, 0))
+        with Image.open(path) as opened:
+            with opened.convert("RGB") as im:
+                im.thumbnail((cell_w, cell_h), Image.Resampling.LANCZOS)
+                x = (idx % cols) * cell_w
+                y = 36 + (idx // cols) * (cell_h + label_h)
+                sheet.paste(im, (x + (cell_w - im.width) // 2, y + (cell_h - im.height) // 2))
+                draw.text((x + 8, y + cell_h + 6), path.stem, fill=(0, 0, 0))
     output.parent.mkdir(parents=True, exist_ok=True)
     sheet.save(output, quality=92)
 

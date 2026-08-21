@@ -3,15 +3,93 @@
 from __future__ import annotations
 
 import subprocess
+from collections import OrderedDict
+from contextlib import contextmanager
 from pathlib import Path
+from typing import Iterator
 
 import numpy as np
-from PIL import Image, ImageEnhance
+from PIL import Image, ImageEnhance, ImageOps
 
 from .geometry import perspective_coefficients
 
 
 SUPPORTED = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".heic", ".heif"}
+DEFAULT_IMAGE_CACHE_PIXELS = 32_000_000
+
+
+def load_rgb_image(path: Path) -> Image.Image:
+    """Load an orientation-corrected RGB image with deterministic file cleanup."""
+    with Image.open(path) as opened:
+        oriented = ImageOps.exif_transpose(opened)
+        rgb: Image.Image | None = None
+        try:
+            rgb = oriented.convert("RGB")
+            return rgb
+        finally:
+            # ``opened`` is closed by the context manager.  EXIF correction can
+            # create a separate in-memory image, which should not outlive this
+            # load operation either.
+            if oriented is not opened and oriented is not rgb:
+                oriented.close()
+
+
+class DecodedImageCache:
+    """Keep a bounded set of decoded RGB images across the CLI processing passes.
+
+    The cache is deliberately source-order stable instead of evicting older
+    entries.  ``process`` visits the same sources in the same order during
+    detection, optional batch-prior retry, and export; retaining the first
+    entries avoids turning a small cache into a sequential-scan thrash loop.
+    Images that do not fit the remaining budget are used for the current
+    operation and closed when that operation ends.
+    """
+
+    def __init__(self, max_pixels: int = DEFAULT_IMAGE_CACHE_PIXELS) -> None:
+        if max_pixels < 0:
+            raise ValueError("Image cache pixel budget must be non-negative")
+        self.max_pixels = int(max_pixels)
+        self._images: OrderedDict[Path, Image.Image] = OrderedDict()
+        self._cached_pixels = 0
+
+    @property
+    def cached_pixels(self) -> int:
+        return self._cached_pixels
+
+    def __enter__(self) -> "DecodedImageCache":
+        return self
+
+    def __exit__(self, *_exc: object) -> None:
+        self.close()
+
+    def close(self) -> None:
+        for image in self._images.values():
+            image.close()
+        self._images.clear()
+        self._cached_pixels = 0
+
+    @contextmanager
+    def open(self, path: Path) -> Iterator[Image.Image]:
+        """Yield a decoded image, closing it immediately when it is not cached."""
+        key = Path(path)
+        cached = self._images.get(key)
+        if cached is not None:
+            yield cached
+            return
+
+        image = load_rgb_image(key)
+        pixels = image.width * image.height
+        can_cache = self.max_pixels > 0 and pixels <= self.max_pixels - self._cached_pixels
+        if can_cache:
+            self._images[key] = image
+            self._cached_pixels += pixels
+            yield image
+            return
+
+        try:
+            yield image
+        finally:
+            image.close()
 
 
 def list_images(input_dir: Path) -> list[Path]:

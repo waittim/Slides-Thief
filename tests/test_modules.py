@@ -15,6 +15,7 @@ from slides_thief.geometry import (
 )
 from slides_thief.image_processing import (
     _center_stats_region,
+    DecodedImageCache,
     enhance_slide,
     warp_slide,
     warp_slide_contained,
@@ -90,3 +91,55 @@ def test_exporter_pdf_and_html(tmp_path: Path) -> None:
     html_path = tmp_path / "review.html"
     make_manual_review_html([{"filename": "test.jpg", "image": "test.jpg", "quad": [[0, 0], [10, 0], [10, 10], [0, 10]], "confidence": 0.9, "needsReview": False, "method": "test"}], html_path)
     assert html_path.exists() and "Slide Lens Manual Review" in html_path.read_text(encoding="utf-8")
+
+
+def test_decoded_image_cache_reuses_entries_within_pixel_budget_and_closes_files(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    first_path = tmp_path / "first.jpg"
+    second_path = tmp_path / "second.jpg"
+    Image.new("RGB", (20, 20), (255, 0, 0)).save(first_path)
+    Image.new("RGB", (20, 20), (0, 255, 0)).save(second_path)
+
+    original_open = Image.open
+    opened = []
+
+    def tracking_open(*args, **kwargs):
+        image = original_open(*args, **kwargs)
+        opened.append(image)
+        return image
+
+    monkeypatch.setattr(Image, "open", tracking_open)
+    with DecodedImageCache(max_pixels=20 * 20) as cache:
+        with cache.open(first_path):
+            pass
+        with cache.open(second_path):
+            pass
+        with cache.open(first_path):
+            pass
+        assert cache.cached_pixels == 20 * 20
+
+    assert len(opened) == 2
+    assert all(getattr(image, "fp", None) is None for image in opened)
+
+
+def test_contact_sheet_closes_each_source_image(tmp_path: Path, monkeypatch) -> None:
+    image_path = tmp_path / "source.jpg"
+    Image.new("RGB", (100, 100), (255, 0, 0)).save(image_path)
+    output_path = tmp_path / "sheet.jpg"
+
+    original_open = Image.open
+    opened = []
+
+    def tracking_open(*args, **kwargs):
+        image = original_open(*args, **kwargs)
+        opened.append(image)
+        return image
+
+    monkeypatch.setattr(Image, "open", tracking_open)
+    make_contact_sheet([image_path], output_path, "Test Sheet")
+
+    assert output_path.exists()
+    assert len(opened) == 1
+    assert getattr(opened[0], "fp", None) is None

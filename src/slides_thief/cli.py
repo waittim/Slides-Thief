@@ -13,7 +13,7 @@ import shutil
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageOps
+from PIL import Image
 
 from .contracts import (
     ContractValidationError,
@@ -40,6 +40,8 @@ from .image_processing import (
     SUPPORTED,
     _center_stats_region,
     convert_with_sips,
+    DEFAULT_IMAGE_CACHE_PIXELS,
+    DecodedImageCache,
     enhance_slide,
     list_images,
     readable_image,
@@ -84,97 +86,111 @@ def process(args: argparse.Namespace) -> dict:
             f"manual quads contains entries that do not match an input filename or stem: {joined}"
         )
 
-    detections: dict[Path, tuple[np.ndarray, dict]] = {}
-    preliminary_results = []
-    for src in sources:
-        readable = readable_image(src, converted_dir)
-        image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
-        manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
-        if manual is not None:
-            validate_manual_quad_for_image(
-                manual,
-                filename=src.name,
-                image_size=(image.width, image.height),
-            )
-        quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
-        detections[src] = (quad, diagnostics)
-        preliminary_results.append(
-            normalize_result(src.name, image.width, image.height, quad, diagnostics)
-        )
+    # Resolve conversions once.  The cache below is keyed by these stable
+    # readable paths, so repeated processing passes do not re-run the HEIF
+    # conversion check or decode the same source unnecessarily.
+    readable_paths = {src: readable_image(src, converted_dir) for src in sources}
+    image_cache_pixels = getattr(args, "image_cache_pixels", DEFAULT_IMAGE_CACHE_PIXELS)
 
-    batch_priors = build_batch_priors(preliminary_results)
-    for src in sources:
-        quad, diagnostics = detections[src]
-        manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
-        if manual or not batch_priors:
-            continue
-        if not (diagnostics["confidence"] < 0.72 and diagnostics["needs_review"]):
-            continue
-        readable = readable_image(src, converted_dir)
-        image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
-        detections[src] = detect_quad(
-            image,
-            source_ratio,
-            batch_priors=batch_priors,
-            enable_batch_prior=True,
-        )
+    with DecodedImageCache(image_cache_pixels) as image_cache:
+        detections: dict[Path, tuple[np.ndarray, dict]] = {}
+        preliminary_results = []
+        review_assets: dict[Path, tuple[Path, tuple[int, int]]] = {}
+        for idx, src in enumerate(sources, 1):
+            with image_cache.open(readable_paths[src]) as image:
+                manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
+                if manual is not None:
+                    validate_manual_quad_for_image(
+                        manual,
+                        filename=src.name,
+                        image_size=(image.width, image.height),
+                    )
+                quad, diagnostics = detect_quad(image, source_ratio, manual_quad=manual)
+                detections[src] = (quad, diagnostics)
+                preliminary_results.append(
+                    normalize_result(src.name, image.width, image.height, quad, diagnostics)
+                )
 
-    corrected: list[Path] = []
-    report: list[ReportSlide] = []
-    review_items: list[dict] = []
-    for idx, src in enumerate(sources, 1):
-        readable = readable_image(src, converted_dir)
-        image = ImageOps.exif_transpose(Image.open(readable)).convert("RGB")
-        quad, diagnostics = detections[src]
-        review_image = image.copy()
-        review_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
-        review_asset = review_image_dir / f"{idx:03d}_{src.stem}.jpg"
-        review_image.save(review_asset, quality=90, optimize=True)
-        source_quad = [[round(float(x), 2), round(float(y), 2)] for x, y in quad]
-        asset_quad = scale_quad(
-            quad,
-            source_size=(image.width, image.height),
-            target_size=(review_image.width, review_image.height),
-        )
-        review_items.append(
-            {
-                "filename": src.name,
-                "image": str(review_asset.relative_to(output_dir)),
-                "origWidth": image.width,
-                "origHeight": image.height,
-                "assetWidth": review_image.width,
-                "assetHeight": review_image.height,
-                "sourceQuad": source_quad,
-                "assetQuad": asset_quad,
-                "method": diagnostics["method"],
-                "confidence": diagnostics["confidence"],
-                "needsReview": diagnostics["needs_review"],
-                "reviewReasons": diagnostics["review_reasons"],
-            }
-        )
-        fill_color = (255, 255, 255) if is_paper_ratio(output_ratio_name) else (0, 0, 0)
-        warped = warp_slide_contained(
-            image,
-            quad,
-            out_w,
-            out_h,
-            source_ratio=source_ratio,
-            fill_color=fill_color,
-        )
-        enhanced = enhance_slide(warped, mode=resolve_enhancement_mode(args))
-        out_image = corrected_dir / f"{idx:03d}_{src.stem}.jpg"
-        enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
-        corrected.append(out_image)
-        draw_overlay(image, quad, overlay_dir / f"{idx:03d}_{src.stem}_overlay.jpg")
-        slide_report: ReportSlide = {
-            "index": idx,
-            "source": str(src),
-            "output": str(out_image),
-            "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
-            **diagnostics,
-        }
-        report.append(slide_report)
-        print(f"[{idx:02d}/{len(sources):02d}] {src.name}: {diagnostics['method']} confidence={diagnostics['confidence']}")
+                # The review asset is independent of detection results.  Save
+                # it while the source is already decoded so the final pass can
+                # reuse its path and dimensions without another full-image copy.
+                review_image = image.copy()
+                try:
+                    review_image.thumbnail((1600, 1200), Image.Resampling.LANCZOS)
+                    review_asset = review_image_dir / f"{idx:03d}_{src.stem}.jpg"
+                    review_image.save(review_asset, quality=90, optimize=True)
+                    review_assets[src] = (review_asset, (review_image.width, review_image.height))
+                finally:
+                    review_image.close()
+
+        batch_priors = build_batch_priors(preliminary_results)
+        for src in sources:
+            _, diagnostics = detections[src]
+            manual = manual_quads.get(src.name) or manual_quads.get(src.stem)
+            if manual or not batch_priors:
+                continue
+            if not (diagnostics["confidence"] < 0.72 and diagnostics["needs_review"]):
+                continue
+            with image_cache.open(readable_paths[src]) as image:
+                detections[src] = detect_quad(
+                    image,
+                    source_ratio,
+                    batch_priors=batch_priors,
+                    enable_batch_prior=True,
+                )
+
+        corrected: list[Path] = []
+        report: list[ReportSlide] = []
+        review_items: list[dict] = []
+        for idx, src in enumerate(sources, 1):
+            with image_cache.open(readable_paths[src]) as image:
+                quad, diagnostics = detections[src]
+                review_asset, review_size = review_assets[src]
+                source_quad = [[round(float(x), 2), round(float(y), 2)] for x, y in quad]
+                asset_quad = scale_quad(
+                    quad,
+                    source_size=(image.width, image.height),
+                    target_size=review_size,
+                )
+                review_items.append(
+                    {
+                        "filename": src.name,
+                        "image": str(review_asset.relative_to(output_dir)),
+                        "origWidth": image.width,
+                        "origHeight": image.height,
+                        "assetWidth": review_size[0],
+                        "assetHeight": review_size[1],
+                        "sourceQuad": source_quad,
+                        "assetQuad": asset_quad,
+                        "method": diagnostics["method"],
+                        "confidence": diagnostics["confidence"],
+                        "needsReview": diagnostics["needs_review"],
+                        "reviewReasons": diagnostics["review_reasons"],
+                    }
+                )
+                fill_color = (255, 255, 255) if is_paper_ratio(output_ratio_name) else (0, 0, 0)
+                warped = warp_slide_contained(
+                    image,
+                    quad,
+                    out_w,
+                    out_h,
+                    source_ratio=source_ratio,
+                    fill_color=fill_color,
+                )
+                enhanced = enhance_slide(warped, mode=resolve_enhancement_mode(args))
+                out_image = corrected_dir / f"{idx:03d}_{src.stem}.jpg"
+                enhanced.save(out_image, quality=args.jpeg_quality, optimize=True)
+                corrected.append(out_image)
+                draw_overlay(image, quad, overlay_dir / f"{idx:03d}_{src.stem}_overlay.jpg")
+                slide_report: ReportSlide = {
+                    "index": idx,
+                    "source": str(src),
+                    "output": str(out_image),
+                    "quad": [[round(float(x), 2), round(float(y), 2)] for x, y in quad],
+                    **diagnostics,
+                }
+                report.append(slide_report)
+                print(f"[{idx:02d}/{len(sources):02d}] {src.name}: {diagnostics['method']} confidence={diagnostics['confidence']}")
 
     pdf_path = output_dir / args.pdf_name
     corrected_contact_sheet = output_dir / "corrected_contact_sheet.jpg"
@@ -269,6 +285,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--height", type=int, default=None, help="Optional output image height in pixels")
     parser.add_argument("--pdf-name", default="flattened_slides.pdf", help="PDF filename")
     parser.add_argument("--manual", default=None, help="Optional JSON mapping filenames to four source points")
+    parser.add_argument(
+        "--image-cache-pixels",
+        type=int,
+        default=DEFAULT_IMAGE_CACHE_PIXELS,
+        help="Maximum decoded RGB pixels retained across CLI passes; 0 disables full-image caching",
+    )
     parser.add_argument("--jpeg-quality", type=int, default=92)
     parser.add_argument(
         "--enhancement",

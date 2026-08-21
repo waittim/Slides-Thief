@@ -67,6 +67,7 @@ The web app exposes 16:9, 4:3, A4/A3 landscape and portrait, and Letter landscap
 | `--height` | — | Optional output height in pixels |
 | `--pdf-name` | `flattened_slides.pdf` | PDF filename |
 | `--manual` | — | JSON mapping filenames to four source points |
+| `--image-cache-pixels` | `32000000` | Maximum decoded RGB pixels retained across processing passes; `0` disables full-image caching |
 | `--jpeg-quality` | `92` | JPEG quality for corrected images |
 | `--enhancement` | `original` | Readability pass: `original`, `clean`, `high-contrast`, or `bw` |
 | `--grayscale` | — | Deprecated alias for `--enhancement bw` |

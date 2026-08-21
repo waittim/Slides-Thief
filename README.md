@@ -95,6 +95,7 @@ Common CLI options beyond the example above:
 - `--enhancement {original,clean,high-contrast,bw}`: optional readability pass after correction.
 - `--height`: optional output height in pixels (overrides ratio-derived height).
 - `--jpeg-quality`: JPEG quality for corrected images (default `92`).
+- `--image-cache-pixels`: maximum decoded RGB pixels retained across processing passes (default `32000000`; use `0` to disable full-image caching).
 - `--work-dir`: intermediate working directory (default `work/slide_lens_runtime`).
 - `--clean-converted`: remove intermediate converted JPEGs after the run.
 

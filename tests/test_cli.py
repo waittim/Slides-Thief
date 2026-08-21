@@ -95,6 +95,77 @@ def test_cli_manual_review_round_trips_large_image_coordinates(tmp_path: Path, m
     assert result["review_items"][0]["sourceQuad"] == item["sourceQuad"]
 
 
+def test_cli_reuses_decoded_source_across_detection_and_export_passes(tmp_path: Path, monkeypatch) -> None:
+    input_dir = tmp_path / "input"
+    output_dir = tmp_path / "output"
+    work_dir = tmp_path / "work"
+    input_dir.mkdir()
+    source_paths = [input_dir / f"slide-{index}.jpg" for index in range(3)]
+    for source_path in source_paths:
+        Image.new("RGB", (400, 300), (80, 90, 100)).save(source_path)
+
+    source_quad = np.array(
+        [[25, 30], [375, 30], [375, 270], [25, 270]],
+        dtype=np.float64,
+    )
+    detect_modes = []
+
+    def fake_detect_quad(image, source_ratio, manual_quad=None, **kwargs):
+        used_batch_prior = kwargs.get("enable_batch_prior", False)
+        detect_modes.append(used_batch_prior)
+        return source_quad.copy(), {
+            "method": "batch-prior" if used_batch_prior else "test",
+            "confidence": 0.9 if used_batch_prior else 0.5,
+            "needs_review": not used_batch_prior,
+            "review_reasons": [],
+        }
+
+    monkeypatch.setattr("slides_thief.cli.detect_quad", fake_detect_quad)
+    monkeypatch.setattr(
+        "slides_thief.cli.build_batch_priors",
+        lambda results: [
+            {
+                "id": "test-prior",
+                "orientation": "landscape",
+                "normalized_quad": source_quad / np.array([400, 300], dtype=np.float64),
+                "member_count": 3,
+                "rms_deviation": 0.0,
+                "consistency": 1.0,
+            }
+        ],
+    )
+    original_open = Image.open
+    opened_paths = []
+
+    def tracking_open(path, *args, **kwargs):
+        if isinstance(path, (str, bytes, Path)):
+            opened_paths.append(Path(path).resolve())
+        return original_open(path, *args, **kwargs)
+
+    monkeypatch.setattr(Image, "open", tracking_open)
+    process(
+        Namespace(
+            input=str(input_dir),
+            output_dir=str(output_dir),
+            work_dir=str(work_dir),
+            ratio=None,
+            source_ratio="16:9",
+            output_ratio="match-slide",
+            width=320,
+            height=None,
+            pdf_name="slides.pdf",
+            manual=None,
+            jpeg_quality=92,
+            enhancement="original",
+            grayscale=False,
+            clean_converted=False,
+        )
+    )
+
+    assert detect_modes == [False, False, False, True, True, True]
+    assert all(opened_paths.count(source_path.resolve()) == 1 for source_path in source_paths)
+
+
 def test_manual_review_html_exports_dragged_asset_quad_in_source_space(tmp_path: Path) -> None:
     if shutil.which("node") is None:
         pytest.skip("Node.js is required to execute the generated review page")

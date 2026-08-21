@@ -81,6 +81,7 @@ slides-thief ~/Downloads \
 - `--enhancement {original,clean,high-contrast,bw}`：校正后的可选可读性增强。
 - `--height`：可选输出高度（像素），会覆盖由比例推算的高度。
 - `--jpeg-quality`：校正图像的 JPEG 质量（默认 `92`）。
+- `--image-cache-pixels`：处理阶段之间保留的已解码 RGB 像素上限（默认 `32000000`；设为 `0` 可禁用完整图像缓存）。
 - `--work-dir`：中间工作目录（默认 `work/slide_lens_runtime`）。
 - `--clean-converted`：运行结束后删除中间转换的 JPEG。
 
