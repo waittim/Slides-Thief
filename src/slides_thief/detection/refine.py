@@ -7,10 +7,9 @@ import math
 import numpy as np
 
 from .config import DETECTION_CONFIG
-from .gradient import GradientMap
 from .geometry import geometry_is_valid, line_intersection
+from .gradient import GradientMap
 from .scoring import evaluate_edge_evidence
-
 
 _REFINEMENT_CONFIG = DETECTION_CONFIG["refinement"]
 

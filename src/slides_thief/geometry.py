@@ -10,7 +10,6 @@ import numpy as np
 from .detection.config import DETECTION_CONFIG
 from .product_metadata import PAPER_PRESETS, RATIO_PRESETS
 
-
 _MASK_CONFIG = DETECTION_CONFIG["maskLines"]
 
 

@@ -10,7 +10,6 @@ import pytest
 
 from slides_thief.detection.detector import box_blur
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "detection" / "box-blur.json"
 
 

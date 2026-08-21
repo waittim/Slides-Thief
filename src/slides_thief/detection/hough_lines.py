@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 import math
+from dataclasses import dataclass
 
 import numpy as np
 
 from .config import DETECTION_CONFIG
-from .gradient import GradientMap
 from .geometry import geometry_is_valid, line_intersection, normalized_corner_distance, polygon_area
+from .gradient import GradientMap
 from .numeric import average
 
 _HOUGH_CONFIG = DETECTION_CONFIG["houghLines"]

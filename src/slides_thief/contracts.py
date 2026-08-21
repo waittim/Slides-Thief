@@ -4,14 +4,13 @@ from __future__ import annotations
 
 import json
 import math
-from functools import lru_cache
+from functools import cache
 from importlib import resources
 from pathlib import Path
 from typing import Any
 
 import jsonschema
 import numpy as np
-
 
 ManualQuad = list[list[float]]
 ManualQuads = dict[str, ManualQuad]
@@ -42,7 +41,7 @@ def _format_path(path: Path, location: str | None = None) -> str:
     return f"{path}{location or ''}"
 
 
-@lru_cache(maxsize=None)
+@cache
 def _load_schema(filename: str) -> dict:
     try:
         resource = resources.files("slides_thief.schemas").joinpath(filename)

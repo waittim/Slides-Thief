@@ -14,13 +14,11 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageOps
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from slides_thief.cli import detect_quad  # noqa: E402
-from slides_thief.detection.geometry import quad_iou  # noqa: E402
-
+from slides_thief.cli import detect_quad
+from slides_thief.detection.geometry import quad_iou
 
 FEATURE_NAME_MAP = {
     "edge_strength": "edgeStrength",

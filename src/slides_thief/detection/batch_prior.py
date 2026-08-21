@@ -10,7 +10,6 @@ from .candidate_factory import make_candidate
 from .config import DETECTION_CONFIG
 from .numeric import average
 
-
 _BATCH_CONFIG = DETECTION_CONFIG["batchPrior"]
 
 

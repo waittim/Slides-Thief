@@ -12,6 +12,7 @@ import pytest
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
+    detect_quad,
     enhance_slide,
     is_paper_ratio,
     list_images,
@@ -21,13 +22,12 @@ from slides_thief.cli import (
     resolve_enhancement_mode,
     warp_slide,
     warp_slide_contained,
-    detect_quad,
 )
 from slides_thief.detection.batch_prior import build_batch_priors
+from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 from slides_thief.detection.gradient import build_gradient_pyramid
 from slides_thief.detection.hough_lines import hough_quad_candidates
 from slides_thief.detection.refine import refine_quad
-from slides_thief.detection.confidence import calculate_confidence, is_ambiguous_candidate
 from slides_thief.exporter import make_manual_review_html, scale_quad
 from slides_thief.product_metadata import PAPER_PAGE_DIMENSIONS
 

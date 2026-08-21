@@ -12,7 +12,6 @@ from slides_thief.cli import detect_quad
 from slides_thief.detection.confidence import AUTO_REVIEW_CONFIDENCE
 from slides_thief.detection.geometry import quad_iou
 
-
 SIZE = (320, 240)
 EXPECTED_QUAD = np.array(
     [[34, 30], [290, 42], [275, 207], [43, 196]],

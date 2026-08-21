@@ -13,19 +13,18 @@ from pathlib import Path
 
 import numpy as np
 
-
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / "tests" / "fixtures" / "detection" / "shared-primitives.json"
 sys.path.insert(0, str(ROOT / "src"))
 
-from slides_thief.detection.candidate_factory import empty_candidate_features  # noqa: E402
-from slides_thief.detection.geometry import (  # noqa: E402
+from slides_thief.detection.candidate_factory import empty_candidate_features
+from slides_thief.detection.geometry import (
     geometry_is_valid,
     line_intersection,
     normalized_corner_distance,
     quad_iou,
 )
-from slides_thief.detection.numeric import average, percentile  # noqa: E402
+from slides_thief.detection.numeric import average, percentile
 
 
 def python_result(fixture: dict) -> dict:

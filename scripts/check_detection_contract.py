@@ -12,13 +12,12 @@ import sys
 import tempfile
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 ANNOTATIONS = ROOT / "tests" / "fixtures" / "detection" / "annotations.json"
 CONTRACT = ROOT / "tests" / "fixtures" / "detection" / "golden-contract.json"
 sys.path.insert(0, str(ROOT / "src"))
 
-from slides_thief.detection.confidence import is_ambiguous_candidate  # noqa: E402
+from slides_thief.detection.confidence import is_ambiguous_candidate
 
 FEATURE_NAME_MAP = {
     "edge_strength": "edgeStrength",
@@ -93,7 +92,7 @@ def optional_row_value(row: dict, snake: str, camel: str):
 def normalized_features(row: dict, implementation: str, file: str) -> dict[str, float]:
     features = optional_row_value(row, "selected_features", "selectedFeatures") or {}
     if not isinstance(features, dict):
-        raise AssertionError(f"{implementation}/{file}: selected features are not an object")
+        raise TypeError(f"{implementation}/{file}: selected features are not an object")
     if not features:
         return {}
     keys = set(features)
@@ -159,9 +158,10 @@ def validate_rows(contract: dict, predictions: dict[str, list[dict]]) -> None:
 def validate_cross_implementation(contract: dict, predictions: dict[str, list[dict]]) -> None:
     python_rows = {row["file"]: row for row in predictions["python"]}
     typescript_rows = {row["file"]: row for row in predictions["typescript"]}
-    for file in python_rows:
-        python_quad = python_rows[file]["quad"]
-        typescript_quad = typescript_rows[file]["quad"]
+    for file, python_row in python_rows.items():
+        typescript_row = typescript_rows[file]
+        python_quad = python_row["quad"]
+        typescript_quad = typescript_row["quad"]
         ppm_path = (ROOT / "tests" / "fixtures" / "detection" / file).with_suffix(".ppm")
         header = ppm_path.read_bytes().split(None, 4)
         width, height = int(header[1]), int(header[2])
@@ -173,34 +173,34 @@ def validate_cross_implementation(contract: dict, predictions: dict[str, list[di
         if normalized_delta > contract["crossImplementation"]["maxNormalizedCornerDelta"]:
             raise AssertionError(f"{file}: cross-implementation corner delta={normalized_delta:.6f}")
         cross = contract["crossImplementation"]
-        python_count = int(optional_row_value(python_rows[file], "candidate_count", "candidateCount"))
-        typescript_count = int(optional_row_value(typescript_rows[file], "candidate_count", "candidateCount"))
+        python_count = int(optional_row_value(python_row, "candidate_count", "candidateCount"))
+        typescript_count = int(optional_row_value(typescript_row, "candidate_count", "candidateCount"))
         if abs(python_count - typescript_count) > cross.get("maxCandidateCountDelta", math.inf):
             raise AssertionError(f"{file}: candidate count delta={abs(python_count - typescript_count)}")
         confidence_delta = abs(
-            float(python_rows[file]["confidence"]) - float(typescript_rows[file]["confidence"])
+            float(python_row["confidence"]) - float(typescript_row["confidence"])
         )
         if confidence_delta > cross.get("maxConfidenceDelta", math.inf):
             raise AssertionError(f"{file}: confidence delta={confidence_delta:.6f}")
         score_delta = abs(
-            float(python_rows[file]["best_score"]) - float(typescript_rows[file]["bestScore"])
+            float(python_row["best_score"]) - float(typescript_row["bestScore"])
         )
         if score_delta > cross.get("maxBestScoreDelta", math.inf):
             raise AssertionError(f"{file}: best score delta={score_delta:.6f}")
-        python_features = normalized_features(python_rows[file], "python", file)
-        typescript_features = normalized_features(typescript_rows[file], "typescript", file)
+        python_features = normalized_features(python_row, "python", file)
+        typescript_features = normalized_features(typescript_row, "typescript", file)
         if bool(python_features) != bool(typescript_features):
             raise AssertionError(f"{file}: one implementation omitted selected score features")
-        python_warnings = optional_row_value(python_rows[file], "selected_warnings", "selectedWarnings") or []
+        python_warnings = optional_row_value(python_row, "selected_warnings", "selectedWarnings") or []
         typescript_warnings = optional_row_value(
-            typescript_rows[file], "selected_warnings", "selectedWarnings"
+            typescript_row, "selected_warnings", "selectedWarnings"
         ) or []
         if python_warnings != typescript_warnings:
             raise AssertionError(f"{file}: selected warning sets differ")
         if not python_features:
             if (
-                python_rows[file]["method"] != "fallback-frame"
-                or typescript_rows[file]["method"] != "fallback-frame"
+                python_row["method"] != "fallback-frame"
+                or typescript_row["method"] != "fallback-frame"
             ):
                 raise AssertionError(f"{file}: scored candidate feature comparison is empty")
             continue

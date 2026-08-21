@@ -8,7 +8,6 @@ import json
 import pprint
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "schemas" / "detection-config.json"
 PYTHON_TARGET = ROOT / "src" / "slides_thief" / "detection" / "config.py"

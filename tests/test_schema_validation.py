@@ -1,7 +1,7 @@
+import json
 from argparse import Namespace
 from copy import deepcopy
 from importlib import resources
-import json
 from pathlib import Path
 
 import jsonschema

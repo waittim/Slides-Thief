@@ -8,8 +8,8 @@ import numpy as np
 from PIL import Image, ImageDraw
 
 from .config import DETECTION_CONFIG
-from .gradient import GradientMap
 from .geometry import geometry_is_valid, polygon_area
+from .gradient import GradientMap
 from .numeric import average, percentile
 
 _SCORING_CONFIG = DETECTION_CONFIG["scoring"]

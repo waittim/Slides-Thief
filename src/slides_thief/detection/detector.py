@@ -10,12 +10,12 @@ from PIL import Image, ImageFilter, ImageOps
 from ..geometry import Line, intersect, order_quad, robust_fit
 from .batch_prior import batch_prior_candidates
 from .candidate_factory import make_candidate
-from .config import DETECTION_CONFIG
 from .confidence import (
     AUTO_REVIEW_CONFIDENCE,
     calculate_confidence,
     is_ambiguous_candidate,
 )
+from .config import DETECTION_CONFIG
 from .geometry import normalized_corner_distance, polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
@@ -342,7 +342,7 @@ def detect_quad(
     # wall, curtains, and audience are either saturated or dark. Segmenting the
     # low-saturation screen body gives a better document boundary than raw
     # brightness, especially when the cyan wall is brighter than the slide.
-    p05, p25, p55, p92 = [
+    _p05, p25, p55, p92 = [
         percentile(gray, fraction)
         for fraction in (
             0.05,

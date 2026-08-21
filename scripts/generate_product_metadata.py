@@ -8,7 +8,6 @@ import pprint
 import re
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "metadata" / "product.json"
 PYTHON_OUTPUT = ROOT / "src" / "slides_thief" / "product_metadata.py"
@@ -187,10 +186,14 @@ def cli_ratio_bullets(metadata: dict) -> str:
     letter_line = paper_lines[-1]
     return "\n".join(
         [
-            f"- Source presentation ratios: `{source_ids[0]}` (default), "
-            f"{', '.join(f'`{value}`' for value in source_ids[1:])}, or a numeric custom ratio",
-            f"- Output presentation ratios: `match-slide` (default), "
-            f"{', '.join(f'`{value}`' for value in output_presentation_ids)}",
+            (
+                f"- Source presentation ratios: `{source_ids[0]}` (default), "
+                f"{', '.join(f'`{value}`' for value in source_ids[1:])}, or a numeric custom ratio"
+            ),
+            (
+                f"- Output presentation ratios: `match-slide` (default), "
+                f"{', '.join(f'`{value}`' for value in output_presentation_ids)}"
+            ),
             f"- ISO paper sizes: {iso_lines}",
             f"- US Letter paper sizes: {letter_line}",
             f"- Custom ratios: e.g. `{source_ids[-1]}` or a numeric decimal ratio (e.g. `1.777`)",

@@ -17,11 +17,11 @@ class ConstrainedImageSize:
 
 
 def constrained_image_size(
-    source_width: int | float,
-    source_height: int | float,
-    max_width: int | float,
-    max_pixels: int | float,
-    max_side: int | float = DETECTION_MAX_SIDE,
+    source_width: float,
+    source_height: float,
+    max_width: float,
+    max_pixels: float,
+    max_side: float = DETECTION_MAX_SIDE,
 ) -> ConstrainedImageSize:
     """Return a proportional image size within width, side, and pixel budgets.
 

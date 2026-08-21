@@ -6,7 +6,6 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_DIR = ROOT / "schemas"
 PACKAGE_DIR = ROOT / "src" / "slides_thief" / "schemas"

@@ -14,8 +14,8 @@ from slides_thief.geometry import (
     perspective_coefficients,
 )
 from slides_thief.image_processing import (
-    _center_stats_region,
     DecodedImageCache,
+    _center_stats_region,
     enhance_slide,
     warp_slide,
     warp_slide_contained,

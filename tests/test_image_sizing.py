@@ -13,7 +13,6 @@ from PIL import Image
 import slides_thief.detection.detector as detector_module
 from slides_thief.detection.image_sizing import constrained_image_size
 
-
 FIXTURE_PATH = Path(__file__).parent / "fixtures" / "image-sizing.json"
 FIXTURE = json.loads(FIXTURE_PATH.read_text(encoding="utf-8"))
 

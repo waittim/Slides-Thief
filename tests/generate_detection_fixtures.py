@@ -6,7 +6,6 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-
 ROOT = Path(__file__).resolve().parent / "fixtures" / "detection" / "synthetic"
 SIZE = (320, 240)
 

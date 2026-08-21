@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Batch perspective correction CLI for photographed presentation slides.
 
 This intentionally avoids OpenCV so it can run with the bundled Codex runtime:
@@ -37,11 +36,11 @@ from .geometry import (
     robust_fit,
 )
 from .image_processing import (
+    DEFAULT_IMAGE_CACHE_PIXELS,
     SUPPORTED,
+    DecodedImageCache,
     _center_stats_region,
     convert_with_sips,
-    DEFAULT_IMAGE_CACHE_PIXELS,
-    DecodedImageCache,
     enhance_slide,
     list_images,
     readable_image,
@@ -61,7 +60,7 @@ def process(args: argparse.Namespace) -> dict:
     source_ratio = parse_ratio(source_ratio_name)
     page_ratio = source_ratio if output_ratio_name == "match-slide" else parse_ratio(output_ratio_name)
     out_w = int(args.width)
-    out_h = int(round(out_w / page_ratio))
+    out_h = round(out_w / page_ratio)
     if args.height:
         out_h = int(args.height)
 
@@ -320,36 +319,36 @@ if __name__ == "__main__":
 
 
 __all__ = [
-    "Line",
-    "RATIO_PRESETS",
     "PAPER_PRESETS",
-    "is_paper_ratio",
-    "parse_ratio",
-    "fit_line_xy",
-    "robust_fit",
-    "intersect",
-    "order_quad",
-    "perspective_coefficients",
+    "RATIO_PRESETS",
     "SUPPORTED",
-    "list_images",
-    "convert_with_sips",
-    "readable_image",
+    "Line",
     "_center_stats_region",
-    "enhance_slide",
-    "warp_slide",
-    "warp_slide_contained",
+    "build_parser",
+    "contrast_quad",
+    "convert_with_sips",
+    "detect_quad",
     "draw_overlay",
+    "enhance_slide",
+    "fit_line_xy",
+    "intersect",
+    "is_paper_ratio",
+    "list_images",
+    "load_manual_quads",
+    "main",
     "make_contact_sheet",
     "make_manual_review_html",
-    "scale_quad",
     "make_pdf",
-    "contrast_quad",
-    "detect_quad",
-    "load_manual_quads",
+    "order_quad",
+    "parse_ratio",
+    "perspective_coefficients",
+    "process",
+    "readable_image",
+    "resolve_enhancement_mode",
+    "robust_fit",
+    "scale_quad",
     "validate_manual_quad_for_image",
     "validate_slide_lens_report",
-    "process",
-    "resolve_enhancement_mode",
-    "build_parser",
-    "main",
+    "warp_slide",
+    "warp_slide_contained",
 ]

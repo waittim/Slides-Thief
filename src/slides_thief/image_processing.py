@@ -4,16 +4,15 @@ from __future__ import annotations
 
 import subprocess
 from collections import OrderedDict
+from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Iterator
 
 import numpy as np
 from PIL import Image, ImageEnhance, ImageOps
 
 from .geometry import perspective_coefficients
 from .product_metadata import PRODUCT_METADATA
-
 
 SUPPORTED = {
     extension
@@ -62,7 +61,7 @@ class DecodedImageCache:
     def cached_pixels(self) -> int:
         return self._cached_pixels
 
-    def __enter__(self) -> "DecodedImageCache":
+    def __enter__(self):
         return self
 
     def __exit__(self, *_exc: object) -> None:
@@ -112,8 +111,7 @@ def convert_with_sips(src: Path, dst: Path) -> Path:
     subprocess.run(
         ["sips", "-s", "format", "jpeg", "-s", "formatOptions", "95", str(src), "--out", str(dst)],
         check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+        capture_output=True,
         text=True,
     )
     return dst
