@@ -143,4 +143,35 @@ test("design artifacts stay aligned with the CSS contract", () => {
   assert.doesNotMatch(semanticTokens, /#[0-9a-f]{3,8}\b/i);
   assert.doesNotMatch(semanticTokens, /\brgba?\(/i);
   assert.doesNotMatch(componentTokens, /--component-[^:]+:\s*(?:9|11|13)px\b/);
+
+  const layout = {
+    "sidebar-width": "280px",
+    "inspector-width": "320px",
+    "inspector-collapsed-width": "48px",
+    "topbar-min-height": "58px",
+    "settings-label-width": "96px",
+    "settings-control-width": "74px",
+    "thumb-width": "52px",
+    "handle-hit": "48px",
+    "loupe-size": "120px",
+  };
+  const layoutSection = yamlSection(frontmatter, "layout");
+  const sidecarLayout = Object.fromEntries(sidecar.extensions.layout.map(({ name, value }) => [name, value]));
+  for (const [name, value] of Object.entries(layout)) {
+    assert.equal(cssToken(primitiveTokens, `layout-${name}`), value);
+    assert.equal(yamlValue(layoutSection, name), value);
+    assert.equal(sidecarLayout[name], value);
+    assert.match(componentTokens, new RegExp(`--component-${escapeRegExp(name)}:\\s*var\\(--layout-${escapeRegExp(name)}\\)`));
+  }
+
+  assert.match(css, /\.shell\s*\{[^}]*grid-template-columns:\s*var\(--component-sidebar-width\)\s+minmax\(0,\s*1fr\)\s+var\(--component-inspector-width\)/s);
+  assert.match(css, /\.shell\.inspectorCollapsed\s*\{[^}]*grid-template-columns:\s*var\(--component-sidebar-width\)\s+minmax\(0,\s*1fr\)\s+var\(--component-inspector-collapsed-width\)/s);
+  assert.match(css, /\.cornerHandle\s*\{[^}]*width:\s*var\(--component-handle-hit\)/s);
+  assert.match(css, /\.loupeOverlay\s*\{[^}]*width:\s*var\(--component-loupe-size\)/s);
+  assert.match(css, /min-width:\s*var\(--component-settings-control-width\)/);
+  assert.doesNotMatch(css, /grid-template-columns:\s*280px\s+minmax\(0,\s*1fr\)\s+320px/);
+  assert.doesNotMatch(css, /(?:^|[^\w-])(?:min-)?width:\s*74px\b/m);
+  assert.match(sidecar.components.find(({ refersTo }) => refersTo === "quad-handle")?.css ?? "", /var\(--component-handle-hit\)/);
+  assert.match(design, /`--layout-sidebar-width`/);
+  assert.match(design, /`--component-handle-hit`/);
 });

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-08-21
+
+### Fixed
+
+- Completed design-token coverage for recurring workbench layout sizes (sidebar,
+  inspector, settings columns, handle hit area, loupe) so CSS, `DESIGN.md`, and
+  the design sidecar stay aligned.
+
 ## [2.2.0] - 2026-08-21
 
 ### Added

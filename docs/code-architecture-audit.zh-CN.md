@@ -184,13 +184,14 @@ flowchart LR
 - **ROI**：4 / 高；**工作量**：M。
 - **最佳方案**：将 variant 收敛为 `primary/secondary/accent/ghost/icon/danger`，尺寸独立为 `sm/md/touch`；页面用途通过 `className` 或专用包装组件表达。把嵌套的 slide row 改为真正可选择的按钮/列表项，删除按钮作为同级操作，避免交互元素嵌套。
 
-### F-14 [P2] 设计系统文档与 CSS 实现存在持续漂移
+### F-14 [已关闭] 设计系统文档与 CSS 实现存在持续漂移
 
 - **位置**：`DESIGN.md`、`.impeccable/design.json`、`site/app/globals.css`
-- **证据**：设计文档定义了圆角、间距、字体层级和 900px 响应式行为，但 CSS 只对颜色做了较完整 token 化，仍散布大量 `6/7/8/12px`、`34/44px` 等硬编码；实际断点为 1040/834px。设计 sidecar 也已落后于 `DESIGN.md`。
+- **修复记录（F-14）**：已建立 primitive → semantic → component 三层 token；radius、spacing、control height、breakpoint、shadow，以及工作台布局尺寸（sidebar/inspector/settings 列宽、handle hit、loupe）均有命名变量。`DESIGN.md` 与 sidecar 对齐到实际 1040/834 断点；`design-contract.test.mjs` 校验 CSS / DESIGN / sidecar 契约。媒体查询因 CSS 限制仍保留字面量阈值，并与 `--breakpoint-*` 注释同步。
+- **验证结果**：设计契约测试通过；布局硬编码回归由契约断言覆盖。
 - **影响范围**：全站组件一致性、响应式维护和未来视觉迭代。
 - **ROI**：3 / 中；**工作量**：M。
-- **最佳方案**：先以实际产品为准重新确认 DESIGN.md，再建立 primitive → semantic → component 三层 token；把 radius、spacing、control height、breakpoint 和 shadow 纳入变量。完成代码调整后再运行 `$impeccable document` 刷新 sidecar，而不是仅修改 sidecar。
+- **最佳方案**：先以实际产品为准重新确认 DESIGN.md，再建立 primitive → semantic → component 三层 token；把 radius、spacing、control height、breakpoint、shadow 与布局尺寸纳入变量，并由契约测试锁定。
 
 ### F-15 [P2] 检测代码内部存在大量可消除的重复实现
 
@@ -336,7 +337,7 @@ Python/TS 检测器和 Next/Vite 两套页面入口是产品要求，但当前�
 ### 阶段 C：复用与维护成本
 
 1. 拆分 `SlidesThiefApp` 与 Header（F-11、F-12）。
-2. 统一 UI 原语和设计 token（F-13、F-14）。
+2. 统一 UI 原语和设计 token（F-13、F-14 已完成）。
 3. 合并检测 helper 与透视渲染核心（F-15、F-16）。
 4. 将源码正则测试迁移为行为测试（F-18）。
 5. F-23、F-24 已完成；后续新增产品能力应继续通过 `metadata/product.json` 和生成器进入代码、文档与 SEO。
@@ -422,7 +423,7 @@ Web:
 | `site/app/page.tsx`、`layout.tsx` | 双入口所需；元数据与静态 HTML 重复，viewport patch 较脆弱 |
 | `site/app/pages-main.tsx`、`site/pages/index.html` | GitHub Pages 必需；SEO/metadata 与 Next 入口重复维护 |
 | `site/app/ProductInfo.tsx` | 隐藏 SEO 文案与静态 HTML/metadata 重复，需防内容漂移 |
-| `site/app/globals.css` | F-14；1982 行单文件，token 只覆盖部分设计维度 |
+| `site/app/globals.css` | F-14 已关闭；布局与几何 token 已覆盖工作台关键尺寸 |
 | `site/build/sites-vite-plugin.ts` | 简洁，满足 Sites 元数据打包需求 |
 | `site/vite.config.ts`、`vite.pages.config.ts` | 双构建职责清楚；应共享 metadata/构建常量 |
 | `site/scripts/build-schemas.mjs` | 生成流程有效；建议加入 `--check` 模式并避免无条件改写 |
