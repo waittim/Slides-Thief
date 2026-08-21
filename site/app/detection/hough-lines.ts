@@ -28,8 +28,6 @@ type EdgePoint = {
 
 type LineSegment = {
   line: Line;
-  start: Point;
-  end: Point;
   angle: number;
   normalAngle: number;
   rho: number;
@@ -208,8 +206,6 @@ function extractSegments(
       if (length < diagonal * HOUGH_CONFIG.minimumSegmentLengthRatio) continue;
       candidates.push({
         line: { a: normalX, b: normalY, c: -rho },
-        start: [normalX * rho + directionX * first, normalY * rho + directionY * first],
-        end: [normalX * rho + directionX * last, normalY * rho + directionY * last],
         angle: normalizeAngle(normalAngle + Math.PI / 2),
         normalAngle,
         rho,

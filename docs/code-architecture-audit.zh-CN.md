@@ -256,13 +256,13 @@ flowchart LR
 - **ROI**：3 / 中；**工作量**：M。
 - **最佳方案**：用 context manager 明确关闭，缓存已转置的尺寸/路径和必要的缩略图；是否缓存完整像素应由内存预算决定，不建议无上限常驻所有原图。
 
-### F-23 [P3] 存在明确死代码、残留 API 与未使用依赖
+### F-23 [P3] 死代码、残留 API 与未使用依赖（已关闭）
 
-- **位置**：`site/app/chatgpt-auth.ts`、`site/app/SlidesThiefApp.tsx:5-51`、`site/app/slides-export-worker.ts:19,193,238`、`site/app/detection/hough-lines.ts:24-33`、`site/app/lib/export-utils.ts`、`site/next.config.ts`、`site/app/globals.css:1`、`site/package.json`
-- **证据**：`chatgpt-auth.ts` 没有调用方；主组件有 20 个未使用导入/变量；export worker 的 `isPaperRatio`、`fill` 参数和 `clamp` 未使用；Hough segment 的 `start/end` 未读取；`exportManualQuads` 只有测试使用；Next config 只剩占位注释。项目没有 Tailwind utility 使用，却加载 Tailwind PostCSS 和全量 `@import`。
-- **影响范围**：认知负担、Lint 噪声、CSS 构建体积和误导性 API。
-- **ROI**：4 / 高；**工作量**：S-M。
-- **最佳方案**：逐项确认是否为即将恢复的公开能力；没有产品计划的直接删除。若保留 `exportManualQuads`，应把它接入 UI。若完全使用手写 CSS，移除 Tailwind 依赖和 PostCSS 插件。
+- **复核结论**：该项部分成立。`chatgpt-auth.ts` 没有调用方，Hough segment 的 `start/end` 没有读取，Tailwind/PostCSS 只服务于未使用的 Tailwind 导入，`next.config.ts` 也只有占位配置；这些内容已删除。
+- **误报/已保留项**：`SlidesThiefApp.tsx` 中报告列出的导入和变量当前均有 UI 或 hook 调用方；`exportManualQuads` 已接入侧栏导出按钮；`isPaperRatio` 被设置状态迁移逻辑使用；export worker 中报告的若干符号在当前版本已不存在或并非未使用。
+- **影响范围**：降低认知负担和依赖安装体积，避免构建链与产品 CSS 体系不一致；未改变用户可见功能。
+- **ROI**：4 / 高仍合理；**工作量**：XS-S（删除残留和同步 lockfile）。
+- **处理方式**：移除无调用方文件、空配置、Hough 未使用字段、Tailwind 导入及两项开发依赖；保留仍在产品路径中的 API，并通过类型检查、Lint、双构建和测试验证。
 
 ### F-24 [P3] 产品能力、比例预设和品牌文案在代码/文档间不一致
 
@@ -301,7 +301,7 @@ Python/TS 检测器和 Next/Vite 两套页面入口是产品要求，但当前�
 
 ### 6.4 类型被当作局部注释，而不是跨模块契约
 
-`Record<string, any>`、`method: string`、Worker `event.data` 和未使用的生成 Schema 类型削弱了 TypeScript 的价值；类型检查也没有进入默认测试脚本。
+`Record<string, any>`、`method: string`、Worker `event.data` 和未使用的生成 Schema 类型削弱了 TypeScript 的价值；类型检查现已进入默认测试脚本，后续仍应继续收窄跨模块契约。
 
 ## 7. 值得保留的实现
 
@@ -336,7 +336,7 @@ Python/TS 检测器和 Next/Vite 两套页面入口是产品要求，但当前�
 2. 统一 UI 原语和设计 token（F-13、F-14）。
 3. 合并检测 helper 与透视渲染核心（F-15、F-16）。
 4. 将源码正则测试迁移为行为测试（F-18）。
-5. 删除死代码、未使用依赖并修正文档（F-23、F-24）。
+5. F-23 已完成；继续修正文档与产品能力漂移（F-24）。
 
 ## 9. 建议质量门禁
 
@@ -382,7 +382,7 @@ Web:
 | `src/slides_thief/detection/scoring.py` | F-15；几何与多边形逻辑重复 |
 | `src/slides_thief/detection/hough_lines.py` | F-09、F-15；内部几何 helper 重复 |
 | `src/slides_thief/detection/detector.py` | F-03、F-09、F-20；核心函数过长、阈值密集 |
-| `site/app/SlidesThiefApp.tsx` | F-05、F-06、F-07、F-11、F-17、F-23 |
+| `site/app/SlidesThiefApp.tsx` | F-05、F-06、F-07、F-11、F-17 |
 | `site/app/components/Header.tsx` | F-08、F-12；设置状态机和重复控件 |
 | `site/app/components/SlideSidebar.tsx` | F-05、F-13；role=button 内嵌 button，类型被 `any` 绕过 |
 | `site/app/components/CanvasQuadEditor.tsx` | Web 端可访问性基础较好；文案类型仍为 any |
@@ -393,7 +393,7 @@ Web:
 | `site/app/hooks/useDetectionWorker.ts` | F-07、F-17；缺 jobId/运行时消息校验 |
 | `site/app/hooks/useExportWorker.ts` | Worker 释放较好；可与检测 Worker 抽取公共生命周期 helper |
 | `site/app/slides-worker.ts` | F-04、F-07、F-09；两遍检测设计合理但结果未做代次隔离 |
-| `site/app/slides-export-worker.ts` | F-04、F-16、F-23；有未使用参数/helper |
+| `site/app/slides-export-worker.ts` | F-04、F-16 |
 | `site/app/detection/types.ts` | 契约较完整；应延伸到 SlideItem/Worker 边界 |
 | `site/app/detection/geometry.ts` | F-09、F-15；同时存在栅格和精确 IoU，调用选择错误 |
 | `site/app/detection/gradient-pyramid.ts` | F-09、F-21 |
@@ -404,25 +404,23 @@ Web:
 | `site/app/detection/quad-refiner.ts` | 结构清楚；与 Python refiner 双维护 |
 | `site/app/detection/mask-lines.ts` | F-15；line fit/helper 可下沉 |
 | `site/app/detection/contrast-lines.ts` | F-09、F-15；候选数量与 Python 不同 |
-| `site/app/detection/hough-lines.ts` | F-09、F-15、F-23；未使用 segment endpoint 字段 |
+| `site/app/detection/hough-lines.ts` | F-09、F-15 |
 | `site/app/detection/detect.ts` | F-09；去重使用了栅格 IoU |
 | `site/app/lib/types.ts` | F-17；HEIF MIME Set 重复 `image/heic-sequence`，遗漏 `image/heif-sequence` |
 | `site/app/lib/slide-utils.ts` | F-08、F-16；`resolvedSlideRatio` 的 slide 参数未使用 |
 | `site/app/lib/canvas-utils.ts` | 边界处理可复用；部分小数组写法可优化但非优先 |
 | `site/app/lib/perspective.ts` | 线性求解简洁；建议增加奇异矩阵显式错误 |
-| `site/app/lib/export-utils.ts` | F-19、F-23；目前只有测试调用 |
-| `site/app/ratio.ts` | F-08、F-24；比例与方向模型需要结构化 |
+| `site/app/lib/export-utils.ts` | F-19；已由侧栏导出流程调用 |
+| `site/app/ratio.ts` | F-08、F-24；比例与方向模型需要结构化，`isPaperRatio` 有实际调用方 |
 | `site/app/enhance.ts` | 逻辑独立，适合保留；与 Python 结果只有参数相似、无一致性测试 |
 | `site/app/image-sizing.ts` | 小而明确，测试充分；应复用到 Python 设计 |
 | `site/app/filename.ts` | 小而明确，Unicode/保留名测试较好 |
 | `site/app/i18n.ts` | F-12；内容完整但单文件过大，组件端未复用其推断类型 |
-| `site/app/chatgpt-auth.ts` | F-23；无调用方 |
 | `site/app/page.tsx`、`layout.tsx` | 双入口所需；元数据与静态 HTML 重复，viewport patch 较脆弱 |
 | `site/app/pages-main.tsx`、`site/pages/index.html` | GitHub Pages 必需；SEO/metadata 与 Next 入口重复维护 |
 | `site/app/ProductInfo.tsx` | 隐藏 SEO 文案与静态 HTML/metadata 重复，需防内容漂移 |
-| `site/app/globals.css` | F-14、F-23；1982 行单文件，token 只覆盖部分设计维度 |
+| `site/app/globals.css` | F-14；1982 行单文件，token 只覆盖部分设计维度 |
 | `site/build/sites-vite-plugin.ts` | 简洁，满足 Sites 元数据打包需求 |
-| `site/next.config.ts` | F-23；空配置可删除或记录存在理由 |
 | `site/vite.config.ts`、`vite.pages.config.ts` | 双构建职责清楚；应共享 metadata/构建常量 |
 | `site/scripts/build-schemas.mjs` | 生成流程有效；建议加入 `--check` 模式并避免无条件改写 |
 | `site/scripts/evaluate-detection.mjs` | 与 Python benchmark 重复，适合成为跨实现比较入口 |
@@ -435,7 +433,7 @@ Web:
 | `site/tests/ratio.test.mjs` | F-08 未覆盖 custom orientation 的状态持久化 |
 | `site/tests/perspective-and-canvas.test.mjs` | 基础数学覆盖合理；缺预览/导出一致性 golden test |
 | `pyproject.toml` | dev 依赖未声明 `jsonschema`，新环境运行测试可能失败 |
-| `site/package.json` | F-04、F-23；缺 `typecheck` 脚本，Tailwind 可能完全未使用 |
+| `site/package.json` | F-04；已有 `typecheck` 脚本并作为 `npm test` 前置步骤，CSS 使用手写样式且不依赖 Tailwind |
 | `.github/workflows/deploy-pages.yml` | 会正确运行 Lint，但缺 TypeScript、Python 和双端契约检查 |
 
 ## 11. 暂不建议的改法
