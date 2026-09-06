@@ -92,12 +92,7 @@ export function SlideSidebar({
     };
   }, [exportMenuOpen]);
 
-  useEffect(() => {
-    if (busy || !readySlides.length) {
-      setExportMenuOpen(false);
-    }
-  }, [busy, readySlides.length]);
-
+  const isMenuOpen = exportMenuOpen && !busy && readySlides.length > 0;
   const pdfUrl = exportArtifacts?.pdf?.url ?? exportUrl ?? null;
   const pdfFilename = exportArtifacts?.pdf?.filename ?? exportName ?? "presentation.pdf";
   const jpgArtifact = exportArtifacts?.jpg;
@@ -126,7 +121,7 @@ export function SlideSidebar({
             className="splitButtonToggle uiButton uiButton--accent"
             disabled={busy || !readySlides.length}
             aria-haspopup="menu"
-            aria-expanded={exportMenuOpen}
+            aria-expanded={isMenuOpen}
             aria-label={text.exportOptions}
             onClick={() => setExportMenuOpen((open) => !open)}
           >
@@ -144,7 +139,7 @@ export function SlideSidebar({
               <polyline points="6 9 12 15 18 9" />
             </svg>
           </button>
-          {exportMenuOpen ? (
+          {isMenuOpen ? (
             <div className="exportMenu" role="menu">
               <div className="exportMenuHeading">{text.exportOptions}</div>
               <button
