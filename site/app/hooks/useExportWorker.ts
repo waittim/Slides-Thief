@@ -40,10 +40,10 @@ export function useExportWorker(
       if (message.type === "export-complete") {
         trackEvent("pdf_export_success", {
           page_count: slidesRef.current.length,
-          file_size_bytes: message.pdf.byteLength,
+          file_size_bytes: (message.pdf ?? message.buffer).byteLength,
         });
         if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-        const blob = new Blob([message.pdf], { type: "application/pdf" });
+        const blob = new Blob([message.pdf ?? message.buffer], { type: message.mimeType || "application/pdf" });
         const url = URL.createObjectURL(blob);
         exportUrlRef.current = url;
         setExportUrl(url);

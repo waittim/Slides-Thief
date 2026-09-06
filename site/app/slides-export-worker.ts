@@ -1,10 +1,13 @@
 /// <reference lib="webworker" />
 
 import { PDFDocument } from "pdf-lib";
+import { Zip, ZipPassThrough } from "fflate";
 import type { EnhancementMode } from "./enhance";
 import type { Quad } from "./detection/types";
+import { formatZipSlideEntryName } from "./filename";
 import { constrainedImageSize } from "./image-sizing";
 import { renderPerspectivePage } from "./lib/perspective-render";
+import type { ExportFormat } from "./lib/types";
 import {
   outputPageRatioValue,
   pdfPageDimensions,
@@ -40,17 +43,27 @@ const EXPORT_SOURCE_MAX_PIXELS = 8_000_000;
 scope.onmessage = async (event) => {
   const data = event.data;
   if (data.type !== "export") return;
+  const format: ExportFormat = data.format === "jpg" ? "jpg" : "pdf";
   try {
-    await exportPdf(
-      data.files as JobFile[],
-      data.slides as ExportSlide[],
-      data.settings as Settings,
-      data.filename || "flattened-slides.pdf",
-    );
+    if (format === "jpg") {
+      await exportJpgArchive(
+        data.files as JobFile[],
+        data.slides as ExportSlide[],
+        data.settings as Settings,
+        data.filename || ((data.slides as ExportSlide[])?.length === 1 ? "flattened-slides-001.jpg" : "flattened-slides-images.zip"),
+      );
+    } else {
+      await exportPdf(
+        data.files as JobFile[],
+        data.slides as ExportSlide[],
+        data.settings as Settings,
+        data.filename || "flattened-slides.pdf",
+      );
+    }
   } catch (error) {
     scope.postMessage({
       type: "error",
-      error: error instanceof Error ? error.message : "The browser PDF worker stopped unexpectedly.",
+      error: error instanceof Error ? error.message : "The browser export worker stopped unexpectedly.",
     });
   }
 };
@@ -67,7 +80,7 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
     if (!item) continue;
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
-    scope.postMessage({ type: "export-progress", current: index + 1, total: slides.length, name: item.name });
+    scope.postMessage({ type: "export-progress", format: "pdf", current: index + 1, total: slides.length, name: item.name });
     const jpgBytes = await renderWarpedJpeg(
       item.file,
       slide.quad,
@@ -88,7 +101,115 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
 
   const pdfBytes = await pdf.save();
   const transfer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
-  scope.postMessage({ type: "export-complete", pdf: transfer, filename }, [transfer]);
+  scope.postMessage(
+    {
+      type: "export-complete",
+      format: "pdf",
+      buffer: transfer,
+      pdf: transfer,
+      filename,
+      mimeType: "application/pdf",
+    },
+    [transfer],
+  );
+}
+
+async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
+  const fileById = new Map(files.map((item) => [item.id, item]));
+  const outputWidth = settings.width;
+  const sourceRatio = sourceFormatRatioValue(settings);
+
+  if (slides.length === 1) {
+    const slide = slides[0];
+    const item = fileById.get(slide.id);
+    if (!item) throw new Error("Slide image not found.");
+    const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+    const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
+    scope.postMessage({
+      type: "export-progress",
+      format: "jpg",
+      current: 1,
+      total: 1,
+      name: item.name,
+    });
+    const jpgBytes = await renderWarpedJpeg(
+      item.file,
+      slide.quad,
+      outputWidth,
+      outputHeight,
+      sourceRatio,
+      settings,
+    );
+    const transfer = jpgBytes.buffer.slice(jpgBytes.byteOffset, jpgBytes.byteOffset + jpgBytes.byteLength);
+    scope.postMessage(
+      {
+        type: "export-complete",
+        format: "jpg",
+        buffer: transfer,
+        filename,
+        mimeType: "image/jpeg",
+      },
+      [transfer],
+    );
+    return;
+  }
+
+  if (slides.length > 1) {
+    const zip = new Zip();
+    const chunks: Uint8Array[] = [];
+    zip.ondata = (err, chunk) => {
+      if (err) throw err;
+      if (chunk) chunks.push(chunk);
+    };
+
+    for (let index = 0; index < slides.length; index += 1) {
+      const slide = slides[index];
+      const item = fileById.get(slide.id);
+      if (!item) continue;
+      const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+      const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
+      scope.postMessage({
+        type: "export-progress",
+        format: "jpg",
+        current: index + 1,
+        total: slides.length,
+        name: item.name,
+      });
+      const jpgBytes = await renderWarpedJpeg(
+        item.file,
+        slide.quad,
+        outputWidth,
+        outputHeight,
+        sourceRatio,
+        settings,
+      );
+      const entryName = formatZipSlideEntryName(index, slides.length, item.name);
+      const entry = new ZipPassThrough(entryName);
+      zip.add(entry);
+      entry.push(jpgBytes, true);
+    }
+
+    zip.end();
+
+    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+    const zipBytes = new Uint8Array(totalLength);
+    let offset = 0;
+    for (const chunk of chunks) {
+      zipBytes.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const transfer = zipBytes.buffer.slice(zipBytes.byteOffset, zipBytes.byteOffset + zipBytes.byteLength);
+    scope.postMessage(
+      {
+        type: "export-complete",
+        format: "jpg",
+        buffer: transfer,
+        filename,
+        mimeType: "application/zip",
+      },
+      [transfer],
+    );
+  }
 }
 
 async function renderWarpedJpeg(
