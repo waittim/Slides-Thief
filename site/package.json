@@ -22,6 +22,7 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern dist-pages --ignore-pattern .next --max-warnings=0"
   },
   "dependencies": {
+    "fflate": "^0.8.2",
     "heic-to": "^1.5.2",
     "next": "16.2.6",
     "pdf-lib": "^1.17.1",
