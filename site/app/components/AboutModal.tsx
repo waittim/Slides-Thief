@@ -12,6 +12,16 @@ interface AboutModalProps {
   appVersion: string;
 }
 
+function ShortcutChord({ keys }: { keys: readonly string[] }) {
+  return (
+    <span className="shortcutChord">
+      {keys.map((key, index) => (
+        <kbd key={`${key}-${index}`}>{key}</kbd>
+      ))}
+    </span>
+  );
+}
+
 export function AboutModal({
   isInfoOpen,
   setIsInfoOpen,
@@ -38,22 +48,44 @@ export function AboutModal({
         <h4>{text.shortcutsTitle}</h4>
         <div className="shortcutGrid">
           <div className="shortcutItem">
-            <kbd>J</kbd> / <kbd>K</kbd> <span>{text.shortcutNav}</span>
+            <ShortcutChord keys={["J"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["K"]} />
+            <span>{text.shortcutNav}</span>
           </div>
           <div className="shortcutItem">
-            <kbd>Delete</kbd> <span>{text.shortcutDelete}</span>
+            <ShortcutChord keys={["Delete"]} />
+            <span>{text.shortcutDelete}</span>
           </div>
           <div className="shortcutItem">
-            <kbd>⌘Z</kbd> / <kbd>Ctrl+Z</kbd> <span>{text.shortcutUndo}</span>
+            <ShortcutChord keys={["⌘", "Z"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Ctrl", "Z"]} />
+            <span>{text.shortcutUndo}</span>
           </div>
           <div className="shortcutItem">
-            <kbd>⌘⇧Z</kbd> / <kbd>Ctrl+Shift+Z</kbd> <span>{text.shortcutRedo}</span>
+            <ShortcutChord keys={["⌘", "⇧", "Z"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Ctrl", "Shift", "Z"]} />
+            <span>{text.shortcutRedo}</span>
           </div>
           <div className="shortcutItem">
-            <kbd>⌘↵</kbd> / <kbd>Ctrl+Enter</kbd> <span>{text.shortcutExport}</span>
+            <ShortcutChord keys={["⌘", "↵"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Ctrl", "Enter"]} />
+            <span>{text.shortcutExport}</span>
           </div>
           <div className="shortcutItem">
-            <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> <span>{text.shortcutNudge}</span>
+            <ShortcutChord keys={["↑", "↓", "←", "→"]} />
+            <span>{text.shortcutNudge}</span>
           </div>
         </div>
       </div>

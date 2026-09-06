@@ -1,1 +1,1 @@
-export {};
+import "../app/globals.css";

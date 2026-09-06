@@ -780,9 +780,135 @@ a:hover {
 }
 
 .sidebarActions {
+  position: relative;
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--space-3);
+  z-index: 5;
+}
+
+.splitButton {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  width: 100%;
+}
+
+.splitButtonMain {
+  flex: 1 1 auto;
+  min-width: 0;
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.splitButtonToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 0 var(--space-2);
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: 1px solid color-mix(in srgb, var(--accent-2-text), transparent 75%);
+}
+
+.splitButtonToggle[aria-expanded="true"] {
+  filter: brightness(0.92);
+}
+
+.splitButtonMain:focus-visible,
+.splitButtonToggle:focus-visible {
+  z-index: 1;
+}
+
+.exportMenu {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(280px, calc(100vw - var(--space-6)));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--component-surface-radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-2);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.exportMenuHeading {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: var(--space-1) var(--space-2);
+}
+
+.exportMenuItem {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--component-control-radius);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  text-decoration: none;
+  transition:
+    background-color 0.12s ease,
+    border-color 0.12s ease;
+}
+
+.exportMenuItem:hover {
+  background: var(--control-bg);
+  border-color: var(--line);
+}
+
+.exportMenuItem:focus-visible {
+  outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%);
+  outline-offset: 1px;
+}
+
+.exportMenuItemIcon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--muted);
+}
+
+.exportMenuItem:hover .exportMenuItemIcon {
+  color: var(--accent-2);
+}
+
+.exportMenuItemText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.exportMenuItemTitle {
+  font-size: var(--font-size-md);
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  line-height: var(--line-height-tight);
+}
+
+.exportMenuItemDesc {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: var(--line-height-ui);
 }
 
 .manualQuadsActions {
@@ -1802,6 +1928,16 @@ canvas {
     min-height: var(--control-height-touch);
   }
 
+  .splitButtonToggle {
+    min-width: var(--control-height-touch);
+  }
+
+  .exportMenuItem {
+    height: auto;
+    min-height: var(--control-height-touch);
+    padding: var(--space-3) var(--space-4);
+  }
+
   select,
   input[type="number"],
   input[type="text"] {
@@ -2183,8 +2319,21 @@ canvas {
 .shortcutItem {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   font-size: var(--font-size-md);
+  color: var(--muted);
+}
+
+.shortcutChord {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.shortcutSep {
+  flex-shrink: 0;
   color: var(--muted);
 }
 
@@ -2192,10 +2341,12 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   min-width: 22px;
   height: 22px;
   padding: 0 var(--space-1);
-  font: var(--font-weight-medium) var(--font-size-xs)/1 var(--font-family-mono);
+  /* System UI fonts keep ⌘⇧↵ optically aligned with Latin key legends. */
+  font: var(--font-weight-medium) var(--font-size-sm)/var(--line-height-tight) var(--font-family-sans);
   color: var(--text);
   background: var(--panel-strong);
   border: 1px solid var(--line);

@@ -1,13 +1,12 @@
 import { useCallback, useRef } from "react";
 import { copy, type LocaleValue } from "../i18n";
 import { messageFromError } from "../lib/slide-utils";
-import { trackEvent, type ExportWorkerMessage, type SlideItem } from "../lib/types";
+import { trackEvent, type ExportArtifact, type ExportWorkerMessage, type SlideItem } from "../lib/types";
 
 export function useExportWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
-  exportUrlRef: React.MutableRefObject<string | null>,
-  setExportUrl: React.Dispatch<React.SetStateAction<string | null>>,
-  setExportName: (name: string) => void,
+  exportArtifactsRef: React.MutableRefObject<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>,
+  setExportArtifacts: React.Dispatch<React.SetStateAction<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>>,
   setExporting: (exporting: boolean) => void,
   setWorkerError: (error: string) => void,
   setBusyText: (text: string) => void,
@@ -35,19 +34,41 @@ export function useExportWorker(
     worker.onmessage = (event: MessageEvent<ExportWorkerMessage>) => {
       const message = event.data;
       if (message.type === "export-progress") {
-        setBusyText(`${copy[localeRef.current].generating} ${message.current}/${message.total}: ${message.name}`);
+        const actionText =
+          message.format === "jpg"
+            ? copy[localeRef.current].generatingJpg
+            : copy[localeRef.current].generating;
+        setBusyText(`${actionText} ${message.current}/${message.total}: ${message.name}`);
       }
       if (message.type === "export-complete") {
-        trackEvent("pdf_export_success", {
+        const format = message.format ?? "pdf";
+        const buffer = message.pdf ?? message.buffer;
+        trackEvent(format === "jpg" ? "jpg_export_success" : "pdf_export_success", {
           page_count: slidesRef.current.length,
-          file_size_bytes: message.pdf.byteLength,
+          file_size_bytes: buffer.byteLength,
         });
-        if (exportUrlRef.current) URL.revokeObjectURL(exportUrlRef.current);
-        const blob = new Blob([message.pdf], { type: "application/pdf" });
+        const prevUrl = exportArtifactsRef.current[format]?.url;
+        if (prevUrl) {
+          URL.revokeObjectURL(prevUrl);
+        }
+        const blob = new Blob([buffer], {
+          type: message.mimeType || (format === "jpg" ? "application/zip" : "application/pdf"),
+        });
         const url = URL.createObjectURL(blob);
-        exportUrlRef.current = url;
-        setExportUrl(url);
-        setExportName(message.filename);
+        const artifact: ExportArtifact = {
+          format,
+          url,
+          filename: message.filename,
+          byteLength: buffer.byteLength,
+        };
+        exportArtifactsRef.current = {
+          ...exportArtifactsRef.current,
+          [format]: artifact,
+        };
+        setExportArtifacts((current) => ({
+          ...current,
+          [format]: artifact,
+        }));
         setExporting(false);
         setBusyText("");
         releaseWorker();
@@ -55,7 +76,7 @@ export function useExportWorker(
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "export_worker_error",
-          error_message: message.error || "PDF export error",
+          error_message: message.error || "Export error",
         });
         setWorkerError(message.error);
         setExporting(false);
@@ -66,18 +87,18 @@ export function useExportWorker(
     const handleWorkerFailure = (message: string) => {
       trackEvent("processing_error", {
         error_type: "export_worker_failure",
-        error_message: message || "PDF worker terminated unexpectedly",
+        error_message: message || "Export worker terminated unexpectedly",
       });
       setWorkerError(message);
       setExporting(false);
       setBusyText("");
       releaseWorker();
     };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The PDF worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the PDF worker.");
+    worker.onerror = (event) => handleWorkerFailure(event.message || "The export worker stopped unexpectedly.");
+    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the export worker.");
     exportWorkerRef.current = worker;
     return worker;
-  }, [exportUrlRef, localeRef, setBusyText, setExportName, setExportUrl, setExporting, setWorkerError, slidesRef]);
+  }, [exportArtifactsRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
 
   const cancelExport = useCallback(() => {
     if (exportWorkerRef.current) {

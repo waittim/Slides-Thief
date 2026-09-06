@@ -180,9 +180,27 @@ export type DetectionWorkerMessage =
   | { type: "slide-error"; jobId: DetectionJobId; id: string; error: SlideError }
   | { type: "error"; jobId: DetectionJobId; error: SlideError };
 
+export type ExportFormat = "pdf" | "jpg";
+
+export type ExportArtifact = {
+  format: ExportFormat;
+  url: string;
+  filename: string;
+  byteLength: number;
+};
+
+export type ExportWorkerRequest = {
+  type: "export";
+  format?: ExportFormat;
+  files: Array<{ id: string; name: string; file: File }>;
+  slides: Array<{ id: string; name: string; quad: Quad }>;
+  settings: unknown;
+  filename?: string;
+};
+
 export type ExportWorkerMessage =
-  | { type: "export-progress"; current: number; total: number; name: string }
-  | { type: "export-complete"; pdf: ArrayBuffer; filename: string }
+  | { type: "export-progress"; format?: ExportFormat; current: number; total: number; name: string }
+  | { type: "export-complete"; format?: ExportFormat; buffer: ArrayBuffer; pdf?: ArrayBuffer; filename: string; mimeType?: string }
   | { type: "error"; error: string };
 
 export type WorkerMessage = DetectionWorkerMessage | ExportWorkerMessage;

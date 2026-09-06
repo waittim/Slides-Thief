@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Normalized About modal keyboard shortcut keycaps so Mac modifier glyphs (⌘⇧↵)
+  render as separate, evenly sized keys instead of uneven mixed-symbol captions.
+
+## [2.3.0] - 2026-09-06
+
+### Added
+
+- Web app slide export to individual JPG images, downloaded as a single `.jpg` for single slides or packaged into a `.zip` archive for multi-slide decks.
+- Sidebar export split button with dropdown menu to export PDF, JPG/ZIP, or both formats concurrently.
+- Dual download links banner when both PDF and JPG/ZIP artifacts are generated.
+- Multi-language UI translations for JPG export options and dual download actions across all supported languages.
+
+### Changed
+
+- In-browser export worker streams ZIP compression using `fflate` with zero-copy buffer transfers.
+- Sanitized ZIP entry filenames capping slide name stem length and stripping leading dots.
+
 ## [2.2.1] - 2026-08-21
 
 ### Fixed
@@ -107,7 +126,9 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/waittim/Slides-Thief/compare/v2.2.1...v2.3.0
+[2.2.1]: https://github.com/waittim/Slides-Thief/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/waittim/Slides-Thief/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/waittim/Slides-Thief/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/waittim/Slides-Thief/compare/v0.1.0...v2.0.0
