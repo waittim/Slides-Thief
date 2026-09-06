@@ -2319,8 +2319,21 @@ canvas {
 .shortcutItem {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--space-2);
   font-size: var(--font-size-md);
+  color: var(--muted);
+}
+
+.shortcutChord {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+
+.shortcutSep {
+  flex-shrink: 0;
   color: var(--muted);
 }
 
@@ -2328,10 +2341,12 @@ kbd {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
   min-width: 22px;
   height: 22px;
   padding: 0 var(--space-1);
-  font: var(--font-weight-medium) var(--font-size-xs)/1 var(--font-family-mono);
+  /* System UI fonts keep ⌘⇧↵ optically aligned with Latin key legends. */
+  font: var(--font-weight-medium) var(--font-size-sm)/var(--line-height-tight) var(--font-family-sans);
   color: var(--text);
   background: var(--panel-strong);
   border: 1px solid var(--line);

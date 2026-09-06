@@ -2,7 +2,7 @@
 # Edit metadata/product.json and regenerate.
 
 PRODUCT_METADATA = {'name': 'Slides Thief',
- 'version': '2.2.1',
+ 'version': '2.3.0',
  'title': 'Slides Thief - Straighten Slide & Document Photos into PDFs',
  'description': 'Straighten skewed photos of slides or documents and export them as a clean PDF locally in your '
                 'browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.',
