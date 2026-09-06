@@ -69,6 +69,9 @@ scope.onmessage = async (event) => {
 };
 
 async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
+  if (slides.length === 0) {
+    throw new Error("No slides to export.");
+  }
   const fileById = new Map(files.map((item) => [item.id, item]));
   const pdf = await PDFDocument.create();
   const outputWidth = settings.width;
@@ -77,7 +80,7 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
   for (let index = 0; index < slides.length; index += 1) {
     const slide = slides[index];
     const item = fileById.get(slide.id);
-    if (!item) continue;
+    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({ type: "export-progress", format: "pdf", current: index + 1, total: slides.length, name: item.name });
@@ -100,7 +103,10 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
   }
 
   const pdfBytes = await pdf.save();
-  const transfer = pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
+  const transfer =
+    pdfBytes.byteOffset === 0 && pdfBytes.byteLength === pdfBytes.buffer.byteLength
+      ? pdfBytes.buffer
+      : pdfBytes.buffer.slice(pdfBytes.byteOffset, pdfBytes.byteOffset + pdfBytes.byteLength);
   scope.postMessage(
     {
       type: "export-complete",
@@ -115,6 +121,9 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
 }
 
 async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
+  if (slides.length === 0) {
+    throw new Error("No slides to export.");
+  }
   const fileById = new Map(files.map((item) => [item.id, item]));
   const outputWidth = settings.width;
   const sourceRatio = sourceFormatRatioValue(settings);
@@ -122,7 +131,7 @@ async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], setting
   if (slides.length === 1) {
     const slide = slides[0];
     const item = fileById.get(slide.id);
-    if (!item) throw new Error("Slide image not found.");
+    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({
@@ -140,7 +149,10 @@ async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], setting
       sourceRatio,
       settings,
     );
-    const transfer = jpgBytes.buffer.slice(jpgBytes.byteOffset, jpgBytes.byteOffset + jpgBytes.byteLength);
+    const transfer =
+      jpgBytes.byteOffset === 0 && jpgBytes.byteLength === jpgBytes.buffer.byteLength
+        ? jpgBytes.buffer
+        : jpgBytes.buffer.slice(jpgBytes.byteOffset, jpgBytes.byteOffset + jpgBytes.byteLength);
     scope.postMessage(
       {
         type: "export-complete",
@@ -154,62 +166,68 @@ async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], setting
     return;
   }
 
-  if (slides.length > 1) {
-    const zip = new Zip();
-    const chunks: Uint8Array[] = [];
-    zip.ondata = (err, chunk) => {
-      if (err) throw err;
-      if (chunk) chunks.push(chunk);
-    };
-
-    for (let index = 0; index < slides.length; index += 1) {
-      const slide = slides[index];
-      const item = fileById.get(slide.id);
-      if (!item) continue;
-      const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
-      const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
-      scope.postMessage({
-        type: "export-progress",
-        format: "jpg",
-        current: index + 1,
-        total: slides.length,
-        name: item.name,
-      });
-      const jpgBytes = await renderWarpedJpeg(
-        item.file,
-        slide.quad,
-        outputWidth,
-        outputHeight,
-        sourceRatio,
-        settings,
-      );
-      const entryName = formatZipSlideEntryName(index, slides.length, item.name);
-      const entry = new ZipPassThrough(entryName);
-      zip.add(entry);
-      entry.push(jpgBytes, true);
+  const zip = new Zip();
+  const chunks: Uint8Array[] = [];
+  let zipError: Error | null = null;
+  zip.ondata = (err, chunk) => {
+    if (err) {
+      zipError = err instanceof Error ? err : new Error(String(err));
+      return;
     }
+    if (chunk) chunks.push(chunk);
+  };
 
-    zip.end();
-
-    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-    const zipBytes = new Uint8Array(totalLength);
-    let offset = 0;
-    for (const chunk of chunks) {
-      zipBytes.set(chunk, offset);
-      offset += chunk.length;
-    }
-    const transfer = zipBytes.buffer.slice(zipBytes.byteOffset, zipBytes.byteOffset + zipBytes.byteLength);
-    scope.postMessage(
-      {
-        type: "export-complete",
-        format: "jpg",
-        buffer: transfer,
-        filename,
-        mimeType: "application/zip",
-      },
-      [transfer],
+  for (let index = 0; index < slides.length; index += 1) {
+    const slide = slides[index];
+    const item = fileById.get(slide.id);
+    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
+    const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
+    const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
+    scope.postMessage({
+      type: "export-progress",
+      format: "jpg",
+      current: index + 1,
+      total: slides.length,
+      name: item.name,
+    });
+    const jpgBytes = await renderWarpedJpeg(
+      item.file,
+      slide.quad,
+      outputWidth,
+      outputHeight,
+      sourceRatio,
+      settings,
     );
+    const entryName = formatZipSlideEntryName(index, slides.length, item.name);
+    const entry = new ZipPassThrough(entryName);
+    zip.add(entry);
+    entry.push(jpgBytes, true);
   }
+
+  zip.end();
+  if (zipError) throw zipError;
+
+  const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+  const zipBytes = new Uint8Array(totalLength);
+  let offset = 0;
+  for (const chunk of chunks) {
+    zipBytes.set(chunk, offset);
+    offset += chunk.length;
+  }
+  const transfer =
+    zipBytes.byteOffset === 0 && zipBytes.byteLength === zipBytes.buffer.byteLength
+      ? zipBytes.buffer
+      : zipBytes.buffer.slice(zipBytes.byteOffset, zipBytes.byteOffset + zipBytes.byteLength);
+  scope.postMessage(
+    {
+      type: "export-complete",
+      format: "jpg",
+      buffer: transfer,
+      filename,
+      mimeType: "application/zip",
+    },
+    [transfer],
+  );
 }
 
 async function renderWarpedJpeg(
