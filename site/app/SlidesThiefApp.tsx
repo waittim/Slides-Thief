@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Quad } from "./detection/types";
-import { normalizePdfName } from "./filename";
+import { normalizeJpgZipName, normalizePdfName, normalizeSingleJpgName } from "./filename";
 import {
   copy,
   detectionMethodText,
@@ -17,7 +17,7 @@ import {
   resolvedSlideRatio,
   stripFileExtension,
 } from "./lib/slide-utils";
-import type { Settings, SlideItem } from "./lib/types";
+import type { ExportArtifact, Settings, SlideItem } from "./lib/types";
 import { parseManualQuadsJson, validateManualQuadForImage } from "./schemas/validators.ts";
 import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
@@ -37,11 +37,17 @@ import { PRODUCT_METADATA } from "./product-metadata";
 
 const APP_VERSION = PRODUCT_METADATA.version;
 
+const TypedSlideSidebar = SlideSidebar as React.ComponentType<
+  React.ComponentProps<typeof SlideSidebar> & {
+    exportArtifacts?: { pdf?: ExportArtifact; jpg?: ExportArtifact };
+    exportJpg?: () => void;
+  }
+>;
+
 export function SlidesThiefApp() {
   const [dragActive, setDragActive] = useState(false);
   const [busyText, setBusyText] = useState("");
-  const [exportUrl, setExportUrl] = useState<string | null>(null);
-  const [exportName, setExportName] = useState("flattened_slides.pdf");
+  const [exportArtifacts, setExportArtifacts] = useState<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>({});
   const [exporting, setExporting] = useState(false);
   const [workerError, setWorkerError] = useState("");
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
@@ -51,6 +57,7 @@ export function SlidesThiefApp() {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const manualInputRef = useRef<HTMLInputElement | null>(null);
   const exportUrlRef = useRef<string | null>(null);
+  const exportArtifactsRef = useRef<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>({});
   const latestDragQuadRef = useRef<{ id: string; quad: Quad } | null>(null);
   const dragHandleRef = useRef<number | null>(null);
   const thumbnailRefreshTokenRef = useRef(0);
@@ -60,12 +67,18 @@ export function SlidesThiefApp() {
   const infoModalRef = useRef<HTMLDivElement | null>(null);
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  const setExportName = useCallback(() => undefined, []);
+
   const clearExport = useCallback(() => {
-    if (exportUrlRef.current) {
-      URL.revokeObjectURL(exportUrlRef.current);
-      exportUrlRef.current = null;
+    if (exportArtifactsRef.current.pdf?.url) {
+      URL.revokeObjectURL(exportArtifactsRef.current.pdf.url);
     }
-    setExportUrl((current) => (current === null ? current : null));
+    if (exportArtifactsRef.current.jpg?.url) {
+      URL.revokeObjectURL(exportArtifactsRef.current.jpg.url);
+    }
+    exportArtifactsRef.current = {};
+    exportUrlRef.current = null;
+    setExportArtifacts({});
   }, []);
 
   const {
@@ -137,9 +150,8 @@ export function SlidesThiefApp() {
 
   const { exportWorkerRef, ensureExportWorker, cancelExport } = useExportWorker(
     slidesRef,
-    exportUrlRef,
-    setExportUrl,
-    setExportName,
+    exportArtifactsRef,
+    setExportArtifacts,
     setExporting,
     setWorkerError,
     setBusyText,
@@ -331,18 +343,31 @@ export function SlidesThiefApp() {
     if (!slides.length) return text.ready;
     if (detecting) return text.stretching;
     if (exporting) return text.generating;
-    if (exportUrl) return text.generated;
+    if (exportArtifacts.jpg && !exportArtifacts.pdf) return text.generatedJpg;
+    if (exportArtifacts.pdf) return text.generated;
     if (reviewCount) return reviewText.reviewSummary(reviewCount);
     if (hasRun) return text.reviewReady;
     return `${slides.length} ${text.waiting}`;
-  }, [busyText, detecting, exporting, exportUrl, hasRun, reviewCount, reviewText, slides.length, text, workerError]);
+  }, [
+    busyText,
+    detecting,
+    exportArtifacts.jpg,
+    exportArtifacts.pdf,
+    exporting,
+    hasRun,
+    reviewCount,
+    reviewText,
+    slides.length,
+    text,
+    workerError,
+  ]);
 
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
     if (detecting || exporting) return "busy";
-    if (hasRun || exportUrl) return "good";
+    if (hasRun || exportArtifacts.pdf || exportArtifacts.jpg) return "good";
     return "default";
-  }, [detecting, exporting, exportUrl, hasRun, workerError]);
+  }, [detecting, exportArtifacts.jpg, exportArtifacts.pdf, exporting, hasRun, workerError]);
 
   const slideStatusText = useCallback((slide: SlideItem) => {
     if (slide.status === "converting") return text.converting;
@@ -391,8 +416,8 @@ export function SlidesThiefApp() {
   ]);
 
   useEffect(() => {
-    exportUrlRef.current = exportUrl;
-  }, [exportUrl]);
+    exportUrlRef.current = exportArtifacts.pdf?.url ?? null;
+  }, [exportArtifacts.pdf?.url]);
 
   useEffect(() => {
     if (detecting || !reviewCount || autoReviewSelectedRef.current) return;
@@ -508,32 +533,56 @@ export function SlidesThiefApp() {
 
   const runAuto = useCallback(() => runAutoWithSettings(), [runAutoWithSettings]);
 
-  const exportPdf = useCallback(() => {
-    if (!readySlides.length) return;
+  const confirmExportReady = useCallback((): boolean => {
+    if (!readySlides.length) return false;
     const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
     if (pagesNeedingReview.length) {
       const shouldContinue = window.confirm(reviewText.reviewConfirmation(pagesNeedingReview.length));
       if (!shouldContinue) {
         setSelectedId(pagesNeedingReview[0].id);
         setZoomMode("fit");
-        return;
+        return false;
       }
     }
+    return true;
+  }, [readySlides, reviewText, setSelectedId, setZoomMode]);
+
+  const exportPdf = useCallback(() => {
+    if (!confirmExportReady()) return;
     const worker = ensureExportWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
-    clearExport();
     setExporting(true);
     setWorkerError("");
     setBusyText(text.generating);
     worker.postMessage({
       type: "export",
+      format: "pdf",
       files: readySlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
       slides: readySlides.map((slide) => ({ id: slide.id, name: slide.name, quad: slide.quad })),
       settings,
       filename,
     });
-  }, [clearExport, ensureExportWorker, pdfBaseName, readySlides, reviewText, setSelectedId, setZoomMode, settings, text.generating]);
+  }, [confirmExportReady, ensureExportWorker, pdfBaseName, readySlides, settings, text.generating]);
+
+  const exportJpg = useCallback(() => {
+    if (!confirmExportReady()) return;
+    const worker = ensureExportWorker();
+    if (!worker) return;
+    const filename =
+      readySlides.length === 1 ? normalizeSingleJpgName(pdfBaseName) : normalizeJpgZipName(pdfBaseName);
+    setExporting(true);
+    setWorkerError("");
+    setBusyText(text.generatingJpg);
+    worker.postMessage({
+      type: "export",
+      format: "jpg",
+      files: readySlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+      slides: readySlides.map((slide) => ({ id: slide.id, name: slide.name, quad: slide.quad })),
+      settings,
+      filename,
+    });
+  }, [confirmExportReady, ensureExportWorker, pdfBaseName, readySlides, settings, text.generatingJpg]);
 
   useKeyboardShortcuts({
     busy,
@@ -599,7 +648,7 @@ export function SlidesThiefApp() {
         aria-hidden={isInfoOpen || undefined}
         inert={isInfoOpen ? true : undefined}
       >
-        <SlideSidebar
+        <TypedSlideSidebar
           busy={busy}
           exporting={exporting}
           cancelExport={cancelExport}
@@ -607,14 +656,16 @@ export function SlidesThiefApp() {
           readySlides={readySlides}
           runAuto={runAuto}
           exportPdf={exportPdf}
+          exportJpg={exportJpg}
+          exportArtifacts={exportArtifacts}
           importManualQuads={importManualQuads}
           exportManualQuads={exportManualQuadsFile}
           text={text}
           reviewText={reviewText}
           statusTone={statusTone}
           statusText={statusText}
-          exportUrl={exportUrl}
-          exportName={exportName}
+          exportUrl={exportArtifacts.pdf?.url ?? null}
+          exportName={exportArtifacts.pdf?.filename ?? normalizePdfName(pdfBaseName)}
           isIOS={isIOS}
           clearAllSlides={clearAllSlides}
           inputRef={inputRef}
