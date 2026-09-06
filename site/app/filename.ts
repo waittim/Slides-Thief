@@ -31,13 +31,12 @@ export function normalizeJpgZipName(value: string): string {
 export function formatZipSlideEntryName(index: number, totalSlides: number, originalName: string): string {
   const padLength = Math.max(3, String(totalSlides).length);
   const prefix = String(index + 1).padStart(padLength, "0");
-  const stem =
-    originalName
-      .trim()
-      .replace(/\.[^/.]+$/, "")
-      .replace(INVALID_FILENAME_CHARACTERS, "")
-      .trim()
-      .replace(/[. ]+$/g, "") || "slide";
+  let stem = originalName
+    .replace(/\.[^/.]+$/, "")
+    .replace(INVALID_FILENAME_CHARACTERS, "")
+    .trim()
+    .replace(/^[. ]+|[. ]+$/g, "");
+  stem = Array.from(stem).slice(0, PDF_BASENAME_MAX_LENGTH).join("");
+  if (!stem) stem = "slide";
   return `${prefix}-${stem}.jpg`;
 }
-

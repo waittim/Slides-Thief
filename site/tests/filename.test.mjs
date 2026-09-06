@@ -47,7 +47,8 @@ test("formatZipSlideEntryName formats padded index and preserves sanitized stem"
   assert.equal(formatZipSlideEntryName(0, 18, "intro.png"), "001-intro.jpg");
   assert.equal(formatZipSlideEntryName(9, 18, "chart.HEIC"), "010-chart.jpg");
   assert.equal(formatZipSlideEntryName(0, 1005, "slide.jpg"), "0001-slide.jpg");
-  assert.equal(formatZipSlideEntryName(2, 5, "bad:name?.png"), "003-badname.jpg");
-  assert.equal(formatZipSlideEntryName(0, 1, ""), "001-slide.jpg");
+  assert.equal(formatZipSlideEntryName(2, 18, "bad/name:?.png"), "003-badname.jpg");
+  assert.equal(formatZipSlideEntryName(0, 18, "..."), "001-slide.jpg");
+  assert.equal(formatZipSlideEntryName(0, 18, "演示文稿📊.png"), "001-演示文稿📊.jpg");
+  assert.equal(formatZipSlideEntryName(0, 18, "../../folder/slide.png"), "001-folderslide.jpg");
 });
-
