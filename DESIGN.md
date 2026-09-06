@@ -65,6 +65,16 @@ spacing:
   control-compact: "9px"
   control-inline: "11px"
   control-touch: "13px"
+layout:
+  sidebar-width: "280px"
+  inspector-width: "320px"
+  inspector-collapsed-width: "48px"
+  topbar-min-height: "58px"
+  settings-label-width: "96px"
+  settings-control-width: "74px"
+  thumb-width: "52px"
+  handle-hit: "48px"
+  loupe-size: "120px"
 components:
   button-primary:
     backgroundColor: "{colors.primary}"
@@ -97,7 +107,7 @@ components:
   quad-handle:
     backgroundColor: "transparent"
     rounded: "{rounded.circle}"
-    size: "48px"
+    size: "{layout.handle-hit}"
   title:
     typography: "{typography.title}"
 ---
@@ -116,7 +126,7 @@ The interface is intentionally dense enough for repeated correction work while r
 - **Local-First Confidence**: Clear UI cues reinforce that photos stay in the browser.
 - **Direct Interactive Manipulation**: Four-corner handles, coordinate readouts, and the magnifying loupe support precise correction.
 - **Tonal Contrast**: Slate surfaces with terracotta identity and teal precision accents.
-- **Tokenized Density**: Repeated spacing, shape, type, control, and elevation decisions come from shared CSS variables.
+- **Tokenized Density**: Repeated spacing, shape, type, control, layout, and elevation decisions come from shared CSS variables.
 
 ## Colors
 
@@ -156,11 +166,11 @@ The palette is restrained and functional: dark slate anchors the workspace, pape
 
 ## Layout
 
-Desktop uses a three-column workbench: a `280px` slide sidebar, a flexible center canvas, and a `320px` inspector. The top bar carries brand and settings controls. The recurring spacing rhythm is `4 / 6 / 8 / 12 / 16 / 24 / 32px`, exposed as `--space-1` through `--space-7`. Component control insets are separate primitives at `9 / 11 / 13px`.
+Desktop uses a three-column workbench: a `280px` (`--layout-sidebar-width`) slide sidebar, a flexible center canvas, and a `320px` (`--layout-inspector-width`) inspector. The top bar uses a `58px` minimum height. Settings rows share a `96px` label column and `74px` compact control width. The recurring spacing rhythm is `4 / 6 / 8 / 12 / 16 / 24 / 32px`, exposed as `--space-1` through `--space-7`. Component control insets are separate primitives at `9 / 11 / 13px`.
 
 At the tablet breakpoint (`1040px`), the workbench becomes a stacked grid so the sidebar and inspector can share vertical space with the canvas. At the mobile breakpoint (`834px`), the top bar becomes a compact settings menu, the slide list becomes a horizontal scroller, and the workbench becomes a single-column flow. Short viewports use the tablet stack as well. Touch/coarse-pointer controls use the `44px` control height.
 
-CSS media queries cannot consume custom properties in the current build, so the threshold literals remain next to comments that point to `--breakpoint-tablet` and `--breakpoint-mobile`; these variables are the documented breakpoint contracts.
+CSS media queries cannot consume custom properties in the current build, so the threshold literals remain next to comments that point to `--breakpoint-tablet` and `--breakpoint-mobile`; these variables are the documented breakpoint contracts. Recurring workbench widths and interaction targets must use the `--layout-*` / `--component-*` tokens instead of new bare pixel values.
 
 ## Elevation & Depth
 
@@ -207,19 +217,20 @@ The base desktop control height is `34px`, compact controls use `30px`, and touc
 - **Mobile:** Settings collapse into a top-right menu; the slide sidebar becomes a horizontal snap-scrolling list.
 
 ### Quad Handle and Loupe
-- **Shape:** A `48px` transparent circular hit area centered on the `16px` visual handle.
-- **State:** Hover and active states tint the handle gold; the loupe uses a circular `120px` surface with a teal border and crosshair.
+- **Shape:** A `48px` (`--component-handle-hit`) transparent circular hit area centered on the `16px` visual handle.
+- **State:** Hover and active states tint the handle gold; the loupe uses a circular `120px` (`--component-loupe-size`) surface with a teal border and crosshair.
 
 ## Do's and Don'ts
 
 ### Do:
 - **Do** use primitive, semantic, and component CSS variables for recurring geometry and visual roles.
 - **Do** keep the `1040px` tablet and `834px` mobile thresholds synchronized with their named breakpoint tokens.
+- **Do** keep workbench widths, settings columns, handle hit area, and loupe size on the layout tokens.
 - **Do** preserve the browser-local processing notice and keyboard/ARIA behavior.
 - **Do** use Teal Precision for functional canvas overlays and confirmations.
 
 ### Don't:
-- **Don't** introduce a new radius, control height, or spacing value when an existing token matches the intent.
+- **Don't** introduce a new radius, control height, spacing, or layout value when an existing token matches the intent.
 - **Don't** use terracotta for ordinary canvas geometry; reserve it for identity, attention, and destructive actions.
 - **Don't** add fixed pixel height constraints to the slide list container.
 - **Don't** use generic vibrant SaaS gradients or move image processing onto the main UI thread.

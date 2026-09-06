@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-08-11T00:00:00Z",
+  "generatedAt": "2026-08-21T00:00:00Z",
   "title": "Design System: Slides Thief (PPT捕手)",
   "extensions": {
     "colorMeta": {
@@ -79,6 +79,17 @@
     "breakpoints": [
       { "name": "tablet", "value": "1040px", "purpose": "Stack the desktop workbench." },
       { "name": "mobile", "value": "834px", "purpose": "Collapse settings and switch to a single-column flow." }
+    ],
+    "layout": [
+      { "name": "sidebar-width", "value": "280px", "purpose": "Desktop slide list column." },
+      { "name": "inspector-width", "value": "320px", "purpose": "Desktop inspector column and settings panel width." },
+      { "name": "inspector-collapsed-width", "value": "48px", "purpose": "Collapsed inspector rail." },
+      { "name": "topbar-min-height", "value": "58px", "purpose": "Top bar and slide row minimum height." },
+      { "name": "settings-label-width", "value": "96px", "purpose": "Settings and metric label column." },
+      { "name": "settings-control-width", "value": "74px", "purpose": "Compact select and number control width." },
+      { "name": "thumb-width", "value": "52px", "purpose": "Slide thumbnail and dense control width." },
+      { "name": "handle-hit", "value": "48px", "purpose": "Corner handle hit target." },
+      { "name": "loupe-size", "value": "120px", "purpose": "Corner-drag magnifier diameter." }
     ]
   },
   "components": [
@@ -144,7 +155,7 @@
       "refersTo": "quad-handle",
       "description": "Circular touch target for direct corner correction.",
       "html": "<button class=\"ds-handle\" aria-label=\"Move top-left corner\"></button>",
-      "css": ".ds-handle { width: 48px; height: 48px; padding: 0; border: 0; border-radius: var(--radius-circle); background: transparent; cursor: grab; touch-action: none; } .ds-handle:hover, .ds-handle.is-active { background: color-mix(in srgb, var(--handle), transparent 72%); } .ds-handle:focus-visible { outline: var(--component-focus-ring) solid var(--accent-2); outline-offset: 2px; }"
+      "css": ".ds-handle { width: var(--component-handle-hit); height: var(--component-handle-hit); padding: 0; border: 0; border-radius: var(--radius-circle); background: transparent; cursor: grab; touch-action: none; } .ds-handle:hover, .ds-handle.is-active { background: color-mix(in srgb, var(--handle), transparent 72%); } .ds-handle:focus-visible { outline: var(--component-focus-ring) solid var(--accent-2); outline-offset: 2px; }"
     }
   ],
   "narrative": {
@@ -166,10 +177,11 @@
     "dos": [
       "Do use primitive, semantic, and component CSS variables for recurring geometry and visual roles.",
       "Do keep the 1040px tablet and 834px mobile thresholds synchronized with their named breakpoint tokens.",
+      "Do keep workbench widths, settings columns, handle hit area, and loupe size on the layout tokens.",
       "Do preserve browser-local processing and keyboard/ARIA behavior."
     ],
     "donts": [
-      "Don't introduce a new radius, control height, or spacing value when an existing token matches the intent.",
+      "Don't introduce a new radius, control height, spacing, or layout value when an existing token matches the intent.",
       "Don't use terracotta for ordinary canvas geometry.",
       "Don't execute image processing on the main UI thread."
     ]

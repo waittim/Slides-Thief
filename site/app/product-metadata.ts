@@ -3,7 +3,7 @@
 
 export const PRODUCT_METADATA = {
   "name": "Slides Thief",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "title": "Slides Thief - Straighten Slide & Document Photos into PDFs",
   "description": "Straighten skewed photos of slides or documents and export them as a clean PDF locally in your browser. No upload required. Supports JPG, PNG, WebP, HEIC, and HEIF.",
   "alternate_names": [

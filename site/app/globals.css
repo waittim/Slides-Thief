@@ -101,6 +101,17 @@
   --breakpoint-tablet: 1040px;
   --breakpoint-mobile: 834px;
 
+  /* Layout primitives: recurring workbench geometry from DESIGN.md. */
+  --layout-sidebar-width: 280px;
+  --layout-inspector-width: 320px;
+  --layout-inspector-collapsed-width: 48px;
+  --layout-topbar-min-height: 58px;
+  --layout-settings-label-width: 96px;
+  --layout-settings-control-width: 74px;
+  --layout-thumb-width: 52px;
+  --layout-handle-hit: 48px;
+  --layout-loupe-size: 120px;
+
   --shadow-control-light: 0 10px 28px rgba(21, 32, 38, 0.08);
   --shadow-control-dark: 0 10px 28px rgba(0, 0, 0, 0.34);
   --shadow-small: 0 1px 3px rgba(0, 0, 0, 0.12);
@@ -155,6 +166,16 @@
   --component-feedback-padding-block: var(--space-control-compact);
   --component-modal-padding: calc(var(--space-5) + var(--space-1));
   --component-shadow-accent-hover: 0 2px 6px color-mix(in srgb, var(--accent), transparent 65%);
+  --component-sidebar-width: var(--layout-sidebar-width);
+  --component-inspector-width: var(--layout-inspector-width);
+  --component-inspector-collapsed-width: var(--layout-inspector-collapsed-width);
+  --component-topbar-min-height: var(--layout-topbar-min-height);
+  --component-settings-label-width: var(--layout-settings-label-width);
+  --component-settings-control-width: var(--layout-settings-control-width);
+  --component-thumb-width: var(--layout-thumb-width);
+  --component-handle-hit: var(--layout-handle-hit);
+  --component-loupe-size: var(--layout-loupe-size);
+  --settings-label-width: var(--component-settings-label-width);
 }
 
 :root[data-theme="dark"] {
@@ -371,7 +392,7 @@ a:hover {
 
 .topbar {
   grid-area: topbar;
-  min-height: 58px;
+  min-height: var(--component-topbar-min-height);
   display: grid;
   grid-template-columns: minmax(170px, 260px) minmax(0, 1fr);
   gap: var(--space-6);
@@ -389,7 +410,7 @@ a:hover {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 58px;
+  min-height: var(--component-topbar-min-height);
   padding: max(var(--space-3), env(safe-area-inset-top)) max(var(--space-4), env(safe-area-inset-right)) var(--space-3) var(--space-3);
   border-bottom: 1px solid var(--line);
   background: var(--topbar-bg);
@@ -446,10 +467,6 @@ a:hover {
   display: none;
 }
 
-.settingsMenu {
-  --settings-label-width: 96px;
-}
-
 .settingsMenuBody {
   --settings-columns: max-content max-content minmax(240px, 1fr);
   display: grid;
@@ -464,8 +481,8 @@ a:hover {
 }
 
 .pdfNameSetting {
-  width: min(100%, 320px);
-  max-width: 320px;
+  width: min(100%, var(--component-inspector-width));
+  max-width: var(--component-inspector-width);
   justify-self: start;
 }
 
@@ -509,14 +526,14 @@ a:hover {
 .settings label:not(.checks) > select,
 .prefsBar label > select {
   flex: 0 0 auto;
-  min-width: 74px;
+  min-width: var(--component-settings-control-width);
   width: auto;
   font-size: var(--font-size-md);
 }
 
 .settings label:not(.checks) > input[type="number"] {
-  flex: 0 0 74px;
-  width: 74px;
+  flex: 0 0 var(--component-settings-control-width);
+  width: var(--component-settings-control-width);
   font-size: var(--font-size-md);
 }
 
@@ -528,7 +545,7 @@ a:hover {
 
 .orientationSetting {
   display: grid;
-  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   min-height: var(--component-control-height);
@@ -631,7 +648,7 @@ a:hover {
 
 .morePanel label {
   display: grid;
-  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   height: auto;
@@ -665,7 +682,7 @@ a:hover {
 
 .morePanel .colorSetting {
   display: grid;
-  grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+  grid-template-columns: var(--settings-label-width) minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   color: var(--muted);
@@ -711,12 +728,12 @@ a:hover {
   grid-area: shell;
   min-height: 0;
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr) 320px;
+  grid-template-columns: var(--component-sidebar-width) minmax(0, 1fr) var(--component-inspector-width);
   overflow: hidden;
 }
 
 .shell.inspectorCollapsed {
-  grid-template-columns: 280px minmax(0, 1fr) 48px;
+  grid-template-columns: var(--component-sidebar-width) minmax(0, 1fr) var(--component-inspector-collapsed-width);
 }
 
 .sidebar,
@@ -970,15 +987,15 @@ button.clearAction:disabled {
 .slideRow {
   position: relative;
   width: 100%;
-  min-height: 58px;
+  min-height: var(--component-topbar-min-height);
   margin: 0;
 }
 
 .slideSelectButton {
   width: 100%;
-  min-height: 58px;
+  min-height: var(--component-topbar-min-height);
   display: grid;
-  grid-template-columns: 30px 52px minmax(0, 1fr);
+  grid-template-columns: var(--control-height-sm) var(--component-thumb-width) minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
   column-gap: var(--space-3);
@@ -1051,7 +1068,7 @@ button.clearAction:disabled {
 
 .thumb {
   grid-row: 1 / 3;
-  width: 52px;
+  width: var(--component-thumb-width);
   height: 38px;
   object-fit: contain;
   border-radius: var(--radius-xs);
@@ -1138,7 +1155,7 @@ button.clearAction:disabled {
 }
 
 .zoomValue {
-  min-width: 52px;
+  min-width: var(--component-thumb-width);
   text-align: center;
   color: var(--muted);
   font-variant-numeric: tabular-nums;
@@ -1186,9 +1203,9 @@ canvas {
 .cornerHandle {
   position: absolute;
   z-index: 2;
-  width: 48px;
-  height: 48px;
-  min-height: 48px;
+  width: var(--component-handle-hit);
+  height: var(--component-handle-hit);
+  min-height: var(--component-handle-hit);
   padding: 0;
   border: 0;
   border-radius: var(--radius-circle);
@@ -1237,7 +1254,7 @@ canvas {
 
 .metric {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
+  grid-template-columns: var(--component-settings-label-width) minmax(0, 1fr);
   gap: var(--space-3);
   padding: var(--space-3) 0;
   border-bottom: 1px solid var(--line);
@@ -1310,7 +1327,7 @@ canvas {
 
   .shell.inspectorCollapsed {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(250px, 32vh) minmax(0, 1fr) 48px;
+    grid-template-rows: minmax(250px, 32vh) minmax(0, 1fr) var(--component-inspector-collapsed-width);
   }
 
   .sidebar {
@@ -1395,7 +1412,7 @@ canvas {
   .prefsBar label > select {
     flex: 0 0 auto;
     width: auto;
-    min-width: 74px;
+    min-width: var(--component-settings-control-width);
     max-width: none;
   }
 
@@ -1457,7 +1474,7 @@ canvas {
 
   .workspace {
     flex: 1 1 auto;
-    min-height: 320px;
+    min-height: var(--component-inspector-width);
     height: auto;
     width: 100%;
     max-width: 100%;
@@ -1566,7 +1583,7 @@ canvas {
     top: calc(100% + 8px);
     right: 0;
     z-index: 60;
-    width: min(320px, calc(100vw - 24px));
+    width: min(var(--component-inspector-width), calc(100vw - 24px));
     gap: var(--space-3);
     padding: var(--space-4);
     border: 1px solid var(--line);
@@ -1627,7 +1644,7 @@ canvas {
   .settingsMenuBody > .settingsMenuTheme,
   .settingsMenuBody > .settingsMenuLanguage {
     display: grid;
-    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr);
+    grid-template-columns: var(--settings-label-width) minmax(0, 1fr);
     align-items: center;
     gap: var(--space-3);
     height: auto;
@@ -1636,7 +1653,7 @@ canvas {
 
   .settingsMenuBody > .pdfNameSetting {
     display: grid;
-    grid-template-columns: var(--settings-label-width, 96px) minmax(0, 1fr) auto;
+    grid-template-columns: var(--settings-label-width) minmax(0, 1fr) auto;
     align-items: center;
     gap: var(--space-3);
     height: auto;
@@ -1675,7 +1692,7 @@ canvas {
   }
 
   .dropzone {
-    min-height: 48px;
+    min-height: var(--component-handle-hit);
     padding: var(--space-3) var(--space-4);
     display: flex;
     justify-content: center;
@@ -1821,12 +1838,12 @@ canvas {
   }
 
   .morePanel input[type="color"] {
-    width: 52px;
+    width: var(--component-thumb-width);
     height: var(--control-height-touch);
   }
 
   .colorControls button {
-    min-width: 52px;
+    min-width: var(--component-thumb-width);
     height: var(--control-height-touch);
     font-size: var(--font-size-lg);
   }
@@ -2093,8 +2110,8 @@ canvas {
   position: absolute;
   pointer-events: none;
   z-index: 100;
-  width: 120px;
-  height: 120px;
+  width: var(--component-loupe-size);
+  height: var(--component-loupe-size);
   border-radius: var(--radius-circle);
   border: 3px solid var(--accent-2);
   box-shadow: var(--shadow-loupe);
