@@ -39,6 +39,7 @@ export function SidebarHarness() {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [hasRun, setHasRun] = useState(false);
   const [exported, setExported] = useState(false);
+  const [exportedJpg, setExportedJpg] = useState(false);
   const [manualExported, setManualExported] = useState(false);
   const [manualImported, setManualImported] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -48,6 +49,29 @@ export function SidebarHarness() {
   const text = copy.en;
   const reviewText = reviewUiCopy.en;
   const readySlides = slides.filter((slide) => slide.status === "ready" && slide.quad);
+
+  const exportArtifacts = {
+    ...(exported
+      ? {
+          pdf: {
+            format: "pdf" as const,
+            url: "blob:http://localhost/test-pdf",
+            filename: "deck.pdf",
+            byteLength: 1024,
+          },
+        }
+      : {}),
+    ...(exportedJpg
+      ? {
+          jpg: {
+            format: "jpg" as const,
+            url: "blob:http://localhost/test-jpg",
+            filename: readySlides.length === 1 ? "deck.jpg" : "deck-jpgs.zip",
+            byteLength: 2048,
+          },
+        }
+      : {}),
+  };
 
   return (
     <>
@@ -60,25 +84,33 @@ export function SidebarHarness() {
           setSlides((current) => current.map(readySlide));
         }}
         exportPdf={() => setExported(true)}
+        exportJpg={() => setExportedJpg(true)}
+        exportArtifacts={exportArtifacts}
         importManualQuads={() => setManualImported(true)}
         exportManualQuads={() => setManualExported(true)}
         text={text}
         reviewText={reviewText}
         statusTone={hasRun ? "good" : "default"}
-        statusText={exported ? text.generated : hasRun ? text.reviewReady : text.ready}
+        statusText={exportedJpg ? text.generatedJpg : exported ? text.generated : hasRun ? text.reviewReady : text.ready}
         exportUrl={exported ? "blob:http://localhost/test-pdf" : null}
         exportName="deck.pdf"
         isIOS={false}
-        clearAllSlides={() => setSlides([])}
+        clearAllSlides={() => {
+          setSlides([]);
+          setHasRun(false);
+          setExported(false);
+          setExportedJpg(false);
+        }}
         inputRef={inputRef}
         manualInputRef={manualInputRef}
         loadFiles={(files) => {
-          const file = Array.from(files)[0];
-          if (!file) return;
-          setSlides([queuedSlide(file)]);
-          setSelectedId(file.name);
+          const fileList = Array.from(files);
+          if (!fileList.length) return;
+          setSlides(fileList.map(queuedSlide));
+          setSelectedId(fileList[0].name);
           setHasRun(false);
           setExported(false);
+          setExportedJpg(false);
         }}
         dragActive={dragActive}
         setDragActive={setDragActive}
@@ -90,7 +122,17 @@ export function SidebarHarness() {
         deleteSlide={(id) => setSlides((current) => current.filter((slide) => slide.id !== id))}
       />
       <output data-testid="workflow-status">
-        {manualImported ? "manual-imported" : manualExported ? "manual-exported" : exported ? "exported" : hasRun ? "straightened" : "waiting"}
+        {manualImported
+          ? "manual-imported"
+          : manualExported
+            ? "manual-exported"
+            : exportedJpg
+              ? "exported-jpg"
+              : exported
+                ? "exported"
+                : hasRun
+                  ? "straightened"
+                  : "waiting"}
       </output>
     </>
   );

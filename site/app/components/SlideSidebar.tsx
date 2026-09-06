@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
-import type { SlideItem } from "../lib/types";
+import type { ExportArtifact, SlideItem } from "../lib/types";
 import { Button, CountBadge, StatusDot, type StatusDotProps } from "./ui";
 
 interface SlideSidebarProps {
@@ -12,14 +12,16 @@ interface SlideSidebarProps {
   readySlides: SlideItem[];
   runAuto: () => void;
   exportPdf: () => void;
+  exportJpg: () => void;
+  exportArtifacts?: { pdf?: ExportArtifact; jpg?: ExportArtifact };
   importManualQuads: (file: File) => void | Promise<void>;
   exportManualQuads: () => void;
   text: LocaleCopy;
   reviewText: ReviewUiCopy;
   statusTone: StatusDotProps["status"];
   statusText: string;
-  exportUrl: string | null;
-  exportName: string;
+  exportUrl?: string | null;
+  exportName?: string;
   isIOS: boolean;
   clearAllSlides: () => void;
   inputRef: React.RefObject<HTMLInputElement | null>;
@@ -43,6 +45,8 @@ export function SlideSidebar({
   readySlides,
   runAuto,
   exportPdf,
+  exportJpg,
+  exportArtifacts,
   importManualQuads,
   exportManualQuads,
   text,
@@ -65,15 +69,117 @@ export function SlideSidebar({
   slideStatusText,
   deleteSlide,
 }: SlideSidebarProps) {
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const splitButtonRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent | PointerEvent) => {
+      if (splitButtonRef.current && !splitButtonRef.current.contains(event.target as Node)) {
+        setExportMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setExportMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [exportMenuOpen]);
+
+  useEffect(() => {
+    if (busy || !readySlides.length) {
+      setExportMenuOpen(false);
+    }
+  }, [busy, readySlides.length]);
+
+  const pdfUrl = exportArtifacts?.pdf?.url ?? exportUrl ?? null;
+  const pdfFilename = exportArtifacts?.pdf?.filename ?? exportName ?? "presentation.pdf";
+  const jpgArtifact = exportArtifacts?.jpg;
+
   return (
     <aside className="sidebar">
       <div className="sidebarActions">
         <Button variant="primary" disabled={busy || !slides.length} onClick={runAuto}>
           {text.runAuto}
         </Button>
-        <Button variant="accent" disabled={busy || !readySlides.length} title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`} onClick={exportPdf}>
-          {text.generatePdf}
-        </Button>
+        <div className="splitButton" ref={splitButtonRef}>
+          <Button
+            variant="accent"
+            className="splitButtonMain"
+            disabled={busy || !readySlides.length}
+            title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`}
+            onClick={() => {
+              setExportMenuOpen(false);
+              exportPdf();
+            }}
+          >
+            {text.generatePdf}
+          </Button>
+          <button
+            type="button"
+            className="splitButtonToggle uiButton uiButton--accent"
+            disabled={busy || !readySlides.length}
+            aria-haspopup="menu"
+            aria-expanded={exportMenuOpen}
+            aria-label={text.exportOptions}
+            onClick={() => setExportMenuOpen((open) => !open)}
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+          {exportMenuOpen ? (
+            <div className="exportMenu" role="menu">
+              <div className="exportMenuHeading">{text.exportOptions}</div>
+              <button
+                type="button"
+                role="menuitem"
+                className="exportMenuItem"
+                onClick={() => {
+                  setExportMenuOpen(false);
+                  exportJpg();
+                }}
+              >
+                <svg
+                  className="exportMenuItemIcon"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                <span className="exportMenuItemText">
+                  <span className="exportMenuItemTitle">{text.exportJpg}</span>
+                  <span className="exportMenuItemDesc">{text.exportJpgDescription}</span>
+                </span>
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
       {slides.length > 0 ? (
         <div className="manualQuadsActions">
@@ -123,16 +229,28 @@ export function SlideSidebar({
             </Button>
           ) : null}
         </div>
-        {exportUrl ? (
+        {(pdfUrl || jpgArtifact) ? (
           <div className="links sidebarLinks">
-            <a
-              href={exportUrl}
-              download={isIOS ? undefined : exportName}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {text.downloadPdf}
-            </a>
+            {pdfUrl ? (
+              <a
+                href={pdfUrl}
+                download={isIOS ? undefined : pdfFilename}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {text.downloadPdf}
+              </a>
+            ) : null}
+            {jpgArtifact ? (
+              <a
+                href={jpgArtifact.url}
+                download={isIOS ? undefined : jpgArtifact.filename}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}
+              </a>
+            ) : null}
           </div>
         ) : null}
       </div>

@@ -37,13 +37,6 @@ import { PRODUCT_METADATA } from "./product-metadata";
 
 const APP_VERSION = PRODUCT_METADATA.version;
 
-const TypedSlideSidebar = SlideSidebar as React.ComponentType<
-  React.ComponentProps<typeof SlideSidebar> & {
-    exportArtifacts?: { pdf?: ExportArtifact; jpg?: ExportArtifact };
-    exportJpg?: () => void;
-  }
->;
-
 export function SlidesThiefApp() {
   const [dragActive, setDragActive] = useState(false);
   const [busyText, setBusyText] = useState("");
@@ -648,7 +641,7 @@ export function SlidesThiefApp() {
         aria-hidden={isInfoOpen || undefined}
         inert={isInfoOpen ? true : undefined}
       >
-        <TypedSlideSidebar
+        <SlideSidebar
           busy={busy}
           exporting={exporting}
           cancelExport={cancelExport}
