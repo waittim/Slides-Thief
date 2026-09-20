@@ -158,6 +158,16 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
   expect(ratioFontSize).toBe("16px");
   expect(ratioHeight).toBe("44px");
 
+  const enhancementSelect = page.locator(".enhancementSetting select");
+  await expect(enhancementSelect).toBeVisible();
+  const enhancementFontSize = await enhancementSelect.evaluate((el) => getComputedStyle(el).fontSize);
+  const enhancementHeight = await enhancementSelect.evaluate((el) => getComputedStyle(el).height);
+  expect(enhancementFontSize).toBe("16px");
+  expect(enhancementHeight).toBe("44px");
+
+  const sectionTitles = page.locator(".settingsSectionTitle");
+  await expect(sectionTitles).toHaveCount(2);
+
   // On mobile <= 834px, moreSettings is open by default, but verify input
   const widthInput = page.locator(".morePanel input[type='number']").first();
   await expect(widthInput).toBeVisible();
@@ -165,6 +175,36 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
   const widthHeight = await widthInput.evaluate((el) => getComputedStyle(el).height);
   expect(widthFontSize).toBe("16px");
   expect(widthHeight).toBe("44px");
+});
+
+test("desktop settings surfaces enhancement mode at top level and groups parameters in moreSettings", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  // Enhancement control is visible directly in topbar without expanding moreSettings
+  const enhancementSelect = page.locator(".settingsMenuBody > .enhancementSetting select");
+  await expect(enhancementSelect).toBeVisible();
+  await expect(enhancementSelect).toHaveValue("original");
+
+  // Changing enhancement updates the value
+  await enhancementSelect.selectOption("clean");
+  await expect(enhancementSelect).toHaveValue("clean");
+
+  // More settings panel is closed initially on desktop
+  const moreDetails = page.locator(".moreSettings");
+  await expect(moreDetails).not.toHaveAttribute("open", "");
+
+  // Click More settings summary to open panel
+  await page.locator(".moreSettings summary").click();
+  await expect(moreDetails).toHaveAttribute("open", "");
+
+  // Verify section titles inside morePanel
+  const sectionTitles = page.locator(".morePanel .settingsSectionTitle");
+  await expect(sectionTitles).toHaveCount(2);
+
+  // Quality input is visible under quality section
+  const qualityInput = page.locator(".morePanel input[type='number']").nth(1);
+  await expect(qualityInput).toBeVisible();
 });
 
 test("window-level drag and drop onto canvas displays overlay and imports image", async ({ page }) => {

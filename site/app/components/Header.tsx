@@ -2,7 +2,11 @@ import React from "react";
 import { PDF_BASENAME_MAX_LENGTH, sanitizePdfBaseName } from "../filename";
 import type { LocaleCopy, LocaleValue, RatioUiCopy } from "../i18n";
 import type { Settings, ThemeValue } from "../lib/types";
-import { OutputPageControls } from "./OutputPageControls";
+import {
+  EnhancementControl,
+  OutputPageControls,
+  OutputQualityControls,
+} from "./OutputPageControls";
 import { PreferencesControls } from "./PreferencesControls";
 import { SourceFormatControls, SourceOrientationControl } from "./SourceFormatControls";
 
@@ -87,6 +91,11 @@ export function Header({
                 ratioUi={ratioUi}
                 updateSettings={updateSettings}
               />
+              <EnhancementControl
+                settings={settings}
+                text={text}
+                updateSettings={updateSettings}
+              />
               <details
                 className="moreSettings"
                 ref={moreSettingsRef}
@@ -99,19 +108,34 @@ export function Header({
               >
                 <summary>{text.more}</summary>
                 <div className="morePanel">
-                  <SourceOrientationControl
-                    hasRun={hasRun}
-                    ratioUi={ratioUi}
-                    runAutoWithSettings={runAutoWithSettings}
-                    settings={settings}
-                    updateSettings={updateSettings}
-                  />
-                  <OutputPageControls
-                    ratioUi={ratioUi}
-                    settings={settings}
-                    text={text}
-                    updateSettings={updateSettings}
-                  />
+                  <section className="settingsSection" aria-label={text.pageSection}>
+                    <h3 className="settingsSectionTitle">{text.pageSection}</h3>
+                    <div className="settingsSectionBody">
+                      <SourceOrientationControl
+                        hasRun={hasRun}
+                        ratioUi={ratioUi}
+                        runAutoWithSettings={runAutoWithSettings}
+                        settings={settings}
+                        updateSettings={updateSettings}
+                      />
+                      <OutputPageControls
+                        ratioUi={ratioUi}
+                        settings={settings}
+                        text={text}
+                        updateSettings={updateSettings}
+                      />
+                    </div>
+                  </section>
+                  <section className="settingsSection" aria-label={text.qualitySection}>
+                    <h3 className="settingsSectionTitle">{text.qualitySection}</h3>
+                    <div className="settingsSectionBody">
+                      <OutputQualityControls
+                        settings={settings}
+                        text={text}
+                        updateSettings={updateSettings}
+                      />
+                    </div>
+                  </section>
                 </div>
               </details>
               <label className="pdfNameSetting">

@@ -468,7 +468,7 @@ a:hover {
 }
 
 .settingsMenuBody {
-  --settings-columns: max-content max-content minmax(240px, 1fr);
+  --settings-columns: max-content max-content max-content minmax(240px, 1fr);
   display: grid;
   grid-template-columns: var(--settings-columns);
   gap: var(--space-3);
@@ -477,7 +477,7 @@ a:hover {
 }
 
 .settingsMenuBody:has(> .sourceCustomSetting) {
-  --settings-columns: max-content max-content max-content minmax(240px, 1fr);
+  --settings-columns: max-content max-content max-content max-content minmax(240px, 1fr);
 }
 
 .pdfNameSetting {
@@ -644,6 +644,30 @@ a:hover {
   background: var(--panel);
   box-shadow: var(--shadow);
   z-index: 50;
+}
+
+.settingsSection {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.settingsSection:not(:first-child) {
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.settingsSectionTitle {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.settingsSectionBody {
+  display: grid;
+  gap: var(--space-3);
 }
 
 .morePanel label {
@@ -2027,6 +2051,7 @@ canvas {
   }
 
   .settingsMenuBody > .ratioSetting,
+  .settingsMenuBody > .enhancementSetting,
   .settingsMenuBody > .sourceCustomSetting,
   .settingsMenuBody > .settingsMenuTheme,
   .settingsMenuBody > .settingsMenuLanguage {
@@ -2051,6 +2076,7 @@ canvas {
   }
 
   .settingsMenuBody > .ratioSetting > select,
+  .settingsMenuBody > .enhancementSetting > select,
   .settingsMenuBody > .sourceCustomSetting > input[type="number"],
   .settingsMenuBody > .pdfNameSetting > input[type="text"] {
     flex: none;
@@ -2076,6 +2102,11 @@ canvas {
     background: transparent;
     box-shadow: none;
     overflow: visible;
+  }
+
+  .settingsSectionTitle {
+    font-size: var(--font-size-sm);
+    padding-top: var(--space-2);
   }
 
   .dropzone {
