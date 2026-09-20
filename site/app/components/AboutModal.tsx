@@ -56,6 +56,14 @@ export function AboutModal({
             <span>{text.shortcutNav}</span>
           </div>
           <div className="shortcutItem">
+            <ShortcutChord keys={["Alt", "↑"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Alt", "↓"]} />
+            <span>{text.shortcutReorder}</span>
+          </div>
+          <div className="shortcutItem">
             <ShortcutChord keys={["Delete"]} />
             <span>{text.shortcutDelete}</span>
           </div>

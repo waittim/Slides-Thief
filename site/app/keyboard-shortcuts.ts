@@ -13,6 +13,8 @@ export type GlobalKeyboardShortcutActions = {
   selectPrevSlide: () => void;
   deleteSlide: (id: string) => void;
   exportPdf: () => void;
+  moveSlideUp?: (id: string) => void;
+  moveSlideDown?: (id: string) => void;
 };
 
 function isEditableTarget(target: EventTarget | null) {
@@ -51,8 +53,21 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
       return;
     }
 
-    // Slide Navigation & Deletion
+    // Slide Navigation, Reordering & Deletion
     if (actions.slidesRef.current.length > 0) {
+      if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+        if (actions.selectedIdRef.current) {
+          event.preventDefault();
+          if (!actions.busy) {
+            if (event.key === "ArrowUp") {
+              actions.moveSlideUp?.(actions.selectedIdRef.current);
+            } else {
+              actions.moveSlideDown?.(actions.selectedIdRef.current);
+            }
+          }
+        }
+        return;
+      }
       if (event.key.toLowerCase() === "j" || event.key === "PageDown") {
         event.preventDefault();
         actions.selectNextSlide();

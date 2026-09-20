@@ -136,6 +136,50 @@ export function useSlideDeck(
     [cancelActiveDrag],
   );
 
+  const moveSlide = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const current = slidesRef.current;
+      if (
+        fromIndex < 0 ||
+        fromIndex >= current.length ||
+        toIndex < 0 ||
+        toIndex >= current.length ||
+        fromIndex === toIndex
+      ) {
+        return;
+      }
+      pushHistory();
+      markExportStale();
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      setSlides(next);
+    },
+    [markExportStale, pushHistory],
+  );
+
+  const moveSlideUp = useCallback(
+    (id: string) => {
+      const current = slidesRef.current;
+      const index = current.findIndex((s) => s.id === id);
+      if (index > 0) {
+        moveSlide(index, index - 1);
+      }
+    },
+    [moveSlide],
+  );
+
+  const moveSlideDown = useCallback(
+    (id: string) => {
+      const current = slidesRef.current;
+      const index = current.findIndex((s) => s.id === id);
+      if (index >= 0 && index < current.length - 1) {
+        moveSlide(index, index + 1);
+      }
+    },
+    [moveSlide],
+  );
+
   return {
     slides,
     setSlides,
@@ -152,5 +196,8 @@ export function useSlideDeck(
     clearAllSlides,
     selectNextSlide,
     selectPrevSlide,
+    moveSlide,
+    moveSlideUp,
+    moveSlideDown,
   };
 }

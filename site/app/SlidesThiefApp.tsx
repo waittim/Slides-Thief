@@ -130,6 +130,9 @@ export function SlidesThiefApp() {
     clearAllSlides,
     selectNextSlide: selectNextSlideDeck,
     selectPrevSlide: selectPrevSlideDeck,
+    moveSlide,
+    moveSlideUp,
+    moveSlideDown,
   } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag, confirmClearText);
 
   const [deletedNotice, setDeletedNotice] = useState<{ id: string; name: string } | null>(null);
@@ -693,6 +696,8 @@ export function SlidesThiefApp() {
   useKeyboardShortcuts({
     busy,
     deleteSlide,
+    moveSlideUp,
+    moveSlideDown,
     exportPdf,
     handleRedo,
     handleUndo,
@@ -822,6 +827,9 @@ export function SlidesThiefApp() {
           deleteSlide={deleteSlide}
           deletedNotice={deletedNotice}
           onUndo={handleUndo}
+          moveSlide={moveSlide}
+          moveSlideUp={moveSlideUp}
+          moveSlideDown={moveSlideDown}
         />
 
         <CanvasQuadEditor

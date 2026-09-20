@@ -336,4 +336,59 @@ test("thumbnail list distinguishes completed, processing, and queued states", as
   await expect(badges.nth(2)).toHaveAttribute("title", "Waiting for auto straighten");
 });
 
+test("slide move up and move down buttons reorder slides and update page indexes", async ({ mount }) => {
+  const slide1 = makeTestSlide({ id: "s1", name: "page-1.png", status: "ready" });
+  const slide2 = makeTestSlide({ id: "s2", name: "page-2.png", status: "ready" });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[slide1, slide2]} initialHasRun={true} />,
+  );
+
+  const rows = component.locator(".slideRow");
+  await expect(rows).toHaveCount(2);
+
+  // Initial order
+  await expect(rows.nth(0).locator(".name")).toHaveText("page-1.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("page-2.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // First slide move up is disabled, move down is enabled
+  const row0MoveUp = rows.nth(0).getByRole("button", { name: /move image up/i });
+  const row0MoveDown = rows.nth(0).getByRole("button", { name: /move image down/i });
+  await expect(row0MoveUp).toBeDisabled();
+  await expect(row0MoveDown).toBeEnabled();
+
+  // Second slide move up is enabled, move down is disabled
+  const row1MoveUp = rows.nth(1).getByRole("button", { name: /move image up/i });
+  const row1MoveDown = rows.nth(1).getByRole("button", { name: /move image down/i });
+  await expect(row1MoveUp).toBeEnabled();
+  await expect(row1MoveDown).toBeDisabled();
+
+  // Generate PDF initially
+  await component.getByRole("button", { name: "Generate PDF" }).click();
+  const downloadLink = component.getByRole("link", { name: "Download PDF" });
+  await expect(downloadLink).toBeVisible();
+  await expect(downloadLink).not.toHaveClass(/sidebarLink--stale/);
+
+  // Clicking move up on second slide moves it to position 0
+  await row1MoveUp.click();
+
+  // New order is swapped and indexes updated
+  await expect(rows.nth(0).locator(".name")).toHaveText("page-2.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("page-1.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // Reordering marks export stale
+  await expect(downloadLink).toHaveClass(/sidebarLink--stale/);
+  await expect(component.locator("text=Settings changed; re-generate to update")).toBeVisible();
+
+  // While busy, move buttons are disabled
+  await component.getByTestId("toggle-busy").click();
+  await expect(rows.nth(0).getByRole("button", { name: /move image down/i })).toBeDisabled();
+  await expect(rows.nth(1).getByRole("button", { name: /move image up/i })).toBeDisabled();
+});
+
+
 

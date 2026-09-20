@@ -6,13 +6,14 @@ const { createGlobalKeyDownHandler } = await import(
 );
 
 class TestKeyboardEvent extends Event {
-  constructor(type, { key, metaKey = false, ctrlKey = false, shiftKey = false }) {
+  constructor(type, { key, metaKey = false, ctrlKey = false, shiftKey = false, altKey = false }) {
     super(type, { cancelable: true });
     Object.defineProperties(this, {
       key: { value: key },
       metaKey: { value: metaKey },
       ctrlKey: { value: ctrlKey },
       shiftKey: { value: shiftKey },
+      altKey: { value: altKey },
     });
   }
 }
@@ -223,3 +224,61 @@ test("Cmd+Shift+Z and Ctrl+Y trigger handleRedo", () => {
   assert.equal(redoCount, 2);
   assert.equal(ctrlY.defaultPrevented, true);
 });
+
+test("Alt+ArrowUp and Alt+ArrowDown trigger moveSlideUp and moveSlideDown for selected slide", () => {
+  let movedUpId = null;
+  let movedDownId = null;
+  const current = actions({
+    slidesRef: { current: [readySlide()] },
+    selectedIdRef: { current: "slide-1" },
+    moveSlideUp(id) {
+      movedUpId = id;
+    },
+    moveSlideDown(id) {
+      movedDownId = id;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const altUp = new TestKeyboardEvent("keydown", { key: "ArrowUp", altKey: true });
+  target.dispatchEvent(altUp);
+  assert.equal(movedUpId, "slide-1");
+  assert.equal(altUp.defaultPrevented, true);
+
+  const altDown = new TestKeyboardEvent("keydown", { key: "ArrowDown", altKey: true });
+  target.dispatchEvent(altDown);
+  assert.equal(movedDownId, "slide-1");
+  assert.equal(altDown.defaultPrevented, true);
+});
+
+test("Alt+ArrowUp and Alt+ArrowDown are ignored while the app is busy", () => {
+  let movedUpId = null;
+  let movedDownId = null;
+  const current = actions({
+    busy: true,
+    slidesRef: { current: [readySlide()] },
+    selectedIdRef: { current: "slide-1" },
+    moveSlideUp(id) {
+      movedUpId = id;
+    },
+    moveSlideDown(id) {
+      movedDownId = id;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const altUp = new TestKeyboardEvent("keydown", { key: "ArrowUp", altKey: true });
+  target.dispatchEvent(altUp);
+  assert.equal(movedUpId, null);
+  assert.equal(altUp.defaultPrevented, true);
+
+  const altDown = new TestKeyboardEvent("keydown", { key: "ArrowDown", altKey: true });
+  target.dispatchEvent(altDown);
+  assert.equal(movedDownId, null);
+  assert.equal(altDown.defaultPrevented, true);
+});
+

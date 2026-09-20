@@ -212,8 +212,11 @@ export function triggerDownload(url: string, filename: string, isIOS = false) {
   link.download = filename;
   link.rel = "noopener noreferrer";
   document.body.appendChild(link);
-  link.click();
-  link.remove?.() ?? (link.parentNode && link.parentNode.removeChild(link));
+  if (link.remove) {
+    link.remove();
+  } else if (link.parentNode) {
+    link.parentNode.removeChild(link);
+  }
 }
 
 export { exportManualQuads } from "./export-utils";

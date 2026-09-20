@@ -283,4 +283,56 @@ test("window-level clipboard paste imports image as slide", async ({ page }) => 
   await expect(page.locator("button.slideSelectButton").filter({ hasText: "pasted-" })).toBeVisible();
 });
 
+test("slide reordering updates page order with buttons, Alt+Arrow keys, and supports undo/redo", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+
+  const rows = page.locator(".fileRow");
+  await expect(rows).toHaveCount(2);
+
+  // Initial order (sorted by filename: dark-slide-light-wall is 01, light-slide-dark-wall is 02)
+  await expect(rows.nth(0).locator(".name")).toHaveText("dark-slide-light-wall.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("light-slide-dark-wall.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // Move the second slide up using button
+  const moveUpBtn = page.getByRole("button", { name: /Move image up: light-slide-dark-wall/i });
+  await moveUpBtn.click();
+
+  // Order is swapped and page numbers updated
+  await expect(rows.nth(0).locator(".name")).toHaveText("light-slide-dark-wall.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("dark-slide-light-wall.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // Select the first slide and use Alt+ArrowDown to move it down
+  await rows.nth(0).locator(".slideSelectButton").click();
+  await page.keyboard.press("Alt+ArrowDown");
+
+  // Order is swapped back
+  await expect(rows.nth(0).locator(".name")).toHaveText("dark-slide-light-wall.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("light-slide-dark-wall.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // Undo (Control+Z) restores light-slide-dark-wall to position 01
+  await page.keyboard.press("Control+Z");
+  await expect(rows.nth(0).locator(".name")).toHaveText("light-slide-dark-wall.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("dark-slide-light-wall.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+
+  // Redo (Control+Shift+Z) re-applies the move down
+  await page.keyboard.press("Control+Shift+Z");
+  await expect(rows.nth(0).locator(".name")).toHaveText("dark-slide-light-wall.png");
+  await expect(rows.nth(0).locator(".idx")).toHaveText("01");
+  await expect(rows.nth(1).locator(".name")).toHaveText("light-slide-dark-wall.png");
+  await expect(rows.nth(1).locator(".idx")).toHaveText("02");
+});
+
+
 

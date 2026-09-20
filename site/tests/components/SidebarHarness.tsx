@@ -173,6 +173,37 @@ export function SidebarHarness({
               : text.pending
         }
         deleteSlide={(id) => setSlides((current) => current.filter((slide) => slide.id !== id))}
+        moveSlide={(from, to) => {
+          setSlides((current) => {
+            const next = [...current];
+            const [item] = next.splice(from, 1);
+            next.splice(to, 0, item);
+            return next;
+          });
+          setIsStale(true);
+        }}
+        moveSlideUp={(id) => {
+          setSlides((current) => {
+            const idx = current.findIndex((s) => s.id === id);
+            if (idx <= 0) return current;
+            const next = [...current];
+            const [item] = next.splice(idx, 1);
+            next.splice(idx - 1, 0, item);
+            return next;
+          });
+          setIsStale(true);
+        }}
+        moveSlideDown={(id) => {
+          setSlides((current) => {
+            const idx = current.findIndex((s) => s.id === id);
+            if (idx < 0 || idx >= current.length - 1) return current;
+            const next = [...current];
+            const [item] = next.splice(idx, 1);
+            next.splice(idx + 1, 0, item);
+            return next;
+          });
+          setIsStale(true);
+        }}
       />
       <output data-testid="workflow-status">
         {manualImported

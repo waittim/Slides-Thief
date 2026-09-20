@@ -41,6 +41,9 @@ interface SlideSidebarProps {
   deleteSlide: (id: string) => void;
   deletedNotice?: { id: string; name: string } | null;
   onUndo?: () => void;
+  moveSlide?: (fromIndex: number, toIndex: number) => void;
+  moveSlideUp?: (id: string) => void;
+  moveSlideDown?: (id: string) => void;
 }
 
 export function SlideSidebar({
@@ -78,9 +81,90 @@ export function SlideSidebar({
   deleteSlide,
   deletedNotice,
   onUndo,
+  moveSlide,
+  moveSlideUp,
+  moveSlideDown,
 }: SlideSidebarProps) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
+  const dragSourceIndexRef = useRef<number | null>(null);
   const splitButtonRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSlideDragStart = (event: React.DragEvent<HTMLLIElement>, index: number) => {
+    if (busy) {
+      event.preventDefault();
+      return;
+    }
+    dragSourceIndexRef.current = index;
+    setDraggedSlideIndex(index);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("application/x-slide-index", String(index));
+    event.dataTransfer.setData("text/plain", String(index));
+  };
+
+  const handleSlideDragOver = (event: React.DragEvent<HTMLLIElement>, index: number) => {
+    if (dragSourceIndexRef.current === null && !event.dataTransfer.types.includes("application/x-slide-index")) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const position: "above" | "below" = event.clientY < midY ? "above" : "below";
+
+    setDropTarget((prev) => {
+      if (prev?.index === index && prev?.position === position) return prev;
+      return { index, position };
+    });
+  };
+
+  const handleSlideDragLeave = (event: React.DragEvent<HTMLLIElement>, index: number) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setDropTarget((prev) => (prev?.index === index ? null : prev));
+    }
+  };
+
+  const handleSlideDrop = (event: React.DragEvent<HTMLLIElement>, targetIndex: number) => {
+    if (dragSourceIndexRef.current === null && !event.dataTransfer.types.includes("application/x-slide-index")) {
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rawSource = event.dataTransfer.getData("application/x-slide-index") || event.dataTransfer.getData("text/plain");
+    const sourceIndex = dragSourceIndexRef.current ?? parseInt(rawSource, 10);
+    dragSourceIndexRef.current = null;
+    setDraggedSlideIndex(null);
+    setDropTarget(null);
+
+    if (isNaN(sourceIndex) || sourceIndex < 0 || sourceIndex >= slides.length) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const isAbove = event.clientY < midY;
+
+    let destinationIndex: number;
+    if (sourceIndex < targetIndex) {
+      destinationIndex = isAbove ? targetIndex - 1 : targetIndex;
+    } else if (sourceIndex > targetIndex) {
+      destinationIndex = isAbove ? targetIndex : targetIndex + 1;
+    } else {
+      return;
+    }
+
+    if (destinationIndex !== sourceIndex && moveSlide) {
+      moveSlide(sourceIndex, destinationIndex);
+    }
+  };
+
+  const handleSlideDragEnd = () => {
+    dragSourceIndexRef.current = null;
+    setDraggedSlideIndex(null);
+    setDropTarget(null);
+  };
 
   useEffect(() => {
     if (!exportMenuOpen) return;
@@ -439,11 +523,28 @@ export function SlideSidebar({
         <ul className="files">
           {slides.map((slide, index) => {
             const active = selectedId === slide.id || (!selectedId && index === 0);
-            const className = `${hasRun ? "slideRow" : "fileRow"} ${active ? "active" : ""}`;
+            const isDragging = draggedSlideIndex === index;
+            const isDropAbove = dropTarget?.index === index && dropTarget.position === "above";
+            const isDropBelow = dropTarget?.index === index && dropTarget.position === "below";
+            const className = [
+              hasRun ? "slideRow" : "fileRow",
+              active ? "active" : "",
+              isDragging ? "dragging" : "",
+              isDropAbove ? "dropTargetAbove" : "",
+              isDropBelow ? "dropTargetBelow" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
             return (
               <li
                 key={slide.id}
                 className={className}
+                draggable={!busy}
+                onDragStart={(event) => handleSlideDragStart(event, index)}
+                onDragOver={(event) => handleSlideDragOver(event, index)}
+                onDragLeave={(event) => handleSlideDragLeave(event, index)}
+                onDrop={(event) => handleSlideDrop(event, index)}
+                onDragEnd={handleSlideDragEnd}
               >
                 <Button
                   variant="ghost"
@@ -452,13 +553,14 @@ export function SlideSidebar({
                   aria-pressed={active}
                   onClick={() => selectAt(index)}
                 >
-                  <span className="idx">{String(index + 1).padStart(2, "0")}</span>
+                  <span className="idx" title={text.dragToReorder}>{String(index + 1).padStart(2, "0")}</span>
                   {slide.url ? (
                     /* eslint-disable-next-line @next/next/no-img-element -- Blob URLs are browser-local previews. */
                     <img
                       className="thumb"
                       src={hasRun ? slide.thumbnailUrl ?? slide.url : slide.url}
                       alt=""
+                      draggable={false}
                       loading="lazy"
                       decoding="async"
                     />
@@ -509,32 +611,88 @@ export function SlideSidebar({
                     </span>
                   )}
                 </Button>
-                <Button
-                  variant="danger"
-                  size="touch"
-                  className="slideDeleteButton iconOnlyButton"
-                  type="button"
-                  disabled={busy}
-                  title={text.deleteSlideHint}
-                  aria-label={`${text.deleteSlideHint}: ${slide.name}`}
-                  onClick={() => deleteSlide(slide.id)}
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
+                <div className="slideRowActions">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="slideMoveButton slideMoveUpButton iconOnlyButton"
+                    type="button"
+                    disabled={busy || index === 0}
+                    title={text.moveSlideUpHint}
+                    aria-label={`${text.moveSlideUpHint}: ${slide.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      moveSlideUp?.(slide.id);
+                    }}
                   >
-                    <path d="M3 6h18" />
-                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                  </svg>
-                </Button>
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="18 15 12 9 6 15" />
+                    </svg>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="slideMoveButton slideMoveDownButton iconOnlyButton"
+                    type="button"
+                    disabled={busy || index === slides.length - 1}
+                    title={text.moveSlideDownHint}
+                    aria-label={`${text.moveSlideDownHint}: ${slide.name}`}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      moveSlideDown?.(slide.id);
+                    }}
+                  >
+                    <svg
+                      width="12"
+                      height="12"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="touch"
+                    className="slideDeleteButton iconOnlyButton"
+                    type="button"
+                    disabled={busy}
+                    title={text.deleteSlideHint}
+                    aria-label={`${text.deleteSlideHint}: ${slide.name}`}
+                    onClick={() => deleteSlide(slide.id)}
+                  >
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                  </Button>
+                </div>
               </li>
             );
           })}
