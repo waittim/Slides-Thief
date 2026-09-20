@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { copy, localeOptions } = await import(
+const { copy, localeOptions, reviewUiCopy, slideBadgeTitle } = await import(
   new URL("../app/i18n.ts", import.meta.url).href
 );
 
@@ -54,4 +54,120 @@ test("all supported locales provide undo, redo, and slideDeleted", () => {
       `Invalid slideDeleted for ${locale}`,
     );
   }
+});
+
+test("all supported locales provide complete reviewReasons, reviewReasonsTitle, and reviewFallbackTitle", () => {
+  const expectedReasons = [
+    "fallback_used",
+    "low_confidence",
+    "weak_edge_support",
+    "ambiguous_candidates",
+    "candidate_out_of_bounds",
+    "batch_inconsistency",
+  ];
+
+  for (const { value: locale } of localeOptions) {
+    const review = reviewUiCopy[locale];
+    assert.ok(
+      typeof review.reviewReasonsTitle === "string" && review.reviewReasonsTitle.length > 0,
+      `Missing reviewReasonsTitle for ${locale}`,
+    );
+    assert.ok(
+      typeof review.reviewFallbackTitle === "string" && review.reviewFallbackTitle.length > 0,
+      `Missing reviewFallbackTitle for ${locale}`,
+    );
+    assert.ok(
+      review.reviewReasons && typeof review.reviewReasons === "object",
+      `Missing reviewReasons object for ${locale}`,
+    );
+    for (const reason of expectedReasons) {
+      const text = review.reviewReasons[reason];
+      assert.ok(
+        typeof text === "string" && text.length > 0,
+        `Missing or empty reviewReason "${reason}" for ${locale}`,
+      );
+    }
+  }
+});
+
+test("slideBadgeTitle formats single reason, multiple reasons, fallback, manual, auto, and error states", () => {
+  const baseSlide = {
+    id: "test",
+    file: {},
+    name: "test.jpg",
+    url: "blob:test",
+    width: 100,
+    height: 100,
+    autoDetection: null,
+    confidence: 0.9,
+    needsReview: false,
+    reviewReasons: [],
+    sourceRatio: 1,
+    status: "ready",
+    method: "contrast-lines",
+    quad: [[0, 0], [100, 0], [100, 100], [0, 100]],
+  };
+
+  const textEn = copy.en;
+  const reviewEn = reviewUiCopy.en;
+  const textZh = copy["zh-CN"];
+  const reviewZh = reviewUiCopy["zh-CN"];
+
+  // 1. Clean automatic slide
+  assert.equal(slideBadgeTitle(baseSlide, textEn, reviewEn), "Automatically detected");
+  assert.equal(slideBadgeTitle(baseSlide, textZh, reviewZh), "自动识别");
+
+  // 2. Manual slide
+  const manualSlide = { ...baseSlide, method: "manual" };
+  assert.equal(slideBadgeTitle(manualSlide, textEn, reviewEn), "Manually adjusted");
+  assert.equal(slideBadgeTitle(manualSlide, textZh, reviewZh), "已手动调整");
+
+  // 3. Single reason review (fallback_used)
+  const fallbackSlide = {
+    ...baseSlide,
+    method: "fallback-frame",
+    confidence: 0,
+    needsReview: true,
+    reviewReasons: ["fallback_used"],
+  };
+  assert.equal(
+    slideBadgeTitle(fallbackSlide, textEn, reviewEn),
+    "No slide boundary detected; fallback frame used. Please adjust corners manually.",
+  );
+  assert.equal(
+    slideBadgeTitle(fallbackSlide, textZh, reviewZh),
+    "未检测到有效轮廓，已使用备用边框，请手动调整四角",
+  );
+
+  // 4. Single reason review (low_confidence)
+  const lowConfidenceSlide = {
+    ...baseSlide,
+    confidence: 0.5,
+    needsReview: true,
+    reviewReasons: ["low_confidence"],
+  };
+  assert.equal(
+    slideBadgeTitle(lowConfidenceSlide, textEn, reviewEn),
+    "Low detection confidence; please verify corner positions.",
+  );
+
+  // 5. Multiple reasons review
+  const multiReasonSlide = {
+    ...baseSlide,
+    confidence: 0.45,
+    needsReview: true,
+    reviewReasons: ["low_confidence", "weak_edge_support"],
+  };
+  assert.equal(
+    slideBadgeTitle(multiReasonSlide, textEn, reviewEn),
+    "Review suggested:\n• Low detection confidence; please verify corner positions.\n• Weak edge contrast or continuity; please verify slide boundaries.",
+  );
+
+  // 6. Error slide
+  const errorSlide = {
+    ...baseSlide,
+    status: "error",
+    error: { code: "decode-failed", message: "Failed to decode image data" },
+  };
+  assert.equal(slideBadgeTitle(errorSlide, textEn, reviewEn), "Failed to decode image data");
 });

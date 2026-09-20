@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/experimental-ct-react";
 import { SidebarHarness } from "./SidebarHarness";
+import { makeTestSlide } from "./slide-test-helpers";
 
 test("file selection, straighten, and export controls follow the user-visible state", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
@@ -199,6 +200,74 @@ test("slide delete button is disabled while busy and enabled otherwise", async (
 
   await component.getByTestId("toggle-busy").click();
   await expect(deleteButton).toBeEnabled();
+});
+
+test("renders fallback badge with distinct urgency level, label, and tooltip", async ({ mount }) => {
+  const fallbackSlide = makeTestSlide({
+    name: "slide-fallback.png",
+    status: "ready",
+    needsReview: true,
+    reviewReasons: ["fallback_used"],
+    method: "fallback-frame",
+  });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[fallbackSlide]} initialHasRun={true} />,
+  );
+
+  const badge = component.locator(".badge");
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveClass(/badge fallback/);
+  await expect(badge).toHaveText("! Fallback frame");
+  await expect(badge).toHaveAttribute(
+    "title",
+    "No slide boundary detected; fallback frame used. Please adjust corners manually.",
+  );
+});
+
+test("renders low-confidence badge with review suggested label and explanatory tooltip", async ({ mount }) => {
+  const reviewSlide = makeTestSlide({
+    name: "slide-low.png",
+    status: "ready",
+    needsReview: true,
+    reviewReasons: ["low_confidence"],
+  });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[reviewSlide]} initialHasRun={true} />,
+  );
+
+  const badge = component.locator(".badge");
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveClass(/badge low/);
+  await expect(badge).not.toHaveClass(/fallback/);
+  await expect(badge).toHaveText("! Review suggested");
+  await expect(badge).toHaveAttribute(
+    "title",
+    "Low detection confidence; please verify corner positions.",
+  );
+});
+
+test("renders multi-reason review badge with multi-line tooltip", async ({ mount }) => {
+  const multiSlide = makeTestSlide({
+    name: "slide-multi.png",
+    status: "ready",
+    needsReview: true,
+    reviewReasons: ["low_confidence", "weak_edge_support"],
+  });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[multiSlide]} initialHasRun={true} />,
+  );
+
+  const badge = component.locator(".badge");
+  await expect(badge).toBeVisible();
+  await expect(badge).toHaveClass(/badge low/);
+  await expect(badge).toHaveText("! Review suggested");
+  await expect(badge).toHaveAttribute(
+    "title",
+    "Review suggested:\n• Low detection confidence; please verify corner positions.\n• Weak edge contrast or continuity; please verify slide boundaries.",
+  );
 });
 
 

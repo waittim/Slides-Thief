@@ -442,7 +442,13 @@ export function SlidesThiefApp() {
     if (slide.status === "queued") return text.pending;
     if (slide.status === "detecting") return text.stretching;
     if (slide.status === "error") return text.failed;
-    if (slide.needsReview) return reviewText.reviewSuggested;
+    if (slide.needsReview) {
+      if (slide.reviewReasons.includes("fallback_used")) {
+        return reviewText.fallbackFrame;
+      }
+      return reviewText.reviewSuggested;
+    }
+    if (slide.method === "manual") return text.manualAdjusted;
     return reviewText.corrected;
   }, [reviewText, text]);
 
@@ -790,6 +796,7 @@ export function SlidesThiefApp() {
           inspectorCollapsed={inspectorCollapsed}
           setInspectorCollapsed={setInspectorCollapsed}
           text={text}
+          reviewText={reviewText}
           readySlides={readySlides}
           metrics={metrics}
           selectedSlide={selectedSlide}

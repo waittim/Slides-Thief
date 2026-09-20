@@ -1,5 +1,5 @@
 import React from "react";
-import type { LocaleCopy } from "../i18n";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import type { SlideItem } from "../lib/types";
 import { Button, CountBadge } from "./ui";
 
@@ -7,6 +7,7 @@ interface InspectorPanelProps {
   inspectorCollapsed: boolean;
   setInspectorCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
   text: LocaleCopy;
+  reviewText: ReviewUiCopy;
   readySlides: SlideItem[];
   metrics: Array<[string, string]>;
   selectedSlide: SlideItem | null;
@@ -17,6 +18,7 @@ export function InspectorPanel({
   inspectorCollapsed,
   setInspectorCollapsed,
   text,
+  reviewText,
   readySlides,
   metrics,
   selectedSlide,
@@ -42,6 +44,31 @@ export function InspectorPanel({
         </Button>
       </div>
       <div className="inspectorBody" id="inspectorDetails">
+        {selectedSlide?.status === "ready" && selectedSlide.needsReview && selectedSlide.reviewReasons.length > 0 ? (
+          <div
+            className={`reviewCard ${selectedSlide.reviewReasons.includes("fallback_used") ? "fallback" : "warning"}`}
+            role="status"
+            aria-live="polite"
+          >
+            <div className="reviewCardHeader">
+              <span className="reviewCardIcon" aria-hidden="true">
+                {selectedSlide.reviewReasons.includes("fallback_used") ? "⚠" : "!"}
+              </span>
+              <strong className="reviewCardTitle">
+                {selectedSlide.reviewReasons.includes("fallback_used")
+                  ? reviewText.reviewFallbackTitle
+                  : reviewText.reviewSuggested}
+              </strong>
+            </div>
+            <ul className="reviewCardList">
+              {selectedSlide.reviewReasons.map((reason) => (
+                <li key={reason} className="reviewCardItem">
+                  {reviewText.reviewReasons[reason] ?? reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
         <div className="metrics">
           {metrics.map(([key, value]) => (
             <div className="metric" key={key}>

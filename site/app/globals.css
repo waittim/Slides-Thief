@@ -1298,6 +1298,12 @@ button.clearAction:disabled {
   color: var(--low-text);
 }
 
+.badge.fallback {
+  background: color-mix(in srgb, var(--accent), transparent 84%);
+  color: var(--accent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent), transparent 60%);
+}
+
 .badge.error {
   background: color-mix(in srgb, var(--accent), transparent 82%);
   color: var(--accent);
@@ -1503,6 +1509,56 @@ canvas {
   background: color-mix(in srgb, var(--accent), transparent 88%);
   color: var(--accent);
   padding: var(--component-feedback-padding-block) var(--component-control-padding-inline);
+}
+
+.reviewCard {
+  margin: 0 0 var(--space-3);
+  border-radius: var(--radius-feedback);
+  padding: var(--space-3);
+  display: grid;
+  gap: var(--space-2);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-normal);
+}
+
+.reviewCard.warning {
+  background: var(--low-bg);
+  border: 1px solid color-mix(in srgb, var(--warn), transparent 60%);
+  color: var(--low-text);
+}
+
+.reviewCard.fallback {
+  background: color-mix(in srgb, var(--accent), transparent 88%);
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 50%);
+  color: var(--accent);
+}
+
+.reviewCardHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reviewCardTitle {
+  font-weight: var(--font-weight-bold);
+}
+
+.reviewCardIcon {
+  font-weight: var(--font-weight-black);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reviewCardList {
+  margin: 0;
+  padding-left: var(--space-4);
+  display: grid;
+  gap: var(--space-1);
+}
+
+.reviewCardItem {
+  color: inherit;
 }
 
 /* CSS media queries cannot consume custom properties; keep this threshold in sync with --breakpoint-tablet. */

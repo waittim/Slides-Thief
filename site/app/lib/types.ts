@@ -1,4 +1,5 @@
 import type { BatchPrior, DetectionMethod, Quad, ReviewReason } from "../detection/types";
+export type { ReviewReason };
 import type { EnhancementMode } from "../enhance";
 import { PRODUCT_METADATA } from "../product-metadata.ts";
 import type { OutputPageRatio, SourceFormatSettings } from "../ratio";

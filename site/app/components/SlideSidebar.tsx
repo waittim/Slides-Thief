@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { LocaleCopy, ReviewUiCopy } from "../i18n";
+import { slideBadgeTitle } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
 import type { ExportArtifact, SlideItem } from "../lib/types";
 import { Button, CountBadge, StatusDot, type StatusDotProps } from "./ui";
@@ -385,19 +386,30 @@ export function SlideSidebar({
                   <span className="name" title={slide.name}>
                     {displayFileName(slide.name, isMobile)}
                   </span>
-                  {hasRun ? (
-                    <span className={`badge ${slide.needsReview ? "low" : ""} ${slide.status === "error" ? "error" : ""}`}>
-                      {slide.status === "ready"
-                        ? slide.needsReview
-                          ? `! ${reviewText.reviewSuggested}`
-                          : slide.method === "manual"
-                            ? `✓ ${text.manualAdjusted}`
-                            : `✓ ${reviewText.automaticRecognized}`
-                        : slide.status === "error"
-                          ? `× ${text.failed}`
-                          : slideStatusText(slide)}
-                    </span>
-                  ) : (
+                  {hasRun ? (() => {
+                    const isFallback = slide.needsReview && slide.reviewReasons.includes("fallback_used");
+                    const badgeTitle = slideBadgeTitle(slide, text, reviewText);
+                    return (
+                      <span
+                        className={`badge ${
+                          isFallback ? "fallback" : slide.needsReview ? "low" : ""
+                        } ${slide.status === "error" ? "error" : ""}`}
+                        title={badgeTitle || undefined}
+                      >
+                        {slide.status === "ready"
+                          ? slide.needsReview
+                            ? isFallback
+                              ? `! ${reviewText.fallbackFrame}`
+                              : `! ${reviewText.reviewSuggested}`
+                            : slide.method === "manual"
+                              ? `✓ ${text.manualAdjusted}`
+                              : `✓ ${reviewText.automaticRecognized}`
+                          : slide.status === "error"
+                            ? `× ${text.failed}`
+                            : slideStatusText(slide)}
+                      </span>
+                    );
+                  })() : (
                     <span className="sub">
                       {slide.status === "converting"
                         ? text.converting

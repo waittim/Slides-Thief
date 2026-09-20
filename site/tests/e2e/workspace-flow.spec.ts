@@ -158,8 +158,6 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
   expect(ratioFontSize).toBe("16px");
   expect(ratioHeight).toBe("44px");
 
-  // Open "More" settings to check nested inputs
-  const moreSummary = page.locator(".moreSettings summary");
   // On mobile <= 834px, moreSettings is open by default, but verify input
   const widthInput = page.locator(".morePanel input[type='number']").first();
   await expect(widthInput).toBeVisible();

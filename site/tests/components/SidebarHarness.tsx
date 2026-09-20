@@ -35,10 +35,18 @@ function readySlide(slide: SlideItem): SlideItem {
   } as SlideItem;
 }
 
-export function SidebarHarness({ initialBusy = false }: { initialBusy?: boolean } = {}) {
+export function SidebarHarness({
+  initialBusy = false,
+  initialSlides = [],
+  initialHasRun = false,
+}: {
+  initialBusy?: boolean;
+  initialSlides?: SlideItem[];
+  initialHasRun?: boolean;
+} = {}) {
   const [busy, setBusy] = useState(initialBusy);
-  const [slides, setSlides] = useState<SlideItem[]>([]);
-  const [hasRun, setHasRun] = useState(false);
+  const [slides, setSlides] = useState<SlideItem[]>(initialSlides);
+  const [hasRun, setHasRun] = useState(initialHasRun);
   const [exported, setExported] = useState(false);
   const [exportedJpg, setExportedJpg] = useState(false);
   const [isStale, setIsStale] = useState(false);

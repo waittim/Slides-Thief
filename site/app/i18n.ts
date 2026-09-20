@@ -1,4 +1,4 @@
-import type { SlideDetectionMethod } from "./lib/types";
+import type { ReviewReason, SlideDetectionMethod, SlideItem } from "./lib/types";
 
 export type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
@@ -178,6 +178,9 @@ export type ReviewUiCopy = {
   privacy: string;
   reviewSummary: (count: number) => string;
   reviewConfirmation: (count: number) => string;
+  reviewReasonsTitle: string;
+  reviewFallbackTitle: string;
+  reviewReasons: Record<ReviewReason, string>;
 };
 
 export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
@@ -191,6 +194,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "隐私",
     reviewSummary: (count) => `${count} 张照片建议复查`,
     reviewConfirmation: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+    reviewReasonsTitle: "复查原因",
+    reviewFallbackTitle: "需手动调整四角",
+    reviewReasons: {
+      fallback_used: "未检测到有效轮廓，已使用备用边框，请手动调整四角",
+      low_confidence: "检测置信度较低，建议确认四角位置",
+      weak_edge_support: "边缘对比度不足或连续性较弱，请确认选框边缘",
+      ambiguous_candidates: "存在多个相似候选边框，请确认已选定正确区域",
+      candidate_out_of_bounds: "检测框超出图片范围，请检查四角是否在画面内",
+      batch_inconsistency: "与同批次其他照片的角度或位置差异较大，建议复查",
+    },
   },
   "zh-TW": {
     reviewSuggested: "建議檢查",
@@ -202,6 +215,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "隱私",
     reviewSummary: (count) => `${count} 張相片建議檢查`,
     reviewConfirmation: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+    reviewReasonsTitle: "檢查原因",
+    reviewFallbackTitle: "需手動調整四角",
+    reviewReasons: {
+      fallback_used: "未偵測到有效輪廓，已使用備用邊框，請手動調整四角",
+      low_confidence: "偵測信賴度較低，建議確認四角位置",
+      weak_edge_support: "邊緣對比度不足或連續性較弱，請確認選框邊緣",
+      ambiguous_candidates: "存在多個相似候選邊框，請確認已選定正確區域",
+      candidate_out_of_bounds: "偵測框超出相片範圍，請檢查四角是否在畫面內",
+      batch_inconsistency: "與同批次其他相片的角度或位置差異較大，建議檢查",
+    },
   },
   en: {
     reviewSuggested: "Review suggested",
@@ -214,6 +237,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} may need review`,
     reviewConfirmation: (count) =>
       `${count} photo${count === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
+    reviewReasonsTitle: "Reasons for review",
+    reviewFallbackTitle: "Manual corner adjustment required",
+    reviewReasons: {
+      fallback_used: "No slide boundary detected; fallback frame used. Please adjust corners manually.",
+      low_confidence: "Low detection confidence; please verify corner positions.",
+      weak_edge_support: "Weak edge contrast or continuity; please verify slide boundaries.",
+      ambiguous_candidates: "Multiple candidate boundaries found; please verify the correct area is selected.",
+      candidate_out_of_bounds: "Detected boundary extends outside the image; please verify corners.",
+      batch_inconsistency: "Detected position deviates from batch patterns; review recommended.",
+    },
   },
   es: {
     reviewSuggested: "Revisión recomendada",
@@ -227,6 +260,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión`,
     reviewConfirmation: (count) =>
       `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión. ¿Generar el PDF de todos modos?`,
+    reviewReasonsTitle: "Motivos de revisión",
+    reviewFallbackTitle: "Se requiere ajuste manual de esquinas",
+    reviewReasons: {
+      fallback_used: "No se detectó el borde de la diapositiva; se usó marco alternativo. Ajuste las esquinas manualmente.",
+      low_confidence: "Baja confianza de detección; verifique la posición de las esquinas.",
+      weak_edge_support: "Contraste de bordes débil o discontinuo; verifique los bordes de la diapositiva.",
+      ambiguous_candidates: "Múltiples candidatos de borde encontrados; confirme el área correcta.",
+      candidate_out_of_bounds: "El borde detectado se extiende fuera de la imagen; verifique las esquinas.",
+      batch_inconsistency: "La posición detectada difiere del patrón del lote; se recomienda revisar.",
+    },
   },
   fr: {
     reviewSuggested: "Vérification conseillée",
@@ -239,6 +282,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} à vérifier`,
     reviewConfirmation: (count) =>
       `${count} photo${count === 1 ? "" : "s"} à vérifier. Générer quand même le PDF ?`,
+    reviewReasonsTitle: "Raisons de vérification",
+    reviewFallbackTitle: "Ajustement manuel des coins requis",
+    reviewReasons: {
+      fallback_used: "Aucun contour détecté ; cadre de secours utilisé. Ajustez les coins manuellement.",
+      low_confidence: "Faible confiance de détection ; veuillez vérifier la position des coins.",
+      weak_edge_support: "Contraste des bords faible ou discontinu ; veuillez vérifier les limites.",
+      ambiguous_candidates: "Plusieurs contours candidats détectés ; confirmez la bonne zone.",
+      candidate_out_of_bounds: "Le contour détecté dépasse de l'image ; vérifiez les coins.",
+      batch_inconsistency: "La position s'écarte du motif du lot ; vérification recommandée.",
+    },
   },
   de: {
     reviewSuggested: "Prüfung empfohlen",
@@ -252,6 +305,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden`,
     reviewConfirmation: (count) =>
       `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden. PDF trotzdem erstellen?`,
+    reviewReasonsTitle: "Gründe für Prüfung",
+    reviewFallbackTitle: "Manuelle Eckanpassung erforderlich",
+    reviewReasons: {
+      fallback_used: "Kein Folienrand erkannt; Ersatzrahmen verwendet. Bitte Ecken manuell anpassen.",
+      low_confidence: "Geringe Erkennungszuverlässigkeit; bitte Eckenpositionen überprüfen.",
+      weak_edge_support: "Schwacher Kantenkontrast oder unterbrochene Kanten; bitte Folienränder prüfen.",
+      ambiguous_candidates: "Mehrere Randkandidaten gefunden; bitte den richtigen Bereich bestätigen.",
+      candidate_out_of_bounds: "Erkannter Rahmen liegt außerhalb des Bildes; bitte Ecken prüfen.",
+      batch_inconsistency: "Position weicht vom Chargenmuster ab; Überprüfung empfohlen.",
+    },
   },
   ja: {
     reviewSuggested: "要確認",
@@ -263,6 +326,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "プライバシー",
     reviewSummary: (count) => `${count}枚の写真を確認してください`,
     reviewConfirmation: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+    reviewReasonsTitle: "確認が必要な理由",
+    reviewFallbackTitle: "手動での四隅調整が必要です",
+    reviewReasons: {
+      fallback_used: "スライドの輪郭が検出されなかったため、代替フレームを適用しました。手動で四隅を調整してください。",
+      low_confidence: "検出の信頼度が低いため、四隅の位置を確認してください。",
+      weak_edge_support: "エッジのコントラストや連続性が弱いため、スライドの境界線を確認してください。",
+      ambiguous_candidates: "複数の候補枠が検出されました。正しい領域が選択されているか確認してください。",
+      candidate_out_of_bounds: "検出枠が画像の外側に突き出しています。四隅を確認してください。",
+      batch_inconsistency: "同一バッチ内の他の写真と配置が大きく異なります。確認を推奨します。",
+    },
   },
   ko: {
     reviewSuggested: "검토 권장",
@@ -274,6 +347,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "개인정보 보호",
     reviewSummary: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
     reviewConfirmation: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+    reviewReasonsTitle: "검토 권장 사유",
+    reviewFallbackTitle: "수동 모서리 조정 필요",
+    reviewReasons: {
+      fallback_used: "슬라이드 윤곽선을 감지하지 못해 대체 프레임을 사용했습니다. 네 모서리를 수동으로 조정해 주세요.",
+      low_confidence: "감지 신뢰도가 낮습니다. 네 모서리 위치를 확인해 주세요.",
+      weak_edge_support: "가장자리 대비가 낮거나 연속성이 약합니다. 슬라이드 경계를 확인해 주세요.",
+      ambiguous_candidates: "여러 후보 경계가 감지되었습니다. 올바른 영역이 선택되었는지 확인해 주세요.",
+      candidate_out_of_bounds: "감지된 프레임이 이미지 범위를 벗어났습니다. 모서리를 확인해 주세요.",
+      batch_inconsistency: "같은 배치의 다른 사진들과 각도나 위치 차이가 큽니다. 검토를 권장합니다.",
+    },
   },
   "pt-BR": {
     reviewSuggested: "Revisão recomendada",
@@ -287,6 +370,16 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão`,
     reviewConfirmation: (count) =>
       `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão. Gerar o PDF mesmo assim?`,
+    reviewReasonsTitle: "Motivos para revisão",
+    reviewFallbackTitle: "Ajuste manual dos cantos necessário",
+    reviewReasons: {
+      fallback_used: "Nenhum contorno detectado; quadro alternativo usado. Ajuste os cantos manualmente.",
+      low_confidence: "Baixa confiança na detecção; verifique a posição dos cantos.",
+      weak_edge_support: "Contraste de borda fraco ou descontínuo; verifique as bordas do slide.",
+      ambiguous_candidates: "Múltiplos contornos candidatos encontrados; confirme a área correta.",
+      candidate_out_of_bounds: "O contorno detectado ultrapassa a imagem; verifique os cantos.",
+      batch_inconsistency: "A posição detectada diverge do padrão do lote; revisão recomendada.",
+    },
   },
 };
 
@@ -1291,4 +1384,34 @@ export function detectionMethodText(method: SlideDetectionMethod, locale: Locale
     return reviewText.automaticDetection;
   }
   return "-";
+}
+
+export function slideBadgeTitle(
+  slide: SlideItem,
+  text: LocaleCopy,
+  reviewText: ReviewUiCopy,
+): string {
+  if (slide.status === "error") {
+    return slide.error?.message ?? text.failed;
+  }
+  if (slide.status === "ready") {
+    if (slide.needsReview) {
+      if (slide.reviewReasons.length === 1) {
+        const reason = slide.reviewReasons[0];
+        return reviewText.reviewReasons[reason] ?? reviewText.reviewSuggested;
+      }
+      if (slide.reviewReasons.length > 1) {
+        return `${reviewText.reviewSuggested}:\n` +
+          slide.reviewReasons
+            .map((r) => `• ${reviewText.reviewReasons[r] ?? r}`)
+            .join("\n");
+      }
+      return reviewText.reviewSuggested;
+    }
+    if (slide.method === "manual") {
+      return text.manualAdjusted;
+    }
+    return reviewText.automaticRecognized;
+  }
+  return "";
 }
