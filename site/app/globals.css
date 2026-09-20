@@ -1044,6 +1044,120 @@ a:hover {
   line-height: var(--line-height-ui);
 }
 
+.links a.artifactCard {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2), transparent 92%);
+  color: var(--text);
+  box-shadow: var(--shadow-small);
+  text-decoration: none;
+  text-align: left;
+  white-space: normal;
+  transition:
+    background 0.12s ease,
+    border-color 0.12s ease,
+    transform 0.08s ease;
+}
+
+.links a.artifactCard:hover {
+  background: color-mix(in srgb, var(--accent-2), transparent 85%);
+  border-color: var(--accent-2);
+  transform: translateY(-1px);
+}
+
+.links a.artifactCard:active {
+  transform: translateY(0);
+}
+
+.links a.artifactCard.sidebarLink--stale {
+  background: var(--control-bg);
+  border-color: var(--line);
+  color: var(--muted);
+  box-shadow: none;
+}
+
+.links a.artifactCard.sidebarLink--stale:hover {
+  background: var(--control-hover);
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.artifactCardIcon {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent-2), transparent 82%);
+  color: var(--accent-2);
+}
+
+.links a.artifactCard.sidebarLink--stale .artifactCardIcon {
+  background: color-mix(in srgb, var(--muted), transparent 88%);
+  color: var(--muted);
+}
+
+.artifactCardInfo {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.artifactCardPrimary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.artifactCardTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.links a.artifactCard.sidebarLink--stale .artifactCardTitle {
+  color: var(--muted);
+}
+
+.artifactCardMeta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  min-width: 0;
+}
+
+.artifactCardName {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.artifactCardSize {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+  padding: 0 4px;
+  border-radius: var(--radius-xs);
+  background: color-mix(in srgb, var(--muted), transparent 88%);
+}
+
 .sectionHead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

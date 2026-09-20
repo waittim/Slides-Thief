@@ -201,4 +201,19 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
   } as SlideItem));
 }
 
+export function triggerDownload(url: string, filename: string, isIOS = false) {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (isIOS) {
+    window.open(url, "_blank");
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  link.remove?.() ?? (link.parentNode && link.parentNode.removeChild(link));
+}
+
 export { exportManualQuads } from "./export-utils";

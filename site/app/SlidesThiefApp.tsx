@@ -48,6 +48,7 @@ export function SlidesThiefApp() {
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
+  const isIOSRef = useRef(false);
 
   const inputRef = useRef<HTMLInputElement | null>(null);
   const manualInputRef = useRef<HTMLInputElement | null>(null);
@@ -190,6 +191,7 @@ export function SlidesThiefApp() {
     setWorkerError,
     setBusyText,
     localeRef,
+    isIOSRef,
   );
 
   const readySlides = useMemo(
@@ -517,6 +519,7 @@ export function SlidesThiefApp() {
     const isIOSDevice =
       /iPad|iPhone|iPod/.test(ua) ||
       (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+    isIOSRef.current = isIOSDevice;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsIOS(isIOSDevice);
   }, []);

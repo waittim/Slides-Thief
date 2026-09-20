@@ -160,6 +160,9 @@ test("marks export artifact as stale with visual indicator and notice instead of
   const downloadLink = component.getByRole("link", { name: "Download PDF" });
   await expect(downloadLink).toBeVisible();
   await expect(downloadLink).not.toHaveClass(/sidebarLink--stale/);
+  await expect(component.getByRole("button", { name: "Re-generate PDF" })).toBeVisible();
+  await expect(component.getByText("deck.pdf")).toBeVisible();
+  await expect(component.getByText("1.0 KB")).toBeVisible();
   await expect(component.getByText("Outdated")).toHaveCount(0);
   await expect(component.getByText("Settings changed; re-generate to update")).toHaveCount(0);
 
@@ -175,7 +178,7 @@ test("marks export artifact as stale with visual indicator and notice instead of
   await expect(component.getByText("Settings changed; re-generate to update")).toBeVisible();
 
   // Re-generating clears stale state
-  await component.getByRole("button", { name: "Generate PDF" }).click();
+  await component.getByRole("button", { name: "Re-generate PDF" }).click();
   await expect(downloadLink).toBeVisible();
   await expect(downloadLink).not.toHaveClass(/sidebarLink--stale/);
   await expect(component.getByText("Outdated")).toHaveCount(0);

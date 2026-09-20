@@ -1,6 +1,6 @@
 import { useCallback, useRef } from "react";
 import { copy, type LocaleValue } from "../i18n";
-import { messageFromError } from "../lib/slide-utils";
+import { messageFromError, triggerDownload } from "../lib/slide-utils";
 import { trackEvent, type ExportArtifact, type ExportWorkerMessage, type SlideItem } from "../lib/types";
 
 export function useExportWorker(
@@ -11,6 +11,7 @@ export function useExportWorker(
   setWorkerError: (error: string) => void,
   setBusyText: (text: string) => void,
   localeRef: React.MutableRefObject<LocaleValue>,
+  isIOSRef?: React.MutableRefObject<boolean>,
 ) {
   const exportWorkerRef = useRef<Worker | null>(null);
 
@@ -73,6 +74,7 @@ export function useExportWorker(
         setExporting(false);
         setBusyText("");
         releaseWorker();
+        triggerDownload(url, message.filename, isIOSRef?.current);
       }
       if (message.type === "error") {
         trackEvent("processing_error", {
@@ -99,7 +101,7 @@ export function useExportWorker(
     worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the export worker.");
     exportWorkerRef.current = worker;
     return worker;
-  }, [exportArtifactsRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
+  }, [exportArtifactsRef, isIOSRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
 
   const cancelExport = useCallback(() => {
     if (exportWorkerRef.current) {

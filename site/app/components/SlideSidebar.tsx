@@ -104,6 +104,8 @@ export function SlideSidebar({
   const isPdfStale = Boolean(pdfArtifact?.isStale);
   const isJpgStale = Boolean(jpgArtifact?.isStale);
   const hasStaleExport = (Boolean(pdfUrl) && isPdfStale) || (Boolean(jpgArtifact) && isJpgStale);
+  const hasPdfExport = Boolean(pdfUrl);
+  const mainButtonLabel = hasPdfExport ? text.regeneratePdf : text.generatePdf;
 
   return (
     <aside className="sidebar">
@@ -116,13 +118,13 @@ export function SlideSidebar({
             variant="accent"
             className="splitButtonMain"
             disabled={busy || !readySlides.length}
-            title={`${text.generatePdf} (⌘↵ / Ctrl+Enter)`}
+            title={`${mainButtonLabel} (⌘↵ / Ctrl+Enter)`}
             onClick={() => {
               setExportMenuOpen(false);
               exportPdf();
             }}
           >
-            {text.generatePdf}
+            {mainButtonLabel}
           </Button>
           <button
             type="button"
@@ -255,22 +257,52 @@ export function SlideSidebar({
           )}
         </div>
         {(pdfUrl || jpgArtifact) ? (
-          <div className="links sidebarLinks">
+          <div className="links sidebarLinks sidebarArtifacts">
             {pdfUrl ? (
               <a
                 href={pdfUrl}
                 download={isIOS ? undefined : pdfFilename}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={isPdfStale ? "sidebarLink--stale" : undefined}
-                title={isPdfStale ? text.staleExportHint : undefined}
+                className={`artifactCard ${isPdfStale ? "artifactCard--stale sidebarLink--stale" : ""}`}
+                title={isPdfStale ? text.staleExportHint : `${text.downloadPdf}: ${pdfFilename}`}
               >
-                <span>{text.downloadPdf}</span>
-                {isPdfStale ? (
-                  <span className="sidebarStaleBadge" aria-hidden="true">
-                    {text.staleBadge}
-                  </span>
-                ) : null}
+                <div className="artifactCardIcon" aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
+                <div className="artifactCardInfo">
+                  <div className="artifactCardPrimary">
+                    <span className="artifactCardTitle">{text.downloadPdf}</span>
+                    {isPdfStale ? (
+                      <span className="sidebarStaleBadge" aria-hidden="true">
+                        {text.staleBadge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="artifactCardMeta">
+                    <span className="artifactCardName" title={pdfFilename}>
+                      {pdfFilename}
+                    </span>
+                    {pdfArtifact?.byteLength ? (
+                      <span className="artifactCardSize">
+                        {formatBytes(pdfArtifact.byteLength)}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               </a>
             ) : null}
             {jpgArtifact ? (
@@ -279,15 +311,47 @@ export function SlideSidebar({
                 download={isIOS ? undefined : jpgArtifact.filename}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={isJpgStale ? "sidebarLink--stale" : undefined}
-                title={isJpgStale ? text.staleExportHint : undefined}
+                className={`artifactCard ${isJpgStale ? "artifactCard--stale sidebarLink--stale" : ""}`}
+                title={isJpgStale ? text.staleExportHint : `${readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}: ${jpgArtifact.filename}`}
               >
-                <span>{readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}</span>
-                {isJpgStale ? (
-                  <span className="sidebarStaleBadge" aria-hidden="true">
-                    {text.staleBadge}
-                  </span>
-                ) : null}
+                <div className="artifactCardIcon" aria-hidden="true">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                </div>
+                <div className="artifactCardInfo">
+                  <div className="artifactCardPrimary">
+                    <span className="artifactCardTitle">
+                      {readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}
+                    </span>
+                    {isJpgStale ? (
+                      <span className="sidebarStaleBadge" aria-hidden="true">
+                        {text.staleBadge}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="artifactCardMeta">
+                    <span className="artifactCardName" title={jpgArtifact.filename}>
+                      {jpgArtifact.filename}
+                    </span>
+                    {jpgArtifact.byteLength ? (
+                      <span className="artifactCardSize">
+                        {formatBytes(jpgArtifact.byteLength)}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
               </a>
             ) : null}
             {hasStaleExport ? (
