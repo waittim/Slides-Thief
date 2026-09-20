@@ -33,7 +33,9 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
     // Undo: Cmd+Z or Ctrl+Z
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
       event.preventDefault();
-      actions.handleUndo();
+      if (!actions.busy) {
+        actions.handleUndo();
+      }
       return;
     }
 
@@ -43,7 +45,9 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
       (event.ctrlKey && event.key.toLowerCase() === "y")
     ) {
       event.preventDefault();
-      actions.handleRedo();
+      if (!actions.busy) {
+        actions.handleRedo();
+      }
       return;
     }
 
@@ -62,7 +66,9 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
       if (event.key === "Delete" || event.key === "Backspace") {
         if (actions.selectedIdRef.current) {
           event.preventDefault();
-          actions.deleteSlide(actions.selectedIdRef.current);
+          if (!actions.busy) {
+            actions.deleteSlide(actions.selectedIdRef.current);
+          }
         }
         return;
       }

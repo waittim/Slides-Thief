@@ -35,7 +35,8 @@ function readySlide(slide: SlideItem): SlideItem {
   } as SlideItem;
 }
 
-export function SidebarHarness() {
+export function SidebarHarness({ initialBusy = false }: { initialBusy?: boolean } = {}) {
+  const [busy, setBusy] = useState(initialBusy);
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [hasRun, setHasRun] = useState(false);
   const [exported, setExported] = useState(false);
@@ -79,7 +80,7 @@ export function SidebarHarness() {
   return (
     <>
       <SlideSidebar
-        busy={false}
+        busy={busy}
         slides={slides}
         readySlides={readySlides}
         runAuto={() => {
@@ -150,6 +151,9 @@ export function SidebarHarness() {
       </output>
       <button type="button" data-testid="mark-stale" onClick={() => setIsStale(true)}>
         Mark Stale
+      </button>
+      <button type="button" data-testid="toggle-busy" onClick={() => setBusy((b) => !b)}>
+        Toggle Busy
       </button>
     </>
   );

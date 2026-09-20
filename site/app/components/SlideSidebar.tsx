@@ -229,6 +229,7 @@ export function SlideSidebar({
                   variant="secondary"
                   size="sm"
                   className="statusUndoButton"
+                  disabled={busy}
                   onClick={onUndo}
                 >
                   {text.undo}
@@ -411,6 +412,7 @@ export function SlideSidebar({
                   size="touch"
                   className="slideDeleteButton iconOnlyButton"
                   type="button"
+                  disabled={busy}
                   title={text.deleteSlideHint}
                   aria-label={`${text.deleteSlideHint}: ${slide.name}`}
                   onClick={() => deleteSlide(slide.id)}

@@ -1212,12 +1212,23 @@ button.clearAction:disabled {
   opacity: 1;
 }
 
-.slideDeleteButton:hover {
+.slideDeleteButton:hover:not(:disabled) {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--danger-text);
   transform: scale(1.08);
   box-shadow: var(--component-shadow-accent-hover);
+}
+
+.slideDeleteButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+  transform: none;
+}
+
+.fileRow:hover .slideDeleteButton:disabled,
+.slideRow:hover .slideDeleteButton:disabled {
+  opacity: 0.35;
 }
 
 

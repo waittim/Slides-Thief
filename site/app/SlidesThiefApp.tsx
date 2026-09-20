@@ -149,35 +149,10 @@ export function SlidesThiefApp() {
     };
   }, []);
 
-  const handleUndo = useCallback(() => {
-    clearDeleteNotice();
-    handleUndoDeck();
-  }, [clearDeleteNotice, handleUndoDeck]);
-
-  const handleRedo = useCallback(() => {
-    clearDeleteNotice();
-    handleRedoDeck();
-  }, [clearDeleteNotice, handleRedoDeck]);
-
   const pushHistory = useCallback(() => {
     clearDeleteNotice();
     pushHistoryDeck();
   }, [clearDeleteNotice, pushHistoryDeck]);
-
-  const deleteSlide = useCallback((id: string) => {
-    const target = slidesRef.current.find((s) => s.id === id);
-    deleteSlideDeck(id);
-    if (target) {
-      if (deleteNoticeTimerRef.current) {
-        clearTimeout(deleteNoticeTimerRef.current);
-      }
-      setDeletedNotice({ id: target.id, name: target.name });
-      deleteNoticeTimerRef.current = setTimeout(() => {
-        setDeletedNotice(null);
-        deleteNoticeTimerRef.current = null;
-      }, 6000);
-    }
-  }, [deleteSlideDeck, slidesRef]);
 
   const refreshSlideThumbnail = useCallback(async (
     id: string,
@@ -398,6 +373,38 @@ export function SlidesThiefApp() {
   }, [selectPrevSlideDeck, setZoomMode]);
 
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
+
+  const handleUndo = useCallback(() => {
+    if (busy) return;
+    clearDeleteNotice();
+    handleUndoDeck();
+  }, [busy, clearDeleteNotice, handleUndoDeck]);
+
+  const handleRedo = useCallback(() => {
+    if (busy) return;
+    clearDeleteNotice();
+    handleRedoDeck();
+  }, [busy, clearDeleteNotice, handleRedoDeck]);
+
+  const deleteSlide = useCallback(
+    (id: string) => {
+      if (busy) return;
+      const target = slidesRef.current.find((s) => s.id === id);
+      deleteSlideDeck(id);
+      if (target) {
+        if (deleteNoticeTimerRef.current) {
+          clearTimeout(deleteNoticeTimerRef.current);
+        }
+        setDeletedNotice({ id: target.id, name: target.name });
+        deleteNoticeTimerRef.current = setTimeout(() => {
+          setDeletedNotice(null);
+          deleteNoticeTimerRef.current = null;
+        }, 6000);
+      }
+    },
+    [busy, deleteSlideDeck, slidesRef],
+  );
+
   const statusText = useMemo(() => {
     if (workerError) return workerError;
     if (busyText) return busyText;
@@ -773,8 +780,8 @@ export function SlidesThiefApp() {
           onHandlePointerMove={onHandlePointerMove}
           onHandlePointerUp={onHandlePointerUp}
           onHandleKeyDown={onHandleKeyDown}
-          canUndo={canUndo}
-          canRedo={canRedo}
+          canUndo={canUndo && !busy}
+          canRedo={canRedo && !busy}
           handleUndo={handleUndo}
           handleRedo={handleRedo}
         />
@@ -799,6 +806,7 @@ export function SlidesThiefApp() {
             variant="ghost"
             size="sm"
             className="toastUndoButton"
+            disabled={busy}
             onClick={handleUndo}
           >
             {text.undo}

@@ -181,3 +181,24 @@ test("marks export artifact as stale with visual indicator and notice instead of
   await expect(component.getByText("Settings changed; re-generate to update")).toHaveCount(0);
 });
 
+test("slide delete button is disabled while busy and enabled otherwise", async ({ mount }) => {
+  const component = await mount(<SidebarHarness />);
+  const fileInput = component.locator('input[type="file"]').first();
+
+  await fileInput.setInputFiles({
+    name: "deck.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("test"),
+  });
+
+  const deleteButton = component.getByRole("button", { name: /delete image: deck.png/i });
+  await expect(deleteButton).toBeEnabled();
+
+  await component.getByTestId("toggle-busy").click();
+  await expect(deleteButton).toBeDisabled();
+
+  await component.getByTestId("toggle-busy").click();
+  await expect(deleteButton).toBeEnabled();
+});
+
+
