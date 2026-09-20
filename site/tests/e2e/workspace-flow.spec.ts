@@ -141,6 +141,9 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
 
+  const settingsMenu = page.locator(".settingsMenu");
+  expect(await settingsMenu.evaluate((el) => el.tagName.toLowerCase())).toBe("details");
+
   const settingsToggle = page.locator(".settingsMenuToggle");
   await settingsToggle.click();
 
@@ -180,6 +183,11 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
 test("desktop settings surfaces enhancement mode at top level and groups parameters in moreSettings", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
   await page.goto("/");
+
+  // On desktop, settingsMenu is a semantic div container without fake interactive summary toggle
+  await expect(page.locator(".settingsMenuToggle")).toHaveCount(0);
+  const settingsMenu = page.locator(".settingsMenu");
+  expect(await settingsMenu.evaluate((el) => el.tagName.toLowerCase())).toBe("div");
 
   // Enhancement control is visible directly in topbar without expanding moreSettings
   const enhancementSelect = page.locator(".settingsMenuBody > .enhancementSetting select");

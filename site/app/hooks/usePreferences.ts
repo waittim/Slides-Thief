@@ -52,21 +52,17 @@ export function usePreferences(markExportStale: () => void) {
   }, []);
 
   useLayoutEffect(() => {
-    const settingsMenu = settingsMenuRef.current;
-    const moreSettings = moreSettingsRef.current;
-    if (!settingsMenu) return;
-
     const media = window.matchMedia(MOBILE_BREAKPOINT);
     const sync = () => {
       const matches = media.matches;
       setIsMobile(matches);
       if (matches) {
-        settingsMenu.open = false;
+        if (settingsMenuRef.current) settingsMenuRef.current.open = false;
         setSettingsOpen(false);
-        if (moreSettings) moreSettings.open = true;
+        if (moreSettingsRef.current) moreSettingsRef.current.open = true;
         setInspectorCollapsed(true);
       } else {
-        settingsMenu.open = true;
+        if (settingsMenuRef.current) settingsMenuRef.current.open = true;
         setSettingsOpen(true);
         setInspectorCollapsed(false);
       }
