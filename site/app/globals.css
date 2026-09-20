@@ -1000,6 +1000,40 @@ a:hover {
   transform: translateY(1px);
 }
 
+.links a.sidebarLink--stale {
+  background: var(--control-bg);
+  border-color: var(--line);
+  color: var(--muted);
+  font-weight: var(--font-weight-medium);
+}
+
+.links a.sidebarLink--stale:hover {
+  background: var(--control-hover);
+  border-color: var(--line);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.sidebarStaleBadge {
+  display: inline-flex;
+  align-items: center;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-bold);
+  padding: 1px 6px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--warn), transparent 82%);
+  color: var(--warn);
+  line-height: 1.4;
+}
+
+.sidebarStaleNotice {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-align: center;
+  line-height: var(--line-height-ui);
+}
+
 .sectionHead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

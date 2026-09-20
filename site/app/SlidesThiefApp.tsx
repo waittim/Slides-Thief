@@ -74,6 +74,19 @@ export function SlidesThiefApp() {
     setExportArtifacts({});
   }, []);
 
+  const markExportStale = useCallback(() => {
+    const current = exportArtifactsRef.current;
+    if (!current.pdf && !current.jpg) return;
+    if (current.pdf?.isStale && (!current.jpg || current.jpg.isStale)) return;
+
+    const next = {
+      ...(current.pdf ? { pdf: { ...current.pdf, isStale: true } } : {}),
+      ...(current.jpg ? { jpg: { ...current.jpg, isStale: true } } : {}),
+    };
+    exportArtifactsRef.current = next;
+    setExportArtifacts(next);
+  }, []);
+
   const {
     settings,
     settingsOpen,
@@ -93,7 +106,7 @@ export function SlidesThiefApp() {
     moreSettingsRef,
     updateSettings,
     confirmClearText,
-  } = usePreferences(clearExport);
+  } = usePreferences(markExportStale);
   const text = copy[locale];
   const reviewText = reviewUiCopy[locale];
 
@@ -112,7 +125,7 @@ export function SlidesThiefApp() {
     clearAllSlides,
     selectNextSlide: selectNextSlideDeck,
     selectPrevSlide: selectPrevSlideDeck,
-  } = useSlideDeck(clearExport, cancelActiveDrag, confirmClearText);
+  } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag, confirmClearText);
 
   const refreshSlideThumbnail = useCallback(async (
     id: string,
@@ -201,6 +214,7 @@ export function SlidesThiefApp() {
     setBusyText,
     setCornerAnnouncement,
     setHandlePositions,
+    markExportStale,
     clearExport,
     pushHistory,
     startDetection,
@@ -275,7 +289,7 @@ export function SlidesThiefApp() {
 
       cancelQuadDrag();
       pushHistory();
-      clearExport();
+      markExportStale();
       setWorkerError("");
       setSlides((current) => current.map((slide) => {
         const quad = matched.get(slide.id);
@@ -298,7 +312,7 @@ export function SlidesThiefApp() {
     } catch (error) {
       setWorkerError(messageFromError(error));
     }
-  }, [cancelQuadDrag, clearExport, pushHistory, refreshSlideThumbnail, setSelectedId, setSlides, setWorkerError, setZoomMode, slidesRef, text]);
+  }, [cancelQuadDrag, markExportStale, pushHistory, refreshSlideThumbnail, setSelectedId, setSlides, setWorkerError, setZoomMode, slidesRef, text]);
 
   const { loadFiles } = useImportPipeline({
     pdfBaseName,
@@ -312,6 +326,7 @@ export function SlidesThiefApp() {
     setPreviewErrorSlideId: canvasViewport.setPreviewErrorSlideId,
     setZoomMode,
     clearExport,
+    markExportStale,
     exportUrlRef,
     cancelExport,
     cancelDetection,
@@ -337,8 +352,8 @@ export function SlidesThiefApp() {
     if (!slides.length) return text.ready;
     if (detecting) return text.stretching;
     if (exporting) return text.generating;
-    if (exportArtifacts.jpg && !exportArtifacts.pdf) return text.generatedJpg;
-    if (exportArtifacts.pdf) return text.generated;
+    if (exportArtifacts.jpg && !exportArtifacts.pdf && !exportArtifacts.jpg.isStale) return text.generatedJpg;
+    if (exportArtifacts.pdf && !exportArtifacts.pdf.isStale) return text.generated;
     if (reviewCount) return reviewText.reviewSummary(reviewCount);
     if (hasRun) return text.reviewReady;
     return `${slides.length} ${text.waiting}`;
@@ -359,7 +374,7 @@ export function SlidesThiefApp() {
   const statusTone = useMemo(() => {
     if (workerError) return "bad";
     if (detecting || exporting) return "busy";
-    if (hasRun || exportArtifacts.pdf || exportArtifacts.jpg) return "good";
+    if (hasRun || (exportArtifacts.pdf && !exportArtifacts.pdf.isStale) || (exportArtifacts.jpg && !exportArtifacts.jpg.isStale)) return "good";
     return "default";
   }, [detecting, exportArtifacts.jpg, exportArtifacts.pdf, exporting, hasRun, workerError]);
 
@@ -412,6 +427,12 @@ export function SlidesThiefApp() {
   useEffect(() => {
     exportUrlRef.current = exportArtifacts.pdf?.url ?? null;
   }, [exportArtifacts.pdf?.url]);
+
+  useEffect(() => {
+    return () => {
+      clearExport();
+    };
+  }, [clearExport]);
 
   useEffect(() => {
     if (detecting || !reviewCount || autoReviewSelectedRef.current) return;
@@ -479,7 +500,7 @@ export function SlidesThiefApp() {
       );
       if (!processableSlides.length) return;
       cancelQuadDrag();
-      clearExport();
+      markExportStale();
       setWorkerError("");
       setBusyText(text.stretching);
       autoReviewSelectedRef.current = false;
@@ -522,7 +543,7 @@ export function SlidesThiefApp() {
           };
         }),
       );
-    }, [cancelQuadDrag, clearExport, setSlides, settings, slides, startDetection, text.stretching],
+    }, [cancelQuadDrag, markExportStale, setSlides, settings, slides, startDetection, text.stretching],
   );
 
   const runAuto = useCallback(() => runAutoWithSettings(), [runAutoWithSettings]);

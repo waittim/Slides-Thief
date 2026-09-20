@@ -36,6 +36,18 @@ test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ 
   await expect(downloadLink).toBeVisible({ timeout: 45_000 });
   await expect(downloadLink).toHaveAttribute("download", "flattened_slides.pdf");
   await expect(downloadLink).toHaveAttribute("href", /^blob:/);
+
+  // Adjusting a corner after export marks the download link as stale instead of removing it
+  await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2 + 8);
+  await page.mouse.down();
+  await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 15);
+  await page.mouse.up();
+
+  await expect(downloadLink).toBeVisible();
+  await expect(downloadLink).toHaveClass(/sidebarLink--stale/);
+  await expect(page.getByText("Settings changed; re-generate to update")).toBeVisible();
+  await expect(downloadLink).toHaveAttribute("download", "flattened_slides.pdf");
+  await expect(downloadLink).toHaveAttribute("href", /^blob:/);
 });
 
 test("secondary file import appends new slide, supports undo, and skips duplicates", async ({ page }) => {

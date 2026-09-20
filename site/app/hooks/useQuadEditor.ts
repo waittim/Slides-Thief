@@ -22,7 +22,8 @@ type QuadEditorOptions = {
   setBusyText: (text: string) => void;
   setCornerAnnouncement: (announcement: string) => void;
   setHandlePositions: Dispatch<SetStateAction<HandlePosition[]>>;
-  clearExport: () => void;
+  markExportStale: () => void;
+  clearExport?: () => void;
   pushHistory: () => void;
   startDetection: (
     files: Array<{ id: string; name: string; file: File }>,
@@ -48,7 +49,7 @@ export function useQuadEditor({
   setBusyText,
   setCornerAnnouncement,
   setHandlePositions,
-  clearExport,
+  markExportStale,
   pushHistory,
   startDetection,
   refreshSlideThumbnail,
@@ -79,7 +80,7 @@ export function useQuadEditor({
 
   const updateSlideQuad = useCallback(
     (id: string, nextQuad: Quad) => {
-      clearExport();
+      markExportStale();
       setSlides((current) =>
         current.map((slide) => {
           if (slide.id !== id) return slide;
@@ -119,7 +120,7 @@ export function useQuadEditor({
         }),
       );
     },
-    [clearExport, setSlides],
+    [markExportStale, setSlides],
   );
 
   const canvasPoint = useCallback((event: PointerEvent<HTMLElement>) => {
@@ -267,7 +268,7 @@ export function useQuadEditor({
 
   const resetSelected = useCallback(() => {
     if (!selectedSlide) return;
-    clearExport();
+    markExportStale();
     cancelActiveDrag();
     if (selectedSlide.autoDetection) {
       const snapshot = selectedSlide.autoDetection;
@@ -287,7 +288,7 @@ export function useQuadEditor({
       settings,
     );
     if (jobId !== null) setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-  }, [cancelActiveDrag, clearExport, refreshSlideThumbnail, selectedSlide, setBusyText, setSlides, settings, startDetection, text.stretching]);
+  }, [cancelActiveDrag, markExportStale, refreshSlideThumbnail, selectedSlide, setBusyText, setSlides, settings, startDetection, text.stretching]);
 
   return {
     dragHandle,

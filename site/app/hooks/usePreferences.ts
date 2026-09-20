@@ -5,7 +5,7 @@ import { defaultSettings, type Settings, type ThemeValue } from "../lib/types";
 
 const MOBILE_BREAKPOINT = "(max-width: 834px)";
 
-export function usePreferences(clearExport: () => void) {
+export function usePreferences(markExportStale: () => void) {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -25,10 +25,10 @@ export function usePreferences(clearExport: () => void) {
 
   const updateSettings = useCallback(
     (updater: (current: Settings) => Settings) => {
-      clearExport();
+      markExportStale();
       setSettings(updater);
     },
-    [clearExport],
+    [markExportStale],
   );
 
   useEffect(() => {

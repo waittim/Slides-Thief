@@ -23,6 +23,7 @@ type ImportPipelineOptions = {
   setPreviewErrorSlideId: (id: string | null) => void;
   setZoomMode: (mode: "fit" | "manual") => void;
   clearExport: () => void;
+  markExportStale: () => void;
   exportUrlRef: MutableRefObject<string | null>;
   cancelExport: () => void;
   cancelDetection: () => void;
@@ -49,6 +50,7 @@ export function useImportPipeline({
   setPreviewErrorSlideId,
   setZoomMode,
   clearExport,
+  markExportStale,
   exportUrlRef,
   cancelExport,
   cancelDetection,
@@ -112,7 +114,11 @@ export function useImportPipeline({
       exportWorkerRef.current?.terminate();
       exportWorkerRef.current = null;
       cancelActiveDrag();
-      clearExport();
+      if (isAppending) {
+        markExportStale();
+      } else {
+        clearExport();
+      }
       resetViewport();
       setPreviewErrorSlideId(null);
 
@@ -219,6 +225,7 @@ export function useImportPipeline({
       cancelDetection,
       cancelExport,
       clearExport,
+      markExportStale,
       exportWorkerRef,
       pdfBaseName,
       pushHistory,

@@ -3,6 +3,7 @@ import { cloneSlides } from "../lib/slide-utils";
 import type { SlideItem } from "../lib/types";
 
 export function useSlideDeck(
+  markExportStale: () => void,
   clearExport: () => void,
   cancelActiveDrag: () => void,
   confirmClearText: (count: number) => string,
@@ -35,12 +36,16 @@ export function useSlideDeck(
     const previous = past[past.length - 1];
     historyPastRef.current = past.slice(0, -1);
     historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
-    clearExport();
+    if (previous.length === 0) {
+      clearExport();
+    } else {
+      markExportStale();
+    }
     setSlides(previous);
     if (selectedIdRef.current && !previous.some((s) => s.id === selectedIdRef.current)) {
       setSelectedId(previous[previous.length - 1]?.id ?? null);
     }
-  }, [clearExport]);
+  }, [clearExport, markExportStale]);
 
   const handleRedo = useCallback(() => {
     const future = historyFutureRef.current;
@@ -48,28 +53,35 @@ export function useSlideDeck(
     const next = future[0];
     historyFutureRef.current = future.slice(1);
     historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
-    clearExport();
+    if (next.length === 0) {
+      clearExport();
+    } else {
+      markExportStale();
+    }
     setSlides(next);
     if (selectedIdRef.current && !next.some((s) => s.id === selectedIdRef.current)) {
       setSelectedId(next[0]?.id ?? null);
     }
-  }, [clearExport]);
+  }, [clearExport, markExportStale]);
 
   const deleteSlide = useCallback(
     (id: string) => {
       pushHistory();
-      clearExport();
-      setSlides((current) => {
-        const next = current.filter((slide) => slide.id !== id);
-        if (selectedIdRef.current === id) {
-          const index = current.findIndex((slide) => slide.id === id);
-          const nextSelected = next[Math.min(index, next.length - 1)];
-          setSelectedId(nextSelected?.id ?? null);
-        }
-        return next;
-      });
+      const current = slidesRef.current;
+      const next = current.filter((slide) => slide.id !== id);
+      if (next.length === 0) {
+        clearExport();
+      } else {
+        markExportStale();
+      }
+      if (selectedIdRef.current === id) {
+        const index = current.findIndex((slide) => slide.id === id);
+        const nextSelected = next[Math.min(index, next.length - 1)];
+        setSelectedId(nextSelected?.id ?? null);
+      }
+      setSlides(next);
     },
-    [clearExport, pushHistory],
+    [clearExport, markExportStale, pushHistory],
   );
 
   const clearAllSlides = useCallback(() => {

@@ -187,6 +187,7 @@ export type ExportArtifact = {
   url: string;
   filename: string;
   byteLength: number;
+  isStale?: boolean;
 };
 
 export type ExportWorkerRequest = {

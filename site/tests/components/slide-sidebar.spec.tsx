@@ -143,3 +143,41 @@ test("dropzone shows Add more photos and appends subsequent file uploads", async
   await expect(component.locator(".uiCountBadge")).toHaveText("2");
 });
 
+test("marks export artifact as stale with visual indicator and notice instead of removing download link", async ({ mount }) => {
+  const component = await mount(<SidebarHarness />);
+  const fileInput = component.locator('input[type="file"]').first();
+
+  await fileInput.setInputFiles({
+    name: "deck.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("test"),
+  });
+
+  await component.getByRole("button", { name: "Auto straighten" }).click();
+  await component.getByRole("button", { name: "Generate PDF" }).click();
+
+  const downloadLink = component.getByRole("link", { name: "Download PDF" });
+  await expect(downloadLink).toBeVisible();
+  await expect(downloadLink).not.toHaveClass(/sidebarLink--stale/);
+  await expect(component.getByText("Outdated")).toHaveCount(0);
+  await expect(component.getByText("Settings changed; re-generate to update")).toHaveCount(0);
+
+  // Trigger stale state (e.g. user adjusted settings or corners)
+  await component.getByTestId("mark-stale").click();
+
+  // Download link remains visible, but is marked as stale with badge and notice
+  await expect(downloadLink).toBeVisible();
+  await expect(downloadLink).toHaveClass(/sidebarLink--stale/);
+  await expect(downloadLink).toHaveAttribute("download", "deck.pdf");
+  await expect(downloadLink).toHaveAttribute("href", "blob:http://localhost/test-pdf");
+  await expect(component.getByText("Outdated")).toBeVisible();
+  await expect(component.getByText("Settings changed; re-generate to update")).toBeVisible();
+
+  // Re-generating clears stale state
+  await component.getByRole("button", { name: "Generate PDF" }).click();
+  await expect(downloadLink).toBeVisible();
+  await expect(downloadLink).not.toHaveClass(/sidebarLink--stale/);
+  await expect(component.getByText("Outdated")).toHaveCount(0);
+  await expect(component.getByText("Settings changed; re-generate to update")).toHaveCount(0);
+});
+

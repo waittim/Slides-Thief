@@ -40,6 +40,7 @@ export function SidebarHarness() {
   const [hasRun, setHasRun] = useState(false);
   const [exported, setExported] = useState(false);
   const [exportedJpg, setExportedJpg] = useState(false);
+  const [isStale, setIsStale] = useState(false);
   const [manualExported, setManualExported] = useState(false);
   const [manualImported, setManualImported] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export function SidebarHarness() {
             url: "blob:http://localhost/test-pdf",
             filename: "deck.pdf",
             byteLength: 1024,
+            isStale,
           },
         }
       : {}),
@@ -68,6 +70,7 @@ export function SidebarHarness() {
             url: "blob:http://localhost/test-jpg",
             filename: readySlides.length === 1 ? "deck.jpg" : "deck-jpgs.zip",
             byteLength: 2048,
+            isStale,
           },
         }
       : {}),
@@ -83,8 +86,14 @@ export function SidebarHarness() {
           setHasRun(true);
           setSlides((current) => current.map(readySlide));
         }}
-        exportPdf={() => setExported(true)}
-        exportJpg={() => setExportedJpg(true)}
+        exportPdf={() => {
+          setExported(true);
+          setIsStale(false);
+        }}
+        exportJpg={() => {
+          setExportedJpg(true);
+          setIsStale(false);
+        }}
         exportArtifacts={exportArtifacts}
         importManualQuads={() => setManualImported(true)}
         exportManualQuads={() => setManualExported(true)}
@@ -100,6 +109,7 @@ export function SidebarHarness() {
           setHasRun(false);
           setExported(false);
           setExportedJpg(false);
+          setIsStale(false);
         }}
         inputRef={inputRef}
         manualInputRef={manualInputRef}
@@ -138,6 +148,9 @@ export function SidebarHarness() {
                   ? "straightened"
                   : "waiting"}
       </output>
+      <button type="button" data-testid="mark-stale" onClick={() => setIsStale(true)}>
+        Mark Stale
+      </button>
     </>
   );
 }

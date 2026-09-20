@@ -60,6 +60,7 @@ export function useExportWorker(
           url,
           filename: message.filename,
           byteLength: buffer.byteLength,
+          isStale: false,
         };
         exportArtifactsRef.current = {
           ...exportArtifactsRef.current,

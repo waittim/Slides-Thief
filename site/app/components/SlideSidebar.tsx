@@ -93,9 +93,13 @@ export function SlideSidebar({
   }, [exportMenuOpen]);
 
   const isMenuOpen = exportMenuOpen && !busy && readySlides.length > 0;
-  const pdfUrl = exportArtifacts?.pdf?.url ?? exportUrl ?? null;
-  const pdfFilename = exportArtifacts?.pdf?.filename ?? exportName ?? "presentation.pdf";
+  const pdfArtifact = exportArtifacts?.pdf;
+  const pdfUrl = pdfArtifact?.url ?? exportUrl ?? null;
+  const pdfFilename = pdfArtifact?.filename ?? exportName ?? "presentation.pdf";
   const jpgArtifact = exportArtifacts?.jpg;
+  const isPdfStale = Boolean(pdfArtifact?.isStale);
+  const isJpgStale = Boolean(jpgArtifact?.isStale);
+  const hasStaleExport = (Boolean(pdfUrl) && isPdfStale) || (Boolean(jpgArtifact) && isJpgStale);
 
   return (
     <aside className="sidebar">
@@ -232,8 +236,15 @@ export function SlideSidebar({
                 download={isIOS ? undefined : pdfFilename}
                 target="_blank"
                 rel="noopener noreferrer"
+                className={isPdfStale ? "sidebarLink--stale" : undefined}
+                title={isPdfStale ? text.staleExportHint : undefined}
               >
-                {text.downloadPdf}
+                <span>{text.downloadPdf}</span>
+                {isPdfStale ? (
+                  <span className="sidebarStaleBadge" aria-hidden="true">
+                    {text.staleBadge}
+                  </span>
+                ) : null}
               </a>
             ) : null}
             {jpgArtifact ? (
@@ -242,9 +253,21 @@ export function SlideSidebar({
                 download={isIOS ? undefined : jpgArtifact.filename}
                 target="_blank"
                 rel="noopener noreferrer"
+                className={isJpgStale ? "sidebarLink--stale" : undefined}
+                title={isJpgStale ? text.staleExportHint : undefined}
               >
-                {readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}
+                <span>{readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}</span>
+                {isJpgStale ? (
+                  <span className="sidebarStaleBadge" aria-hidden="true">
+                    {text.staleBadge}
+                  </span>
+                ) : null}
               </a>
+            ) : null}
+            {hasStaleExport ? (
+              <p className="sidebarStaleNotice" role="note">
+                {text.staleExportHint}
+              </p>
             ) : null}
           </div>
         ) : null}
