@@ -106,9 +106,13 @@ export function SidebarHarness() {
         loadFiles={(files) => {
           const fileList = Array.from(files);
           if (!fileList.length) return;
-          setSlides(fileList.map(queuedSlide));
+          setSlides((current) => {
+            const existingNames = new Set(current.map((s) => s.name));
+            const newFiles = fileList.filter((f) => !existingNames.has(f.name));
+            if (!newFiles.length) return current;
+            return [...current, ...newFiles.map(queuedSlide)];
+          });
           setSelectedId(fileList[0].name);
-          setHasRun(false);
           setExported(false);
           setExportedJpg(false);
         }}

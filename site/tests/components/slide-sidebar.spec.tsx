@@ -116,3 +116,30 @@ test("export menu supports multiple slides with Download JPGs link and Escape to
   await expect(downloadJpgsLink).toBeVisible();
   await expect(downloadJpgsLink).toHaveAttribute("download", "deck-jpgs.zip");
 });
+
+test("dropzone shows Add more photos and appends subsequent file uploads", async ({ mount }) => {
+  const component = await mount(<SidebarHarness />);
+  const fileInput = component.locator('input[type="file"][accept*="image"]');
+
+  await expect(component.getByText("Click or drop images")).toBeVisible();
+
+  await fileInput.setInputFiles({
+    name: "first.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("first"),
+  });
+
+  await expect(component.getByText("first.png", { exact: true })).toBeVisible();
+  await expect(component.getByText("Add more photos")).toBeVisible();
+
+  await fileInput.setInputFiles({
+    name: "second.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("second"),
+  });
+
+  await expect(component.getByText("first.png", { exact: true })).toBeVisible();
+  await expect(component.getByText("second.png", { exact: true })).toBeVisible();
+  await expect(component.locator(".uiCountBadge")).toHaveText("2");
+});
+

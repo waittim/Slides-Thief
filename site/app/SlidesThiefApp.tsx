@@ -319,6 +319,7 @@ export function SlidesThiefApp() {
     exportWorkerRef,
     cancelActiveDrag: cancelQuadDrag,
     resetViewport,
+    pushHistory,
   });
 
   const selectNextSlide = useCallback(() => {

@@ -30,6 +30,7 @@ type ImportPipelineOptions = {
   exportWorkerRef: MutableRefObject<Worker | null>;
   cancelActiveDrag: () => void;
   resetViewport: () => void;
+  pushHistory: () => void;
 };
 
 function revokeSlideObjectUrls(slides: SlideItem[]) {
@@ -55,6 +56,7 @@ export function useImportPipeline({
   exportWorkerRef,
   cancelActiveDrag,
   resetViewport,
+  pushHistory,
 }: ImportPipelineOptions) {
   const loadTokenRef = useRef(0);
 
@@ -66,12 +68,42 @@ export function useImportPipeline({
         .filter(isSupported)
         .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
       if (!inputFiles.length) return;
-      const hasHeif = inputFiles.some(isHeifImage);
+
+      const existingSlides = slidesRef.current;
+      const isAppending = existingSlides.length > 0;
+      const existingNames = new Set(existingSlides.map((slide) => slide.name));
+
+      const uniqueFiles: File[] = [];
+      const duplicateNames: string[] = [];
+
+      for (const file of inputFiles) {
+        if (existingNames.has(file.name)) {
+          duplicateNames.push(file.name);
+        } else {
+          existingNames.add(file.name);
+          uniqueFiles.push(file);
+        }
+      }
+
+      if (!uniqueFiles.length) {
+        if (duplicateNames.length) {
+          setWorkerError(copy[localeRef.current].duplicateFilesSkipped(duplicateNames.length));
+        }
+        return;
+      }
+
+      const hasHeif = uniqueFiles.some(isHeifImage);
 
       trackEvent("image_import", {
-        count: inputFiles.length,
+        count: uniqueFiles.length,
         has_heif: hasHeif,
       });
+
+      if (isAppending) {
+        pushHistory();
+      } else {
+        revokeSlideObjectUrls(slidesRef.current);
+      }
 
       cancelDetection();
       workerRef.current?.terminate();
@@ -80,15 +112,15 @@ export function useImportPipeline({
       exportWorkerRef.current?.terminate();
       exportWorkerRef.current = null;
       cancelActiveDrag();
-      revokeSlideObjectUrls(slidesRef.current);
       clearExport();
       resetViewport();
       setPreviewErrorSlideId(null);
 
-      const nextSlides: SlideItem[] = inputFiles.map((file, index) => {
+      const baseIndex = isAppending ? existingSlides.length : 0;
+      const nextSlides: SlideItem[] = uniqueFiles.map((file, index) => {
         const converting = isHeifImage(file);
         return {
-          id: makeId(file, index),
+          id: makeId(file, baseIndex + index),
           file,
           name: file.name,
           url: converting ? "" : URL.createObjectURL(file),
@@ -105,20 +137,29 @@ export function useImportPipeline({
         };
       });
 
-      setSlides(nextSlides);
+      if (isAppending) {
+        setSlides((current) => [...current, ...nextSlides]);
+      } else {
+        setSlides(nextSlides);
+        setExportName(normalizePdfName(pdfBaseName));
+      }
+
       setSelectedId(nextSlides[0]?.id ?? null);
-      setExportName(normalizePdfName(pdfBaseName));
       setZoomMode("fit");
-      setWorkerError("");
+      setWorkerError(
+        duplicateNames.length
+          ? copy[localeRef.current].duplicateFilesSkipped(duplicateNames.length)
+          : "",
+      );
       setBusyText(hasHeif ? copy[localeRef.current].converting : "");
 
       let firstConversionError = "";
-      for (let index = 0; index < inputFiles.length; index += 1) {
+      for (let index = 0; index < uniqueFiles.length; index += 1) {
         if (loadTokenRef.current !== token) return;
-        const file = inputFiles[index];
+        const file = uniqueFiles[index];
         if (!isHeifImage(file)) continue;
 
-        setBusyText(`${copy[localeRef.current].converting} ${index + 1}/${inputFiles.length}`);
+        setBusyText(`${copy[localeRef.current].converting} ${index + 1}/${uniqueFiles.length}`);
         const id = nextSlides[index].id;
         try {
           const normalizedFile = await normalizeImageFile(file);
@@ -126,7 +167,7 @@ export function useImportPipeline({
           const url = URL.createObjectURL(normalizedFile);
           setSlides((current) =>
             current.map((slide) =>
-                slide.id === id
+              slide.id === id
                 ? {
                     ...slide,
                     file: normalizedFile,
@@ -169,7 +210,9 @@ export function useImportPipeline({
       }
 
       setBusyText("");
-      if (firstConversionError) setWorkerError(firstConversionError);
+      if (firstConversionError) {
+        setWorkerError(firstConversionError);
+      }
     },
     [
       cancelActiveDrag,
@@ -178,6 +221,7 @@ export function useImportPipeline({
       clearExport,
       exportWorkerRef,
       pdfBaseName,
+      pushHistory,
       resetViewport,
       setBusyText,
       setExportName,

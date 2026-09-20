@@ -37,6 +37,9 @@ export function useSlideDeck(
     historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
     clearExport();
     setSlides(previous);
+    if (selectedIdRef.current && !previous.some((s) => s.id === selectedIdRef.current)) {
+      setSelectedId(previous[previous.length - 1]?.id ?? null);
+    }
   }, [clearExport]);
 
   const handleRedo = useCallback(() => {
@@ -47,6 +50,9 @@ export function useSlideDeck(
     historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
     clearExport();
     setSlides(next);
+    if (selectedIdRef.current && !next.some((s) => s.id === selectedIdRef.current)) {
+      setSelectedId(next[0]?.id ?? null);
+    }
   }, [clearExport]);
 
   const deleteSlide = useCallback(

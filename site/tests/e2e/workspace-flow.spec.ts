@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { fileURLToPath } from "node:url";
 
 const fixture = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/light-slide-dark-wall.png", import.meta.url));
+const fixture2 = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/dark-slide-light-wall.png", import.meta.url));
 
 test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
@@ -36,3 +37,38 @@ test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ 
   await expect(downloadLink).toHaveAttribute("download", "flattened_slides.pdf");
   await expect(downloadLink).toHaveAttribute("href", /^blob:/);
 });
+
+test("secondary file import appends new slide, supports undo, and skips duplicates", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles(fixture);
+
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+  await expect(page.getByText("Add more photos")).toBeVisible();
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("1");
+
+  // Secondary file import appends instead of replacing
+  await fileInput.setInputFiles(fixture2);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toBeVisible();
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+
+  // Undo (Control+Z) removes the appended slide
+  await page.keyboard.press("Control+Z");
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toHaveCount(0);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("1");
+
+  // Redo (Control+Shift+Z) restores the appended slide
+  await page.keyboard.press("Control+Shift+Z");
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toBeVisible();
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+
+  // Duplicate file import is skipped and warned
+  await fileInput.setInputFiles(fixture2);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+  await expect(page.getByRole("alert")).toHaveText("Skipped 1 duplicate file");
+});
+

@@ -298,7 +298,7 @@ export function SlideSidebar({
           }}
         >
           <span className="dropzoneContent">
-            <strong>{isMobile ? text.uploadTitle : text.dropTitle}</strong>
+            <strong>{slides.length > 0 ? text.addMorePhotos : isMobile ? text.uploadTitle : text.dropTitle}</strong>
             {!isMobile && <span>{text.dropSubtitle}</span>}
           </span>
         </button>
