@@ -68,11 +68,18 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
   }> = [];
   const sourceRatioHint = sourceFormatRatioValue(settings);
 
-  for (const item of files) {
+  for (let index = 0; index < files.length; index += 1) {
     if (isCancelled()) return;
+    const item = files[index];
     let bitmap: ImageBitmap | null = null;
     try {
-      postDetectionMessage({ type: "detect-start", jobId, id: item.id });
+      postDetectionMessage({
+        type: "detect-start",
+        jobId,
+        id: item.id,
+        current: index + 1,
+        total: files.length,
+      });
       bitmap = await createImageBitmap(item.file);
       if (isCancelled()) return;
       const detectionSettings: DetectionSettings = {
@@ -93,6 +100,12 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
         settings,
       );
       preliminary.push({ item, width: bitmap.width, height: bitmap.height, result });
+      postDetectionMessage({
+        type: "detect-result",
+        jobId,
+        phase: "preliminary",
+        result,
+      });
     } catch (error) {
       if (isCancelled()) return;
       postDetectionMessage({
@@ -110,12 +123,6 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
   }
 
   if (isCancelled()) return;
-  postDetectionResults(
-    preliminary.map(({ result }) => result),
-    "preliminary",
-    jobId,
-    isCancelled,
-  );
   if (isCancelled()) return;
 
   const priors = buildBatchPriors(preliminary.map(({ item, width, height, result }) =>
@@ -193,6 +200,8 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
 
   if (isCancelled()) return;
   postDetectionResults(finalResults, "final", jobId, isCancelled);
+  if (isCancelled()) return;
+  postDetectionMessage({ type: "detect-complete", jobId });
 }
 
 function postDetectionResults(

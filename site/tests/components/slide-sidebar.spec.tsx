@@ -273,4 +273,67 @@ test("renders multi-reason review badge with multi-line tooltip", async ({ mount
   );
 });
 
+test("renders progress bar and cancel button during auto detection and cancels when clicked", async ({ mount }) => {
+  const component = await mount(
+    <SidebarHarness
+      initialBusy={true}
+      initialDetecting={true}
+      initialProgress={{ current: 2, total: 5 }}
+      initialSlides={[
+        makeTestSlide({ name: "slide-1.png", status: "ready" }),
+        makeTestSlide({ name: "slide-2.png", status: "detecting" }),
+        makeTestSlide({ name: "slide-3.png", status: "queued" }),
+      ]}
+      initialHasRun={true}
+    />,
+  );
+
+  const progressBar = component.getByRole("progressbar");
+  await expect(progressBar).toBeVisible();
+  await expect(progressBar).toHaveAttribute("aria-valuenow", "2");
+  await expect(progressBar).toHaveAttribute("aria-valuemax", "5");
+
+  const progressFill = component.locator(".sidebarProgressFill");
+  await expect(progressFill).toBeVisible();
+
+  const cancelButton = component.getByRole("button", { name: "Cancel" });
+  await expect(cancelButton).toBeVisible();
+
+  await cancelButton.click();
+  await expect(component.getByTestId("detection-cancelled")).toHaveText("cancelled");
+  await expect(progressBar).toHaveCount(0);
+  await expect(cancelButton).toHaveCount(0);
+});
+
+test("thumbnail list distinguishes completed, processing, and queued states", async ({ mount }) => {
+  const slideReady = makeTestSlide({ id: "s1", name: "ready.png", status: "ready" });
+  const slideDetecting = makeTestSlide({ id: "s2", name: "detecting.png", status: "detecting" });
+  const slideQueued = makeTestSlide({ id: "s3", name: "queued.png", status: "queued" });
+
+  const component = await mount(
+    <SidebarHarness
+      initialSlides={[slideReady, slideDetecting, slideQueued]}
+      initialHasRun={true}
+    />,
+  );
+
+  const badges = component.locator(".badge");
+  await expect(badges).toHaveCount(3);
+
+  // Ready slide (completed)
+  await expect(badges.nth(0)).toHaveText("✓ Automatically detected");
+  await expect(badges.nth(0)).not.toHaveClass(/processing/);
+  await expect(badges.nth(0)).not.toHaveClass(/queued/);
+
+  // Detecting slide (processing)
+  await expect(badges.nth(1)).toHaveClass(/badge processing/);
+  await expect(badges.nth(1)).toHaveText("Straightening");
+  await expect(badges.nth(1)).toHaveAttribute("title", "Straightening");
+
+  // Queued slide (waiting in queue)
+  await expect(badges.nth(2)).toHaveClass(/badge queued/);
+  await expect(badges.nth(2)).toHaveText("Waiting for auto straighten");
+  await expect(badges.nth(2)).toHaveAttribute("title", "Waiting for auto straighten");
+});
+
 

@@ -13,11 +13,13 @@ export function makeTestSlide({
 }: {
   id?: string;
   name?: string;
-  status?: "ready" | "error" | "queued";
+  status?: "ready" | "error" | "queued" | "detecting";
   needsReview?: boolean;
   reviewReasons?: ReviewReason[];
   method?: SlideDetectionMethod;
 } = {}): SlideItem {
+  const isPending = status === "queued";
+  const isDetecting = status === "detecting";
   return {
     id,
     file: { name, size: 1024 } as File,
@@ -25,13 +27,14 @@ export function makeTestSlide({
     url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
     width: 100,
     height: 70,
-    quad: QUAD.map(([x, y]) => [x, y]),
+    quad: isPending || isDetecting ? null : QUAD.map(([x, y]) => [x, y]),
     autoDetection: null,
-    method,
+    method: isPending || isDetecting ? null : method,
     confidence: needsReview ? 0.5 : 0.95,
     needsReview,
     reviewReasons,
     sourceRatio: 16 / 9,
     status: status as SlideItem["status"],
+    ...(isDetecting ? { detectionState: "empty" as const } : {}),
   } as SlideItem;
 }

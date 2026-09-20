@@ -922,6 +922,21 @@ a:hover {
   gap: var(--space-3);
 }
 
+.sidebarProgressBar {
+  height: 3px;
+  width: 100%;
+  border-radius: var(--radius-circle);
+  background: color-mix(in srgb, var(--border), transparent 40%);
+  overflow: hidden;
+}
+
+.sidebarProgressFill {
+  height: 100%;
+  border-radius: var(--radius-circle);
+  background: var(--accent-2);
+  transition: width 0.2s ease;
+}
+
 .sidebarStatus {
   min-height: 36px;
   min-width: 0;
@@ -1421,6 +1436,16 @@ button.clearAction:disabled {
 .badge.error {
   background: color-mix(in srgb, var(--accent), transparent 82%);
   color: var(--accent);
+}
+
+.badge.processing {
+  background: color-mix(in srgb, var(--warn), transparent 82%);
+  color: var(--warn);
+}
+
+.badge.queued {
+  background: color-mix(in srgb, var(--muted), transparent 90%);
+  color: var(--muted);
 }
 
 .workspace {

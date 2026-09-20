@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { Quad } from "../detection/types";
 import { copy, type LocaleValue } from "../i18n";
 import { messageFromError } from "../lib/slide-utils";
@@ -54,6 +54,7 @@ export function useDetectionWorker(
   const workerRef = useRef<Worker | null>(null);
   const nextJobIdRef = useRef<DetectionJobId>(0);
   const activeJobIdRef = useRef<DetectionJobId | null>(null);
+  const [detectionProgress, setDetectionProgress] = useState<{ current: number; total: number } | null>(null);
 
   const ensureWorker = useCallback(() => {
     if (workerRef.current) return workerRef.current;
@@ -75,6 +76,7 @@ export function useDetectionWorker(
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
       activeJobIdRef.current = null;
+      setDetectionProgress(null);
       setSlides((current) =>
         current.map((slide) =>
           slide.status === "detecting"
@@ -95,8 +97,13 @@ export function useDetectionWorker(
       if (message.jobId !== activeJobIdRef.current) return;
       if (message.type === "detect-start") {
         const name = slidesRef.current.find((slide) => slide.id === message.id)?.name ?? "";
+        const current = message.current ?? 1;
+        const total = message.total ?? slidesRef.current.length;
+        setDetectionProgress({ current, total });
         const currentCopy = copy[localeRef.current];
-        setBusyText(name ? `${currentCopy.stretching}: ${name}` : currentCopy.stretching);
+        const progressLabel = total > 1 ? `${current}/${total}` : "";
+        const progressPrefix = [currentCopy.stretching, progressLabel].filter(Boolean).join(" ");
+        setBusyText(name ? `${progressPrefix}: ${name}` : progressPrefix);
         setSlides((current) =>
           current.map((slide) => {
             if (slide.id !== message.id) return slide;
@@ -111,7 +118,7 @@ export function useDetectionWorker(
                 confidence: 1,
                 needsReview: false,
                 reviewReasons: [],
-                thumbnailUrl: undefined,
+                thumbnailUrl: slide.thumbnailUrl,
                 error: undefined,
               };
             }
@@ -150,23 +157,6 @@ export function useDetectionWorker(
             if (slide.id !== message.result.id) return slide;
             if (slide.method === "manual" && slide.quad !== null) {
               const manualQuad = slide.quad;
-              if (message.phase === "preliminary") {
-                return {
-                  ...slide,
-                  width: message.result.width,
-                  height: message.result.height,
-                  quad: manualQuad,
-                  autoDetection,
-                  method: "manual",
-                  confidence: 1,
-                  needsReview: false,
-                  reviewReasons: [],
-                  sourceRatio: message.result.sourceRatio,
-                  status: "detecting",
-                  detectionState: "manual",
-                  error: undefined,
-                };
-              }
               return {
                 ...slide,
                 width: message.result.width,
@@ -179,23 +169,6 @@ export function useDetectionWorker(
                 reviewReasons: [],
                 sourceRatio: message.result.sourceRatio,
                 status: "ready",
-                error: undefined,
-              };
-            }
-            if (message.phase === "preliminary") {
-              return {
-                ...slide,
-                width: message.result.width,
-                height: message.result.height,
-                quad: message.result.quad,
-                autoDetection,
-                method: message.result.method,
-                confidence: message.result.confidence,
-                needsReview: message.result.needsReview,
-                reviewReasons: message.result.reviewReasons,
-                sourceRatio: message.result.sourceRatio,
-                status: "detecting",
-                detectionState: "preview",
                 error: undefined,
               };
             }
@@ -221,7 +194,11 @@ export function useDetectionWorker(
           undefined,
           () => activeJobIdRef.current === message.jobId,
         );
-        if (message.phase === "final") setBusyText("");
+      }
+      if (message.type === "detect-complete") {
+        activeJobIdRef.current = null;
+        setDetectionProgress(null);
+        setBusyText("");
       }
       if (message.type === "slide-error") {
         trackEvent("processing_error", {
@@ -235,13 +212,14 @@ export function useDetectionWorker(
               : slide,
           ),
         );
-        setBusyText("");
       }
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "worker_error",
           error_message: message.error.message || "General worker error",
         });
+        activeJobIdRef.current = null;
+        setDetectionProgress(null);
         setSlides((current) =>
           current.map((slide) =>
             slide.status === "detecting"
@@ -267,6 +245,7 @@ export function useDetectionWorker(
       const jobId = nextJobIdRef.current + 1;
       nextJobIdRef.current = jobId;
       activeJobIdRef.current = jobId;
+      setDetectionProgress({ current: 1, total: files.length });
       worker.postMessage({ type: "detect", jobId, files, settings });
       return jobId;
     },
@@ -279,7 +258,35 @@ export function useDetectionWorker(
       workerRef.current?.postMessage({ type: "cancel-detect", jobId: activeJobId });
     }
     activeJobIdRef.current = null;
-  }, []);
+    setDetectionProgress(null);
+    setBusyText("");
+    setSlides((current) =>
+      current.map((slide) => {
+        if (slide.status === "detecting") {
+          if (slide.detectionState === "manual" && slide.quad !== null) {
+            return {
+              ...slide,
+              status: "ready" as const,
+              quad: slide.quad,
+              method: "manual" as const,
+            };
+          }
+          return {
+            ...slide,
+            status: "queued" as const,
+            autoDetection: null,
+            quad: null,
+            method: null,
+            confidence: 0,
+            needsReview: false,
+            reviewReasons: [],
+            error: undefined,
+          };
+        }
+        return slide;
+      }),
+    );
+  }, [setBusyText, setSlides]);
 
-  return { workerRef, ensureWorker, startDetection, cancelDetection };
+  return { workerRef, ensureWorker, startDetection, cancelDetection, detectionProgress };
 }

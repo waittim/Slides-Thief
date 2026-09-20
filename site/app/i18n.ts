@@ -459,6 +459,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `已导入 ${count} 张图片的角点`,
     duplicateFilesSkipped: (count: number) => `已跳过 ${count} 个已存在的同名文件`,
     cancelExport: "取消",
+    cancelDetection: "取消",
     file: "文件",
     status: "状态",
     dimensions: "尺寸",
@@ -567,6 +568,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `已匯入 ${count} 張相片的角點`,
     duplicateFilesSkipped: (count: number) => `已略過 ${count} 個已存在的同名檔案`,
     cancelExport: "取消",
+    cancelDetection: "取消",
     file: "檔案",
     status: "狀態",
     dimensions: "尺寸",
@@ -675,6 +677,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `Imported corners for ${count} image${count === 1 ? "" : "s"}`,
     duplicateFilesSkipped: (count: number) => `Skipped ${count} duplicate file${count === 1 ? "" : "s"}`,
     cancelExport: "Cancel",
+    cancelDetection: "Cancel",
     file: "File",
     status: "Status",
     dimensions: "Dimensions",
@@ -783,6 +786,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `Esquinas importadas para ${count} imagen${count === 1 ? "" : "es"}`,
     duplicateFilesSkipped: (count: number) => `Se omiti${count === 1 ? "ó" : "eron"} ${count} archivo${count === 1 ? "" : "s"} duplicado${count === 1 ? "" : "s"}`,
     cancelExport: "Cancelar",
+    cancelDetection: "Cancelar",
     file: "Archivo",
     status: "Estado",
     dimensions: "Dimensiones",
@@ -891,6 +895,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `Coins importés pour ${count} image${count === 1 ? "" : "s"}`,
     duplicateFilesSkipped: (count: number) => `${count} fichier${count === 1 ? "" : "s"} en double ignoré${count === 1 ? "" : "s"}`,
     cancelExport: "Annuler",
+    cancelDetection: "Annuler",
     file: "Fichier",
     status: "État",
     dimensions: "Dimensions",
@@ -999,6 +1004,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `Ecken für ${count} Bild${count === 1 ? "" : "er"} importiert`,
     duplicateFilesSkipped: (count: number) => `${count} doppelte Datei${count === 1 ? "" : "en"} übersprungen`,
     cancelExport: "Abbrechen",
+    cancelDetection: "Abbrechen",
     file: "Datei",
     status: "Status",
     dimensions: "Größe",
@@ -1107,6 +1113,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `${count}枚の角点を読み込みました`,
     duplicateFilesSkipped: (count: number) => `${count}件の重複ファイルをスキップしました`,
     cancelExport: "キャンセル",
+    cancelDetection: "キャンセル",
     file: "ファイル",
     status: "状態",
     dimensions: "サイズ",
@@ -1215,6 +1222,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `${count}개 이미지의 코너를 가져왔습니다`,
     duplicateFilesSkipped: (count: number) => `중복 파일 ${count}개를 건너뛰었습니다`,
     cancelExport: "취소",
+    cancelDetection: "취소",
     file: "파일",
     status: "상태",
     dimensions: "크기",
@@ -1323,6 +1331,7 @@ export const copy = {
     manualImportSuccess: (count: number) => `Cantos importados para ${count} imagem${count === 1 ? "" : "ns"}`,
     duplicateFilesSkipped: (count: number) => `${count} arquivo${count === 1 ? "" : "s"} duplicado${count === 1 ? "" : "s"} ignorado${count === 1 ? "" : "s"}`,
     cancelExport: "Cancelar",
+    cancelDetection: "Cancelar",
     file: "Arquivo",
     status: "Status",
     dimensions: "Dimensões",
@@ -1430,6 +1439,12 @@ export function slideBadgeTitle(
       return text.manualAdjusted;
     }
     return reviewText.automaticRecognized;
+  }
+  if (slide.status === "detecting") {
+    return text.stretching;
+  }
+  if (slide.status === "queued") {
+    return text.pending;
   }
   return "";
 }

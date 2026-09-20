@@ -39,12 +39,19 @@ export function SidebarHarness({
   initialBusy = false,
   initialSlides = [],
   initialHasRun = false,
+  initialDetecting = false,
+  initialProgress = null,
 }: {
   initialBusy?: boolean;
   initialSlides?: SlideItem[];
   initialHasRun?: boolean;
+  initialDetecting?: boolean;
+  initialProgress?: { current: number; total: number } | null;
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
+  const [detecting, setDetecting] = useState(initialDetecting);
+  const [progress, setProgress] = useState<{ current: number; total: number } | null>(initialProgress);
+  const [detectionCancelled, setDetectionCancelled] = useState(false);
   const [slides, setSlides] = useState<SlideItem[]>(initialSlides);
   const [hasRun, setHasRun] = useState(initialHasRun);
   const [exported, setExported] = useState(false);
@@ -89,6 +96,13 @@ export function SidebarHarness({
     <>
       <SlideSidebar
         busy={busy}
+        detecting={detecting}
+        cancelDetection={() => {
+          setDetecting(false);
+          setProgress(null);
+          setDetectionCancelled(true);
+        }}
+        progress={progress}
         slides={slides}
         readySlides={readySlides}
         runAuto={() => {
@@ -108,8 +122,18 @@ export function SidebarHarness({
         exportManualQuads={() => setManualExported(true)}
         text={text}
         reviewText={reviewText}
-        statusTone={hasRun ? "good" : "default"}
-        statusText={exportedJpg ? text.generatedJpg : exported ? text.generated : hasRun ? text.reviewReady : text.ready}
+        statusTone={detecting ? "busy" : hasRun ? "good" : "default"}
+        statusText={
+          detecting && progress
+            ? `${text.stretching} ${progress.current}/${progress.total}: ${slides[0]?.name ?? ""}`
+            : exportedJpg
+              ? text.generatedJpg
+              : exported
+                ? text.generated
+                : hasRun
+                  ? text.reviewReady
+                  : text.ready
+        }
         exportUrl={exported ? "blob:http://localhost/test-pdf" : null}
         exportName="deck.pdf"
         isIOS={false}
@@ -141,7 +165,13 @@ export function SidebarHarness({
         selectedId={selectedId}
         hasRun={hasRun}
         selectAt={(index) => setSelectedId(slides[index]?.id ?? null)}
-        slideStatusText={(slide) => (slide.status === "ready" ? reviewText.corrected : text.pending)}
+        slideStatusText={(slide) =>
+          slide.status === "ready"
+            ? reviewText.corrected
+            : slide.status === "detecting"
+              ? text.stretching
+              : text.pending
+        }
         deleteSlide={(id) => setSlides((current) => current.filter((slide) => slide.id !== id))}
       />
       <output data-testid="workflow-status">
@@ -156,6 +186,9 @@ export function SidebarHarness({
                 : hasRun
                   ? "straightened"
                   : "waiting"}
+      </output>
+      <output data-testid="detection-cancelled">
+        {detectionCancelled ? "cancelled" : "not-cancelled"}
       </output>
       <button type="button" data-testid="mark-stale" onClick={() => setIsStale(true)}>
         Mark Stale

@@ -173,7 +173,7 @@ export function SlidesThiefApp() {
     }
   }, [setSlides, settingsRef, slidesRef]);
 
-  const { workerRef, startDetection, cancelDetection } = useDetectionWorker(
+  const { workerRef, startDetection, cancelDetection, detectionProgress } = useDetectionWorker(
     slidesRef,
     setSlides,
     setBusyText,
@@ -183,7 +183,7 @@ export function SlidesThiefApp() {
     refreshSlideThumbnail,
   );
 
-  const { exportWorkerRef, ensureExportWorker, cancelExport } = useExportWorker(
+  const { exportWorkerRef, ensureExportWorker, cancelExport, exportProgress } = useExportWorker(
     slidesRef,
     exportArtifactsRef,
     setExportArtifacts,
@@ -206,7 +206,8 @@ export function SlidesThiefApp() {
       slide.status === "detecting" ||
       (slide.status === "error" && slide.error?.code !== "conversion-failed"),
   );
-  const detecting = slides.some((slide) => slide.status === "detecting");
+  const detecting = Boolean(detectionProgress) || slides.some((slide) => slide.status === "detecting");
+  const activeProgress = detecting ? detectionProgress : exporting ? exportProgress : null;
   const reviewCount = slides.filter((slide) => slide.status === "ready" && slide.needsReview).length;
 
   const canvasViewport = useCanvasViewport({
@@ -571,7 +572,10 @@ export function SlidesThiefApp() {
       cancelQuadDrag();
       markExportStale();
       setWorkerError("");
-      setBusyText(text.stretching);
+      const count = processableSlides.length;
+      const progressLabel = count > 1 ? `1/${count}` : "";
+      const progressPrefix = [text.stretching, progressLabel].filter(Boolean).join(" ");
+      setBusyText(processableSlides[0]?.name ? `${progressPrefix}: ${processableSlides[0].name}` : progressPrefix);
       autoReviewSelectedRef.current = false;
       const targetSettings = overrideSettings ?? settings;
       const jobId = startDetection(
@@ -580,28 +584,46 @@ export function SlidesThiefApp() {
       );
       if (jobId === null) return;
       const processableIds = new Set(processableSlides.map((slide) => slide.id));
+      const firstId = processableSlides[0]?.id;
       setSlides((current) =>
         current.map((slide) => {
           if (!processableIds.has(slide.id)) return slide;
-          if (slide.method === "manual" && slide.quad !== null) {
-            const manualQuad = slide.quad;
+          if (slide.id === firstId) {
+            if (slide.method === "manual" && slide.quad !== null) {
+              const manualQuad = slide.quad;
+              return {
+                ...slide,
+                status: "detecting",
+                detectionState: "manual" as const,
+                quad: manualQuad,
+                method: "manual" as const,
+                confidence: 1 as const,
+                needsReview: false as const,
+                reviewReasons: [],
+                thumbnailUrl: slide.thumbnailUrl,
+                error: undefined,
+              };
+            }
             return {
               ...slide,
               status: "detecting",
-              detectionState: "manual" as const,
-              quad: manualQuad,
-              method: "manual" as const,
-              confidence: 1 as const,
+              detectionState: "empty" as const,
+              quad: null,
+              method: null,
+              confidence: 0 as const,
               needsReview: false as const,
               reviewReasons: [],
-              thumbnailUrl: slide.thumbnailUrl,
+              thumbnailUrl: undefined,
               error: undefined,
             };
           }
+          if (slide.method === "manual" && slide.quad !== null) {
+            return slide;
+          }
           return {
             ...slide,
-            status: "detecting",
-            detectionState: "empty" as const,
+            status: "queued" as const,
+            autoDetection: null,
             quad: null,
             method: null,
             confidence: 0 as const,
@@ -768,6 +790,9 @@ export function SlidesThiefApp() {
           busy={busy}
           exporting={exporting}
           cancelExport={cancelExport}
+          detecting={detecting}
+          cancelDetection={cancelDetection}
+          progress={activeProgress}
           slides={slides}
           readySlides={readySlides}
           runAuto={runAuto}

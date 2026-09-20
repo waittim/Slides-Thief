@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { copy, type LocaleValue } from "../i18n";
 import { messageFromError, triggerDownload } from "../lib/slide-utils";
 import { trackEvent, type ExportArtifact, type ExportWorkerMessage, type SlideItem } from "../lib/types";
@@ -14,6 +14,7 @@ export function useExportWorker(
   isIOSRef?: React.MutableRefObject<boolean>,
 ) {
   const exportWorkerRef = useRef<Worker | null>(null);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
 
   const ensureExportWorker = useCallback(() => {
     if (exportWorkerRef.current) return exportWorkerRef.current;
@@ -26,6 +27,7 @@ export function useExportWorker(
       setWorkerError(messageFromError(error));
       setExporting(false);
       setBusyText("");
+      setExportProgress(null);
       return null;
     }
     const releaseWorker = () => {
@@ -35,6 +37,7 @@ export function useExportWorker(
     worker.onmessage = (event: MessageEvent<ExportWorkerMessage>) => {
       const message = event.data;
       if (message.type === "export-progress") {
+        setExportProgress({ current: message.current, total: message.total });
         const actionText =
           message.format === "jpg"
             ? copy[localeRef.current].generatingJpg
@@ -73,6 +76,7 @@ export function useExportWorker(
         }));
         setExporting(false);
         setBusyText("");
+        setExportProgress(null);
         releaseWorker();
         triggerDownload(url, message.filename, isIOSRef?.current);
       }
@@ -84,6 +88,7 @@ export function useExportWorker(
         setWorkerError(message.error);
         setExporting(false);
         setBusyText("");
+        setExportProgress(null);
         releaseWorker();
       }
     };
@@ -95,10 +100,11 @@ export function useExportWorker(
       setWorkerError(message);
       setExporting(false);
       setBusyText("");
+      setExportProgress(null);
       releaseWorker();
     };
     worker.onerror = (event) => handleWorkerFailure(event.message || "The export worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the export worker.");
+    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
     exportWorkerRef.current = worker;
     return worker;
   }, [exportArtifactsRef, isIOSRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
@@ -110,7 +116,8 @@ export function useExportWorker(
     }
     setExporting(false);
     setBusyText("");
+    setExportProgress(null);
   }, [setBusyText, setExporting]);
 
-  return { exportWorkerRef, ensureExportWorker, cancelExport };
+  return { exportWorkerRef, ensureExportWorker, cancelExport, exportProgress };
 }

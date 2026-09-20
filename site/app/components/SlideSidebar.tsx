@@ -9,6 +9,9 @@ interface SlideSidebarProps {
   busy: boolean;
   exporting?: boolean;
   cancelExport?: () => void;
+  detecting?: boolean;
+  cancelDetection?: () => void;
+  progress?: { current: number; total: number } | null;
   slides: SlideItem[];
   readySlides: SlideItem[];
   runAuto: () => void;
@@ -44,6 +47,9 @@ export function SlideSidebar({
   busy,
   exporting,
   cancelExport,
+  detecting,
+  cancelDetection,
+  progress,
   slides,
   readySlides,
   runAuto,
@@ -252,10 +258,37 @@ export function SlideSidebar({
                 >
                   {text.cancelExport}
                 </Button>
+              ) : detecting && cancelDetection ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cancelExportButton cancelDetectionButton"
+                  title={text.cancelDetection}
+                  onClick={cancelDetection}
+                >
+                  {text.cancelDetection}
+                </Button>
               ) : null}
             </>
           )}
         </div>
+        {progress && progress.total > 0 ? (
+          <div
+            className="sidebarProgressBar"
+            role="progressbar"
+            aria-valuenow={progress.current}
+            aria-valuemin={0}
+            aria-valuemax={progress.total}
+            aria-label={detecting ? text.stretching : text.generating}
+          >
+            <div
+              className="sidebarProgressFill"
+              style={{
+                width: `${Math.min(100, Math.max(0, Math.round((progress.current / progress.total) * 100)))}%`,
+              }}
+            />
+          </div>
+        ) : null}
         {(pdfUrl || jpgArtifact) ? (
           <div className="links sidebarLinks sidebarArtifacts">
             {pdfUrl ? (
@@ -440,11 +473,17 @@ export function SlideSidebar({
                   {hasRun ? (() => {
                     const isFallback = slide.needsReview && slide.reviewReasons.includes("fallback_used");
                     const badgeTitle = slideBadgeTitle(slide, text, reviewText);
+                    const isProcessing = slide.status === "detecting";
+                    const isQueued = slide.status === "queued";
                     return (
                       <span
-                        className={`badge ${
-                          isFallback ? "fallback" : slide.needsReview ? "low" : ""
-                        } ${slide.status === "error" ? "error" : ""}`}
+                        className={[
+                          "badge",
+                          isFallback ? "fallback" : slide.needsReview ? "low" : "",
+                          slide.status === "error" ? "error" : "",
+                          isProcessing ? "processing" : "",
+                          isQueued ? "queued" : "",
+                        ].filter(Boolean).join(" ")}
                         title={badgeTitle || undefined}
                       >
                         {slide.status === "ready"
