@@ -137,3 +137,36 @@ test("deleting a slide shows toast feedback and status undo, and undo restores t
   await expect(toast).toHaveCount(0);
 });
 
+test("mobile settings inputs use 16px font-size to prevent mobile browser auto-zoom", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const settingsToggle = page.locator(".settingsMenuToggle");
+  await settingsToggle.click();
+
+  const nameInput = page.locator(".pdfNameSetting input[type='text']");
+  await expect(nameInput).toBeVisible();
+
+  const nameFontSize = await nameInput.evaluate((el) => getComputedStyle(el).fontSize);
+  const nameHeight = await nameInput.evaluate((el) => getComputedStyle(el).height);
+  expect(nameFontSize).toBe("16px");
+  expect(nameHeight).toBe("44px");
+
+  const ratioSelect = page.locator(".ratioSetting select");
+  const ratioFontSize = await ratioSelect.evaluate((el) => getComputedStyle(el).fontSize);
+  const ratioHeight = await ratioSelect.evaluate((el) => getComputedStyle(el).height);
+  expect(ratioFontSize).toBe("16px");
+  expect(ratioHeight).toBe("44px");
+
+  // Open "More" settings to check nested inputs
+  const moreSummary = page.locator(".moreSettings summary");
+  // On mobile <= 834px, moreSettings is open by default, but verify input
+  const widthInput = page.locator(".morePanel input[type='number']").first();
+  await expect(widthInput).toBeVisible();
+  const widthFontSize = await widthInput.evaluate((el) => getComputedStyle(el).fontSize);
+  const widthHeight = await widthInput.evaluate((el) => getComputedStyle(el).height);
+  expect(widthFontSize).toBe("16px");
+  expect(widthHeight).toBe("44px");
+});
+
+

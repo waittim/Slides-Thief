@@ -175,3 +175,20 @@ test("design artifacts stay aligned with the CSS contract", () => {
   assert.match(design, /`--layout-sidebar-width`/);
   assert.match(design, /`--component-handle-hit`/);
 });
+
+test("mobile inputs and selects enforce 16px font-size to prevent mobile browser zoom", () => {
+  assert.match(design, /Inputs remain at least `44px` high and use `16px` text to avoid mobile browser zoom/);
+  assert.doesNotMatch(
+    css,
+    /@media[^{]*\b834px[^{]*\{[^}]*\.(?:settings|morePanel|prefsBar)\s+(?:select|input)[^}]*font-size:\s*var\(--font-size-md\)/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 834px\) \{[\s\S]*?\.settings label:not\(\.checks\) > input\[type="text"\][\s\S]*?font-size:\s*var\(--font-size-lg\);/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 834px\), \(pointer: coarse\) \{[\s\S]*?\.settings label:not\(\.checks\) > input\[type="text"\][\s\S]*?font-size:\s*var\(--font-size-lg\);/s,
+  );
+});
+
