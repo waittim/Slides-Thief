@@ -392,6 +392,9 @@ export const copy = {
     clearAll: "清空全部",
     clearAllConfirm: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
     deleteSlideHint: "删除此图片",
+    undo: "撤销",
+    redo: "重做",
+    slideDeleted: (name: string) => `已删除 ${name}`,
     close: "关闭",
   },
   "zh-TW": {
@@ -495,6 +498,9 @@ export const copy = {
     clearAll: "清空全部",
     clearAllConfirm: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
     deleteSlideHint: "刪除此圖片",
+    undo: "復原",
+    redo: "重做",
+    slideDeleted: (name: string) => `已刪除 ${name}`,
     close: "關閉",
   },
   en: {
@@ -598,6 +604,9 @@ export const copy = {
     clearAll: "Clear all",
     clearAllConfirm: (count: number) => `Are you sure you want to clear all ${count} images?`,
     deleteSlideHint: "Delete image",
+    undo: "Undo",
+    redo: "Redo",
+    slideDeleted: (name: string) => `Deleted ${name}`,
     close: "Close",
   },
   es: {
@@ -701,6 +710,9 @@ export const copy = {
     clearAll: "Limpiar todo",
     clearAllConfirm: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
     deleteSlideHint: "Eliminar imagen",
+    undo: "Deshacer",
+    redo: "Rehacer",
+    slideDeleted: (name: string) => `Se eliminó ${name}`,
     close: "Cerrar",
   },
   fr: {
@@ -804,6 +816,9 @@ export const copy = {
     clearAll: "Tout effacer",
     clearAllConfirm: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
     deleteSlideHint: "Supprimer l'image",
+    undo: "Annuler",
+    redo: "Rétablir",
+    slideDeleted: (name: string) => `${name} supprimé`,
     close: "Fermer",
   },
   de: {
@@ -907,6 +922,9 @@ export const copy = {
     clearAll: "Alles löschen",
     clearAllConfirm: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
     deleteSlideHint: "Bild löschen",
+    undo: "Rückgängig",
+    redo: "Wiederholen",
+    slideDeleted: (name: string) => `${name} gelöscht`,
     close: "Schließen",
   },
   ja: {
@@ -1010,6 +1028,9 @@ export const copy = {
     clearAll: "すべて消去",
     clearAllConfirm: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
     deleteSlideHint: "画像を削除",
+    undo: "元に戻す",
+    redo: "やり直す",
+    slideDeleted: (name: string) => `${name} を削除しました`,
     close: "閉じる",
   },
   ko: {
@@ -1113,6 +1134,9 @@ export const copy = {
     clearAll: "모두 지우기",
     clearAllConfirm: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
     deleteSlideHint: "이미지 삭제",
+    undo: "실행 취소",
+    redo: "다시 실행",
+    slideDeleted: (name: string) => `${name} 삭제됨`,
     close: "닫기",
   },
   "pt-BR": {
@@ -1216,6 +1240,9 @@ export const copy = {
     clearAll: "Limpar tudo",
     clearAllConfirm: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
     deleteSlideHint: "Excluir imagem",
+    undo: "Desfazer",
+    redo: "Refazer",
+    slideDeleted: (name: string) => `${name} excluído`,
     close: "Fechar",
   },
 };

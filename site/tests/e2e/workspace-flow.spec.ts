@@ -84,3 +84,56 @@ test("secondary file import appends new slide, supports undo, and skips duplicat
   await expect(page.getByRole("alert")).toHaveText("Skipped 1 duplicate file");
 });
 
+test("deleting a slide shows toast feedback and status undo, and undo restores the slide", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toBeVisible();
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+
+  // Toolbar Undo is initially disabled
+  const toolbarUndo = page.locator(".reviewUndoButton");
+  await expect(toolbarUndo).toBeDisabled();
+
+  // Delete the second slide using the delete button on the row
+  const deleteBtn = page.getByRole("button", { name: /Delete image: dark-slide-light-wall/i });
+  await deleteBtn.click();
+
+  // Slide is removed
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toHaveCount(0);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("1");
+
+  // Deletion feedback toast appears with slide name and Undo button
+  const toast = page.locator(".toastSnackbar");
+  await expect(toast).toBeVisible();
+  await expect(toast).toContainText("Deleted dark-slide-light-wall.png");
+  await expect(page.locator(".sidebarStatus")).toContainText("Deleted dark-slide-light-wall.png");
+
+  // Toolbar Undo is now enabled
+  await expect(toolbarUndo).toBeEnabled();
+
+  // Click Undo in the toast
+  await toast.getByRole("button", { name: "Undo" }).click();
+
+  // Slide is restored and toast disappears
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toBeVisible();
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+  await expect(toast).toHaveCount(0);
+
+  // Now delete via keyboard Delete key
+  await page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" }).click();
+  await page.keyboard.press("Delete");
+
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toHaveCount(0);
+  await expect(toast).toBeVisible();
+
+  // Click toolbar Undo button
+  await toolbarUndo.click();
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dark-slide-light-wall.png" })).toBeVisible();
+  await expect(toast).toHaveCount(0);
+});
+

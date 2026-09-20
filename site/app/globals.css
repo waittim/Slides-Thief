@@ -963,6 +963,16 @@ a:hover {
   white-space: nowrap;
 }
 
+.statusUndoButton {
+  flex: none;
+  color: var(--accent-2);
+  font-weight: var(--font-weight-bold);
+  padding: 0 var(--space-2);
+  height: var(--control-height-sm);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .links {
   display: grid;
   gap: var(--space-2);
@@ -1306,6 +1316,17 @@ button.clearAction:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: var(--font-weight-bold);
+}
+
+.historyControls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.reviewUndoButton,
+.reviewRedoButton {
+  flex: none;
 }
 
 .zoomControls {
@@ -1902,9 +1923,17 @@ canvas {
     padding: 0 var(--space-4);
   }
 
-  .reviewBar .reviewResetButton {
+  .reviewBar .historyControls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
     flex: 0 0 auto;
     margin-left: auto;
+  }
+
+  .reviewBar .reviewResetButton {
+    flex: 0 0 auto;
+    margin-left: 0;
     max-width: none;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -2386,4 +2415,86 @@ kbd {
   border: 1px solid var(--line);
   border-radius: var(--space-1);
   box-shadow: var(--shadow-keycap);
+}
+
+.toastSnackbar {
+  position: fixed;
+  bottom: var(--space-5);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: min(calc(100vw - var(--space-6)), 460px);
+  background: var(--primary-bg);
+  color: var(--primary-text);
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--component-control-radius);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-tight);
+  animation: toastFadeIn 0.15s ease-out;
+}
+
+@keyframes toastFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toastSnackbar {
+    animation: none;
+  }
+}
+
+@media (max-width: 834px) {
+  .toastSnackbar {
+    bottom: max(var(--space-5), env(safe-area-inset-bottom, 20px));
+    width: calc(100vw - var(--space-6));
+    justify-content: space-between;
+  }
+}
+
+.toastMessage {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: var(--font-weight-medium);
+}
+
+.toastUndoButton {
+  flex: none;
+  font-weight: var(--font-weight-bold);
+  color: var(--accent-2);
+  background: transparent;
+  border: none;
+  padding: var(--space-1) var(--space-2);
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.toastUndoButton:hover {
+  filter: brightness(1.2);
+}
+
+.toastCloseButton {
+  flex: none;
+  color: inherit;
+  opacity: 0.7;
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  padding: 0 var(--space-1);
+}
+
+.toastCloseButton:hover {
+  opacity: 1;
 }

@@ -83,3 +83,72 @@ test("Cmd+Enter is ignored while the app is busy", () => {
 
   assert.equal(exports, 0);
 });
+
+test("Delete and Backspace invoke deleteSlide for selected slide", () => {
+  let deletedId = null;
+  const current = actions({
+    slidesRef: { current: [readySlide()] },
+    selectedIdRef: { current: "slide-1" },
+    deleteSlide(id) {
+      deletedId = id;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const event1 = new TestKeyboardEvent("keydown", { key: "Delete" });
+  target.dispatchEvent(event1);
+  assert.equal(deletedId, "slide-1");
+  assert.equal(event1.defaultPrevented, true);
+
+  deletedId = null;
+  const event2 = new TestKeyboardEvent("keydown", { key: "Backspace" });
+  target.dispatchEvent(event2);
+  assert.equal(deletedId, "slide-1");
+  assert.equal(event2.defaultPrevented, true);
+});
+
+test("Cmd+Z and Ctrl+Z trigger handleUndo", () => {
+  let undoCount = 0;
+  const current = actions({
+    handleUndo() {
+      undoCount += 1;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const cmdZ = new TestKeyboardEvent("keydown", { key: "z", metaKey: true });
+  target.dispatchEvent(cmdZ);
+  assert.equal(undoCount, 1);
+  assert.equal(cmdZ.defaultPrevented, true);
+
+  const ctrlZ = new TestKeyboardEvent("keydown", { key: "z", ctrlKey: true });
+  target.dispatchEvent(ctrlZ);
+  assert.equal(undoCount, 2);
+  assert.equal(ctrlZ.defaultPrevented, true);
+});
+
+test("Cmd+Shift+Z and Ctrl+Y trigger handleRedo", () => {
+  let redoCount = 0;
+  const current = actions({
+    handleRedo() {
+      redoCount += 1;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const cmdShiftZ = new TestKeyboardEvent("keydown", { key: "z", metaKey: true, shiftKey: true });
+  target.dispatchEvent(cmdShiftZ);
+  assert.equal(redoCount, 1);
+  assert.equal(cmdShiftZ.defaultPrevented, true);
+
+  const ctrlY = new TestKeyboardEvent("keydown", { key: "y", ctrlKey: true });
+  target.dispatchEvent(ctrlY);
+  assert.equal(redoCount, 2);
+  assert.equal(ctrlY.defaultPrevented, true);
+});

@@ -33,3 +33,25 @@ test("duplicateFilesSkipped correctly formats singular and plural", () => {
   assert.equal(copy["zh-CN"].duplicateFilesSkipped(1), "已跳过 1 个已存在的同名文件");
   assert.equal(copy["zh-CN"].duplicateFilesSkipped(5), "已跳过 5 个已存在的同名文件");
 });
+
+test("all supported locales provide undo, redo, and slideDeleted", () => {
+  for (const { value: locale } of localeOptions) {
+    const localeCopy = copy[locale];
+    assert.ok(
+      typeof localeCopy.undo === "string" && localeCopy.undo.length > 0,
+      `Missing or empty undo for ${locale}`,
+    );
+    assert.ok(
+      typeof localeCopy.redo === "string" && localeCopy.redo.length > 0,
+      `Missing or empty redo for ${locale}`,
+    );
+    assert.ok(
+      typeof localeCopy.slideDeleted === "function",
+      `Missing slideDeleted function for ${locale}`,
+    );
+    assert.ok(
+      typeof localeCopy.slideDeleted("slide-1.jpg") === "string" && localeCopy.slideDeleted("slide-1.jpg").includes("slide-1.jpg"),
+      `Invalid slideDeleted for ${locale}`,
+    );
+  }
+});

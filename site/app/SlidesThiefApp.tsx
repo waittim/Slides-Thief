@@ -33,6 +33,7 @@ import { Header } from "./components/Header";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
+import { Button } from "./components/ui";
 import { PRODUCT_METADATA } from "./product-metadata";
 
 const APP_VERSION = PRODUCT_METADATA.version;
@@ -118,14 +119,65 @@ export function SlidesThiefApp() {
     setSelectedId,
     slidesRef,
     selectedIdRef,
-    pushHistory,
-    handleUndo,
-    handleRedo,
-    deleteSlide,
+    pushHistory: pushHistoryDeck,
+    handleUndo: handleUndoDeck,
+    handleRedo: handleRedoDeck,
+    canUndo,
+    canRedo,
+    deleteSlide: deleteSlideDeck,
     clearAllSlides,
     selectNextSlide: selectNextSlideDeck,
     selectPrevSlide: selectPrevSlideDeck,
   } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag, confirmClearText);
+
+  const [deletedNotice, setDeletedNotice] = useState<{ id: string; name: string } | null>(null);
+  const deleteNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDeleteNotice = useCallback(() => {
+    if (deleteNoticeTimerRef.current) {
+      clearTimeout(deleteNoticeTimerRef.current);
+      deleteNoticeTimerRef.current = null;
+    }
+    setDeletedNotice(null);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (deleteNoticeTimerRef.current) {
+        clearTimeout(deleteNoticeTimerRef.current);
+      }
+    };
+  }, []);
+
+  const handleUndo = useCallback(() => {
+    clearDeleteNotice();
+    handleUndoDeck();
+  }, [clearDeleteNotice, handleUndoDeck]);
+
+  const handleRedo = useCallback(() => {
+    clearDeleteNotice();
+    handleRedoDeck();
+  }, [clearDeleteNotice, handleRedoDeck]);
+
+  const pushHistory = useCallback(() => {
+    clearDeleteNotice();
+    pushHistoryDeck();
+  }, [clearDeleteNotice, pushHistoryDeck]);
+
+  const deleteSlide = useCallback((id: string) => {
+    const target = slidesRef.current.find((s) => s.id === id);
+    deleteSlideDeck(id);
+    if (target) {
+      if (deleteNoticeTimerRef.current) {
+        clearTimeout(deleteNoticeTimerRef.current);
+      }
+      setDeletedNotice({ id: target.id, name: target.name });
+      deleteNoticeTimerRef.current = setTimeout(() => {
+        setDeletedNotice(null);
+        deleteNoticeTimerRef.current = null;
+      }, 6000);
+    }
+  }, [deleteSlideDeck, slidesRef]);
 
   const refreshSlideThumbnail = useCallback(async (
     id: string,
@@ -694,6 +746,8 @@ export function SlidesThiefApp() {
           selectAt={selectAt}
           slideStatusText={slideStatusText}
           deleteSlide={deleteSlide}
+          deletedNotice={deletedNotice}
+          onUndo={handleUndo}
         />
 
         <CanvasQuadEditor
@@ -719,6 +773,10 @@ export function SlidesThiefApp() {
           onHandlePointerMove={onHandlePointerMove}
           onHandlePointerUp={onHandlePointerUp}
           onHandleKeyDown={onHandleKeyDown}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          handleUndo={handleUndo}
+          handleRedo={handleRedo}
         />
 
         <InspectorPanel
@@ -731,6 +789,32 @@ export function SlidesThiefApp() {
           workerError={workerError}
         />
       </main>
+
+      {deletedNotice ? (
+        <div className="toastSnackbar" role="status" aria-live="polite">
+          <span className="toastMessage" title={text.slideDeleted(deletedNotice.name)}>
+            {text.slideDeleted(deletedNotice.name)}
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="toastUndoButton"
+            onClick={handleUndo}
+          >
+            {text.undo}
+          </Button>
+          <Button
+            variant="icon"
+            size="sm"
+            className="toastCloseButton"
+            aria-label={text.close}
+            title={text.close}
+            onClick={clearDeleteNotice}
+          >
+            ×
+          </Button>
+        </div>
+      ) : null}
 
       <p className="srOnly" aria-live="polite" aria-atomic="true">
         {cornerAnnouncement}

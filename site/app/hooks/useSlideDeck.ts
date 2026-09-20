@@ -15,6 +15,8 @@ export function useSlideDeck(
   const selectedIdRef = useRef<string | null>(null);
   const historyPastRef = useRef<SlideItem[][]>([]);
   const historyFutureRef = useRef<SlideItem[][]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     slidesRef.current = slides;
@@ -28,6 +30,8 @@ export function useSlideDeck(
     if (slidesRef.current.length === 0) return;
     historyPastRef.current = [...historyPastRef.current.slice(-29), cloneSlides(slidesRef.current)];
     historyFutureRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -36,6 +40,8 @@ export function useSlideDeck(
     const previous = past[past.length - 1];
     historyPastRef.current = past.slice(0, -1);
     historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
+    setCanUndo(historyPastRef.current.length > 0);
+    setCanRedo(true);
     if (previous.length === 0) {
       clearExport();
     } else {
@@ -53,6 +59,8 @@ export function useSlideDeck(
     const next = future[0];
     historyFutureRef.current = future.slice(1);
     historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
+    setCanUndo(true);
+    setCanRedo(historyFutureRef.current.length > 0);
     if (next.length === 0) {
       clearExport();
     } else {
@@ -138,6 +146,8 @@ export function useSlideDeck(
     pushHistory,
     handleUndo,
     handleRedo,
+    canUndo,
+    canRedo,
     deleteSlide,
     clearAllSlides,
     selectNextSlide,

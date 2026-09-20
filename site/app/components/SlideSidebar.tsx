@@ -35,6 +35,8 @@ interface SlideSidebarProps {
   selectAt: (index: number) => void;
   slideStatusText: (slide: SlideItem) => string;
   deleteSlide: (id: string) => void;
+  deletedNotice?: { id: string; name: string } | null;
+  onUndo?: () => void;
 }
 
 export function SlideSidebar({
@@ -68,6 +70,8 @@ export function SlideSidebar({
   selectAt,
   slideStatusText,
   deleteSlide,
+  deletedNotice,
+  onUndo,
 }: SlideSidebarProps) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const splitButtonRef = useRef<HTMLDivElement | null>(null);
@@ -214,19 +218,40 @@ export function SlideSidebar({
       ) : null}
       <div className="sidebarRunMeta">
         <div className="sidebarStatus" role="status" aria-live="polite">
-          <StatusDot status={statusTone} />
-          <span className="statusLine">{statusText}</span>
-          {exporting && cancelExport ? (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="cancelExportButton"
-              title={text.cancelExport}
-              onClick={cancelExport}
-            >
-              {text.cancelExport}
-            </Button>
-          ) : null}
+          {deletedNotice ? (
+            <>
+              <StatusDot status="default" />
+              <span className="statusLine" title={text.slideDeleted(deletedNotice.name)}>
+                {text.slideDeleted(deletedNotice.name)}
+              </span>
+              {onUndo ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="statusUndoButton"
+                  onClick={onUndo}
+                >
+                  {text.undo}
+                </Button>
+              ) : null}
+            </>
+          ) : (
+            <>
+              <StatusDot status={statusTone} />
+              <span className="statusLine">{statusText}</span>
+              {exporting && cancelExport ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="cancelExportButton"
+                  title={text.cancelExport}
+                  onClick={cancelExport}
+                >
+                  {text.cancelExport}
+                </Button>
+              ) : null}
+            </>
+          )}
         </div>
         {(pdfUrl || jpgArtifact) ? (
           <div className="links sidebarLinks">
