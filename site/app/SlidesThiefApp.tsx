@@ -27,6 +27,7 @@ import { useKeyboardShortcuts } from "./hooks/useKeyboardShortcuts";
 import { usePreferences } from "./hooks/usePreferences";
 import { useQuadEditor } from "./hooks/useQuadEditor";
 import { useSlideDeck } from "./hooks/useSlideDeck";
+import { useWindowImport } from "./hooks/useWindowImport";
 import { AboutModal } from "./components/AboutModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { Header } from "./components/Header";
@@ -677,6 +678,14 @@ export function SlidesThiefApp() {
     slidesRef,
   });
 
+  useWindowImport({
+    busy,
+    isInfoOpen,
+    slidesRef,
+    loadFiles,
+    setDragActive,
+  });
+
   const selectAt = useCallback((index: number) => {
     const slide = slides[Math.max(0, Math.min(slides.length - 1, index))];
     if (!slide) return;
@@ -701,6 +710,30 @@ export function SlidesThiefApp() {
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
+      {dragActive && !busy && !isInfoOpen ? (
+        <div className="windowDragOverlay" aria-hidden="true">
+          <div className="windowDragOverlayCard">
+            <div className="windowDragOverlayIcon" aria-hidden="true">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                <path d="M12 12v9" />
+                <path d="m16 16-4-4-4 4" />
+              </svg>
+            </div>
+            <p className="windowDragOverlayTitle">{text.dropOverlayTitle}</p>
+            <p className="windowDragOverlaySubtitle">{text.dropSubtitle}</p>
+          </div>
+        </div>
+      ) : null}
       <Header
         isInfoOpen={isInfoOpen}
         text={text}

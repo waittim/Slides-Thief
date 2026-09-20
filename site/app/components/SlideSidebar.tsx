@@ -29,7 +29,7 @@ interface SlideSidebarProps {
   manualInputRef: React.RefObject<HTMLInputElement | null>;
   loadFiles: (files: FileList | File[]) => void;
   dragActive: boolean;
-  setDragActive: (active: boolean) => void;
+  setDragActive?: (active: boolean) => void;
   isMobile: boolean;
   selectedId: string | null;
   hasRun: boolean;
@@ -64,7 +64,6 @@ export function SlideSidebar({
   manualInputRef,
   loadFiles,
   dragActive,
-  setDragActive,
   isMobile,
   selectedId,
   hasRun,
@@ -334,18 +333,6 @@ export function SlideSidebar({
           className={`dropzone ${dragActive ? "active" : ""}`}
           disabled={busy}
           onClick={() => inputRef.current?.click()}
-          onDragOver={(event) => {
-            event.preventDefault();
-            setDragActive(true);
-          }}
-          onDragLeave={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragActive(false);
-          }}
-          onDrop={(event) => {
-            event.preventDefault();
-            setDragActive(false);
-            void loadFiles(event.dataTransfer.files);
-          }}
         >
           <span className="dropzoneContent">
             <strong>{slides.length > 0 ? text.addMorePhotos : isMobile ? text.uploadTitle : text.dropTitle}</strong>

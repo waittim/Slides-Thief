@@ -13,6 +13,10 @@ test("all supported locales provide addMorePhotos and duplicateFilesSkipped", ()
       `Missing or empty addMorePhotos for ${locale}`,
     );
     assert.ok(
+      typeof localeCopy.dropOverlayTitle === "string" && localeCopy.dropOverlayTitle.length > 0,
+      `Missing or empty dropOverlayTitle for ${locale}`,
+    );
+    assert.ok(
       typeof localeCopy.duplicateFilesSkipped === "function",
       `Missing duplicateFilesSkipped function for ${locale}`,
     );

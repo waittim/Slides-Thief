@@ -2575,3 +2575,56 @@ kbd {
 .toastCloseButton:hover {
   opacity: 1;
 }
+
+/* Window drag and drop overlay */
+.windowDragOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(16, 20, 22, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  animation: modalFadeIn 0.15s ease-out;
+}
+
+.windowDragOverlayCard {
+  background: var(--panel);
+  border: 2px dashed var(--accent-2);
+  border-radius: var(--component-modal-radius);
+  padding: var(--space-8) var(--space-10);
+  text-align: center;
+  box-shadow: var(--shadow);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  max-width: 440px;
+  animation: modalScaleIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.windowDragOverlayIcon {
+  color: var(--accent-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-1);
+}
+
+.windowDragOverlayTitle {
+  margin: 0;
+  font-size: var(--font-size-xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.windowDragOverlaySubtitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  color: var(--muted);
+}
+

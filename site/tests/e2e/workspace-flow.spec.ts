@@ -167,4 +167,72 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
   expect(widthHeight).toBe("44px");
 });
 
+test("window-level drag and drop onto canvas displays overlay and imports image", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  // Dispatch dragenter with Files on window
+  await page.evaluate(() => {
+    const dt = new DataTransfer();
+    const file = new File(["fake"], "dragged-slide.png", { type: "image/png" });
+    dt.items.add(file);
+    window.dispatchEvent(new DragEvent("dragenter", { dataTransfer: dt, bubbles: true, cancelable: true }));
+  });
+
+  // Verify overlay is shown
+  await expect(page.locator(".windowDragOverlay")).toBeVisible();
+  await expect(page.locator(".windowDragOverlayTitle")).toHaveText("Drop images anywhere to import");
+
+  // Read fixture and drop on stage
+  const fs = await import("node:fs/promises");
+  const buffer = await fs.readFile(fixture);
+  const base64 = buffer.toString("base64");
+
+  await page.evaluate(({ b64 }) => {
+    const byteCharacters = atob(b64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const file = new File([byteArray], "dragged-canvas.png", { type: "image/png" });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+
+    const canvas = document.querySelector("canvas.mainCanvas") || document.querySelector(".stageArea") || window;
+    canvas.dispatchEvent(new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }));
+  }, { b64: base64 });
+
+  // Overlay should hide
+  await expect(page.locator(".windowDragOverlay")).not.toBeVisible();
+  // Slide should be imported
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "dragged-canvas.png" })).toBeVisible();
+});
+
+test("window-level clipboard paste imports image as slide", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  const fs = await import("node:fs/promises");
+  const buffer = await fs.readFile(fixture);
+  const base64 = buffer.toString("base64");
+
+  await page.evaluate(({ b64 }) => {
+    const byteCharacters = atob(b64);
+    const byteNumbers = new Array(byteCharacters.length);
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+    const byteArray = new Uint8Array(byteNumbers);
+    const file = new File([byteArray], "image.png", { type: "image/png" });
+    const dt = new DataTransfer();
+    dt.items.add(file);
+
+    window.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, { b64: base64 });
+
+  // Pasted slide should be imported and have unique pasted-* name
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "pasted-" })).toBeVisible();
+});
+
 
