@@ -31,6 +31,7 @@ import {
   type WorkerErrorInput,
 } from "./lib/types";
 import { parseManualQuadsJson, validateManualQuadForImage } from "./schemas/validators.ts";
+import { useBeforeUnload } from "./hooks/useBeforeUnload";
 import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
 import { useExportWorker } from "./hooks/useExportWorker";
@@ -40,6 +41,7 @@ import { usePreferences } from "./hooks/usePreferences";
 import { useQuadEditor } from "./hooks/useQuadEditor";
 import { useSlideDeck } from "./hooks/useSlideDeck";
 import { useWindowImport } from "./hooks/useWindowImport";
+import { hasFreshExport, shouldWarnOnUnload } from "./lib/before-unload";
 import { AboutModal } from "./components/AboutModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { Header } from "./components/Header";
@@ -485,6 +487,19 @@ export function SlidesThiefApp() {
   }, [selectPrevSlideDeck, setZoomMode]);
 
   const busy = detecting || exporting || Boolean(busyText) || dragHandle !== null;
+
+  const hasExportedCurrentSlides = useMemo(
+    () => hasFreshExport(exportArtifacts),
+    [exportArtifacts],
+  );
+
+  const hasUnsavedWork = shouldWarnOnUnload({
+    slideCount: slides.length,
+    isBusy: busy,
+    hasExported: hasExportedCurrentSlides,
+  });
+
+  useBeforeUnload(hasUnsavedWork);
 
   const handleUndo = useCallback(() => {
     if (busy) return;
@@ -1210,7 +1225,11 @@ export function SlidesThiefApp() {
   const ratioUi = ratioUiCopy[locale];
 
   return (
-    <div className="app" aria-busy={busy || Boolean(busyText)}>
+    <div
+      className="app"
+      aria-busy={busy || Boolean(busyText)}
+      data-has-unsaved-work={hasUnsavedWork ? "true" : undefined}
+    >
       {dragActive && !busy && !isAnyModalOpen ? (
         <div className="windowDragOverlay" aria-hidden="true">
           <div className="windowDragOverlayCard">
