@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Normalized About modal keyboard shortcut keycaps so Mac modifier glyphs (⌘⇧↵)
   render as separate, evenly sized keys instead of uneven mixed-symbol captions.
+- Replaced `<footer class="prefsBar">` with a semantic `<nav class="prefsBar">` with accessible `aria-label`, aligning desktop preference bar semantics with its visual top-bar position, and unified desktop and mobile preference controls.
 
 ## [2.3.0] - 2026-09-06
 

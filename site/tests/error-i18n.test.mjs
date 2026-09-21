@@ -344,4 +344,13 @@ test("all 9 locales define complete privacy and telemetry copy", () => {
   }
 });
 
+test("all 9 locales define preferences copy", () => {
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    assert.equal(typeof localeCopy.preferences, "string", `copy.${locale}.preferences should be string`);
+    assert.ok(localeCopy.preferences.length > 0, `copy.${locale}.preferences should not be empty`);
+  }
+});
+
 

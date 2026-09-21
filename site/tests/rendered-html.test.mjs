@@ -57,6 +57,8 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /<div class="settingsMenu" role="region"/);
   assert.doesNotMatch(html, /class="settingsMenuToggle"/);
   assert.match(html, /class="prefsBar"/);
+  assert.match(html, /<nav class="prefsBar"[^>]*aria-label="Preferences"/);
+  assert.doesNotMatch(html, /<footer\b/);
   assert.match(html, /class="reviewBar"/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });

@@ -5,7 +5,7 @@ import { Button, Select } from "./ui";
 
 export interface PreferencesControlsProps {
   infoButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  placement: "menu" | "footer";
+  placement?: "bar" | "menu" | "footer";
   text: LocaleCopy;
   theme: ThemeValue;
   setTheme: (theme: ThemeValue) => void;
@@ -16,7 +16,7 @@ export interface PreferencesControlsProps {
 
 export function PreferencesControls({
   infoButtonRef,
-  placement,
+  placement = "bar",
   text,
   theme,
   setTheme,

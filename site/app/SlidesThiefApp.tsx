@@ -1431,10 +1431,15 @@ export function SlidesThiefApp() {
         {cornerAnnouncement}
       </p>
 
-      <footer className="prefsBar" aria-hidden={isAnyModalOpen || undefined} inert={isAnyModalOpen ? true : undefined}>
+      <nav
+        className="prefsBar"
+        aria-label={text.preferences}
+        aria-hidden={isAnyModalOpen || undefined}
+        inert={isAnyModalOpen ? true : undefined}
+      >
         <PreferencesControls
           infoButtonRef={infoButtonRef}
-          placement="footer"
+          placement="bar"
           text={text}
           theme={theme}
           setTheme={setTheme}
@@ -1442,7 +1447,7 @@ export function SlidesThiefApp() {
           setLocale={setLocale}
           setIsInfoOpen={setIsInfoOpen}
         />
-      </footer>
+      </nav>
 
       <AboutModal
         isInfoOpen={isInfoOpen}

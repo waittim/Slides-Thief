@@ -128,3 +128,57 @@ test("persists telemetry opt-out across page reload and sets ga-disable flag", a
   await expect(telemetrySwitchAfterReload).toBeVisible();
   await expect(telemetrySwitchAfterReload).not.toBeChecked();
 });
+
+test("desktop renders preferences in semantic nav while mobile unifies them in settings menu", async ({ page }) => {
+  // 1. Desktop viewport
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  // Semantic nav landmark is present with aria-label
+  const prefsNav = page.locator("nav.prefsBar");
+  await expect(prefsNav).toBeVisible();
+  await expect(prefsNav).toHaveAttribute("aria-label", /Preferences|偏好设置/);
+
+  // No footer used for prefsBar
+  await expect(page.locator("footer.prefsBar")).toHaveCount(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+
+  // Desktop preference bar controls are visible
+  await expect(prefsNav.locator(".privacyBadge")).toBeVisible();
+  await expect(prefsNav.locator(".infoButton")).toBeVisible();
+  await expect(prefsNav.locator(".themeSetting select")).toBeVisible();
+  await expect(prefsNav.locator(".languageSetting select")).toBeVisible();
+
+  // Desktop duplicate menu controls inside topbar are hidden
+  await expect(page.locator(".settingsMenuBody > .settingsMenuTheme")).toBeHidden();
+  await expect(page.locator(".settingsMenuBody > .settingsMenuLanguage")).toBeHidden();
+  await expect(page.locator(".settingsMenuBody > .settingsMenuInfo")).toBeHidden();
+
+  // 2. Switch to Mobile viewport
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  // On mobile, prefsBar is hidden
+  await expect(prefsNav).toBeHidden();
+
+  // Open the mobile settings dropdown menu
+  const settingsToggle = page.locator(".settingsMenuToggle");
+  await settingsToggle.click();
+
+  // Unified preferences controls in settings menu are now visible
+  const mobileThemeSelect = page.locator(".settingsMenuBody > .settingsMenuTheme select");
+  const mobileLangSelect = page.locator(".settingsMenuBody > .settingsMenuLanguage select");
+  const mobileInfoButton = page.locator(".settingsMenuBody > .settingsMenuInfo");
+
+  await expect(mobileThemeSelect).toBeVisible();
+  await expect(mobileLangSelect).toBeVisible();
+  await expect(mobileInfoButton).toBeVisible();
+
+  // Changing theme from mobile menu updates html theme attribute
+  await mobileThemeSelect.selectOption("dark");
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+
+  // Clicking mobile info button opens the About modal
+  await mobileInfoButton.click();
+  await expect(page.locator(".modalCard")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Close|关闭/i })).toBeVisible();
+});
