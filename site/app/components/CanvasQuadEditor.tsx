@@ -42,6 +42,8 @@ export interface CanvasQuadEditorProps {
   busy?: boolean;
   isReviewMode?: boolean;
   reviewBannerProps?: ReviewModeBannerProps | null;
+  isSpacePressed?: boolean;
+  isPanning?: boolean;
 }
 
 export function CanvasQuadEditor({
@@ -80,6 +82,8 @@ export function CanvasQuadEditor({
   busy = false,
   isReviewMode = false,
   reviewBannerProps = null,
+  isSpacePressed = false,
+  isPanning = false,
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
@@ -339,7 +343,7 @@ export function CanvasQuadEditor({
           ) : null}
         </div>
       </div>
-      <div className="stage" ref={stageRef}>
+      <div className={`stage ${isSpacePressed ? "isSpacePressed" : ""} ${isPanning ? "isPanning" : ""}`} ref={stageRef}>
         <div className="canvasShell">
           {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
             <div className="canvasWrap">

@@ -331,6 +331,9 @@ export function SlidesThiefApp() {
     resetViewport,
     zoomOut,
     zoomIn,
+    zoomTo,
+    isSpacePressed,
+    isPanning,
   } = canvasViewport;
 
   const quadEditor = useQuadEditor({
@@ -355,6 +358,8 @@ export function SlidesThiefApp() {
     paintCanvas,
     redrawCanvas,
     updateLoupeCanvas,
+    stageRef,
+    isSpacePressed,
   });
   useEffect(() => {
     cancelActiveDragRef.current = quadEditor.cancelActiveDrag;
@@ -1341,6 +1346,8 @@ export function SlidesThiefApp() {
           selectedBatchCount={selectedBatchIds.size}
           reDetectCurrent={reDetectCurrent}
           busy={busy}
+          isSpacePressed={isSpacePressed}
+          isPanning={isPanning}
         />
 
         <InspectorPanel

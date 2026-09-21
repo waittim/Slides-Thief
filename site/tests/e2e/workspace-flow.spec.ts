@@ -431,6 +431,133 @@ test("exporting slides needing review prompts ReviewModal, cancel enters Review 
   await expect(downloadLink).toHaveAttribute("download", "flattened_slides.pdf");
 });
 
+test("supports wheel zoom, space-drag pan, and middle-click pan on canvas stage", async ({ page }) => {
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles(fixture);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+
+  const stage = page.locator(".stage");
+  await expect(stage).toBeVisible();
+
+  const zoomValue = page.locator(".zoomValue");
+  const initialZoomText = await zoomValue.textContent();
+  expect(initialZoomText).not.toBeNull();
+
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+  if (!stageBox) return;
+
+  const centerX = stageBox.x + stageBox.width / 2;
+  const centerY = stageBox.y + stageBox.height / 2;
+
+  // 1. Wheel zoom in with mouse wheel / pinch (negative deltaY)
+  await page.mouse.move(centerX, centerY);
+  await page.mouse.wheel(0, -200);
+
+  // Zoom percentage should increase
+  await expect(async () => {
+    const currentText = await zoomValue.textContent();
+    expect(currentText).not.toEqual(initialZoomText);
+  }).toPass({ timeout: 5000 });
+
+  // Zoom in further to make stage scrollable
+  for (let i = 0; i < 6; i++) {
+    await page.mouse.wheel(0, -200);
+  }
+
+  // 2. Space pan: Pressing spacebar adds .isSpacePressed to stage
+  await page.keyboard.down("Space");
+  await expect(stage).toHaveClass(/isSpacePressed/);
+
+  // Left click and drag with Space held down
+  const initialScroll = await stage.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+  await page.mouse.down({ button: "left" });
+  await expect(stage).toHaveClass(/isPanning/);
+
+  await page.mouse.move(centerX - 80, centerY - 80);
+  await page.mouse.up({ button: "left" });
+  await expect(stage).not.toHaveClass(/isPanning/);
+
+  const afterSpaceScroll = await stage.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+  expect(afterSpaceScroll.left).toBeGreaterThanOrEqual(initialScroll.left);
+  expect(afterSpaceScroll.top).toBeGreaterThanOrEqual(initialScroll.top);
+
+  // Release Space
+  await page.keyboard.up("Space");
+  await expect(stage).not.toHaveClass(/isSpacePressed/);
+
+  // 3. Middle-click drag pan (button: "middle")
+  await page.mouse.move(centerX, centerY);
+  await page.mouse.down({ button: "middle" });
+  await expect(stage).toHaveClass(/isPanning/);
+
+  await page.mouse.move(centerX + 60, centerY + 60);
+  await page.mouse.up({ button: "middle" });
+  await expect(stage).not.toHaveClass(/isPanning/);
+
+  const afterMiddleScroll = await stage.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+  expect(afterMiddleScroll.left).toBeLessThanOrEqual(afterSpaceScroll.left);
+
+  // 4. Clicking "Fit" resets zoom back to fit
+  await page.locator(".reviewFitButton").click();
+  await expect(zoomValue).toHaveText(initialZoomText ?? "");
+});
+
+test("auto-pans canvas viewport when dragging corner handle near stage edges", async ({ page }) => {
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles(fixture);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+  const firstCorner = page.getByRole("button", { name: /Corner 1:/ });
+  await expect(firstCorner).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator(".stage");
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+  if (!stageBox) return;
+
+  // Zoom in multiple times to ensure the content overflows the stage
+  const zoomInBtn = page.getByRole("button", { name: "Zoom in" });
+  for (let i = 0; i < 8; i++) {
+    await zoomInBtn.click();
+  }
+
+  // Set scroll offset so there is room to scroll towards top-left
+  await stage.evaluate((el) => {
+    el.scrollLeft = 200;
+    el.scrollTop = 200;
+  });
+
+  const cornerBox = await firstCorner.boundingBox();
+  expect(cornerBox).not.toBeNull();
+  if (!cornerBox) return;
+
+  // Start dragging corner
+  await page.mouse.move(cornerBox.x + cornerBox.width / 2, cornerBox.y + cornerBox.height / 2);
+  await page.mouse.down();
+
+  const initialScroll = await stage.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+
+  // Move pointer near the top-left boundary of the stage
+  await page.mouse.move(stageBox.x + 10, stageBox.y + 10);
+
+  // Auto-pan should continuously scroll stage left and top
+  await expect(async () => {
+    const currentScroll = await stage.evaluate((el) => ({ left: el.scrollLeft, top: el.scrollTop }));
+    expect(currentScroll.left).toBeLessThan(initialScroll.left);
+    expect(currentScroll.top).toBeLessThan(initialScroll.top);
+  }).toPass({ timeout: 5000 });
+
+  await page.mouse.up();
+});
+
+
+
 
 
 
