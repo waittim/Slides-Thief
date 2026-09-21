@@ -17,6 +17,7 @@ const {
   slideBadgeTitle,
   copy,
   reviewUiCopy,
+  ratioUiCopy,
 } = await import(new URL("../app/i18n.ts", import.meta.url).href);
 
 const ALL_LOCALES = localeOptions.map((opt) => opt.value);
@@ -277,3 +278,27 @@ test("all 9 locales define complete restore and redetect UI copy", () => {
     }
   }
 });
+
+test("all 9 locales define consistent orientation copy across copy and ratioUiCopy", () => {
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    const ratioCopy = ratioUiCopy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    assert.ok(ratioCopy, `ratioUiCopy exists for ${locale}`);
+
+    assert.equal(typeof localeCopy.orientation, "string", `copy.${locale}.orientation should be string`);
+    assert.ok(localeCopy.orientation.length > 0, `copy.${locale}.orientation should not be empty`);
+
+    assert.equal(typeof ratioCopy.orientation, "string", `ratioUiCopy.${locale}.orientation should be string`);
+    assert.ok(ratioCopy.orientation.length > 0, `ratioUiCopy.${locale}.orientation should not be empty`);
+
+    assert.equal(localeCopy.orientation, ratioCopy.orientation, `orientation strings should match for ${locale}`);
+
+    assert.equal(typeof ratioCopy.landscape, "string", `ratioUiCopy.${locale}.landscape should be string`);
+    assert.ok(ratioCopy.landscape.length > 0, `ratioUiCopy.${locale}.landscape should not be empty`);
+
+    assert.equal(typeof ratioCopy.portrait, "string", `ratioUiCopy.${locale}.portrait should be string`);
+    assert.ok(ratioCopy.portrait.length > 0, `ratioUiCopy.${locale}.portrait should not be empty`);
+  }
+});
+

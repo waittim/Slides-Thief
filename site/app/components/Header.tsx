@@ -88,6 +88,7 @@ export function Header({
                 ratioUi={ratioUi}
                 runAutoWithSettings={runAutoWithSettings}
                 settings={settings}
+                text={text}
                 updateSettings={updateSettings}
               />
               <OutputPageControls
