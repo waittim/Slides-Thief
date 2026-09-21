@@ -558,3 +558,49 @@ test("slide selection exposes aria-current for active slide instead of aria-pres
   await expect(selectButtons.nth(1)).toHaveAttribute("aria-current", "true");
 });
 
+test("sidebar displays middle-truncated filenames for long names while preserving title and aria-label with full name", async ({ mount }) => {
+  const longName1 = "presentation_deck_slide_01.jpg";
+  const longName2 = "presentation_deck_slide_02.jpg";
+  const slide1 = makeTestSlide({ id: "s1", name: longName1, status: "ready" });
+  const slide2 = makeTestSlide({ id: "s2", name: longName2, status: "ready" });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[slide1, slide2]} initialHasRun={true} />,
+  );
+
+  const names = component.locator(".slideSelectButton .name");
+  await expect(names).toHaveCount(2);
+
+  // Desktop middle truncation retains distinguishing ending
+  await expect(names.nth(0)).toHaveText("presentati..._slide_01.jpg");
+  await expect(names.nth(1)).toHaveText("presentati..._slide_02.jpg");
+
+  // Full name preserved on aria-label and title
+  await expect(names.nth(0)).toHaveAttribute("aria-label", longName1);
+  await expect(names.nth(0)).toHaveAttribute("title", longName1);
+  await expect(names.nth(1)).toHaveAttribute("aria-label", longName2);
+  await expect(names.nth(1)).toHaveAttribute("title", longName2);
+});
+
+test("sidebar on mobile applies compact middle-truncation preserving distinguishing serial numbers", async ({ mount }) => {
+  const cameraPhoto1 = "IMG_20260921_143001.jpg";
+  const cameraPhoto2 = "IMG_20260921_143002.jpg";
+  const slide1 = makeTestSlide({ id: "s1", name: cameraPhoto1, status: "ready" });
+  const slide2 = makeTestSlide({ id: "s2", name: cameraPhoto2, status: "ready" });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[slide1, slide2]} initialHasRun={true} isMobile={true} />,
+  );
+
+  const names = component.locator(".slideSelectButton .name");
+  await expect(names).toHaveCount(2);
+
+  // Mobile middle truncation retains timestamp/sequence number
+  await expect(names.nth(0)).toHaveText("IMG_..._143001.jpg");
+  await expect(names.nth(1)).toHaveText("IMG_..._143002.jpg");
+
+  // Full name preserved on aria-label
+  await expect(names.nth(0)).toHaveAttribute("aria-label", cameraPhoto1);
+  await expect(names.nth(1)).toHaveAttribute("aria-label", cameraPhoto2);
+});
+

@@ -91,9 +91,35 @@ export function CanvasQuadEditor({
   isPanning = false,
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
+  const [showFullNamePopover, setShowFullNamePopover] = useState(false);
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
+  const titleRef = useRef<HTMLDivElement | null>(null);
   const localLoupeOverlayRef = useRef<HTMLDivElement | null>(null);
   const effectiveLoupeOverlayRef = loupeOverlayRef ?? localLoupeOverlayRef;
+
+  useEffect(() => {
+    setShowFullNamePopover(false);
+  }, [selectedSlide?.id]);
+
+  useEffect(() => {
+    if (!showFullNamePopover) return;
+    const handlePointerDown = (event: MouseEvent | PointerEvent) => {
+      if (titleRef.current && !titleRef.current.contains(event.target as Node)) {
+        setShowFullNamePopover(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setShowFullNamePopover(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [showFullNamePopover]);
 
   useEffect(() => {
     if (!isQuadMenuOpen) return;
@@ -171,16 +197,40 @@ export function CanvasQuadEditor({
         >
           ›
         </Button>
-        <div className="title" title={selectedSlide?.name}>
+        <div ref={titleRef} className="title" title={selectedSlide?.name}>
           {selectedSlide ? (
             <>
               <span className="reviewPageIndicator">
                 {String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}
                 {slides.length > 0 ? ` / ${String(slides.length).padStart(2, "0")}` : ""}
               </span>
-              <span className="reviewFileName">
+              <span
+                className="reviewFileName"
+                title={selectedSlide.name}
+                aria-label={selectedSlide.name}
+                role="button"
+                tabIndex={0}
+                aria-expanded={showFullNamePopover}
+                onClick={() => setShowFullNamePopover((prev) => !prev)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    setShowFullNamePopover((prev) => !prev);
+                  }
+                }}
+              >
                 {displayFileName(selectedSlide.name, isMobile)}
               </span>
+              {showFullNamePopover ? (
+                <div
+                  className="reviewFileNamePopover"
+                  role="tooltip"
+                  aria-label={selectedSlide.name}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <span className="reviewFileNamePopoverText">{selectedSlide.name}</span>
+                </div>
+              ) : null}
             </>
           ) : (
             text.noSlide

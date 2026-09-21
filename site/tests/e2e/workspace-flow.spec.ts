@@ -670,7 +670,17 @@ test("preserves page indicator, filename, and mobile floating navigation control
 
   const fileName = page.locator(".reviewBar .title .reviewFileName");
   await expect(fileName).toBeVisible();
-  await expect(fileName).toHaveText("dark-slide-light-wall");
+  await expect(fileName).toHaveText("dark-slid...ght-wall.png");
+
+  // Tapping the filename opens the full-name popover (touch friendly)
+  await fileName.click();
+  const popover = page.locator(".reviewFileNamePopover");
+  await expect(popover).toBeVisible();
+  await expect(popover).toHaveText("dark-slide-light-wall.png");
+
+  // Pressing Escape dismisses the popover
+  await page.keyboard.press("Escape");
+  await expect(popover).toHaveCount(0);
 
   // In mobile review bar, inline prev/next buttons are hidden
   await expect(page.locator(".reviewPrevious")).toBeHidden();
@@ -704,7 +714,7 @@ test("preserves page indicator, filename, and mobile floating navigation control
   // Click next floating button to go to slide 2
   await nextFloating.click();
   await expect(pageIndicator).toHaveText("02 / 02");
-  await expect(fileName).toHaveText("light-slide-dark-wall");
+  await expect(fileName).toHaveText("light-sli...ark-wall.png");
 
   // On second slide: next is disabled, prev is enabled
   await expect(nextFloating).toBeDisabled();
@@ -713,7 +723,7 @@ test("preserves page indicator, filename, and mobile floating navigation control
   // Click prev floating button to return to slide 1
   await prevFloating.click();
   await expect(pageIndicator).toHaveText("01 / 02");
-  await expect(fileName).toHaveText("dark-slide-light-wall");
+  await expect(fileName).toHaveText("dark-slid...ght-wall.png");
 
   // Auto straighten and test pointer-events during corner drag
   await page.getByRole("button", { name: "Auto straighten" }).click();

@@ -43,6 +43,7 @@ export function SidebarHarness({
   initialProgress = null,
   initialErrorMessage,
   initialErrorDetails,
+  isMobile = false,
 }: {
   initialBusy?: boolean;
   initialSlides?: SlideItem[];
@@ -51,6 +52,7 @@ export function SidebarHarness({
   initialProgress?: { current: number; total: number } | null;
   initialErrorMessage?: string;
   initialErrorDetails?: string;
+  isMobile?: boolean;
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
   const [errorMessage, setErrorMessage] = useState(initialErrorMessage ?? "");
@@ -177,7 +179,7 @@ export function SidebarHarness({
         }}
         dragActive={dragActive}
         setDragActive={setDragActive}
-        isMobile={false}
+        isMobile={isMobile}
         selectedId={selectedId}
         hasRun={hasRun}
         selectAt={(index) => setSelectedId(slides[index]?.id ?? null)}

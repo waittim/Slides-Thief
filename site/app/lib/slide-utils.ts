@@ -25,15 +25,15 @@ export function hasExtension(file: File, extensions: ReadonlyArray<string>) {
   return extensions.some((ext) => lower.endsWith(ext));
 }
 
-export function stripFileExtension(name: string) {
-  const lastDot = name.lastIndexOf(".");
-  if (lastDot <= 0) return name;
-  return name.slice(0, lastDot);
-}
-
-export function displayFileName(name: string, hideExtension: boolean) {
-  return hideExtension ? stripFileExtension(name) : name;
-}
+export {
+  stripFileExtension,
+  truncateMiddle,
+  displayFileName,
+  type MiddleTruncateOptions,
+  type DisplayFileNameOptions,
+  DISPLAY_FILENAME_MAX_LENGTH_DESKTOP,
+  DISPLAY_FILENAME_MAX_LENGTH_MOBILE,
+} from "../filename";
 
 export function isHeifImage(file: File) {
   return hasExtension(file, heifExtensions) || heifMimeTypes.has(file.type.toLowerCase());

@@ -1815,10 +1815,9 @@ button.clearAction:disabled {
 }
 
 .title {
+  position: relative;
   min-width: 110px;
   flex: 1 1 auto;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: var(--font-weight-bold);
   display: flex;
@@ -1836,6 +1835,41 @@ button.clearAction:disabled {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  padding: 1px 4px;
+  margin: -1px -4px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.reviewFileName:hover,
+.reviewFileName:focus-visible {
+  color: var(--accent-2);
+  outline: none;
+}
+
+.reviewFileNamePopover {
+  position: absolute;
+  top: calc(100% + var(--space-2));
+  left: 0;
+  z-index: 50;
+  max-width: min(90vw, 360px);
+  padding: var(--space-2) var(--space-3);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-radius: var(--component-surface-radius);
+  box-shadow: var(--shadow-medium);
+  color: var(--text);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-normal);
+  word-break: break-all;
+  user-select: text;
+  -webkit-user-select: text;
+  animation: toastFadeIn 0.12s ease-out;
+}
+
+.reviewFileNamePopoverText {
+  display: block;
 }
 
 .historyControls {
@@ -2417,8 +2451,12 @@ canvas {
   .fileRow,
   .slideRow {
     width: auto;
-    flex: 0 0 min(56vw, 200px);
+    flex: 0 0 min(60vw, 220px);
     scroll-snap-align: start;
+  }
+
+  .slideSelectButton {
+    padding-right: var(--space-4);
   }
 
   .workspace {

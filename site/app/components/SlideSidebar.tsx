@@ -703,6 +703,7 @@ export function SlideSidebar({
                   size="touch"
                   className="slideSelectButton"
                   aria-current={active ? "true" : undefined}
+                  title={slide.name}
                   onClick={() => selectAt(index)}
                 >
                   <span className="idx" title={text.dragToReorder}>{String(index + 1).padStart(2, "0")}</span>
@@ -721,8 +722,8 @@ export function SlideSidebar({
                       HEIC
                     </span>
                   )}
-                  <span className="name" title={slide.name}>
-                    {displayFileName(slide.name, isMobile)}
+                  <span className="name" title={slide.name} aria-label={slide.name}>
+                    {displayFileName(slide.name, isMobile ? 18 : 26)}
                   </span>
                   {hasRun ? (() => {
                     const isFallback = slide.needsReview && slide.reviewReasons.includes("fallback_used");

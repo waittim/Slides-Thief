@@ -1216,7 +1216,7 @@ export function SlidesThiefApp() {
 
   const metrics: MetricItem[] = selectedSlide
     ? [
-        [text.file, selectedSlide.name],
+        [text.file, selectedSlide.name, selectedSlide.name],
         [text.status, slideStatusText(selectedSlide)],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
         [text.ratio, `${resolvedSlideRatio(selectedSlide, settings).toFixed(3)} : 1`],

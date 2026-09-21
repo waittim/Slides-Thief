@@ -2,12 +2,15 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
+  displayFileName,
   formatZipSlideEntryName,
   normalizeJpgZipName,
   normalizePdfName,
   normalizeSingleJpgName,
   PDF_BASENAME_MAX_LENGTH,
   sanitizePdfBaseName,
+  stripFileExtension,
+  truncateMiddle,
 } = await import(new URL("../app/filename.ts", import.meta.url).href);
 
 test("sanitizePdfBaseName removes unsafe filename characters and a pasted extension", () => {
@@ -51,4 +54,88 @@ test("formatZipSlideEntryName formats padded index and preserves sanitized stem"
   assert.equal(formatZipSlideEntryName(0, 18, "..."), "001-slide.jpg");
   assert.equal(formatZipSlideEntryName(0, 18, "演示文稿📊.png"), "001-演示文稿📊.jpg");
   assert.equal(formatZipSlideEntryName(0, 18, "../../folder/slide.png"), "001-folderslide.jpg");
+});
+
+test("truncateMiddle preserves short filenames untouched", () => {
+  assert.equal(truncateMiddle("slide.jpg", 20), "slide.jpg");
+  assert.equal(truncateMiddle("dark-slide-light-wall.png", 26), "dark-slide-light-wall.png");
+  assert.equal(truncateMiddle("light-slide-dark-wall.png", 26), "light-slide-dark-wall.png");
+});
+
+test("truncateMiddle preserves head, extension, and trailing serial numbers for camera and slide files", () => {
+  // Timestamp / sequence number preserved
+  const imgTruncated = truncateMiddle("IMG_20260921_143001.jpg", 18);
+  assert.equal(imgTruncated, "IMG_..._143001.jpg");
+  assert.equal(imgTruncated.length, 18);
+
+  // Distinguishing slide suffix preserved
+  const deckTruncated = truncateMiddle("presentation_deck_slide_01.jpg", 24);
+  assert.equal(deckTruncated, "presentat...slide_01.jpg");
+  assert.equal(deckTruncated.length, 24);
+
+  // Balanced head and tail when stem has no trailing number
+  const processedTruncated = truncateMiddle("DSC_0045_processed.png", 18);
+  assert.equal(processedTruncated, "DSC_00...essed.png");
+  assert.equal(processedTruncated.length, 18);
+});
+
+test("truncateMiddle supports filenames without extensions", () => {
+  assert.equal(truncateMiddle("presentation_deck_slide_01", 20), "presentat...slide_01");
+  assert.equal(truncateMiddle("short_name", 20), "short_name");
+});
+
+test("truncateMiddle handles Unicode code points safely", () => {
+  const unicodeName = "2026年人工智能大会专题演讲第01页.png";
+  const truncated = truncateMiddle(unicodeName, 16);
+  assert.equal(truncated, "2026年...第01页.png");
+  assert.equal(Array.from(truncated).length, 16);
+});
+
+test("truncateMiddle handles custom options and edge cases cleanly", () => {
+  // Custom ellipsis
+  assert.equal(truncateMiddle("presentation_deck_slide_01.jpg", 20, { ellipsis: "…" }), "presenta…lide_01.jpg");
+
+  // preserveExtension: false
+  assert.equal(truncateMiddle("presentation_deck_slide_01.jpg", 18, { preserveExtension: false }), "presenta..._01.jpg");
+
+  // Empty string
+  assert.equal(truncateMiddle("", 20), "");
+
+  // Extremely small maxLength
+  assert.equal(truncateMiddle("verylongname.jpg", 3), "ver");
+  assert.equal(truncateMiddle("verylongname.jpg", 4), "very");
+});
+
+test("stripFileExtension removes only trailing extension safely", () => {
+  assert.equal(stripFileExtension("photo.jpg"), "photo");
+  assert.equal(stripFileExtension("archive.tar.gz"), "archive.tar");
+  assert.equal(stripFileExtension("noextension"), "noextension");
+  assert.equal(stripFileExtension(".hidden"), ".hidden");
+});
+
+test("displayFileName preserves short names and applies middle truncation for long names", () => {
+  // Desktop defaults (maxLength 26)
+  assert.equal(displayFileName("light-slide-dark-wall.png", false), "light-slide-dark-wall.png");
+  assert.equal(displayFileName("dark-slide-light-wall.png", false), "dark-slide-light-wall.png");
+  assert.equal(
+    displayFileName("presentation_deck_slide_01.jpg", false),
+    "presentati..._slide_01.jpg"
+  );
+
+  // Mobile thumbnail view (custom maxLength = 18)
+  assert.equal(
+    displayFileName("IMG_20260921_143001.jpg", true, 18),
+    "IMG_..._143001.jpg"
+  );
+  assert.equal(
+    displayFileName("presentation_deck_slide_01.jpg", true, 18),
+    "presen...de_01.jpg"
+  );
+  assert.equal(displayFileName("slide_01.jpg", true, 18), "slide_01.jpg");
+
+  // Options object with hideExtension
+  assert.equal(
+    displayFileName("presentation_deck_slide_01.jpg", { hideExtension: true, maxLength: 20 }),
+    "presentat...slide_01"
+  );
 });
