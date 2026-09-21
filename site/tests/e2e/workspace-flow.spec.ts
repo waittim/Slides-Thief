@@ -652,6 +652,135 @@ test("canvas quad stroke aligns with Teal Precision tokens and adapts across the
     .toBe(true);
 });
 
+test("preserves page indicator, filename, and mobile floating navigation controls on narrow screens", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+
+  // Review bar title and page indicator are visible on mobile
+  const title = page.locator(".reviewBar .title");
+  await expect(title).toBeVisible();
+
+  const pageIndicator = page.locator(".reviewBar .title .reviewPageIndicator");
+  await expect(pageIndicator).toBeVisible();
+  await expect(pageIndicator).toHaveText("01 / 02");
+
+  const fileName = page.locator(".reviewBar .title .reviewFileName");
+  await expect(fileName).toBeVisible();
+  await expect(fileName).toHaveText("dark-slide-light-wall");
+
+  // In mobile review bar, inline prev/next buttons are hidden
+  await expect(page.locator(".reviewPrevious")).toBeHidden();
+  await expect(page.locator(".reviewNext")).toBeHidden();
+
+  // Mobile floating navigation buttons on stage are visible
+  const prevFloating = page.locator(".stageFloatingNav--prev");
+  const nextFloating = page.locator(".stageFloatingNav--next");
+  await expect(prevFloating).toBeVisible();
+  await expect(nextFloating).toBeVisible();
+
+  // Verify touch target dimensions are at least 44x44px
+  const prevBox = await prevFloating.boundingBox();
+  expect(prevBox).not.toBeNull();
+  if (prevBox) {
+    expect(prevBox.width).toBeGreaterThanOrEqual(44);
+    expect(prevBox.height).toBeGreaterThanOrEqual(44);
+  }
+
+  const nextBox = await nextFloating.boundingBox();
+  expect(nextBox).not.toBeNull();
+  if (nextBox) {
+    expect(nextBox.width).toBeGreaterThanOrEqual(44);
+    expect(nextBox.height).toBeGreaterThanOrEqual(44);
+  }
+
+  // On first slide: prev is disabled, next is enabled
+  await expect(prevFloating).toBeDisabled();
+  await expect(nextFloating).toBeEnabled();
+
+  // Click next floating button to go to slide 2
+  await nextFloating.click();
+  await expect(pageIndicator).toHaveText("02 / 02");
+  await expect(fileName).toHaveText("light-slide-dark-wall");
+
+  // On second slide: next is disabled, prev is enabled
+  await expect(nextFloating).toBeDisabled();
+  await expect(prevFloating).toBeEnabled();
+
+  // Click prev floating button to return to slide 1
+  await prevFloating.click();
+  await expect(pageIndicator).toHaveText("01 / 02");
+  await expect(fileName).toHaveText("dark-slide-light-wall");
+
+  // Auto straighten and test pointer-events during corner drag
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+  const firstCorner = page.getByRole("button", { name: /Corner 1:/ });
+  await expect(firstCorner).toBeVisible({ timeout: 30_000 });
+
+  const cornerBox = await firstCorner.boundingBox();
+  expect(cornerBox).not.toBeNull();
+  if (cornerBox) {
+    await page.mouse.move(cornerBox.x + cornerBox.width / 2, cornerBox.y + cornerBox.height / 2);
+    await page.mouse.down();
+    // While dragging handle, stageArea has isDraggingHandle and stageFloatingNav has pointer-events: none
+    const stageArea = page.locator(".stageArea");
+    await expect(stageArea).toHaveClass(/isDraggingHandle/);
+    const pointerEvents = await nextFloating.evaluate((el) => getComputedStyle(el).pointerEvents);
+    expect(pointerEvents).toBe("none");
+
+    await page.mouse.move(cornerBox.x + cornerBox.width / 2 + 10, cornerBox.y + cornerBox.height / 2 + 5);
+    await page.mouse.up();
+    await expect(stageArea).not.toHaveClass(/isDraggingHandle/);
+  }
+});
+
+test("desktop review bar retains previous/next buttons and page indicator without floating controls", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+
+  // On desktop, stage floating navigation is hidden
+  await expect(page.locator(".stageFloatingNav--prev")).toBeHidden();
+  await expect(page.locator(".stageFloatingNav--next")).toBeHidden();
+
+  // Desktop review bar buttons are visible
+  const desktopPrev = page.locator(".reviewPrevious");
+  const desktopNext = page.locator(".reviewNext");
+  await expect(desktopPrev).toBeVisible();
+  await expect(desktopNext).toBeVisible();
+
+  // Page indicator and full file name are displayed
+  const pageIndicator = page.locator(".reviewBar .title .reviewPageIndicator");
+  const fileName = page.locator(".reviewBar .title .reviewFileName");
+  await expect(pageIndicator).toBeVisible();
+  await expect(pageIndicator).toHaveText("01 / 02");
+  await expect(fileName).toBeVisible();
+  await expect(fileName).toHaveText("dark-slide-light-wall.png");
+
+  // On first slide, previous is disabled and next is enabled
+  await expect(desktopPrev).toBeDisabled();
+  await expect(desktopNext).toBeEnabled();
+
+  // Navigate using desktop next button
+  await desktopNext.click();
+  await expect(pageIndicator).toHaveText("02 / 02");
+  await expect(fileName).toHaveText("light-slide-dark-wall.png");
+  await expect(desktopNext).toBeDisabled();
+  await expect(desktopPrev).toBeEnabled();
+
+  // Navigate back using desktop previous button
+  await desktopPrev.click();
+  await expect(pageIndicator).toHaveText("01 / 02");
+  await expect(fileName).toHaveText("dark-slide-light-wall.png");
+});
+
+
 
 
 

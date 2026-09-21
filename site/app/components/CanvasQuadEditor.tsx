@@ -172,9 +172,19 @@ export function CanvasQuadEditor({
           ›
         </Button>
         <div className="title" title={selectedSlide?.name}>
-          {selectedSlide
-            ? `${String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}  ${displayFileName(selectedSlide.name, isMobile)}`
-            : text.noSlide}
+          {selectedSlide ? (
+            <>
+              <span className="reviewPageIndicator">
+                {String((selectedIndex >= 0 ? selectedIndex : 0) + 1).padStart(2, "0")}
+                {slides.length > 0 ? ` / ${String(slides.length).padStart(2, "0")}` : ""}
+              </span>
+              <span className="reviewFileName">
+                {displayFileName(selectedSlide.name, isMobile)}
+              </span>
+            </>
+          ) : (
+            text.noSlide
+          )}
         </div>
         <div className="historyControls">
           <Button
@@ -350,88 +360,142 @@ export function CanvasQuadEditor({
           ) : null}
         </div>
       </div>
-      <div className={`stage ${isSpacePressed ? "isSpacePressed" : ""} ${isPanning ? "isPanning" : ""}`} ref={stageRef}>
-        <div className="canvasShell">
-          {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
-            <div className="canvasWrap">
-              <canvas ref={canvasRef} aria-label={text.adjustCorners}>
-                {text.adjustCorners}
-              </canvas>
-              <span id="cornerKeyboardHelp" className="srOnly">
-                {text.cornerKeyboardHelp}
-              </span>
-              {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
-                ? selectedSlide.quad.map(([x, y], index) => {
-                    const position = handlePositions[index] ?? { left: 0, top: 0 };
-                    return (
-                      <button
-                        type="button"
-                        key={index}
-                        ref={(node) => {
-                          handleRefs.current[index] = node;
-                        }}
-                        className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
-                        style={{ left: position.left, top: position.top }}
-                        aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
-                        aria-describedby="cornerKeyboardHelp"
-                        title={text.adjustCorners}
-                        onPointerDown={(event) => onHandlePointerDown(index, event)}
-                        onPointerMove={onHandlePointerMove}
-                        onPointerUp={onHandlePointerUp}
-                        onPointerCancel={onHandlePointerUp}
-                        onLostPointerCapture={onHandlePointerUp}
-                        onKeyDown={(event) => onHandleKeyDown(index, event)}
-                      />
-                    );
-                  })
-                : null}
-              {dragHandle !== null && handlePositions[dragHandle] && (() => {
-                const stage = stageRef.current;
-                const canvas = canvasRef.current;
-                const stageRect = stage
-                  ? {
-                      left: stage.getBoundingClientRect().left + stage.clientLeft,
-                      top: stage.getBoundingClientRect().top + stage.clientTop,
-                      right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
-                      bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
-                      width: stage.clientWidth,
-                      height: stage.clientHeight,
-                    }
-                  : null;
-                const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
-                const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
-                const pos = calculateLoupePosition({
-                  handlePos: handlePositions[dragHandle],
-                  stageRect,
-                  canvasRect,
-                  canvasSize,
-                });
-                return (
-                  <div
-                    ref={effectiveLoupeOverlayRef}
-                    className="loupeOverlay"
-                    data-placement={pos.placement}
-                    style={{
-                      left: `${pos.left}px`,
-                      top: `${pos.top}px`,
-                    }}
-                  >
-                    <canvas ref={loupeCanvasRef} className="loupeCanvas" />
-                    <div className="loupeCrosshair" />
-                  </div>
-                );
-              })()}
-            </div>
-          ) : (
-            <div className="empty">
-              {selectedSlide && previewErrorSlideId === selectedSlide.id
-                ? text.previewError
-                : selectedSlide?.status === "converting"
-                ? text.converting
-                : selectedSlide?.error?.message ?? text.empty}
-            </div>
-          )}
+      <div
+        className={`stageArea ${dragHandle !== null ? "isDraggingHandle" : ""} ${isPanning || isSpacePressed ? "isPanning" : ""}`}
+      >
+        <div className={`stage ${isSpacePressed ? "isSpacePressed" : ""} ${isPanning ? "isPanning" : ""}`} ref={stageRef}>
+          <div className="canvasShell">
+            {selectedSlide?.url && previewErrorSlideId !== selectedSlide.id ? (
+              <div className="canvasWrap">
+                <canvas ref={canvasRef} aria-label={text.adjustCorners}>
+                  {text.adjustCorners}
+                </canvas>
+                <span id="cornerKeyboardHelp" className="srOnly">
+                  {text.cornerKeyboardHelp}
+                </span>
+                {selectedSlide.quad && handlePositions.length === selectedSlide.quad.length
+                  ? selectedSlide.quad.map(([x, y], index) => {
+                      const position = handlePositions[index] ?? { left: 0, top: 0 };
+                      return (
+                        <button
+                          type="button"
+                          key={index}
+                          ref={(node) => {
+                            handleRefs.current[index] = node;
+                          }}
+                          className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
+                          style={{ left: position.left, top: position.top }}
+                          aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
+                          aria-describedby="cornerKeyboardHelp"
+                          title={text.adjustCorners}
+                          onPointerDown={(event) => onHandlePointerDown(index, event)}
+                          onPointerMove={onHandlePointerMove}
+                          onPointerUp={onHandlePointerUp}
+                          onPointerCancel={onHandlePointerUp}
+                          onLostPointerCapture={onHandlePointerUp}
+                          onKeyDown={(event) => onHandleKeyDown(index, event)}
+                        />
+                      );
+                    })
+                  : null}
+                {dragHandle !== null && handlePositions[dragHandle] && (() => {
+                  const stage = stageRef.current;
+                  const canvas = canvasRef.current;
+                  const stageRect = stage
+                    ? {
+                        left: stage.getBoundingClientRect().left + stage.clientLeft,
+                        top: stage.getBoundingClientRect().top + stage.clientTop,
+                        right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
+                        bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
+                        width: stage.clientWidth,
+                        height: stage.clientHeight,
+                      }
+                    : null;
+                  const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
+                  const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
+                  const pos = calculateLoupePosition({
+                    handlePos: handlePositions[dragHandle],
+                    stageRect,
+                    canvasRect,
+                    canvasSize,
+                  });
+                  return (
+                    <div
+                      ref={effectiveLoupeOverlayRef}
+                      className="loupeOverlay"
+                      data-placement={pos.placement}
+                      style={{
+                        left: `${pos.left}px`,
+                        top: `${pos.top}px`,
+                      }}
+                    >
+                      <canvas ref={loupeCanvasRef} className="loupeCanvas" />
+                      <div className="loupeCrosshair" />
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              <div className="empty">
+                {selectedSlide && previewErrorSlideId === selectedSlide.id
+                  ? text.previewError
+                  : selectedSlide?.status === "converting"
+                  ? text.converting
+                  : selectedSlide?.error?.message ?? text.empty}
+              </div>
+            )}
+          </div>
         </div>
+        {slides.length > 1 ? (
+          <>
+            <Button
+              variant="icon"
+              size="touch"
+              className="stageFloatingNav stageFloatingNav--prev"
+              disabled={selectedIndex <= 0}
+              title={`${text.prev} (K / PageUp)`}
+              aria-label={text.prev}
+              onClick={() => selectAt(selectedIndex - 1)}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </Button>
+            <Button
+              variant="icon"
+              size="touch"
+              className="stageFloatingNav stageFloatingNav--next"
+              disabled={selectedIndex < 0 || selectedIndex >= slides.length - 1}
+              title={`${text.next} (J / PageDown)`}
+              aria-label={text.next}
+              onClick={() => selectAt(selectedIndex + 1)}
+            >
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </Button>
+          </>
+        ) : null}
       </div>
     </section>
   );

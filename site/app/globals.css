@@ -1821,6 +1821,21 @@ button.clearAction:disabled {
   text-overflow: ellipsis;
   white-space: nowrap;
   font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reviewPageIndicator {
+  flex: 0 0 auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.reviewFileName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .historyControls {
@@ -1920,10 +1935,24 @@ button.clearAction:disabled {
   line-height: var(--line-height-tight);
 }
 
-.quadBatchMenuDesc {
-  font-size: var(--font-size-xs);
-  color: var(--muted);
-  line-height: var(--line-height-ui);
+.stageArea {
+  position: relative;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  overflow: hidden;
+}
+
+.stageArea > .stage {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.stageFloatingNav {
+  display: none;
 }
 
 .stage {
@@ -2654,14 +2683,79 @@ canvas {
   .reviewBar {
     min-height: 0;
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--space-3);
+    gap: var(--space-2) var(--space-3);
   }
 
   .reviewPrevious,
-  .reviewNext,
-  .reviewBar .title {
+  .reviewNext {
     display: none;
+  }
+
+  .reviewBar .title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    min-width: 0;
+    width: 100%;
+    flex: 1 0 100%;
+    font-size: var(--font-size-sm);
+    font-weight: var(--font-weight-semibold);
+  }
+
+  .stageFloatingNav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--control-height-touch);
+    height: var(--control-height-touch);
+    min-width: var(--control-height-touch);
+    min-height: var(--control-height-touch);
+    border-radius: var(--radius-circle);
+    background: color-mix(in srgb, var(--panel-strong), transparent 20%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--line);
+    color: var(--text);
+    box-shadow: var(--shadow-sm);
+    cursor: pointer;
+    touch-action: manipulation;
+    transition: opacity 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+    user-select: none;
+  }
+
+  .stageFloatingNav--prev {
+    left: max(var(--space-2), env(safe-area-inset-left));
+  }
+
+  .stageFloatingNav--next {
+    right: max(var(--space-2), env(safe-area-inset-right));
+  }
+
+  .stageFloatingNav:hover:not(:disabled) {
+    background: var(--panel-strong);
+    border-color: var(--control-hover);
+    color: var(--text);
+  }
+
+  .stageFloatingNav:active:not(:disabled) {
+    transform: translateY(-50%) scale(0.95);
+  }
+
+  .stageFloatingNav:disabled {
+    opacity: 0.25;
+    pointer-events: none;
+  }
+
+  .stageArea.isDraggingHandle .stageFloatingNav,
+  .stageArea.isPanning .stageFloatingNav {
+    pointer-events: none !important;
+    opacity: 0.15;
   }
 
   .reviewBar .zoomControls {
