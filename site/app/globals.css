@@ -1714,6 +1714,88 @@ button.clearAction:disabled {
   overflow: hidden;
 }
 
+.workspace.inReviewMode {
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+.reviewModeBanner {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-4);
+  background: var(--low-bg);
+  border-bottom: 1px solid color-mix(in srgb, var(--warn), transparent 60%);
+  color: var(--low-text);
+  font-size: var(--font-size-sm);
+  z-index: 2;
+  position: relative;
+}
+
+.reviewModeBannerMain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.reviewModeBannerBadge {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.reviewModeIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--warn);
+}
+
+.reviewModeTitle {
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.01em;
+}
+
+.reviewModeProgress {
+  font-variant-numeric: tabular-nums;
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--warn), transparent 80%);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-xs);
+}
+
+.reviewModeAllDone {
+  font-weight: var(--font-weight-medium);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--accent), transparent 88%);
+  font-size: var(--font-size-xs);
+}
+
+.reviewModeBannerNav {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.reviewModeBannerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+}
+
+.reviewConfirmBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
 .reviewBar {
   min-height: 50px;
   display: flex;
@@ -2054,6 +2136,25 @@ canvas {
   color: inherit;
 }
 
+.reviewCardActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+  padding-top: var(--space-2);
+  border-top: 1px solid color-mix(in srgb, currentColor, transparent 82%);
+}
+
+.reviewCardConfirmBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.reviewCardEnterModeBtn {
+  font-size: var(--font-size-xs);
+}
+
 /* CSS media queries cannot consume custom properties; keep this threshold in sync with --breakpoint-tablet. */
 @media (max-width: 1040px) {
   .topbar {
@@ -2225,6 +2326,17 @@ canvas {
 
   .reviewBar {
     padding-inline: max(var(--space-3), env(safe-area-inset-left)) max(var(--space-3), env(safe-area-inset-right));
+  }
+
+  .reviewModeBanner {
+    padding: var(--space-2) max(var(--space-3), env(safe-area-inset-right)) var(--space-2) max(var(--space-3), env(safe-area-inset-left));
+    gap: var(--space-2);
+  }
+
+  .reviewModeBannerActions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-left: 0;
   }
 
   .stage {

@@ -58,3 +58,32 @@ test("does not render review card when slide does not need review", async ({ mou
   const component = await mount(<InspectorHarness slide={cleanSlide} />);
   await expect(component.locator(".reviewCard")).toHaveCount(0);
 });
+
+test("renders review card with confirm button and clicking it calls onConfirmSlide", async ({ mount }) => {
+  let confirmedId: string | null = null;
+  const reviewSlide = makeTestSlide({
+    id: "test-review-slide-1",
+    name: "slide-review.png",
+    status: "ready",
+    needsReview: true,
+    reviewReasons: ["low_confidence"],
+    method: "contrast-lines",
+  });
+
+  const component = await mount(
+    <InspectorHarness
+      slide={reviewSlide}
+      onConfirmSlide={(id) => {
+        confirmedId = id;
+      }}
+    />,
+  );
+
+  const confirmBtn = component.locator(".reviewCardConfirmBtn");
+  await expect(confirmBtn).toBeVisible();
+  await expect(confirmBtn).toHaveText("Looks good");
+
+  await confirmBtn.click();
+  expect(confirmedId).toBe("test-review-slide-1");
+});
+

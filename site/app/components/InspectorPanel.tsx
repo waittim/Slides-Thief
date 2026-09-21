@@ -17,6 +17,10 @@ interface InspectorPanelProps {
   canApplyFollowing?: boolean;
   canApplyAll?: boolean;
   locale?: LocaleValue;
+  onConfirmSlide?: (id: string) => void;
+  onStartReviewMode?: () => void;
+  isReviewMode?: boolean;
+  reviewSlideCount?: number;
 }
 
 export function InspectorPanel({
@@ -33,6 +37,10 @@ export function InspectorPanel({
   canApplyFollowing = false,
   canApplyAll = false,
   locale,
+  onConfirmSlide,
+  onStartReviewMode,
+  isReviewMode = false,
+  reviewSlideCount = 0,
 }: InspectorPanelProps) {
   return (
     <aside className={`inspector ${inspectorCollapsed ? "collapsed" : ""}`}>
@@ -77,6 +85,43 @@ export function InspectorPanel({
                 </li>
               ))}
             </ul>
+            {onConfirmSlide ? (
+              <div className="reviewCardActions">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="reviewCardConfirmBtn"
+                  onClick={() => onConfirmSlide(selectedSlide.id)}
+                  title={reviewText.reviewConfirmSlide}
+                >
+                  <svg
+                    width="13"
+                    height="13"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                  {reviewText.reviewConfirmSlide}
+                </Button>
+                {!isReviewMode && onStartReviewMode && reviewSlideCount > 1 ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="reviewCardEnterModeBtn"
+                    onClick={onStartReviewMode}
+                    title={reviewText.startReview}
+                  >
+                    {reviewText.startReview}
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
           </div>
         ) : null}
         <div className="metrics">

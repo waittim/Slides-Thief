@@ -6,9 +6,13 @@ import type { SlideItem } from "../../app/lib/types";
 export function InspectorHarness({
   slide,
   collapsed = false,
+  onConfirmSlide,
+  onStartReviewMode,
 }: {
   slide: SlideItem | null;
   collapsed?: boolean;
+  onConfirmSlide?: (id: string) => void;
+  onStartReviewMode?: () => void;
 }) {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(collapsed);
   const text = copy.en;
@@ -31,6 +35,8 @@ export function InspectorHarness({
       metrics={metrics}
       selectedSlide={slide}
       workerError=""
+      onConfirmSlide={onConfirmSlide}
+      onStartReviewMode={onStartReviewMode}
     />
   );
 }

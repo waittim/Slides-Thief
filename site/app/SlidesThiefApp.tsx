@@ -77,6 +77,8 @@ export function SlidesThiefApp() {
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmReviewOpen, setIsConfirmReviewOpen] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "jpg" | null>(null);
+  const [isReviewMode, setIsReviewMode] = useState(false);
+  const [pendingReviewExportFormat, setPendingReviewExportFormat] = useState<"pdf" | "jpg" | null>(null);
   const isAnyModalOpen = isInfoOpen || isConfirmClearOpen || isConfirmReviewOpen;
   const [isIOS, setIsIOS] = useState(false);
   const isIOSRef = useRef(false);
@@ -177,6 +179,8 @@ export function SlidesThiefApp() {
 
   const handleConfirmClearAll = useCallback(() => {
     setIsConfirmClearOpen(false);
+    setIsReviewMode(false);
+    setPendingReviewExportFormat(null);
     performClearAll();
   }, [performClearAll]);
 
@@ -659,6 +663,8 @@ export function SlidesThiefApp() {
       if (!processableSlides.length) return;
       cancelQuadDrag();
       markExportStale();
+      setIsReviewMode(false);
+      setPendingReviewExportFormat(null);
       activeActionRef.current = "detect";
       setWorkerError("");
       const count = processableSlides.length;
@@ -931,6 +937,120 @@ export function SlidesThiefApp() {
     performExportJpg();
   }, [performExportJpg, readySlides]);
 
+  const reviewQueue = useMemo(
+    () => slides.filter((slide) => slide.status === "ready" && slide.needsReview),
+    [slides],
+  );
+
+  const currentReviewIndex = useMemo(() => {
+    if (!selectedId) return -1;
+    return reviewQueue.findIndex((slide) => slide.id === selectedId);
+  }, [reviewQueue, selectedId]);
+
+  const handleStartReviewMode = useCallback(() => {
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (!pagesNeedingReview.length) return;
+    setPendingReviewExportFormat(null);
+    setIsReviewMode(true);
+    if (!pagesNeedingReview.some((slide) => slide.id === selectedId)) {
+      setSelectedId(pagesNeedingReview[0].id);
+      setZoomMode("fit");
+    }
+  }, [readySlides, selectedId, setSelectedId, setZoomMode]);
+
+  const handleExitReviewMode = useCallback(() => {
+    setIsReviewMode(false);
+    setPendingReviewExportFormat(null);
+  }, []);
+
+  const handleSkipReviewAndExport = useCallback(() => {
+    const format = pendingReviewExportFormat ?? "pdf";
+    setIsReviewMode(false);
+    setPendingReviewExportFormat(null);
+    if (format === "pdf") {
+      performExportPdf();
+    } else if (format === "jpg") {
+      performExportJpg();
+    }
+  }, [pendingReviewExportFormat, performExportJpg, performExportPdf]);
+
+  const handlePrevReviewSlide = useCallback(() => {
+    if (currentReviewIndex === -1 && reviewQueue.length > 0) {
+      setSelectedId(reviewQueue[0].id);
+      setZoomMode("fit");
+    } else if (currentReviewIndex > 0) {
+      setSelectedId(reviewQueue[currentReviewIndex - 1].id);
+      setZoomMode("fit");
+    }
+  }, [currentReviewIndex, reviewQueue, setSelectedId, setZoomMode]);
+
+  const handleNextReviewSlide = useCallback(() => {
+    if (currentReviewIndex === -1 && reviewQueue.length > 0) {
+      setSelectedId(reviewQueue[0].id);
+      setZoomMode("fit");
+    } else if (currentReviewIndex >= 0 && currentReviewIndex < reviewQueue.length - 1) {
+      setSelectedId(reviewQueue[currentReviewIndex + 1].id);
+      setZoomMode("fit");
+    }
+  }, [currentReviewIndex, reviewQueue, setSelectedId, setZoomMode]);
+
+  const handleConfirmReviewSlide = useCallback(
+    (slideId?: string) => {
+      const targetId = slideId ?? selectedId;
+      if (!targetId) return;
+      const targetSlide = slidesRef.current.find((s) => s.id === targetId);
+      if (!targetSlide || !targetSlide.needsReview) return;
+
+      pushHistory();
+
+      const currentQueue = slidesRef.current.filter((s) => s.status === "ready" && s.needsReview);
+      const remainingQueue = currentQueue.filter((s) => s.id !== targetId);
+
+      setSlides((current) =>
+        current.map((slide) => {
+          if (slide.id !== targetId) return slide;
+          return {
+            ...slide,
+            needsReview: false as const,
+            reviewReasons: [],
+          };
+        }),
+      );
+
+      if (isReviewMode) {
+        if (remainingQueue.length === 0) {
+          setIsReviewMode(false);
+          const format = pendingReviewExportFormat;
+          setPendingReviewExportFormat(null);
+          if (format === "pdf") {
+            performExportPdf();
+          } else if (format === "jpg") {
+            performExportJpg();
+          }
+        } else {
+          const currentIdx = currentQueue.findIndex((s) => s.id === targetId);
+          const nextSlide = currentQueue.slice(currentIdx + 1).find((s) => s.id !== targetId) ?? remainingQueue[0];
+          if (nextSlide) {
+            setSelectedId(nextSlide.id);
+            setZoomMode("fit");
+          }
+        }
+      }
+    },
+    [
+      isReviewMode,
+      pendingReviewExportFormat,
+      performExportJpg,
+      performExportPdf,
+      pushHistory,
+      selectedId,
+      setSelectedId,
+      setSlides,
+      setZoomMode,
+      slidesRef,
+    ],
+  );
+
   const handleConfirmReviewExport = useCallback(() => {
     setIsConfirmReviewOpen(false);
     const format = pendingExportFormat;
@@ -944,13 +1064,16 @@ export function SlidesThiefApp() {
 
   const handleCancelReviewExport = useCallback(() => {
     setIsConfirmReviewOpen(false);
+    const format = pendingExportFormat;
+    setPendingReviewExportFormat(format);
     setPendingExportFormat(null);
+    setIsReviewMode(true);
     const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
     if (pagesNeedingReview.length > 0) {
       setSelectedId(pagesNeedingReview[0].id);
       setZoomMode("fit");
     }
-  }, [readySlides, setSelectedId, setZoomMode]);
+  }, [pendingExportFormat, readySlides, setSelectedId, setZoomMode]);
 
   const handleDismissReviewModal = useCallback(() => {
     setIsConfirmReviewOpen(false);
@@ -961,6 +1084,37 @@ export function SlidesThiefApp() {
     () => readySlides.filter((slide) => slide.needsReview).length,
     [readySlides],
   );
+
+  const reviewBannerProps = useMemo(() => {
+    if (!isReviewMode) return null;
+    return {
+      currentIndex: currentReviewIndex,
+      totalCount: reviewQueue.length,
+      isCurrentSlideReviewed: selectedSlide ? !selectedSlide.needsReview : true,
+      onPrev: handlePrevReviewSlide,
+      onNext: handleNextReviewSlide,
+      canPrev: currentReviewIndex > 0,
+      canNext: currentReviewIndex >= 0 && currentReviewIndex < reviewQueue.length - 1,
+      onConfirm: () => handleConfirmReviewSlide(selectedId ?? undefined),
+      onExit: handleExitReviewMode,
+      onExportNow: pendingReviewExportFormat ? handleSkipReviewAndExport : undefined,
+      pendingExportFormat: pendingReviewExportFormat,
+      reviewText,
+    };
+  }, [
+    currentReviewIndex,
+    handleConfirmReviewSlide,
+    handleExitReviewMode,
+    handleNextReviewSlide,
+    handlePrevReviewSlide,
+    handleSkipReviewAndExport,
+    isReviewMode,
+    pendingReviewExportFormat,
+    reviewQueue.length,
+    reviewText,
+    selectedId,
+    selectedSlide,
+  ]);
 
   const retryError = useMemo(() => {
     if (!workerError || !errorAction) return undefined;
@@ -1001,9 +1155,11 @@ export function SlidesThiefApp() {
     handleUndo,
     isInfoOpen: isAnyModalOpen,
     selectedIdRef,
-    selectNextSlide,
-    selectPrevSlide,
+    selectNextSlide: isReviewMode ? handleNextReviewSlide : selectNextSlide,
+    selectPrevSlide: isReviewMode ? handlePrevReviewSlide : selectPrevSlide,
     slidesRef,
+    isReviewMode,
+    exitReviewMode: handleExitReviewMode,
   });
 
   useWindowImport({
@@ -1142,6 +1298,8 @@ export function SlidesThiefApp() {
         />
 
         <CanvasQuadEditor
+          isReviewMode={isReviewMode}
+          reviewBannerProps={reviewBannerProps}
           stageRef={stageRef}
           canvasRef={canvasRef}
           loupeCanvasRef={loupeCanvasRef}
@@ -1190,6 +1348,10 @@ export function SlidesThiefApp() {
           applyQuadToAll={() => void applyCurrentQuad("all")}
           canApplyFollowing={selectedIndex >= 0 && selectedIndex < slides.length - 1 && !busy}
           canApplyAll={slides.length > 1 && !busy}
+          onConfirmSlide={handleConfirmReviewSlide}
+          onStartReviewMode={handleStartReviewMode}
+          isReviewMode={isReviewMode}
+          reviewSlideCount={reviewCount}
         />
       </main>
 

@@ -197,6 +197,15 @@ export type ReviewUiCopy = {
   reviewReasonsTitle: string;
   reviewFallbackTitle: string;
   reviewReasons: Record<ReviewReason, string>;
+  reviewModeTitle: string;
+  reviewModeProgress: (current: number, total: number) => string;
+  reviewConfirmSlide: string;
+  reviewNextSlide: string;
+  reviewPrevSlide: string;
+  reviewExit: string;
+  reviewExportNow: (format: "pdf" | "jpg") => string;
+  reviewAllConfirmed: string;
+  startReview: string;
 };
 
 export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
@@ -223,6 +232,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "检测框超出图片范围，请检查四角是否在画面内",
       batch_inconsistency: "与同批次其他照片的角度或位置差异较大，建议复查",
     },
+    reviewModeTitle: "复查模式",
+    reviewModeProgress: (current, total) => `第 ${current} / ${total} 张待复查`,
+    reviewConfirmSlide: "确认无误",
+    reviewNextSlide: "下一张待复查",
+    reviewPrevSlide: "上一张待复查",
+    reviewExit: "退出复查",
+    reviewExportNow: (format) => `生成 ${format.toUpperCase()}`,
+    reviewAllConfirmed: "全部待复查照片已确认",
+    startReview: "开始复查",
   },
   "zh-TW": {
     reviewSuggested: "建議檢查",
@@ -247,6 +265,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "偵測框超出相片範圍，請檢查四角是否在畫面內",
       batch_inconsistency: "與同批次其他相片的角度或位置差異較大，建議檢查",
     },
+    reviewModeTitle: "檢查模式",
+    reviewModeProgress: (current, total) => `第 ${current} / ${total} 張待檢查`,
+    reviewConfirmSlide: "確認無誤",
+    reviewNextSlide: "下一張待檢查",
+    reviewPrevSlide: "上一張待檢查",
+    reviewExit: "退出檢查",
+    reviewExportNow: (format) => `產生 ${format.toUpperCase()}`,
+    reviewAllConfirmed: "全部待檢查相片已確認",
+    startReview: "開始檢查",
   },
   en: {
     reviewSuggested: "Review suggested",
@@ -272,6 +299,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "Detected boundary extends outside the image; please verify corners.",
       batch_inconsistency: "Detected position deviates from batch patterns; review recommended.",
     },
+    reviewModeTitle: "Review mode",
+    reviewModeProgress: (current, total) => `Slide ${current} of ${total} to review`,
+    reviewConfirmSlide: "Looks good",
+    reviewNextSlide: "Next review slide",
+    reviewPrevSlide: "Previous review slide",
+    reviewExit: "Exit review",
+    reviewExportNow: (format) => `Export ${format.toUpperCase()}`,
+    reviewAllConfirmed: "All review slides confirmed",
+    startReview: "Review slides",
   },
   es: {
     reviewSuggested: "Revisión recomendada",
@@ -298,6 +334,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "El borde detectado se extiende fuera de la imagen; verifique las esquinas.",
       batch_inconsistency: "La posición detectada difiere del patrón del lote; se recomienda revisar.",
     },
+    reviewModeTitle: "Modo de revisión",
+    reviewModeProgress: (current, total) => `Diapositiva ${current} de ${total} por revisar`,
+    reviewConfirmSlide: "Confirmar diapositiva",
+    reviewNextSlide: "Siguiente por revisar",
+    reviewPrevSlide: "Anterior por revisar",
+    reviewExit: "Salir de revisión",
+    reviewExportNow: (format) => `Exportar ${format.toUpperCase()}`,
+    reviewAllConfirmed: "Todas las diapositivas revisadas",
+    startReview: "Revisar diapositivas",
   },
   fr: {
     reviewSuggested: "Vérification conseillée",
@@ -323,6 +368,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "Le contour détecté dépasse de l'image ; vérifiez les coins.",
       batch_inconsistency: "La position s'écarte du motif du lot ; vérification recommandée.",
     },
+    reviewModeTitle: "Mode révision",
+    reviewModeProgress: (current, total) => `Diapositive ${current} sur ${total} à vérifier`,
+    reviewConfirmSlide: "Valider la diapositive",
+    reviewNextSlide: "Suivante à vérifier",
+    reviewPrevSlide: "Précédente à vérifier",
+    reviewExit: "Quitter la révision",
+    reviewExportNow: (format) => `Exporter en ${format.toUpperCase()}`,
+    reviewAllConfirmed: "Toutes les diapositives ont été vérifiées",
+    startReview: "Vérifier les diapositives",
   },
   de: {
     reviewSuggested: "Prüfung empfohlen",
@@ -349,6 +403,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "Erkannter Rahmen liegt außerhalb des Bildes; bitte Ecken prüfen.",
       batch_inconsistency: "Position weicht vom Chargenmuster ab; Überprüfung empfohlen.",
     },
+    reviewModeTitle: "Prüfmodus",
+    reviewModeProgress: (current, total) => `Folie ${current} von ${total} zur Prüfung`,
+    reviewConfirmSlide: "Folie bestätigen",
+    reviewNextSlide: "Nächste zur Prüfung",
+    reviewPrevSlide: "Vorherige zur Prüfung",
+    reviewExit: "Prüfung beenden",
+    reviewExportNow: (format) => `${format.toUpperCase()} exportieren`,
+    reviewAllConfirmed: "Alle Folien geprüft",
+    startReview: "Folien prüfen",
   },
   ja: {
     reviewSuggested: "要確認",
@@ -373,6 +436,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "検出枠が画像の外側に突き出しています。四隅を確認してください。",
       batch_inconsistency: "同一バッチ内の他の写真と配置が大きく異なります。確認を推奨します。",
     },
+    reviewModeTitle: "確認モード",
+    reviewModeProgress: (current, total) => `要確認 ${current} / ${total} 枚`,
+    reviewConfirmSlide: "問題なし",
+    reviewNextSlide: "次の要確認スライド",
+    reviewPrevSlide: "前の要確認スライド",
+    reviewExit: "確認を終了",
+    reviewExportNow: (format) => `${format.toUpperCase()} を生成`,
+    reviewAllConfirmed: "すべての要確認スライドを確認しました",
+    startReview: "確認を開始",
   },
   ko: {
     reviewSuggested: "검토 권장",
@@ -397,6 +469,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "감지된 프레임이 이미지 범위를 벗어났습니다. 모서리를 확인해 주세요.",
       batch_inconsistency: "같은 배치의 다른 사진들과 각도나 위치 차이가 큽니다. 검토를 권장합니다.",
     },
+    reviewModeTitle: "검토 모드",
+    reviewModeProgress: (current, total) => `검토 대상 ${current} / ${total}`,
+    reviewConfirmSlide: "확인 완료",
+    reviewNextSlide: "다음 검토 슬라이드",
+    reviewPrevSlide: "이전 검토 슬라이드",
+    reviewExit: "검토 종료",
+    reviewExportNow: (format) => `${format.toUpperCase()} 생성`,
+    reviewAllConfirmed: "모든 검토 슬라이드가 확인되었습니다",
+    startReview: "검토 시작",
   },
   "pt-BR": {
     reviewSuggested: "Revisão recomendada",
@@ -423,6 +504,15 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "O contorno detectado ultrapassa a imagem; verifique os cantos.",
       batch_inconsistency: "A posição detectada diverge do padrão do lote; revisão recomendada.",
     },
+    reviewModeTitle: "Modo de revisão",
+    reviewModeProgress: (current, total) => `Slide ${current} de ${total} para revisar`,
+    reviewConfirmSlide: "Confirmar slide",
+    reviewNextSlide: "Próximo a revisar",
+    reviewPrevSlide: "Anterior a revisar",
+    reviewExit: "Sair da revisão",
+    reviewExportNow: (format) => `Exportar ${format.toUpperCase()}`,
+    reviewAllConfirmed: "Todos os slides foram revisados",
+    startReview: "Revisar slides",
   },
 };
 

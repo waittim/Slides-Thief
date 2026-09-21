@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 const fixture = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/light-slide-dark-wall.png", import.meta.url));
 const fixture2 = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/dark-slide-light-wall.png", import.meta.url));
+const fallbackFixture = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/fallback-solid.png", import.meta.url));
 
 test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
@@ -376,6 +377,60 @@ test("clearing all slides opens styled ConfirmModal, cancel keeps slides, and co
   await expect(page.locator(".fileRow")).toHaveCount(0);
   await expect(page.locator(".clearAction")).toHaveCount(0);
 });
+
+test("exporting slides needing review prompts ReviewModal, cancel enters Review Mode, confirming slide resumes export", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles(fallbackFixture);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "fallback-solid.png" })).toBeVisible();
+
+  // Run auto straighten
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+
+  // Verify slide needs review with warning/fallback badge
+  const fallbackBadge = page.locator(".badge.fallback");
+  await expect(fallbackBadge).toBeVisible({ timeout: 30_000 });
+
+  // Click Generate PDF button
+  const exportBtn = page.getByRole("button", { name: "Generate PDF" });
+  await exportBtn.click();
+
+  // Review confirmation modal appears
+  const modal = page.locator(".confirmModalCard");
+  await expect(modal).toBeVisible();
+  await expect(modal.locator("#confirm-dialog-title")).toHaveText("Review before export");
+
+  const cancelBtn = modal.locator(".confirmModalCancelBtn");
+  const confirmBtn = modal.locator(".confirmModalConfirmBtn");
+  await expect(cancelBtn).toHaveText("Review slides");
+  await expect(confirmBtn).toHaveText("Export anyway");
+
+  // Clicking "Review slides" enters dedicated Review Mode
+  await cancelBtn.click();
+  await expect(modal).toHaveCount(0);
+
+  // Review Mode banner is now visible in workspace
+  const reviewBanner = page.locator(".reviewModeBanner");
+  await expect(reviewBanner).toBeVisible();
+  await expect(reviewBanner.locator(".reviewModeTitle")).toHaveText("Review mode");
+  await expect(reviewBanner.locator(".reviewModeProgress")).toHaveText("Slide 1 of 1 to review");
+
+  const confirmSlideBtn = reviewBanner.locator(".reviewConfirmBtn");
+  await expect(confirmSlideBtn).toBeVisible();
+  await expect(confirmSlideBtn).toHaveText("Looks good");
+
+  // Clicking "Looks good" confirms the slide, completes review mode, and automatically resumes PDF export
+  await confirmSlideBtn.click();
+
+  // Review mode finishes and PDF is generated automatically
+  const downloadLink = page.getByRole("link", { name: "Download PDF" });
+  await expect(downloadLink).toBeVisible({ timeout: 45_000 });
+  await expect(downloadLink).toHaveAttribute("download", "flattened_slides.pdf");
+});
+
 
 
 

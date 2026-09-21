@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState } from "react";
-import type { LocaleCopy } from "../i18n";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
 import { Button } from "./ui";
+import { ReviewModeBanner, type ReviewModeBannerProps } from "./ReviewModeBanner";
 
-interface CanvasQuadEditorProps {
+export interface CanvasQuadEditorProps {
   stageRef: React.RefObject<HTMLDivElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   loupeCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -37,6 +38,8 @@ interface CanvasQuadEditorProps {
   selectedBatchCount?: number;
   reDetectCurrent?: () => void;
   busy?: boolean;
+  isReviewMode?: boolean;
+  reviewBannerProps?: ReviewModeBannerProps | null;
 }
 
 export function CanvasQuadEditor({
@@ -72,6 +75,8 @@ export function CanvasQuadEditor({
   selectedBatchCount = 0,
   reDetectCurrent,
   busy = false,
+  isReviewMode = false,
+  reviewBannerProps = null,
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
@@ -96,7 +101,10 @@ export function CanvasQuadEditor({
     };
   }, [isQuadMenuOpen]);
   return (
-    <section className="workspace">
+    <section className={`workspace ${isReviewMode ? "inReviewMode" : ""}`}>
+      {isReviewMode && reviewBannerProps ? (
+        <ReviewModeBanner {...reviewBannerProps} />
+      ) : null}
       <div className="reviewBar">
         <Button
           variant="icon"

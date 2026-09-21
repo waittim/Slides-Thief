@@ -15,6 +15,8 @@ export type GlobalKeyboardShortcutActions = {
   exportPdf: () => void;
   moveSlideUp?: (id: string) => void;
   moveSlideDown?: (id: string) => void;
+  isReviewMode?: boolean;
+  exitReviewMode?: () => void;
 };
 
 function isEditableTarget(target: EventTarget | null) {
@@ -31,6 +33,13 @@ function isEditableTarget(target: EventTarget | null) {
 export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutActions) {
   return (event: KeyboardEvent) => {
     if (actions.isInfoOpen || isEditableTarget(event.target)) return;
+
+    // Escape exits review mode if active
+    if (actions.isReviewMode && event.key === "Escape") {
+      event.preventDefault();
+      actions.exitReviewMode?.();
+      return;
+    }
 
     // Undo: Cmd+Z or Ctrl+Z
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
