@@ -1243,6 +1243,23 @@ button.clearAction:hover:not(:disabled) {
   background: color-mix(in srgb, var(--accent), transparent 90%);
 }
 
+button.selectReviewNeededAction {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2), transparent 90%);
+  border: 1px solid color-mix(in srgb, var(--accent-2), transparent 70%);
+  padding: 2px var(--space-2);
+  border-radius: var(--component-control-radius);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.12s ease, background 0.12s ease;
+}
+
+button.selectReviewNeededAction:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent-2), transparent 75%);
+}
+
 button.clearAction:disabled {
   opacity: 0.4;
   cursor: not-allowed;
@@ -1288,8 +1305,70 @@ button.clearAction:disabled {
 
 .sidebarFilePicker {
   min-height: 0;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
+}
+
+.batchActionBar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--panel-strong);
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--accent-2);
+  border-radius: var(--component-control-radius);
+  box-shadow: var(--shadow-small);
+}
+
+.batchActionInfo {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.batchActionCount {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--accent-2);
+}
+
+.batchActionButtons {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+
+.batchActionButtons .batchRedetectButton,
+.batchActionButtons .batchApplyQuadButton {
+  font-size: var(--font-size-xs);
+  padding: 0 var(--space-2);
+  height: 26px;
+  min-height: 26px;
+}
+
+.batchActionButtons .batchSelectAllButton {
+  font-size: var(--font-size-xs);
+  padding: 0 var(--space-2);
+  height: 26px;
+  min-height: 26px;
+  margin-left: auto;
+}
+
+.batchActionButtons .batchClearButton {
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  min-height: 24px;
+  padding: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.batchActionButtons .batchClearButton:hover {
+  color: var(--accent);
 }
 
 .files {
@@ -1335,6 +1414,41 @@ button.clearAction:disabled {
 .slideRow.active .slideSelectButton {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2), transparent 82%);
+}
+
+.slideRow.selectedBatchRow .slideSelectButton {
+  border-color: var(--accent-2);
+  background: color-mix(in srgb, var(--accent-2), transparent 93%);
+}
+
+.slideCheckboxLabel {
+  position: absolute;
+  top: 8px;
+  left: 6px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3;
+  cursor: pointer;
+  border-radius: var(--radius-xs);
+  opacity: 0.6;
+  transition: opacity 0.15s ease;
+}
+
+.slideRow:hover .slideCheckboxLabel,
+.slideRow:focus-within .slideCheckboxLabel,
+.slideRow.selectedBatchRow .slideCheckboxLabel {
+  opacity: 1;
+}
+
+.slideCheckbox {
+  width: 14px;
+  height: 14px;
+  cursor: pointer;
+  accent-color: var(--accent-2);
+  margin: 0;
 }
 
 .slideDeleteButton {
@@ -1629,6 +1743,85 @@ button.clearAction:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.reviewRedetectButton {
+  flex: 0 0 auto;
+}
+
+.quadBatchMenu {
+  position: relative;
+  display: inline-flex;
+}
+
+.applyQuadToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.quadBatchDropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  width: max-content;
+  min-width: 220px;
+  max-width: min(300px, calc(100vw - var(--space-6)));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--component-surface-radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-2);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.quadBatchMenuItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--component-control-radius);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.quadBatchMenuItem:hover:not(:disabled) {
+  background: var(--control-bg);
+  border-color: var(--line);
+}
+
+.quadBatchMenuItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.quadBatchMenuItem:focus-visible {
+  outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%);
+  outline-offset: 1px;
+}
+
+.quadBatchMenuTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  line-height: var(--line-height-tight);
+}
+
+.quadBatchMenuDesc {
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: var(--line-height-ui);
+}
+
 .stage {
   min-height: 0;
   display: grid;
@@ -1770,6 +1963,22 @@ canvas {
   background: var(--panel-strong);
   padding: var(--space-1) var(--space-2);
   font: var(--font-size-sm)/var(--line-height-tight) var(--font-family-mono);
+}
+
+.inspectorBatchActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.inspectorBatchActions button {
+  width: 100%;
+  font-size: var(--font-size-xs);
+  padding: 0 var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .errorText {
@@ -2282,6 +2491,11 @@ canvas {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .reviewBar .reviewRedetectButton,
+  .reviewBar .quadBatchMenu {
+    flex: 0 0 auto;
   }
 
   select,

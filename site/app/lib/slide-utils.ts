@@ -140,6 +140,23 @@ export function clampQuadCoordinate(value: number, size: number, maxOutside: num
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
 }
 
+export { adaptQuadToDimensions, applyQuadToSlide } from "./slide-transitions";
+
+export async function resolveSlideDimensions(slide: SlideItem): Promise<{ width: number; height: number }> {
+  if (slide.width > 0 && slide.height > 0) {
+    return { width: slide.width, height: slide.height };
+  }
+  if (slide.url) {
+    try {
+      const img = await loadImage(slide.url);
+      return { width: img.naturalWidth, height: img.naturalHeight };
+    } catch {
+      // Fallback
+    }
+  }
+  return { width: 0, height: 0 };
+}
+
 export function outputRatio(settings: Settings, sourceRatio: number) {
   return settings.height
     ? settings.width / settings.height

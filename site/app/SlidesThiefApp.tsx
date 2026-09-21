@@ -16,6 +16,9 @@ import {
   messageFromError,
   resolvedSlideRatio,
   stripFileExtension,
+  adaptQuadToDimensions,
+  applyQuadToSlide,
+  resolveSlideDimensions,
 } from "./lib/slide-utils";
 import type { ExportArtifact, Settings, SlideItem } from "./lib/types";
 import { parseManualQuadsJson, validateManualQuadForImage } from "./schemas/validators.ts";
@@ -137,6 +140,7 @@ export function SlidesThiefApp() {
 
   const [deletedNotice, setDeletedNotice] = useState<{ id: string; name: string } | null>(null);
   const deleteNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
 
   const clearDeleteNotice = useCallback(() => {
     if (deleteNoticeTimerRef.current) {
@@ -145,6 +149,44 @@ export function SlidesThiefApp() {
     }
     setDeletedNotice(null);
   }, []);
+
+  useEffect(() => {
+    setSelectedBatchIds((current) => {
+      const validIds = new Set(slides.map((s) => s.id));
+      let changed = false;
+      const next = new Set<string>();
+      for (const id of current) {
+        if (validIds.has(id)) next.add(id);
+        else changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [slides]);
+
+  const toggleBatchSelect = useCallback((id: string) => {
+    setSelectedBatchIds((current) => {
+      const next = new Set(current);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const selectAllBatch = useCallback(() => {
+    setSelectedBatchIds((current) => {
+      if (current.size === slides.length) return new Set();
+      return new Set(slides.map((s) => s.id));
+    });
+  }, [slides]);
+
+  const clearBatchSelection = useCallback(() => {
+    setSelectedBatchIds(new Set());
+  }, []);
+
+  const selectReviewNeeded = useCallback(() => {
+    const reviewNeeded = slides.filter((s) => s.status === "ready" && s.needsReview).map((s) => s.id);
+    setSelectedBatchIds(new Set(reviewNeeded));
+  }, [slides]);
 
   useEffect(() => {
     return () => {
@@ -642,6 +684,149 @@ export function SlidesThiefApp() {
 
   const runAuto = useCallback(() => runAutoWithSettings(), [runAutoWithSettings]);
 
+  const applyCurrentQuad = useCallback(
+    async (mode: "following" | "all" | "selected") => {
+      if (!selectedSlide?.quad) return;
+      const currentSlides = slidesRef.current;
+      const currentIndex = currentSlides.findIndex((s) => s.id === selectedSlide.id);
+      if (currentIndex < 0) return;
+
+      let targetSlides: SlideItem[] = [];
+      if (mode === "following") {
+        targetSlides = currentSlides.slice(currentIndex + 1);
+      } else if (mode === "all") {
+        targetSlides = currentSlides.filter((s) => s.id !== selectedSlide.id);
+      } else if (mode === "selected") {
+        targetSlides = currentSlides.filter((s) => selectedBatchIds.has(s.id) && s.id !== selectedSlide.id);
+      }
+
+      targetSlides = targetSlides.filter(
+        (s) => s.status !== "converting" && s.error?.code !== "conversion-failed" && s.url,
+      );
+      if (!targetSlides.length) return;
+
+      cancelQuadDrag();
+      pushHistory();
+      markExportStale();
+
+      const sourceDims = await resolveSlideDimensions(selectedSlide);
+      const sourceQuad = selectedSlide.quad;
+
+      const updates = new Map<string, { quad: Quad; width: number; height: number }>();
+      for (const target of targetSlides) {
+        const targetDims = await resolveSlideDimensions(target);
+        const targetWidth = targetDims.width > 0 ? targetDims.width : sourceDims.width;
+        const targetHeight = targetDims.height > 0 ? targetDims.height : sourceDims.height;
+        const adapted = adaptQuadToDimensions(
+          sourceQuad,
+          sourceDims.width,
+          sourceDims.height,
+          targetWidth,
+          targetHeight,
+        );
+        updates.set(target.id, { quad: adapted, width: targetWidth, height: targetHeight });
+      }
+
+      setSlides((current) =>
+        current.map((slide) => {
+          const update = updates.get(slide.id);
+          if (!update) return slide;
+          return applyQuadToSlide(slide, update.quad, update.width, update.height);
+        }),
+      );
+
+      for (const [id, { quad }] of updates) {
+        void refreshSlideThumbnail(id, quad);
+      }
+
+      setCornerAnnouncement(text.appliedCornersFeedback(updates.size));
+    },
+    [
+      cancelQuadDrag,
+      markExportStale,
+      pushHistory,
+      refreshSlideThumbnail,
+      selectedBatchIds,
+      selectedSlide,
+      setCornerAnnouncement,
+      setSlides,
+      slidesRef,
+      text,
+    ],
+  );
+
+  const reDetectSlides = useCallback(
+    (targetIds: string[]) => {
+      const idSet = new Set(targetIds);
+      const processableSlides = slides.filter(
+        (slide) =>
+          idSet.has(slide.id) &&
+          slide.status !== "converting" &&
+          slide.error?.code !== "conversion-failed" &&
+          slide.url,
+      );
+      if (!processableSlides.length) return;
+      cancelQuadDrag();
+      pushHistory();
+      markExportStale();
+      setWorkerError("");
+      const count = processableSlides.length;
+      const progressLabel = count > 1 ? `1/${count}` : "";
+      const progressPrefix = [text.stretching, progressLabel].filter(Boolean).join(" ");
+      setBusyText(processableSlides[0]?.name ? `${progressPrefix}: ${processableSlides[0].name}` : progressPrefix);
+      autoReviewSelectedRef.current = false;
+      const jobId = startDetection(
+        processableSlides.map((slide) => ({ id: slide.id, name: slide.name, file: slide.file })),
+        settings,
+      );
+      if (jobId === null) return;
+      const processableIds = new Set(processableSlides.map((slide) => slide.id));
+      const firstId = processableSlides[0]?.id;
+      setSlides((current) =>
+        current.map((slide) => {
+          if (!processableIds.has(slide.id)) return slide;
+          if (slide.id === firstId) {
+            return {
+              ...slide,
+              status: "detecting",
+              detectionState: "empty" as const,
+              quad: null,
+              method: null,
+              confidence: 0 as const,
+              needsReview: false as const,
+              reviewReasons: [],
+              thumbnailUrl: undefined,
+              error: undefined,
+            };
+          }
+          return {
+            ...slide,
+            status: "queued" as const,
+            autoDetection: null,
+            quad: null,
+            method: null,
+            confidence: 0 as const,
+            needsReview: false as const,
+            reviewReasons: [],
+            thumbnailUrl: undefined,
+            error: undefined,
+          };
+        }),
+      );
+    },
+    [cancelQuadDrag, markExportStale, pushHistory, setSlides, settings, slides, startDetection, text.stretching],
+  );
+
+  const reDetectSelected = useCallback(() => {
+    if (!selectedBatchIds.size) return;
+    reDetectSlides(Array.from(selectedBatchIds));
+  }, [reDetectSlides, selectedBatchIds]);
+
+  const reDetectCurrent = useCallback(() => {
+    if (!selectedSlide) return;
+    reDetectSlides([selectedSlide.id]);
+  }, [reDetectSlides, selectedSlide]);
+
   const confirmExportReady = useCallback((): boolean => {
     if (!readySlides.length) return false;
     const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
@@ -830,6 +1015,13 @@ export function SlidesThiefApp() {
           moveSlide={moveSlide}
           moveSlideUp={moveSlideUp}
           moveSlideDown={moveSlideDown}
+          selectedBatchIds={selectedBatchIds}
+          toggleBatchSelect={toggleBatchSelect}
+          selectAllBatch={selectAllBatch}
+          clearBatchSelection={clearBatchSelection}
+          selectReviewNeeded={selectReviewNeeded}
+          reDetectSelected={reDetectSelected}
+          applyQuadToSelected={() => void applyCurrentQuad("selected")}
         />
 
         <CanvasQuadEditor
@@ -859,6 +1051,12 @@ export function SlidesThiefApp() {
           canRedo={canRedo && !busy}
           handleUndo={handleUndo}
           handleRedo={handleRedo}
+          applyQuadToFollowing={() => void applyCurrentQuad("following")}
+          applyQuadToAll={() => void applyCurrentQuad("all")}
+          applyQuadToSelected={() => void applyCurrentQuad("selected")}
+          selectedBatchCount={selectedBatchIds.size}
+          reDetectCurrent={reDetectCurrent}
+          busy={busy}
         />
 
         <InspectorPanel
@@ -870,6 +1068,10 @@ export function SlidesThiefApp() {
           metrics={metrics}
           selectedSlide={selectedSlide}
           workerError={workerError}
+          applyQuadToFollowing={() => void applyCurrentQuad("following")}
+          applyQuadToAll={() => void applyCurrentQuad("all")}
+          canApplyFollowing={selectedIndex >= 0 && selectedIndex < slides.length - 1 && !busy}
+          canApplyAll={slides.length > 1 && !busy}
         />
       </main>
 

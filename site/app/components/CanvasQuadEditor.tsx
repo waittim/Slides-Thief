@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { LocaleCopy } from "../i18n";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
@@ -31,6 +31,12 @@ interface CanvasQuadEditorProps {
   canRedo?: boolean;
   handleUndo?: () => void;
   handleRedo?: () => void;
+  applyQuadToFollowing?: () => void;
+  applyQuadToAll?: () => void;
+  applyQuadToSelected?: () => void;
+  selectedBatchCount?: number;
+  reDetectCurrent?: () => void;
+  busy?: boolean;
 }
 
 export function CanvasQuadEditor({
@@ -60,7 +66,35 @@ export function CanvasQuadEditor({
   canRedo = false,
   handleUndo,
   handleRedo,
+  applyQuadToFollowing,
+  applyQuadToAll,
+  applyQuadToSelected,
+  selectedBatchCount = 0,
+  reDetectCurrent,
+  busy = false,
 }: CanvasQuadEditorProps) {
+  const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
+  const quadMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!isQuadMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent | PointerEvent) => {
+      if (quadMenuRef.current && !quadMenuRef.current.contains(event.target as Node)) {
+        setIsQuadMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsQuadMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isQuadMenuOpen]);
   return (
     <section className="workspace">
       <div className="reviewBar">
@@ -165,6 +199,98 @@ export function CanvasQuadEditor({
         >
           {text.resetSlide}
         </Button>
+        {reDetectCurrent ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="reviewRedetectButton"
+            disabled={!selectedSlide || busy || selectedSlide.status === "converting"}
+            title={text.reDetectSlide}
+            onClick={reDetectCurrent}
+          >
+            {text.reDetectSlide}
+          </Button>
+        ) : null}
+        <div className="quadBatchMenu" ref={quadMenuRef}>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="applyQuadToggle"
+            disabled={
+              !selectedSlide ||
+              selectedSlide.status !== "ready" ||
+              !selectedSlide.quad ||
+              slides.length <= 1 ||
+              busy
+            }
+            aria-haspopup="menu"
+            aria-expanded={isQuadMenuOpen}
+            title={text.applyCornersTitle}
+            aria-label={text.applyCorners}
+            onClick={() => setIsQuadMenuOpen((open) => !open)}
+          >
+            {text.applyCorners}
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+            >
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </Button>
+          {isQuadMenuOpen ? (
+            <div className="quadBatchDropdown" role="menu">
+              <button
+                type="button"
+                role="menuitem"
+                className="quadBatchMenuItem"
+                disabled={selectedIndex >= slides.length - 1}
+                onClick={() => {
+                  setIsQuadMenuOpen(false);
+                  applyQuadToFollowing?.();
+                }}
+              >
+                <span className="quadBatchMenuTitle">{text.applyToFollowing}</span>
+                <span className="quadBatchMenuDesc">
+                  {text.applyToFollowingDesc(Math.max(0, slides.length - 1 - selectedIndex))}
+                </span>
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="quadBatchMenuItem"
+                disabled={slides.length <= 1}
+                onClick={() => {
+                  setIsQuadMenuOpen(false);
+                  applyQuadToAll?.();
+                }}
+              >
+                <span className="quadBatchMenuTitle">{text.applyToAll}</span>
+                <span className="quadBatchMenuDesc">{text.applyToAllDesc(Math.max(0, slides.length - 1))}</span>
+              </button>
+              {selectedBatchCount && selectedBatchCount > 0 ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="quadBatchMenuItem"
+                  onClick={() => {
+                    setIsQuadMenuOpen(false);
+                    applyQuadToSelected?.();
+                  }}
+                >
+                  <span className="quadBatchMenuTitle">{text.applyToSelected}</span>
+                  <span className="quadBatchMenuDesc">{text.applyToSelectedDesc(selectedBatchCount)}</span>
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
       </div>
       <div className="stage" ref={stageRef}>
         <div className="canvasShell">

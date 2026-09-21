@@ -390,5 +390,60 @@ test("slide move up and move down buttons reorder slides and update page indexes
   await expect(rows.nth(1).getByRole("button", { name: /move image up/i })).toBeDisabled();
 });
 
+test("batch operations: checkbox selection, select all, batch redetect, and select review needed", async ({ mount }) => {
+  const slide1 = makeTestSlide({ id: "s1", name: "slide-1.png", status: "ready" });
+  const slide2 = makeTestSlide({ id: "s2", name: "slide-2.png", status: "ready", needsReview: true, reviewReasons: ["low_confidence"] });
+  const slide3 = makeTestSlide({ id: "s3", name: "slide-3.png", status: "ready" });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[slide1, slide2, slide3]} initialHasRun={true} />,
+  );
+
+  const rows = component.locator(".slideRow");
+  await expect(rows).toHaveCount(3);
+
+  // Batch action bar should not be visible initially
+  await expect(component.locator(".batchActionBar")).toHaveCount(0);
+  await expect(component.getByTestId("batch-selected-count")).toHaveText("0");
+
+  // Review needed quick-select button should be visible in header because slide2 needs review
+  const reviewNeededBtn = component.locator(".selectReviewNeededAction");
+  await expect(reviewNeededBtn).toBeVisible();
+
+  // Clicking reviewNeededBtn selects slide2
+  await reviewNeededBtn.click();
+  await expect(component.getByTestId("batch-selected-count")).toHaveText("1");
+  await expect(component.locator(".batchActionBar")).toBeVisible();
+  await expect(component.locator(".batchActionCount")).toHaveText("1 selected");
+
+  // Check that row2 has selected class
+  await expect(rows.nth(1)).toHaveClass(/selectedBatchRow/);
+  await expect(rows.nth(0)).not.toHaveClass(/selectedBatchRow/);
+
+  // Toggle checkbox on slide1
+  const cb0 = rows.nth(0).locator(".slideCheckbox");
+  await cb0.click();
+  await expect(component.getByTestId("batch-selected-count")).toHaveText("2");
+  await expect(component.locator(".batchActionCount")).toHaveText("2 selected");
+
+  // Select all batch button
+  const selectAllBtn = component.locator(".batchSelectAllButton");
+  await selectAllBtn.click();
+  await expect(component.getByTestId("batch-selected-count")).toHaveText("3");
+  await expect(component.locator(".batchActionCount")).toHaveText("3 selected");
+
+  // Batch re-detect button
+  const redetectBtn = component.locator(".batchRedetectButton");
+  await expect(redetectBtn).toBeVisible();
+  await redetectBtn.click();
+  await expect(component.getByTestId("batch-redetected-count")).toHaveText("3");
+
+  // Clear batch selection button
+  const clearBtn = component.locator(".batchClearButton");
+  await clearBtn.click();
+  await expect(component.getByTestId("batch-selected-count")).toHaveText("0");
+  await expect(component.locator(".batchActionBar")).toHaveCount(0);
+});
+
 
 

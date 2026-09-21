@@ -12,6 +12,10 @@ interface InspectorPanelProps {
   metrics: Array<[string, string]>;
   selectedSlide: SlideItem | null;
   workerError: string;
+  applyQuadToFollowing?: () => void;
+  applyQuadToAll?: () => void;
+  canApplyFollowing?: boolean;
+  canApplyAll?: boolean;
 }
 
 export function InspectorPanel({
@@ -23,6 +27,10 @@ export function InspectorPanel({
   metrics,
   selectedSlide,
   workerError,
+  applyQuadToFollowing,
+  applyQuadToAll,
+  canApplyFollowing = false,
+  canApplyAll = false,
 }: InspectorPanelProps) {
   return (
     <aside className={`inspector ${inspectorCollapsed ? "collapsed" : ""}`}>
@@ -88,6 +96,34 @@ export function InspectorPanel({
               ))
             : null}
         </div>
+        {selectedSlide?.quad && (applyQuadToFollowing || applyQuadToAll) ? (
+          <div className="inspectorBatchActions">
+            {applyQuadToFollowing ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="inspectorApplyFollowingButton"
+                disabled={!canApplyFollowing}
+                title={text.applyToFollowing}
+                onClick={applyQuadToFollowing}
+              >
+                {text.applyToFollowing}
+              </Button>
+            ) : null}
+            {applyQuadToAll ? (
+              <Button
+                variant="secondary"
+                size="sm"
+                className="inspectorApplyAllButton"
+                disabled={!canApplyAll}
+                title={text.applyToAll}
+                onClick={applyQuadToAll}
+              >
+                {text.applyToAll}
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         {workerError ? <p className="errorText" role="alert">{workerError}</p> : null}
         {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error.message}</p> : null}
       </div>

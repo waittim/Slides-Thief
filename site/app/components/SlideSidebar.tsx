@@ -44,6 +44,13 @@ interface SlideSidebarProps {
   moveSlide?: (fromIndex: number, toIndex: number) => void;
   moveSlideUp?: (id: string) => void;
   moveSlideDown?: (id: string) => void;
+  selectedBatchIds?: Set<string>;
+  toggleBatchSelect?: (id: string) => void;
+  selectAllBatch?: () => void;
+  clearBatchSelection?: () => void;
+  selectReviewNeeded?: () => void;
+  reDetectSelected?: () => void;
+  applyQuadToSelected?: () => void;
 }
 
 export function SlideSidebar({
@@ -84,6 +91,13 @@ export function SlideSidebar({
   moveSlide,
   moveSlideUp,
   moveSlideDown,
+  selectedBatchIds,
+  toggleBatchSelect,
+  selectAllBatch,
+  clearBatchSelection,
+  selectReviewNeeded,
+  reDetectSelected,
+  applyQuadToSelected,
 }: SlideSidebarProps) {
   const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
@@ -482,6 +496,18 @@ export function SlideSidebar({
       <div className="sectionHead">
         <h2>{text.images}</h2>
         <CountBadge count={slides.length} />
+        {selectReviewNeeded && slides.some((s) => s.status === "ready" && s.needsReview) && (!selectedBatchIds || selectedBatchIds.size === 0) ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="selectReviewNeededAction"
+            disabled={busy}
+            title={text.selectReviewNeeded}
+            onClick={selectReviewNeeded}
+          >
+            ! {text.selectReviewNeeded}
+          </Button>
+        ) : null}
         {slides.length > 0 && (
           <Button
             variant="ghost"
@@ -520,15 +546,71 @@ export function SlideSidebar({
             {!isMobile && <span>{text.dropSubtitle}</span>}
           </span>
         </button>
+        {selectedBatchIds && selectedBatchIds.size > 0 ? (
+          <div className="batchActionBar" role="toolbar" aria-label={text.selectedCount(selectedBatchIds.size)}>
+            <div className="batchActionInfo">
+              <span className="batchActionCount">{text.selectedCount(selectedBatchIds.size)}</span>
+            </div>
+            <div className="batchActionButtons">
+              {reDetectSelected ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="batchRedetectButton"
+                  disabled={busy}
+                  onClick={reDetectSelected}
+                >
+                  {text.reDetectSelected}
+                </Button>
+              ) : null}
+              {applyQuadToSelected && readySlides.some((s) => s.id === selectedId && s.quad) ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="batchApplyQuadButton"
+                  disabled={busy}
+                  onClick={applyQuadToSelected}
+                >
+                  {text.applyToSelected}
+                </Button>
+              ) : null}
+              {selectAllBatch ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="batchSelectAllButton"
+                  disabled={busy}
+                  onClick={selectAllBatch}
+                >
+                  {selectedBatchIds.size === slides.length ? text.deselectAll : text.selectAll}
+                </Button>
+              ) : null}
+              {clearBatchSelection ? (
+                <Button
+                  variant="icon"
+                  size="sm"
+                  className="batchClearButton"
+                  aria-label={text.clearSelection}
+                  title={text.clearSelection}
+                  onClick={clearBatchSelection}
+                >
+                  ×
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        ) : null}
         <ul className="files">
           {slides.map((slide, index) => {
             const active = selectedId === slide.id || (!selectedId && index === 0);
+            const isBatchSelected = Boolean(selectedBatchIds?.has(slide.id));
             const isDragging = draggedSlideIndex === index;
             const isDropAbove = dropTarget?.index === index && dropTarget.position === "above";
             const isDropBelow = dropTarget?.index === index && dropTarget.position === "below";
             const className = [
               hasRun ? "slideRow" : "fileRow",
               active ? "active" : "",
+              isBatchSelected ? "selectedBatchRow" : "",
               isDragging ? "dragging" : "",
               isDropAbove ? "dropTargetAbove" : "",
               isDropBelow ? "dropTargetBelow" : "",
@@ -546,6 +628,22 @@ export function SlideSidebar({
                 onDrop={(event) => handleSlideDrop(event, index)}
                 onDragEnd={handleSlideDragEnd}
               >
+                {toggleBatchSelect && selectedBatchIds ? (
+                  <label className="slideCheckboxLabel" title={text.selectSlide(slide.name)}>
+                    <input
+                      type="checkbox"
+                      className="slideCheckbox"
+                      checked={isBatchSelected}
+                      disabled={busy}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        toggleBatchSelect(slide.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                    <span className="srOnly">{text.selectSlide(slide.name)}</span>
+                  </label>
+                ) : null}
                 <Button
                   variant="ghost"
                   size="touch"

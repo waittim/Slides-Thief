@@ -60,6 +60,8 @@ export function SidebarHarness({
   const [manualExported, setManualExported] = useState(false);
   const [manualImported, setManualImported] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedBatchIds, setSelectedBatchIds] = useState<Set<string>>(new Set());
+  const [batchRedetectedCount, setBatchRedetectedCount] = useState(0);
   const [dragActive, setDragActive] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const manualInputRef = useRef<HTMLInputElement | null>(null);
@@ -204,6 +206,52 @@ export function SidebarHarness({
           });
           setIsStale(true);
         }}
+        selectedBatchIds={selectedBatchIds}
+        toggleBatchSelect={(id) => {
+          setSelectedBatchIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) next.delete(id);
+            else next.add(id);
+            return next;
+          });
+        }}
+        selectAllBatch={() => {
+          setSelectedBatchIds((prev) =>
+            prev.size === slides.length ? new Set() : new Set(slides.map((s) => s.id))
+          );
+        }}
+        clearBatchSelection={() => setSelectedBatchIds(new Set())}
+        selectReviewNeeded={() => {
+          const reviewNeeded = slides.filter((s) => s.needsReview).map((s) => s.id);
+          setSelectedBatchIds(new Set(reviewNeeded));
+        }}
+        reDetectSelected={() => {
+          setBatchRedetectedCount((c) => c + selectedBatchIds.size);
+          setSlides((current) =>
+            current.map((s) => (selectedBatchIds.has(s.id) ? readySlide(s) : s))
+          );
+        }}
+        applyQuadToSelected={() => {
+          const activeSlide = slides.find((s) => s.id === selectedId);
+          if (!activeSlide?.quad) return;
+          const activeQuad = activeSlide.quad;
+          setSlides((current) =>
+            current.map((s) =>
+              selectedBatchIds.has(s.id) && s.id !== selectedId
+                ? ({
+                    ...s,
+                    status: "ready",
+                    quad: activeQuad,
+                    method: "manual",
+                    confidence: 1,
+                    needsReview: false,
+                    reviewReasons: [],
+                    error: undefined,
+                  } as SlideItem)
+                : s
+            )
+          );
+        }}
       />
       <output data-testid="workflow-status">
         {manualImported
@@ -220,6 +268,12 @@ export function SidebarHarness({
       </output>
       <output data-testid="detection-cancelled">
         {detectionCancelled ? "cancelled" : "not-cancelled"}
+      </output>
+      <output data-testid="batch-selected-count">
+        {selectedBatchIds.size}
+      </output>
+      <output data-testid="batch-redetected-count">
+        {batchRedetectedCount}
       </output>
       <button type="button" data-testid="mark-stale" onClick={() => setIsStale(true)}>
         Mark Stale
