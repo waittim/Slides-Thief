@@ -5,7 +5,7 @@ import { detectQuad } from "./detection/detect";
 import { createLatestJobRunner } from "./detection/job-queue";
 import type { DetectionResult, DetectionSettings, Quad } from "./detection/types";
 import { constrainedImageSize, DETECTION_MAX_PIXELS } from "./image-sizing";
-import { parseDetectionWorkerRequest } from "./lib/types";
+import { AppError, isAppError, parseDetectionWorkerRequest } from "./lib/types";
 import type {
   DetectionJobId,
   DetectionWorkerFile,
@@ -32,12 +32,15 @@ const detectionQueue = createLatestJobRunner<DetectionTask>(
   (task, isCancelled) => detectFiles(task, isCancelled),
   (error, task, isCancelled) => {
     if (isCancelled()) return;
+    const isApp = isAppError(error);
     postDetectionMessage({
       type: "error",
       jobId: task.jobId,
       error: {
         code: "worker-failed",
         message: error instanceof Error ? error.message : "The browser processing worker stopped unexpectedly.",
+        errorCode: isApp ? error.code : "processing-worker-stopped",
+        errorParams: isApp ? error.params : undefined,
       },
     });
   },
@@ -115,6 +118,8 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
         error: {
           code: "decode-failed",
           message: error instanceof Error ? error.message : "Could not decode this image in the browser.",
+          errorCode: isAppError(error) ? error.code : "image-decode-failed",
+          errorParams: isAppError(error) ? error.params : undefined,
         },
       });
     } finally {
@@ -269,7 +274,7 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
   );
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("This browser cannot process canvas image data.");
+  if (!ctx) throw new AppError("canvas-read-failed", "This browser cannot process canvas image data.");
   ctx.drawImage(bitmap, 0, 0, width, height);
   const data = ctx.getImageData(0, 0, width, height);
   canvas.width = 0;

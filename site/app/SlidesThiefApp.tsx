@@ -6,6 +6,7 @@ import { normalizeJpgZipName, normalizePdfName, normalizeSingleJpgName } from ".
 import {
   copy,
   detectionMethodText,
+  formatAppError,
   ratioUiCopy,
   reviewUiCopy,
 } from "./i18n";
@@ -20,7 +21,14 @@ import {
   applyQuadToSlide,
   resolveSlideDimensions,
 } from "./lib/slide-utils";
-import type { ExportArtifact, Settings, SlideItem } from "./lib/types";
+import {
+  AppError,
+  isAppError,
+  type ExportArtifact,
+  type Settings,
+  type SlideItem,
+  type WorkerErrorInput,
+} from "./lib/types";
 import { parseManualQuadsJson, validateManualQuadForImage } from "./schemas/validators.ts";
 import { useCanvasViewport } from "./hooks/useCanvasViewport";
 import { useDetectionWorker } from "./hooks/useDetectionWorker";
@@ -48,12 +56,12 @@ export function SlidesThiefApp() {
   const [exportArtifacts, setExportArtifacts] = useState<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>({});
   const [exporting, setExporting] = useState(false);
   type ErrorAction = "detect" | "export-pdf" | "export-jpg" | "import-corners" | "export-corners";
-  const [workerError, setWorkerErrorState] = useState("");
+  const [workerError, setWorkerErrorState] = useState<WorkerErrorInput>("");
   const [errorDetails, setErrorDetails] = useState<string | undefined>(undefined);
   const [errorAction, setErrorAction] = useState<ErrorAction | undefined>(undefined);
   const activeActionRef = useRef<ErrorAction | undefined>(undefined);
 
-  const setWorkerError = useCallback((error: string, action?: ErrorAction, details?: string) => {
+  const setWorkerError = useCallback((error: WorkerErrorInput, action?: ErrorAction, details?: string) => {
     setWorkerErrorState(error);
     setErrorDetails(details);
     setErrorAction(error ? (action ?? activeActionRef.current) : undefined);
@@ -131,6 +139,10 @@ export function SlidesThiefApp() {
   } = usePreferences(markExportStale);
   const text = copy[locale];
   const reviewText = reviewUiCopy[locale];
+  const localizedWorkerError = useMemo(() => {
+    if (!workerError) return "";
+    return formatAppError(workerError, locale);
+  }, [workerError, locale]);
 
   const cancelActiveDrag = useCallback(() => cancelActiveDragRef.current(), []);
   const {
@@ -348,7 +360,7 @@ export function SlidesThiefApp() {
       setWorkerError("");
       setCornerAnnouncement(text.exportCorners);
     } catch (error) {
-      setWorkerError(messageFromError(error), "export-corners");
+      setWorkerError(isAppError(error) ? error : messageFromError(error), "export-corners");
     }
   }, [readySlides, setWorkerError, text.exportCorners]);
 
@@ -356,7 +368,7 @@ export function SlidesThiefApp() {
     try {
       const manualQuads = parseManualQuadsJson(await file.text());
       const currentSlides = slidesRef.current;
-      if (!currentSlides.length) throw new Error("Import images before importing corner coordinates.");
+      if (!currentSlides.length) throw new AppError("corners-import-no-images", "Import images before importing corner coordinates.");
 
       const matched = new Map<string, Quad>();
       for (const [key, quad] of Object.entries(manualQuads)) {
@@ -364,20 +376,20 @@ export function SlidesThiefApp() {
         const stemMatches = currentSlides.filter((slide) => stripFileExtension(slide.name) === key);
         const slide = exactMatch ?? (stemMatches.length === 1 ? stemMatches[0] : undefined);
         if (!slide) {
-          throw new Error(`No loaded image matches manual corners for ${JSON.stringify(key)}.`);
+          throw new AppError("corners-import-no-match", `No loaded image matches manual corners for ${JSON.stringify(key)}.`, { name: key });
         }
         if (matched.has(slide.id)) {
-          throw new Error(`Manual corners contain duplicate entries for ${JSON.stringify(slide.name)}.`);
+          throw new AppError("corners-import-duplicate", `Manual corners contain duplicate entries for ${JSON.stringify(slide.name)}.`, { name: slide.name });
         }
         if (slide.width <= 0 || slide.height <= 0) {
-          throw new Error(`Image dimensions are not ready for ${JSON.stringify(slide.name)}.`);
+          throw new AppError("corners-import-dimensions-not-ready", `Image dimensions are not ready for ${JSON.stringify(slide.name)}.`, { name: slide.name });
         }
         matched.set(
           slide.id,
           validateManualQuadForImage(quad, slide.name, slide.width, slide.height),
         );
       }
-      if (!matched.size) throw new Error("The manual corner file does not contain any entries.");
+      if (!matched.size) throw new AppError("corners-import-empty", "The manual corner file does not contain any entries.");
 
       cancelQuadDrag();
       pushHistory();
@@ -402,7 +414,7 @@ export function SlidesThiefApp() {
       for (const [id, quad] of matched) void refreshSlideThumbnail(id, quad);
       setCornerAnnouncement(text.manualImportSuccess(matched.size));
     } catch (error) {
-      setWorkerError(messageFromError(error), "import-corners");
+      setWorkerError(isAppError(error) ? error : messageFromError(error), "import-corners");
     }
   }, [cancelQuadDrag, markExportStale, pushHistory, refreshSlideThumbnail, setSelectedId, setSlides, setWorkerError, setZoomMode, slidesRef, text]);
 
@@ -1041,7 +1053,7 @@ export function SlidesThiefApp() {
           reviewText={reviewText}
           statusTone={statusTone}
           statusText={statusText}
-          errorMessage={workerError}
+          errorMessage={localizedWorkerError}
           errorDetails={errorDetails}
           onDismissError={dismissError}
           onRetryError={retryError}
@@ -1117,7 +1129,8 @@ export function SlidesThiefApp() {
           readySlides={readySlides}
           metrics={metrics}
           selectedSlide={selectedSlide}
-          workerError={workerError}
+          workerError={localizedWorkerError}
+          locale={locale}
           applyQuadToFollowing={() => void applyCurrentQuad("following")}
           applyQuadToAll={() => void applyCurrentQuad("all")}
           canApplyFollowing={selectedIndex >= 0 && selectedIndex < slides.length - 1 && !busy}

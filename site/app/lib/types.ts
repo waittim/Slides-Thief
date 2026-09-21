@@ -3,6 +3,8 @@ export type { ReviewReason };
 import type { EnhancementMode } from "../enhance";
 import { PRODUCT_METADATA } from "../product-metadata.ts";
 import type { OutputPageRatio, SourceFormatSettings } from "../ratio";
+export * from "./errors.ts";
+import type { AppErrorCode } from "./errors.ts";
 
 export interface GtagWindow extends Window {
   gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
@@ -50,6 +52,8 @@ export type SlideErrorCode = "conversion-failed" | "decode-failed" | "worker-fai
 export type SlideError = {
   code: SlideErrorCode;
   message: string;
+  errorCode?: AppErrorCode;
+  errorParams?: Record<string, string | number>;
 };
 
 export type AutoDetectionSnapshot = {
@@ -204,7 +208,7 @@ export type ExportWorkerRequest = {
 export type ExportWorkerMessage =
   | { type: "export-progress"; format?: ExportFormat; current: number; total: number; name: string }
   | { type: "export-complete"; format?: ExportFormat; buffer: ArrayBuffer; pdf?: ArrayBuffer; filename: string; mimeType?: string }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string; errorCode?: AppErrorCode; errorParams?: Record<string, string | number> };
 
 export type WorkerMessage = DetectionWorkerMessage | ExportWorkerMessage;
 

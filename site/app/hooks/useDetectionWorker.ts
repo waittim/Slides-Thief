@@ -1,9 +1,10 @@
 import { useCallback, useRef, useState } from "react";
 import type { Quad } from "../detection/types";
-import { copy, type LocaleValue } from "../i18n";
+import { copy, formatAppError, type LocaleValue } from "../i18n";
 import { messageFromError } from "../lib/slide-utils";
 import {
   trackEvent,
+  toAppErrorPayload,
   type DetectionJobId,
   type DetectionWorkerFile,
   type DetectionWorkerSettings,
@@ -11,6 +12,7 @@ import {
   type SlideError,
   type Settings,
   type SlideItem,
+  type WorkerErrorInput,
 } from "../lib/types";
 
 function toErrorSlide(slide: SlideItem, error: SlideError): SlideItem {
@@ -24,7 +26,12 @@ function toErrorSlide(slide: SlideItem, error: SlideError): SlideItem {
       confidence: 0,
       needsReview: false,
       reviewReasons: [],
-      error: { code: "conversion-failed", message: error.message },
+      error: {
+        code: "conversion-failed",
+        message: error.message,
+        errorCode: error.errorCode,
+        errorParams: error.errorParams,
+      },
     };
   }
   return {
@@ -33,6 +40,8 @@ function toErrorSlide(slide: SlideItem, error: SlideError): SlideItem {
     error: {
       code: error.code === "decode-failed" ? "decode-failed" : "worker-failed",
       message: error.message,
+      errorCode: error.errorCode,
+      errorParams: error.errorParams,
     },
   };
 }
@@ -41,7 +50,7 @@ export function useDetectionWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
   setSlides: React.Dispatch<React.SetStateAction<SlideItem[]>>,
   setBusyText: (text: string) => void,
-  setWorkerError: (error: string) => void,
+  setWorkerError: (error: WorkerErrorInput) => void,
   setExporting: (exporting: boolean) => void,
   localeRef: React.MutableRefObject<LocaleValue>,
   refreshSlideThumbnail: (
@@ -68,30 +77,42 @@ export function useDetectionWorker(
       setBusyText("");
       return null;
     }
-    const handleWorkerFailure = (message: string) => {
+    const handleWorkerFailure = (errorInput: WorkerErrorInput) => {
+      const payload = toAppErrorPayload(errorInput, "worker-stopped-unexpectedly");
+      const fallbackMessage = payload.message || formatAppError(payload, "en");
       trackEvent("processing_error", {
         error_type: "worker_failure",
-        error_message: message || "Worker terminated unexpectedly",
+        error_code: payload.code,
+        error_message: fallbackMessage,
       });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
       activeJobIdRef.current = null;
       setDetectionProgress(null);
+      const localizedMessage = formatAppError(payload, localeRef.current);
       setSlides((current) =>
         current.map((slide) =>
           slide.status === "detecting"
-            ? toErrorSlide(slide, { code: "worker-failed", message })
+            ? toErrorSlide(slide, {
+                code: "worker-failed",
+                message: localizedMessage,
+                errorCode: payload.code,
+                errorParams: payload.params,
+              })
             : slide,
         ),
       );
-      setWorkerError(message);
+      setWorkerError(payload);
       setExporting(false);
       setBusyText("");
     };
     worker.onmessage = (event: MessageEvent<unknown>) => {
       const message = parseDetectionWorkerMessage(event.data);
       if (!message) {
-        handleWorkerFailure("The image worker returned an invalid response.");
+        handleWorkerFailure({
+          code: "worker-invalid-response",
+          message: "The image worker returned an invalid response.",
+        });
         return;
       }
       if (message.jobId !== activeJobIdRef.current) return;
@@ -203,12 +224,26 @@ export function useDetectionWorker(
       if (message.type === "slide-error") {
         trackEvent("processing_error", {
           error_type: "slide_error",
+          error_code: message.error.errorCode,
           error_message: message.error.message || "Slide processing error",
         });
+        const slideError: SlideError = {
+          ...message.error,
+          message: message.error.errorCode
+            ? formatAppError(
+                {
+                  code: message.error.errorCode,
+                  params: message.error.errorParams,
+                  message: message.error.message,
+                },
+                localeRef.current,
+              )
+            : message.error.message,
+        };
         setSlides((current) =>
           current.map((slide) =>
             slide.id === message.id
-              ? toErrorSlide(slide, message.error)
+              ? toErrorSlide(slide, slideError)
               : slide,
           ),
         );
@@ -216,24 +251,47 @@ export function useDetectionWorker(
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "worker_error",
+          error_code: message.error.errorCode,
           error_message: message.error.message || "General worker error",
         });
         activeJobIdRef.current = null;
         setDetectionProgress(null);
+        const payload = toAppErrorPayload(
+          message.error.errorCode
+            ? {
+                code: message.error.errorCode,
+                params: message.error.errorParams,
+                message: message.error.message,
+              }
+            : message.error.message,
+          "processing-worker-stopped",
+        );
+        const localizedMessage = formatAppError(payload, localeRef.current);
         setSlides((current) =>
           current.map((slide) =>
             slide.status === "detecting"
-              ? toErrorSlide(slide, message.error)
+              ? toErrorSlide(slide, {
+                  ...message.error,
+                  message: localizedMessage,
+                })
               : slide,
           ),
         );
-        setWorkerError(message.error.message);
+        setWorkerError(payload);
         setExporting(false);
         setBusyText("");
       }
     };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The image worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
+    worker.onerror = (event) =>
+      handleWorkerFailure({
+        code: "worker-stopped-unexpectedly",
+        message: event.message || "The image worker stopped unexpectedly.",
+      });
+    worker.onmessageerror = () =>
+      handleWorkerFailure({
+        code: "worker-response-read-failed",
+        message: "The browser could not read a response from the image worker.",
+      });
     workerRef.current = worker;
     return worker;
   }, [localeRef, refreshSlideThumbnail, setBusyText, setExporting, setSlides, setWorkerError, slidesRef]);

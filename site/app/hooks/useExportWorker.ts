@@ -1,14 +1,21 @@
 import { useCallback, useRef, useState } from "react";
-import { copy, type LocaleValue } from "../i18n";
+import { copy, formatAppError, type LocaleValue } from "../i18n";
 import { messageFromError, triggerDownload } from "../lib/slide-utils";
-import { trackEvent, type ExportArtifact, type ExportWorkerMessage, type SlideItem } from "../lib/types";
+import {
+  toAppErrorPayload,
+  trackEvent,
+  type ExportArtifact,
+  type ExportWorkerMessage,
+  type SlideItem,
+  type WorkerErrorInput,
+} from "../lib/types";
 
 export function useExportWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
   exportArtifactsRef: React.MutableRefObject<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>,
   setExportArtifacts: React.Dispatch<React.SetStateAction<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>>,
   setExporting: (exporting: boolean) => void,
-  setWorkerError: (error: string) => void,
+  setWorkerError: (error: WorkerErrorInput) => void,
   setBusyText: (text: string) => void,
   localeRef: React.MutableRefObject<LocaleValue>,
   isIOSRef?: React.MutableRefObject<boolean>,
@@ -83,28 +90,45 @@ export function useExportWorker(
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "export_worker_error",
+          error_code: message.errorCode,
           error_message: message.error || "Export error",
         });
-        setWorkerError(message.error);
+        const payload = toAppErrorPayload(
+          message.errorCode
+            ? { code: message.errorCode, params: message.errorParams, message: message.error }
+            : message.error,
+          "export-worker-failed",
+        );
+        setWorkerError(payload);
         setExporting(false);
         setBusyText("");
         setExportProgress(null);
         releaseWorker();
       }
     };
-    const handleWorkerFailure = (message: string) => {
+    const handleWorkerFailure = (errorInput: WorkerErrorInput) => {
+      const payload = toAppErrorPayload(errorInput, "export-worker-stopped-unexpectedly");
       trackEvent("processing_error", {
         error_type: "export_worker_failure",
-        error_message: message || "Export worker terminated unexpectedly",
+        error_code: payload.code,
+        error_message: payload.message || formatAppError(payload, "en"),
       });
-      setWorkerError(message);
+      setWorkerError(payload);
       setExporting(false);
       setBusyText("");
       setExportProgress(null);
       releaseWorker();
     };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The export worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the image worker.");
+    worker.onerror = (event) =>
+      handleWorkerFailure({
+        code: "export-worker-stopped-unexpectedly",
+        message: event.message || "The export worker stopped unexpectedly.",
+      });
+    worker.onmessageerror = () =>
+      handleWorkerFailure({
+        code: "export-worker-response-read-failed",
+        message: "The browser could not read a response from the export worker.",
+      });
     exportWorkerRef.current = worker;
     return worker;
   }, [exportArtifactsRef, isIOSRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);

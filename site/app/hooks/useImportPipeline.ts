@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
-import { copy, type LocaleValue } from "../i18n";
+import { copy, formatAppError, type LocaleValue } from "../i18n";
 import { normalizePdfName } from "../filename";
 import {
   isHeifImage,
@@ -9,7 +9,13 @@ import {
   messageFromError,
   normalizeImageFile,
 } from "../lib/slide-utils";
-import { trackEvent, type SlideItem } from "../lib/types";
+import {
+  isAppError,
+  toAppErrorPayload,
+  trackEvent,
+  type SlideItem,
+  type WorkerErrorInput,
+} from "../lib/types";
 
 type ImportPipelineOptions = {
   pdfBaseName: string;
@@ -19,7 +25,7 @@ type ImportPipelineOptions = {
   setSelectedId: Dispatch<SetStateAction<string | null>>;
   setExportName: (name: string) => void;
   setBusyText: (text: string) => void;
-  setWorkerError: (error: string) => void;
+  setWorkerError: (error: WorkerErrorInput) => void;
   setPreviewErrorSlideId: (id: string | null) => void;
   setZoomMode: (mode: "fit" | "manual") => void;
   clearExport: () => void;
@@ -159,7 +165,7 @@ export function useImportPipeline({
       );
       setBusyText(hasHeif ? copy[localeRef.current].converting : "");
 
-      let firstConversionError = "";
+      let firstConversionError: WorkerErrorInput = "";
       for (let index = 0; index < uniqueFiles.length; index += 1) {
         if (loadTokenRef.current !== token) return;
         const file = uniqueFiles[index];
@@ -193,8 +199,10 @@ export function useImportPipeline({
           );
         } catch (error) {
           if (loadTokenRef.current !== token) return;
-          const message = messageFromError(error);
-          if (!firstConversionError) firstConversionError = message;
+          const isApp = isAppError(error);
+          const payload = toAppErrorPayload(error, "heif-conversion-failed");
+          const message = formatAppError(payload, localeRef.current);
+          if (!firstConversionError) firstConversionError = payload;
           setSlides((current) =>
             current.map((slide) =>
               slide.id === id
@@ -207,7 +215,12 @@ export function useImportPipeline({
                     confidence: 0,
                     needsReview: false,
                     reviewReasons: [],
-                    error: { code: "conversion-failed", message },
+                    error: {
+                      code: "conversion-failed",
+                      message,
+                      errorCode: isApp ? error.code : payload.code,
+                      errorParams: isApp ? error.params : payload.params,
+                    },
                   }
                 : slide,
             ),

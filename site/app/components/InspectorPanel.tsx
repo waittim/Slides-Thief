@@ -1,5 +1,5 @@
 import React from "react";
-import type { LocaleCopy, ReviewUiCopy } from "../i18n";
+import { formatSlideError, type LocaleCopy, type LocaleValue, type ReviewUiCopy } from "../i18n";
 import type { SlideItem } from "../lib/types";
 import { Button, CountBadge } from "./ui";
 
@@ -16,6 +16,7 @@ interface InspectorPanelProps {
   applyQuadToAll?: () => void;
   canApplyFollowing?: boolean;
   canApplyAll?: boolean;
+  locale?: LocaleValue;
 }
 
 export function InspectorPanel({
@@ -31,6 +32,7 @@ export function InspectorPanel({
   applyQuadToAll,
   canApplyFollowing = false,
   canApplyAll = false,
+  locale,
 }: InspectorPanelProps) {
   return (
     <aside className={`inspector ${inspectorCollapsed ? "collapsed" : ""}`}>
@@ -124,7 +126,11 @@ export function InspectorPanel({
             ) : null}
           </div>
         ) : null}
-        {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error.message}</p> : null}
+        {selectedSlide?.error ? (
+          <p className="errorText" role="alert">
+            {formatSlideError(selectedSlide.error, locale, text)}
+          </p>
+        ) : null}
       </div>
     </aside>
   );

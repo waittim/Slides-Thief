@@ -5,6 +5,7 @@ import {
 } from "./canvas-utils";
 import { renderPerspectivePage } from "./perspective-render";
 import {
+  AppError,
   heifExtensions,
   heifMimeTypes,
   supportedExtensions,
@@ -65,7 +66,7 @@ export function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number) {
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("Canvas could not encode the image as JPEG."));
+        else reject(new AppError("canvas-encode-failed", "Canvas could not encode the image as JPEG."));
       },
       "image/jpeg",
       quality,
@@ -80,7 +81,7 @@ export async function nativeDecodeToJpeg(file: File, quality: number) {
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas is not available in this browser.");
+    if (!ctx) throw new AppError("canvas-not-available", "Canvas is not available in this browser.");
     ctx.drawImage(bitmap, 0, 0);
     return canvasToJpegBlob(canvas, quality);
   } finally {
@@ -99,7 +100,11 @@ export async function normalizeImageFile(file: File) {
       const { heicTo } = await import("heic-to/csp");
       jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
     } catch (error) {
-      throw new Error(`Could not convert ${file.name} from HEIC/HEIF: ${messageFromError(error)}`);
+      throw new AppError(
+        "heif-conversion-failed",
+        `Could not convert ${file.name} from HEIC/HEIF: ${messageFromError(error)}`,
+        { name: file.name, error: messageFromError(error) },
+      );
     }
   }
 

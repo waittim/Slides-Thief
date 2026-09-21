@@ -1,4 +1,17 @@
-import type { ReviewReason, SlideDetectionMethod, SlideItem } from "./lib/types";
+import type {
+  AppErrorCode,
+  AppErrorPayload,
+  ReviewReason,
+  SlideDetectionMethod,
+  SlideError,
+  SlideItem,
+  WorkerErrorInput,
+} from "./lib/types";
+import {
+  isAppError,
+  isAppErrorCode,
+  LEGACY_ERROR_MESSAGE_TO_CODE,
+} from "./lib/errors.ts";
 
 export type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
@@ -380,6 +393,240 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       candidate_out_of_bounds: "O contorno detectado ultrapassa a imagem; verifique os cantos.",
       batch_inconsistency: "A posição detectada diverge do padrão do lote; revisão recomendada.",
     },
+  },
+};
+
+export type ErrorUiCopy = {
+  workerInvalidResponse: string;
+  workerStoppedUnexpectedly: string;
+  workerResponseReadFailed: string;
+  exportWorkerStoppedUnexpectedly: string;
+  exportWorkerResponseReadFailed: string;
+  processingWorkerStopped: string;
+  exportWorkerFailed: string;
+  imageDecodeFailed: string;
+  batchPriorFailed: string;
+  noSlidesToExport: string;
+  slideImageNotFound: (name: string) => string;
+  canvasReadFailed: string;
+  canvasRenderFailed: string;
+  canvasNotAvailable: string;
+  canvasEncodeFailed: string;
+  cornersImportNoImages: string;
+  cornersImportNoMatch: (name: string) => string;
+  cornersImportDuplicate: (name: string) => string;
+  cornersImportDimensionsNotReady: (name: string) => string;
+  cornersImportEmpty: string;
+  heifConversionFailed: (name: string, detail: string) => string;
+};
+
+export const errorUiCopy: Record<LocaleValue, ErrorUiCopy> = {
+  "zh-CN": {
+    workerInvalidResponse: "图像处理服务返回了无效响应。",
+    workerStoppedUnexpectedly: "图像处理服务意外停止。",
+    workerResponseReadFailed: "浏览器无法读取图像处理服务的响应。",
+    exportWorkerStoppedUnexpectedly: "导出服务意外停止。",
+    exportWorkerResponseReadFailed: "浏览器无法读取导出服务的响应。",
+    processingWorkerStopped: "浏览器图像处理服务意外停止。",
+    exportWorkerFailed: "浏览器导出服务意外停止。",
+    imageDecodeFailed: "浏览器无法解码此图像。",
+    batchPriorFailed: "无法应用批次几何先验。",
+    noSlidesToExport: "没有可导出的幻灯片。",
+    slideImageNotFound: (name) => `未找到幻灯片图像：${name}`,
+    canvasReadFailed: "此浏览器无法读取画布像素。",
+    canvasRenderFailed: "此浏览器无法渲染校正后的幻灯片。",
+    canvasNotAvailable: "此浏览器不支持 Canvas。",
+    canvasEncodeFailed: "画布无法将图像编码为 JPEG。",
+    cornersImportNoImages: "导入角点坐标前，请先导入图像。",
+    cornersImportNoMatch: (name) => `已加载的图像中没有匹配 "${name}" 的角点数据。`,
+    cornersImportDuplicate: (name) => `角点文件中包含重复的 "${name}" 条目。`,
+    cornersImportDimensionsNotReady: (name) => `尚未获取图像 "${name}" 的尺寸信息。`,
+    cornersImportEmpty: "角点文件中没有任何有效条目。",
+    heifConversionFailed: (name, detail) => `无法转换 HEIC/HEIF 图像 ${name}：${detail}`,
+  },
+  "zh-TW": {
+    workerInvalidResponse: "影像處理服務回傳了無效回應。",
+    workerStoppedUnexpectedly: "影像處理服務意外停止。",
+    workerResponseReadFailed: "瀏覽器無法讀取影像處理服務的回應。",
+    exportWorkerStoppedUnexpectedly: "匯出服務意外停止。",
+    exportWorkerResponseReadFailed: "瀏覽器無法讀取匯出服務的回應。",
+    processingWorkerStopped: "瀏覽器影像處理服務意外停止。",
+    exportWorkerFailed: "瀏覽器匯出服務意外停止。",
+    imageDecodeFailed: "瀏覽器無法解碼此影像。",
+    batchPriorFailed: "無法套用批次幾何先驗。",
+    noSlidesToExport: "沒有可匯出的投影片。",
+    slideImageNotFound: (name) => `找不到投影片影像：${name}`,
+    canvasReadFailed: "此瀏覽器無法讀取畫布像素。",
+    canvasRenderFailed: "此瀏覽器無法繪製校正後的投影片。",
+    canvasNotAvailable: "此瀏覽器不支援 Canvas。",
+    canvasEncodeFailed: "畫布無法將影像編碼為 JPEG。",
+    cornersImportNoImages: "匯入角點座標前，請先匯入影像。",
+    cornersImportNoMatch: (name) => `已載入的影像中沒有符合 "${name}" 的角點資料。`,
+    cornersImportDuplicate: (name) => `角點檔案中包含重複的 "${name}" 項目。`,
+    cornersImportDimensionsNotReady: (name) => `尚未取得影像 "${name}" 的尺寸資訊。`,
+    cornersImportEmpty: "角點檔案中沒有任何有效項目。",
+    heifConversionFailed: (name, detail) => `無法轉換 HEIC/HEIF 影像 ${name}：${detail}`,
+  },
+  en: {
+    workerInvalidResponse: "The image worker returned an invalid response.",
+    workerStoppedUnexpectedly: "The image worker stopped unexpectedly.",
+    workerResponseReadFailed: "The browser could not read a response from the image worker.",
+    exportWorkerStoppedUnexpectedly: "The export worker stopped unexpectedly.",
+    exportWorkerResponseReadFailed: "The browser could not read a response from the export worker.",
+    processingWorkerStopped: "The browser processing worker stopped unexpectedly.",
+    exportWorkerFailed: "The browser export worker stopped unexpectedly.",
+    imageDecodeFailed: "Could not decode this image in the browser.",
+    batchPriorFailed: "Could not apply the batch geometry prior.",
+    noSlidesToExport: "No slides to export.",
+    slideImageNotFound: (name) => `Slide image not found: ${name}`,
+    canvasReadFailed: "This browser cannot read canvas pixels.",
+    canvasRenderFailed: "This browser cannot render the corrected slide.",
+    canvasNotAvailable: "Canvas is not available in this browser.",
+    canvasEncodeFailed: "Canvas could not encode the image as JPEG.",
+    cornersImportNoImages: "Import images before importing corner coordinates.",
+    cornersImportNoMatch: (name) => `No loaded image matches manual corners for "${name}".`,
+    cornersImportDuplicate: (name) => `Manual corners contain duplicate entries for "${name}".`,
+    cornersImportDimensionsNotReady: (name) => `Image dimensions are not ready for "${name}".`,
+    cornersImportEmpty: "The manual corner file does not contain any entries.",
+    heifConversionFailed: (name, detail) => `Could not convert ${name} from HEIC/HEIF: ${detail}`,
+  },
+  es: {
+    workerInvalidResponse: "El proceso de imágenes devolvió una respuesta no válida.",
+    workerStoppedUnexpectedly: "El proceso de imágenes se detuvo inesperadamente.",
+    workerResponseReadFailed: "El navegador no pudo leer la respuesta del proceso de imágenes.",
+    exportWorkerStoppedUnexpectedly: "El proceso de exportación se detuvo inesperadamente.",
+    exportWorkerResponseReadFailed: "El navegador no pudo leer la respuesta del proceso de exportación.",
+    processingWorkerStopped: "El proceso de procesamiento del navegador se detuvo inesperadamente.",
+    exportWorkerFailed: "El proceso de exportación del navegador se detuvo inesperadamente.",
+    imageDecodeFailed: "No se pudo decodificar esta imagen en el navegador.",
+    batchPriorFailed: "No se pudo aplicar la previa geométrica por lotes.",
+    noSlidesToExport: "No hay diapositivas para exportar.",
+    slideImageNotFound: (name) => `No se encontró la imagen de la diapositiva: ${name}`,
+    canvasReadFailed: "Este navegador no puede leer los píxeles del lienzo.",
+    canvasRenderFailed: "Este navegador no puede renderizar la diapositiva corregida.",
+    canvasNotAvailable: "Canvas no está disponible en este navegador.",
+    canvasEncodeFailed: "El lienzo no pudo codificar la imagen como JPEG.",
+    cornersImportNoImages: "Importa imágenes antes de importar las coordenadas de esquinas.",
+    cornersImportNoMatch: (name) => `Ninguna imagen cargada coincide con las esquinas manuales de "${name}".`,
+    cornersImportDuplicate: (name) => `Las esquinas manuales contienen entradas duplicadas para "${name}".`,
+    cornersImportDimensionsNotReady: (name) => `Las dimensiones de la imagen no están listas para "${name}".`,
+    cornersImportEmpty: "El archivo de esquinas manuales no contiene ninguna entrada.",
+    heifConversionFailed: (name, detail) => `No se pudo convertir ${name} desde HEIC/HEIF: ${detail}`,
+  },
+  fr: {
+    workerInvalidResponse: "Le processus d’image a renvoyé une réponse non valide.",
+    workerStoppedUnexpectedly: "Le processus d’image s’est arrêté de manière inattendue.",
+    workerResponseReadFailed: "Le navigateur n’a pas pu lire la réponse du processus d’image.",
+    exportWorkerStoppedUnexpectedly: "Le processus d’exportation s’est arrêté de manière inattendue.",
+    exportWorkerResponseReadFailed: "Le navigateur n’a pas pu lire la réponse du processus d’exportation.",
+    processingWorkerStopped: "Le processus de traitement du navigateur s’est arrêté de manière inattendue.",
+    exportWorkerFailed: "Le processus d’exportation du navigateur s’est arrêté de manière inattendue.",
+    imageDecodeFailed: "Impossible de décoder cette image dans le navigateur.",
+    batchPriorFailed: "Impossible d’appliquer l’a priori géométrique du lot.",
+    noSlidesToExport: "Aucune diapositive à exporter.",
+    slideImageNotFound: (name) => `Image de diapositive introuvable : ${name}`,
+    canvasReadFailed: "Ce navigateur ne peut pas lire les pixels du canevas.",
+    canvasRenderFailed: "Ce navigateur ne peut pas afficher la diapositive corrigée.",
+    canvasNotAvailable: "Canvas n’est pas disponible dans ce navigateur.",
+    canvasEncodeFailed: "Le canevas n’a pas pu encoder l’image au format JPEG.",
+    cornersImportNoImages: "Importez des images avant d’importer les coordonnées des coins.",
+    cornersImportNoMatch: (name) => `Aucune image chargée ne correspond aux coins manuels pour « ${name} ».`,
+    cornersImportDuplicate: (name) => `Les coins manuels contiennent des entrées en double pour « ${name} ».`,
+    cornersImportDimensionsNotReady: (name) => `Les dimensions de l’image ne sont pas prêtes pour « ${name} ».`,
+    cornersImportEmpty: "Le fichier de coins manuels ne contient aucune entrée.",
+    heifConversionFailed: (name, detail) => `Impossible de convertir ${name} depuis HEIC/HEIF : ${detail}`,
+  },
+  de: {
+    workerInvalidResponse: "Der Bildverarbeitungsprozess hat eine ungültige Antwort zurückgegeben.",
+    workerStoppedUnexpectedly: "Der Bildverarbeitungsprozess wurde unerwartet beendet.",
+    workerResponseReadFailed: "Der Browser konnte die Antwort des Bildverarbeitungsprozesses nicht lesen.",
+    exportWorkerStoppedUnexpectedly: "Der Exportprozess wurde unerwartet beendet.",
+    exportWorkerResponseReadFailed: "Der Browser konnte die Antwort des Exportprozesses nicht lesen.",
+    processingWorkerStopped: "Der Browser-Verarbeitungsprozess wurde unerwartet beendet.",
+    exportWorkerFailed: "Der Browser-Exportprozess wurde unerwartet beendet.",
+    imageDecodeFailed: "Dieses Bild konnte im Browser nicht decodiert werden.",
+    batchPriorFailed: "Der Batch-Geometrieprior konnte nicht angewendet werden.",
+    noSlidesToExport: "Keine Folien zum Exportieren vorhanden.",
+    slideImageNotFound: (name) => `Folienbild nicht gefunden: ${name}`,
+    canvasReadFailed: "Dieser Browser kann keine Canvas-Pixel lesen.",
+    canvasRenderFailed: "Dieser Browser kann die korrigierte Folie nicht rendern.",
+    canvasNotAvailable: "Canvas ist in diesem Browser nicht verfügbar.",
+    canvasEncodeFailed: "Das Canvas konnte das Bild nicht als JPEG codieren.",
+    cornersImportNoImages: "Importieren Sie Bilder, bevor Sie Eckkoordinaten importieren.",
+    cornersImportNoMatch: (name) => `Kein geladenes Bild stimmt mit den manuellen Ecken für "${name}" überein.`,
+    cornersImportDuplicate: (name) => `Manuelle Ecken enthalten doppelte Einträge für "${name}".`,
+    cornersImportDimensionsNotReady: (name) => `Bildabmessungen sind für "${name}" noch nicht bereit.`,
+    cornersImportEmpty: "Die manuelle Eckendatei enthält keine Einträge.",
+    heifConversionFailed: (name, detail) => `${name} konnte nicht aus HEIC/HEIF konvertiert werden: ${detail}`,
+  },
+  ja: {
+    workerInvalidResponse: "画像処理ワーカーから無効な応答が返されました。",
+    workerStoppedUnexpectedly: "画像処理ワーカーが予期せず停止しました。",
+    workerResponseReadFailed: "ブラウザが画像処理ワーカーからの応答を読み取れませんでした。",
+    exportWorkerStoppedUnexpectedly: "エクスポートワーカーが予期せず停止しました。",
+    exportWorkerResponseReadFailed: "ブラウザがエクスポートワーカーからの応答を読み取れませんでした。",
+    processingWorkerStopped: "ブラウザ処理ワーカーが予期せず停止しました。",
+    exportWorkerFailed: "ブラウザエクスポートワーカーが予期せず停止しました。",
+    imageDecodeFailed: "ブラウザでこの画像をデコードできませんでした。",
+    batchPriorFailed: "バッチ幾何事前分布を適用できませんでした。",
+    noSlidesToExport: "エクスポートするスライドがありません。",
+    slideImageNotFound: (name) => `スライド画像が見つかりません: ${name}`,
+    canvasReadFailed: "このブラウザではキャンバスのピクセルを読み取れません。",
+    canvasRenderFailed: "このブラウザでは補正されたスライドを描画できません。",
+    canvasNotAvailable: "このブラウザでは Canvas を利用できません。",
+    canvasEncodeFailed: "キャンバスで画像を JPEG としてエンコードできませんでした。",
+    cornersImportNoImages: "角の座標をインポートする前に画像をインポートしてください。",
+    cornersImportNoMatch: (name) => `「${name}」の手動角点に一致する読み込み済み画像がありません。`,
+    cornersImportDuplicate: (name) => `手動角点ファイルに「${name}」の重複エントリーが含まれています。`,
+    cornersImportDimensionsNotReady: (name) => `画像「${name}」のサイズ情報を取得できていません。`,
+    cornersImportEmpty: "手動角点ファイルにエントリーが含まれていません。",
+    heifConversionFailed: (name, detail) => `HEIC/HEIF 画像 ${name} を変換できませんでした: ${detail}`,
+  },
+  ko: {
+    workerInvalidResponse: "이미지 처리 워커에서 잘못된 응답을 반환했습니다.",
+    workerStoppedUnexpectedly: "이미지 처리 워커가 예기치 않게 중단되었습니다.",
+    workerResponseReadFailed: "브라우저가 이미지 처리 워커의 응답을 읽을 수 없습니다.",
+    exportWorkerStoppedUnexpectedly: "내보내기 워커가 예기치 않게 중단되었습니다.",
+    exportWorkerResponseReadFailed: "브라우저가 내보내기 워커의 응답을 읽을 수 없습니다.",
+    processingWorkerStopped: "브라우저 처리 워커가 예기치 않게 중단되었습니다.",
+    exportWorkerFailed: "브라우저 내보내기 워커가 예기치 않게 중단되었습니다.",
+    imageDecodeFailed: "브라우저에서 이 이미지를 디코딩할 수 없습니다.",
+    batchPriorFailed: "배치 기하학적 사전 정보를 적용할 수 없습니다.",
+    noSlidesToExport: "내보낼 슬라이드가 없습니다.",
+    slideImageNotFound: (name) => `슬라이드 이미지를 찾을 수 없습니다: ${name}`,
+    canvasReadFailed: "이 브라우저에서는 캔버스 픽셀을 읽을 수 없습니다.",
+    canvasRenderFailed: "이 브라우저에서는 보정된 슬라이드를 렌더링할 수 없습니다.",
+    canvasNotAvailable: "이 브라우저에서는 Canvas를 사용할 수 없습니다.",
+    canvasEncodeFailed: "캔버스에서 이미지를 JPEG로 인코딩할 수 없습니다.",
+    cornersImportNoImages: "모서리 좌표를 가져오기 전에 먼저 이미지를 가져오세요.",
+    cornersImportNoMatch: (name) => `"${name}"의 수동 모서리와 일치하는 로드된 이미지가 없습니다.`,
+    cornersImportDuplicate: (name) => `수동 모서리 파일에 "${name}"에 대한 중복 항목이 포함되어 있습니다.`,
+    cornersImportDimensionsNotReady: (name) => `이미지 "${name}"의 크기 정보를 아직 가져오지 못했습니다.`,
+    cornersImportEmpty: "수동 모서리 파일에 유효한 항목이 없습니다.",
+    heifConversionFailed: (name, detail) => `HEIC/HEIF 이미지 ${name}을(를) 변환할 수 없습니다: ${detail}`,
+  },
+  "pt-BR": {
+    workerInvalidResponse: "O processo de imagem retornou uma resposta inválida.",
+    workerStoppedUnexpectedly: "O processo de imagem parou inesperadamente.",
+    workerResponseReadFailed: "O navegador não conseguiu ler a resposta do processo de imagem.",
+    exportWorkerStoppedUnexpectedly: "O processo de exportação parou inesperadamente.",
+    exportWorkerResponseReadFailed: "O navegador não conseguiu ler a resposta do processo de exportação.",
+    processingWorkerStopped: "O processo de processamento do navegador parou inesperadamente.",
+    exportWorkerFailed: "O processo de exportação do navegador parou inesperadamente.",
+    imageDecodeFailed: "Não foi possível decodificar esta imagem no navegador.",
+    batchPriorFailed: "Não foi possível aplicar o prior geométrico do lote.",
+    noSlidesToExport: "Nenhum slide para exportar.",
+    slideImageNotFound: (name) => `Imagem do slide não encontrada: ${name}`,
+    canvasReadFailed: "Este navegador não consegue ler os pixels do canvas.",
+    canvasRenderFailed: "Este navegador não consegue renderizar o slide corrigido.",
+    canvasNotAvailable: "O Canvas não está disponível neste navegador.",
+    canvasEncodeFailed: "O canvas não conseguiu codificar a imagem como JPEG.",
+    cornersImportNoImages: "Importe imagens antes de importar as coordenadas dos cantos.",
+    cornersImportNoMatch: (name) => `Nenhuma imagem carregada corresponde aos cantos manuais de "${name}".`,
+    cornersImportDuplicate: (name) => `Os cantos manuais contêm entradas duplicadas para "${name}".`,
+    cornersImportDimensionsNotReady: (name) => `As dimensões da imagem não estão prontas para "${name}".`,
+    cornersImportEmpty: "O arquivo de cantos manuais não contém nenhuma entrada.",
+    heifConversionFailed: (name, detail) => `Não foi possível converter ${name} de HEIC/HEIF: ${detail}`,
   },
 };
 
@@ -1683,13 +1930,124 @@ export function detectionMethodText(method: SlideDetectionMethod, locale: Locale
   return "-";
 }
 
+export function formatAppError(
+  error: WorkerErrorInput,
+  locale: LocaleValue = "en",
+): string {
+  if (!error) return "";
+  const copy = errorUiCopy[locale] ?? errorUiCopy.en;
+
+  let code: AppErrorCode | undefined;
+  let params: Record<string, string | number> | undefined;
+  let fallbackMessage: string | undefined;
+
+  if (typeof error === "string") {
+    if (isAppErrorCode(error)) {
+      code = error;
+    } else if (LEGACY_ERROR_MESSAGE_TO_CODE[error]) {
+      code = LEGACY_ERROR_MESSAGE_TO_CODE[error];
+    } else {
+      const matchNoMatch = error.match(/^No loaded image matches manual corners for "(.*)"\.$/);
+      if (matchNoMatch) {
+        return copy.cornersImportNoMatch(matchNoMatch[1]);
+      }
+      const matchDuplicate = error.match(/^Manual corners contain duplicate entries for "(.*)"\.$/);
+      if (matchDuplicate) {
+        return copy.cornersImportDuplicate(matchDuplicate[1]);
+      }
+      const matchDimensions = error.match(/^Image dimensions are not ready for "(.*)"\.$/);
+      if (matchDimensions) {
+        return copy.cornersImportDimensionsNotReady(matchDimensions[1]);
+      }
+      const matchSlideNotFound = error.match(/^Slide image not found: (.*)$/);
+      if (matchSlideNotFound) {
+        return copy.slideImageNotFound(matchSlideNotFound[1]);
+      }
+      return error;
+    }
+  } else if (isAppError(error)) {
+    code = error.code as AppErrorCode;
+    params = error.params;
+    fallbackMessage = error.message;
+  }
+
+  if (code) {
+    switch (code) {
+      case "worker-invalid-response":
+        return copy.workerInvalidResponse;
+      case "worker-stopped-unexpectedly":
+        return copy.workerStoppedUnexpectedly;
+      case "worker-response-read-failed":
+        return copy.workerResponseReadFailed;
+      case "export-worker-stopped-unexpectedly":
+        return copy.exportWorkerStoppedUnexpectedly;
+      case "export-worker-response-read-failed":
+        return copy.exportWorkerResponseReadFailed;
+      case "processing-worker-stopped":
+        return copy.processingWorkerStopped;
+      case "export-worker-failed":
+        return copy.exportWorkerFailed;
+      case "image-decode-failed":
+        return copy.imageDecodeFailed;
+      case "batch-prior-failed":
+        return copy.batchPriorFailed;
+      case "no-slides-to-export":
+        return copy.noSlidesToExport;
+      case "slide-image-not-found":
+        return copy.slideImageNotFound(String(params?.name ?? ""));
+      case "canvas-read-failed":
+        return copy.canvasReadFailed;
+      case "canvas-render-failed":
+        return copy.canvasRenderFailed;
+      case "canvas-not-available":
+        return copy.canvasNotAvailable;
+      case "canvas-encode-failed":
+        return copy.canvasEncodeFailed;
+      case "corners-import-no-images":
+        return copy.cornersImportNoImages;
+      case "corners-import-no-match":
+        return copy.cornersImportNoMatch(String(params?.name ?? ""));
+      case "corners-import-duplicate":
+        return copy.cornersImportDuplicate(String(params?.name ?? ""));
+      case "corners-import-dimensions-not-ready":
+        return copy.cornersImportDimensionsNotReady(String(params?.name ?? ""));
+      case "corners-import-empty":
+        return copy.cornersImportEmpty;
+      case "heif-conversion-failed":
+        return copy.heifConversionFailed(String(params?.name ?? ""), String(params?.error ?? ""));
+    }
+  }
+
+  return fallbackMessage ?? (typeof error === "string" ? error : error.code);
+}
+
+export function formatSlideError(
+  error: SlideError,
+  locale: LocaleValue = "en",
+  text?: LocaleCopy,
+): string {
+  if (error.errorCode) {
+    return formatAppError(
+      { code: error.errorCode, params: error.errorParams, message: error.message },
+      locale,
+    );
+  }
+  const translated = formatAppError(error.message, locale);
+  if (translated) return translated;
+  return error.message ?? text?.failed ?? "";
+}
+
 export function slideBadgeTitle(
   slide: SlideItem,
   text: LocaleCopy,
   reviewText: ReviewUiCopy,
+  locale?: LocaleValue,
 ): string {
   if (slide.status === "error") {
-    return slide.error?.message ?? text.failed;
+    if (slide.error) {
+      return formatSlideError(slide.error, locale, text);
+    }
+    return text.failed;
   }
   if (slide.status === "ready") {
     if (slide.needsReview) {
