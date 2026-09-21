@@ -24,6 +24,9 @@ test("all 9 locales contain required review mode copy", () => {
     assert.equal(typeof reviewCopy.reviewConfirmSlide, "string");
     assert.ok(reviewCopy.reviewConfirmSlide.length > 0);
 
+    assert.equal(typeof reviewCopy.confidenceGood, "string");
+    assert.ok(reviewCopy.confidenceGood.length > 0);
+
     assert.equal(typeof reviewCopy.reviewNextSlide, "string");
     assert.ok(reviewCopy.reviewNextSlide.length > 0);
 

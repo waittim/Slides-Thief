@@ -2031,6 +2031,20 @@ canvas {
   gap: var(--space-2);
 }
 
+.cornerTableHeader {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.cornerTableColHeader {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  color: var(--muted);
+  text-align: center;
+}
+
 .cornerRow {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
@@ -2038,7 +2052,8 @@ canvas {
   align-items: center;
 }
 
-.cornerRow span {
+.cornerRow span,
+.cornerIndex {
   width: 24px;
   height: 24px;
   display: grid;
@@ -2059,6 +2074,41 @@ canvas {
   background: var(--panel-strong);
   padding: var(--space-1) var(--space-2);
   font: var(--font-size-sm)/var(--line-height-tight) var(--font-family-mono);
+}
+
+.cornerInput {
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: var(--component-input-radius);
+  background: var(--panel-strong);
+  color: inherit;
+  padding: var(--space-1) var(--space-2);
+  font: var(--font-size-sm)/var(--line-height-tight) var(--font-family-mono);
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.cornerInput:focus {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -1px;
+}
+
+.cornerInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.privacyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  white-space: nowrap;
+  user-select: none;
+  padding: 0 var(--space-1);
 }
 
 .inspectorBatchActions {

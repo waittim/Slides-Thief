@@ -183,6 +183,7 @@ export type RatioUiCopy = (typeof ratioUiCopy)[LocaleValue];
 
 export type ReviewUiCopy = {
   reviewSuggested: string;
+  confidenceGood: string;
   corrected: string;
   manualAdjustment: string;
   fallbackFrame: string;
@@ -211,6 +212,7 @@ export type ReviewUiCopy = {
 export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   "zh-CN": {
     reviewSuggested: "建议复查",
+    confidenceGood: "看起来不错",
     corrected: "已校正",
     manualAdjustment: "手动调整",
     fallbackFrame: "备用边框",
@@ -244,6 +246,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   "zh-TW": {
     reviewSuggested: "建議檢查",
+    confidenceGood: "看起來不錯",
     corrected: "已校正",
     manualAdjustment: "手動調整",
     fallbackFrame: "備用邊框",
@@ -277,6 +280,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   en: {
     reviewSuggested: "Review suggested",
+    confidenceGood: "Looks good",
     corrected: "Corrected",
     manualAdjustment: "Manual adjustment",
     fallbackFrame: "Fallback frame",
@@ -311,6 +315,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   es: {
     reviewSuggested: "Revisión recomendada",
+    confidenceGood: "Se ve bien",
     corrected: "Corregido",
     manualAdjustment: "Ajuste manual",
     fallbackFrame: "Marco alternativo",
@@ -346,6 +351,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   fr: {
     reviewSuggested: "Vérification conseillée",
+    confidenceGood: "Tout est bon",
     corrected: "Corrigé",
     manualAdjustment: "Ajustement manuel",
     fallbackFrame: "Cadre de secours",
@@ -380,6 +386,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   de: {
     reviewSuggested: "Prüfung empfohlen",
+    confidenceGood: "Sieht gut aus",
     corrected: "Korrigiert",
     manualAdjustment: "Manuelle Anpassung",
     fallbackFrame: "Ersatzrahmen",
@@ -415,6 +422,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   ja: {
     reviewSuggested: "要確認",
+    confidenceGood: "問題なし",
     corrected: "補正済み",
     manualAdjustment: "手動調整",
     fallbackFrame: "代替フレーム",
@@ -448,6 +456,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   ko: {
     reviewSuggested: "검토 권장",
+    confidenceGood: "이상 없음",
     corrected: "보정됨",
     manualAdjustment: "수동 조정",
     fallbackFrame: "대체 프레임",
@@ -481,6 +490,7 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
   },
   "pt-BR": {
     reviewSuggested: "Revisão recomendada",
+    confidenceGood: "Parece bom",
     corrected: "Corrigido",
     manualAdjustment: "Ajuste manual",
     fallbackFrame: "Quadro alternativo",

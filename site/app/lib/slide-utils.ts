@@ -1,4 +1,5 @@
 import type { Quad } from "../detection/types";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio";
 import {
   loadImage,
@@ -122,6 +123,28 @@ export function formatBytes(size: number) {
 
 export function confidenceText(value: number) {
   return value ? value.toFixed(2) : "-";
+}
+
+export function confidenceSummary(
+  slide: SlideItem,
+  text: LocaleCopy,
+  reviewText: ReviewUiCopy,
+): { label: string; tooltip?: string } {
+  if (slide.status !== "ready" && !slide.confidence) {
+    return { label: "-", tooltip: undefined };
+  }
+  const score = slide.confidence ? slide.confidence.toFixed(2) : "0.00";
+  const tooltip = `${text.confidence}: ${score}`;
+  if (slide.needsReview) {
+    return {
+      label: reviewText.reviewSuggested,
+      tooltip,
+    };
+  }
+  return {
+    label: reviewText.confidenceGood,
+    tooltip,
+  };
 }
 
 export function cloneQuad(quad: Quad): Quad {

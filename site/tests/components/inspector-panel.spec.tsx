@@ -87,3 +87,110 @@ test("renders review card with confirm button and clicking it calls onConfirmSli
   expect(confirmedId).toBe("test-review-slide-1");
 });
 
+test("renders actionable confidence metric for review-suggested slide", async ({ mount }) => {
+  const reviewSlide = makeTestSlide({
+    name: "slide-review.png",
+    status: "ready",
+    needsReview: true,
+    confidence: 0.65,
+    reviewReasons: ["low_confidence"],
+  });
+
+  const component = await mount(<InspectorHarness slide={reviewSlide} />);
+  const metricValues = component.locator(".metric .value");
+  const confidenceValue = metricValues.nth(2);
+  await expect(confidenceValue).toHaveText("Review suggested");
+  await expect(confidenceValue).toHaveAttribute("title", "Confidence: 0.65");
+});
+
+test("renders actionable confidence metric for clean slide", async ({ mount }) => {
+  const cleanSlide = makeTestSlide({
+    name: "slide-clean.png",
+    status: "ready",
+    needsReview: false,
+    confidence: 0.92,
+    reviewReasons: [],
+  });
+
+  const component = await mount(<InspectorHarness slide={cleanSlide} />);
+  const cleanConfidenceValue = component.locator(".metric .value").nth(2);
+  await expect(cleanConfidenceValue).toHaveText("Looks good");
+  await expect(cleanConfidenceValue).toHaveAttribute("title", "Confidence: 0.92");
+});
+
+test("renders editable numeric inputs for corner coordinates and clamps to boundaries", async ({ mount }) => {
+  const cornerChanges: Array<{ cornerIndex: number; coordIndex: number; value: number }> = [];
+  const slide = makeTestSlide({
+    name: "slide-corners.png",
+    status: "ready",
+    width: 1000,
+    height: 800,
+    quad: [
+      [100, 120],
+      [900, 130],
+      [880, 750],
+      [110, 740],
+    ],
+  });
+
+  const component = await mount(
+    <InspectorHarness
+      slide={slide}
+      onCornerChange={(cornerIndex, coordIndex, value) => {
+        cornerChanges.push({ cornerIndex, coordIndex, value });
+      }}
+    />,
+  );
+
+  const cornerRows = component.locator(".cornerRow");
+  await expect(cornerRows).toHaveCount(4);
+
+  const cornerInputs = component.locator(".cornerInput");
+  await expect(cornerInputs).toHaveCount(8);
+
+  // Corner 1 X
+  const c1x = cornerInputs.nth(0);
+  await expect(c1x).toHaveValue("100");
+  await c1x.fill("160");
+  await c1x.press("Enter");
+
+  expect(cornerChanges.length).toBe(1);
+  expect(cornerChanges[0]).toEqual({ cornerIndex: 0, coordIndex: 0, value: 160 });
+
+  // Out of bounds high (exceeding width 1000)
+  await c1x.fill("1500");
+  await c1x.press("Enter");
+  expect(cornerChanges[1]).toEqual({ cornerIndex: 0, coordIndex: 0, value: 1000 });
+  await expect(c1x).toHaveValue("1000");
+
+  // Out of bounds low (negative value)
+  const c1y = cornerInputs.nth(1);
+  await c1y.fill("-80");
+  await c1y.press("Enter");
+  expect(cornerChanges[2]).toEqual({ cornerIndex: 0, coordIndex: 1, value: 0 });
+  await expect(c1y).toHaveValue("0");
+});
+
+test("disables corner inputs when disabled prop is true", async ({ mount }) => {
+  const slide = makeTestSlide({
+    name: "slide-disabled.png",
+    status: "ready",
+    width: 1000,
+    height: 800,
+    quad: [
+      [100, 120],
+      [900, 130],
+      [880, 750],
+      [110, 740],
+    ],
+  });
+
+  const component = await mount(<InspectorHarness slide={slide} disabled={true} />);
+  const cornerInputs = component.locator(".cornerInput");
+  await expect(cornerInputs).toHaveCount(8);
+  for (let i = 0; i < 8; i++) {
+    await expect(cornerInputs.nth(i)).toBeDisabled();
+  }
+});
+
+

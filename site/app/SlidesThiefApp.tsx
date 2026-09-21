@@ -11,6 +11,7 @@ import {
   reviewUiCopy,
 } from "./i18n";
 import {
+  confidenceSummary,
   confidenceText,
   buildAdjustedThumbnail,
   exportManualQuads as buildManualQuads,
@@ -42,7 +43,7 @@ import { useWindowImport } from "./hooks/useWindowImport";
 import { AboutModal } from "./components/AboutModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { Header } from "./components/Header";
-import { InspectorPanel } from "./components/InspectorPanel";
+import { InspectorPanel, type MetricItem } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
 import { Button, ConfirmModal } from "./components/ui";
@@ -361,6 +362,8 @@ export function SlidesThiefApp() {
   const {
     dragHandle,
     cancelActiveDrag: cancelQuadDrag,
+    updateSlideQuad,
+    updateCornerCoordinate,
     restoreAutoDetection,
     resetSelected,
     onHandlePointerDown,
@@ -1180,15 +1183,19 @@ export function SlidesThiefApp() {
     setZoomMode("fit");
   }, [cancelQuadDrag, resetViewport, selectedSlide?.id, setSelectedId, setZoomMode, slides]);
 
-  const metrics: Array<[string, string]> = selectedSlide
+  const confidenceData = useMemo(() => {
+    if (!selectedSlide) return { label: "-", tooltip: undefined };
+    return confidenceSummary(selectedSlide, text, reviewText);
+  }, [selectedSlide, text, reviewText]);
+
+  const metrics: MetricItem[] = selectedSlide
     ? [
         [text.file, selectedSlide.name],
         [text.status, slideStatusText(selectedSlide)],
         [text.dimensions, selectedSlide.width ? `${selectedSlide.width} × ${selectedSlide.height}` : "-"],
         [text.ratio, `${resolvedSlideRatio(selectedSlide, settings).toFixed(3)} : 1`],
         [text.method, detectionMethodText(selectedSlide.method, locale)],
-        [text.confidence, confidenceText(selectedSlide.confidence)],
-        [reviewText.privacy, text.noUpload],
+        [text.confidence, confidenceData.label, confidenceData.tooltip],
       ]
     : [];
   const ratioUi = ratioUiCopy[locale];
@@ -1354,6 +1361,8 @@ export function SlidesThiefApp() {
           onStartReviewMode={handleStartReviewMode}
           isReviewMode={isReviewMode}
           reviewSlideCount={reviewCount}
+          onCornerChange={updateCornerCoordinate}
+          disabled={busy}
         />
       </main>
 

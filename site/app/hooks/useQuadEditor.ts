@@ -297,10 +297,53 @@ export function useQuadEditor({
     setSlides,
   ]);
 
+  const updateCornerCoordinate = useCallback(
+    (cornerIndex: number, coordIndex: 0 | 1, value: number) => {
+      if (!selectedSlide?.quad) return;
+      const width = selectedSlide.width;
+      const height = selectedSlide.height;
+      if (width <= 0 || height <= 0) return;
+
+      const max = coordIndex === 0 ? width : height;
+      const clamped = Math.max(0, Math.min(max, Number.isFinite(value) ? Math.round(value) : 0));
+      const currentVal = selectedSlide.quad[cornerIndex][coordIndex];
+      if (Math.abs(clamped - currentVal) < 0.5) return;
+
+      cancelActiveDrag();
+      pushHistory();
+      const next = cloneQuad(selectedSlide.quad);
+      next[cornerIndex][coordIndex] = clamped;
+
+      const render = canvasRenderRef.current;
+      if (render && render.slideId === selectedSlide.id) {
+        paintCanvas(next);
+        setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
+      }
+      updateSlideQuad(selectedSlide.id, next);
+      void refreshSlideThumbnail(selectedSlide.id, next);
+      setCornerAnnouncement(
+        `${text.cornerHandle} ${cornerIndex + 1}: X ${Math.round(next[cornerIndex][0])}, Y ${Math.round(next[cornerIndex][1])}`,
+      );
+    },
+    [
+      cancelActiveDrag,
+      canvasRenderRef,
+      paintCanvas,
+      pushHistory,
+      refreshSlideThumbnail,
+      selectedSlide,
+      setCornerAnnouncement,
+      setHandlePositions,
+      text.cornerHandle,
+      updateSlideQuad,
+    ],
+  );
+
   return {
     dragHandle,
     cancelActiveDrag,
     updateSlideQuad,
+    updateCornerCoordinate,
     restoreAutoDetection: restoreSelectedAutoDetection,
     resetSelected: restoreSelectedAutoDetection,
     onHandlePointerDown,

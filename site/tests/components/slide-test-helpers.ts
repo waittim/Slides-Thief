@@ -10,6 +10,10 @@ export function makeTestSlide({
   needsReview = false,
   reviewReasons = [],
   method = "contrast-lines",
+  width = 100,
+  height = 70,
+  quad,
+  confidence,
 }: {
   id?: string;
   name?: string;
@@ -17,20 +21,26 @@ export function makeTestSlide({
   needsReview?: boolean;
   reviewReasons?: ReviewReason[];
   method?: SlideDetectionMethod;
+  width?: number;
+  height?: number;
+  quad?: [number, number][] | null;
+  confidence?: number;
 } = {}): SlideItem {
   const isPending = status === "queued";
   const isDetecting = status === "detecting";
+  const defaultQuad = isPending || isDetecting ? null : QUAD.map(([x, y]) => [x, y]);
+  const resolvedQuad = quad !== undefined ? quad : defaultQuad;
   return {
     id,
     file: { name, size: 1024 } as File,
     name,
     url: "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==",
-    width: 100,
-    height: 70,
-    quad: isPending || isDetecting ? null : QUAD.map(([x, y]) => [x, y]),
+    width,
+    height,
+    quad: resolvedQuad,
     autoDetection: null,
     method: isPending || isDetecting ? null : method,
-    confidence: needsReview ? 0.5 : 0.95,
+    confidence: confidence !== undefined ? confidence : needsReview ? 0.5 : 0.95,
     needsReview,
     reviewReasons,
     sourceRatio: 16 / 9,
