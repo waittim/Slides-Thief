@@ -852,6 +852,129 @@ a:hover {
   transition: width 0.2s ease;
 }
 
+.sidebarErrorBanner {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid color-mix(in srgb, var(--accent), transparent 50%);
+  border-radius: var(--radius-feedback);
+  background: color-mix(in srgb, var(--accent), transparent 90%);
+  color: var(--color-ink-900);
+}
+
+[data-theme="dark"] .sidebarErrorBanner {
+  background: color-mix(in srgb, var(--accent), transparent 85%);
+  border-color: color-mix(in srgb, var(--accent), transparent 40%);
+  color: var(--color-ink-text-dark);
+}
+
+.sidebarErrorBannerHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.sidebarErrorIcon {
+  flex: none;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  margin-top: 1px;
+}
+
+.sidebarErrorMessage {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-ui);
+  color: var(--accent);
+  font-weight: var(--font-weight-medium);
+  word-break: break-word;
+}
+
+[data-theme="dark"] .sidebarErrorMessage {
+  color: var(--color-terra-400);
+}
+
+.sidebarErrorDismiss {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-xs);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.sidebarErrorDismiss:hover {
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent), transparent 85%);
+}
+
+.sidebarErrorActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.sidebarErrorRetryButton {
+  font-size: var(--font-size-xs);
+  height: 24px;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  font-weight: var(--font-weight-semibold);
+  border-color: color-mix(in srgb, var(--accent), transparent 40%);
+  color: var(--accent);
+}
+
+.sidebarErrorRetryButton:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent), transparent 85%);
+  border-color: var(--accent);
+}
+
+.sidebarErrorDetailsButton,
+.sidebarErrorCopyButton {
+  font-size: var(--font-size-xs);
+  height: 24px;
+  min-height: 24px;
+  padding: 0 var(--space-2);
+  color: var(--muted);
+}
+
+.sidebarErrorDetails {
+  max-height: 120px;
+  overflow-y: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xs);
+  padding: var(--space-2);
+}
+
+.sidebarErrorDetails pre {
+  margin: 0;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-2xs);
+  line-height: var(--line-height-tight);
+  white-space: pre-wrap;
+  word-break: break-all;
+  user-select: text;
+  color: var(--color-ink-900);
+}
+
+[data-theme="dark"] .sidebarErrorDetails pre {
+  color: var(--color-ink-text-dark);
+}
+
 .sidebarStatus {
   min-height: 36px;
   min-width: 0;

@@ -11,7 +11,7 @@ interface InspectorPanelProps {
   readySlides: SlideItem[];
   metrics: Array<[string, string]>;
   selectedSlide: SlideItem | null;
-  workerError: string;
+  workerError?: string;
   applyQuadToFollowing?: () => void;
   applyQuadToAll?: () => void;
   canApplyFollowing?: boolean;
@@ -124,7 +124,6 @@ export function InspectorPanel({
             ) : null}
           </div>
         ) : null}
-        {workerError ? <p className="errorText" role="alert">{workerError}</p> : null}
         {selectedSlide?.error ? <p className="errorText" role="alert">{selectedSlide.error.message}</p> : null}
       </div>
     </aside>

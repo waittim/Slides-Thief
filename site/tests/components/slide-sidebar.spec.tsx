@@ -433,5 +433,102 @@ test("batch operations: checkbox selection, select all, batch redetect, and sele
   await expect(component.locator(".batchActionBar")).toHaveCount(0);
 });
 
+test("renders persistent error alert banner with message, retry, copy, and dismiss controls", async ({ mount }) => {
+  const component = await mount(
+    <SidebarHarness
+      initialSlides={[makeTestSlide({ name: "slide-1.png", status: "ready" })]}
+      initialErrorMessage="Failed to export PDF: Out of memory"
+      initialErrorDetails="Detailed stack trace: Memory limit exceeded at processSlide (worker.ts:42)"
+    />,
+  );
 
+  const banner = component.locator(".sidebarErrorBanner");
+  await expect(banner).toBeVisible();
 
+  const message = component.locator(".sidebarErrorMessage");
+  await expect(message).toHaveText("Failed to export PDF: Out of memory");
+
+  const retryBtn = component.getByRole("button", { name: "Retry" });
+  await expect(retryBtn).toBeVisible();
+  await expect(retryBtn).toBeEnabled();
+
+  const detailsBtn = component.getByRole("button", { name: "Details" });
+  await expect(detailsBtn).toBeVisible();
+
+  const copyBtn = component.getByRole("button", { name: "Copy error" });
+  await expect(copyBtn).toBeVisible();
+
+  const dismissBtn = component.getByRole("button", { name: "Dismiss alert" });
+  await expect(dismissBtn).toBeVisible();
+
+  // Status line remains clean and independent
+  const statusLine = component.locator(".statusLine");
+  await expect(statusLine).toBeVisible();
+  await expect(statusLine).toHaveText("Ready");
+});
+
+test("clicking dismiss button removes the error banner while keeping workflow status line intact", async ({ mount }) => {
+  const component = await mount(
+    <SidebarHarness
+      initialSlides={[makeTestSlide({ name: "slide-1.png", status: "ready" })]}
+      initialErrorMessage="Import error occurred"
+    />,
+  );
+
+  const banner = component.locator(".sidebarErrorBanner");
+  await expect(banner).toBeVisible();
+
+  await component.getByRole("button", { name: "Dismiss alert" }).click();
+  await expect(banner).toHaveCount(0);
+
+  // Status line remains present and valid
+  const statusLine = component.locator(".statusLine");
+  await expect(statusLine).toBeVisible();
+  await expect(statusLine).toHaveText("Ready");
+});
+
+test("clicking retry button triggers retry action and clears error banner", async ({ mount }) => {
+  const component = await mount(
+    <SidebarHarness
+      initialSlides={[makeTestSlide({ name: "slide-1.png", status: "ready" })]}
+      initialErrorMessage="Auto straighten failed"
+    />,
+  );
+
+  const banner = component.locator(".sidebarErrorBanner");
+  await expect(banner).toBeVisible();
+
+  await component.getByRole("button", { name: "Retry" }).click();
+  await expect(component.getByTestId("retry-status")).toHaveText("retried");
+  await expect(banner).toHaveCount(0);
+});
+
+test("toggling details button displays and hides detailed error text", async ({ mount }) => {
+  const component = await mount(
+    <SidebarHarness
+      initialSlides={[makeTestSlide({ name: "slide-1.png", status: "ready" })]}
+      initialErrorMessage="Conversion failed"
+      initialErrorDetails="HEIC decoding error code: 404"
+    />,
+  );
+
+  const detailsBtn = component.getByRole("button", { name: "Details" });
+  await expect(detailsBtn).toBeVisible();
+
+  // Initially hidden
+  await expect(component.locator(".sidebarErrorDetails")).toHaveCount(0);
+
+  // Click to expand
+  await detailsBtn.click();
+  const details = component.locator(".sidebarErrorDetails");
+  await expect(details).toBeVisible();
+  await expect(details).toHaveText("HEIC decoding error code: 404");
+
+  // Button changes to Collapse
+  const collapseBtn = component.getByRole("button", { name: "Collapse details" });
+  await expect(collapseBtn).toBeVisible();
+
+  // Click to collapse
+  await collapseBtn.click();
+  await expect(component.locator(".sidebarErrorDetails")).toHaveCount(0);
+});

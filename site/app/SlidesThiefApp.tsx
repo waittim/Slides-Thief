@@ -47,7 +47,23 @@ export function SlidesThiefApp() {
   const [busyText, setBusyText] = useState("");
   const [exportArtifacts, setExportArtifacts] = useState<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>({});
   const [exporting, setExporting] = useState(false);
-  const [workerError, setWorkerError] = useState("");
+  type ErrorAction = "detect" | "export-pdf" | "export-jpg" | "import-corners" | "export-corners";
+  const [workerError, setWorkerErrorState] = useState("");
+  const [errorDetails, setErrorDetails] = useState<string | undefined>(undefined);
+  const [errorAction, setErrorAction] = useState<ErrorAction | undefined>(undefined);
+  const activeActionRef = useRef<ErrorAction | undefined>(undefined);
+
+  const setWorkerError = useCallback((error: string, action?: ErrorAction, details?: string) => {
+    setWorkerErrorState(error);
+    setErrorDetails(details);
+    setErrorAction(error ? (action ?? activeActionRef.current) : undefined);
+  }, []);
+
+  const dismissError = useCallback(() => {
+    setWorkerErrorState("");
+    setErrorDetails(undefined);
+    setErrorAction(undefined);
+  }, []);
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
@@ -332,7 +348,7 @@ export function SlidesThiefApp() {
       setWorkerError("");
       setCornerAnnouncement(text.exportCorners);
     } catch (error) {
-      setWorkerError(messageFromError(error));
+      setWorkerError(messageFromError(error), "export-corners");
     }
   }, [readySlides, setWorkerError, text.exportCorners]);
 
@@ -386,7 +402,7 @@ export function SlidesThiefApp() {
       for (const [id, quad] of matched) void refreshSlideThumbnail(id, quad);
       setCornerAnnouncement(text.manualImportSuccess(matched.size));
     } catch (error) {
-      setWorkerError(messageFromError(error));
+      setWorkerError(messageFromError(error), "import-corners");
     }
   }, [cancelQuadDrag, markExportStale, pushHistory, refreshSlideThumbnail, setSelectedId, setSlides, setWorkerError, setZoomMode, slidesRef, text]);
 
@@ -455,7 +471,6 @@ export function SlidesThiefApp() {
   );
 
   const statusText = useMemo(() => {
-    if (workerError) return workerError;
     if (busyText) return busyText;
     if (!slides.length) return text.ready;
     if (detecting) return text.stretching;
@@ -476,15 +491,13 @@ export function SlidesThiefApp() {
     reviewText,
     slides.length,
     text,
-    workerError,
   ]);
 
   const statusTone = useMemo(() => {
-    if (workerError) return "bad";
     if (detecting || exporting) return "busy";
     if (hasRun || (exportArtifacts.pdf && !exportArtifacts.pdf.isStale) || (exportArtifacts.jpg && !exportArtifacts.jpg.isStale)) return "good";
     return "default";
-  }, [detecting, exportArtifacts.jpg, exportArtifacts.pdf, exporting, hasRun, workerError]);
+  }, [detecting, exportArtifacts.jpg, exportArtifacts.pdf, exporting, hasRun]);
 
   const slideStatusText = useCallback((slide: SlideItem) => {
     if (slide.status === "converting") return text.converting;
@@ -616,6 +629,7 @@ export function SlidesThiefApp() {
       if (!processableSlides.length) return;
       cancelQuadDrag();
       markExportStale();
+      activeActionRef.current = "detect";
       setWorkerError("");
       const count = processableSlides.length;
       const progressLabel = count > 1 ? `1/${count}` : "";
@@ -769,6 +783,7 @@ export function SlidesThiefApp() {
       cancelQuadDrag();
       pushHistory();
       markExportStale();
+      activeActionRef.current = "detect";
       setWorkerError("");
       const count = processableSlides.length;
       const progressLabel = count > 1 ? `1/${count}` : "";
@@ -847,6 +862,7 @@ export function SlidesThiefApp() {
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
     setExporting(true);
+    activeActionRef.current = "export-pdf";
     setWorkerError("");
     setBusyText(text.generating);
     worker.postMessage({
@@ -866,6 +882,7 @@ export function SlidesThiefApp() {
     const filename =
       readySlides.length === 1 ? normalizeSingleJpgName(pdfBaseName) : normalizeJpgZipName(pdfBaseName);
     setExporting(true);
+    activeActionRef.current = "export-jpg";
     setWorkerError("");
     setBusyText(text.generatingJpg);
     worker.postMessage({
@@ -877,6 +894,35 @@ export function SlidesThiefApp() {
       filename,
     });
   }, [confirmExportReady, ensureExportWorker, pdfBaseName, readySlides, settings, text.generatingJpg]);
+
+  const retryError = useMemo(() => {
+    if (!workerError || !errorAction) return undefined;
+    if (errorAction === "detect") {
+      return () => {
+        dismissError();
+        runAuto();
+      };
+    }
+    if (errorAction === "export-pdf") {
+      return () => {
+        dismissError();
+        exportPdf();
+      };
+    }
+    if (errorAction === "export-jpg") {
+      return () => {
+        dismissError();
+        exportJpg();
+      };
+    }
+    if (errorAction === "export-corners") {
+      return () => {
+        dismissError();
+        exportManualQuadsFile();
+      };
+    }
+    return undefined;
+  }, [dismissError, errorAction, exportJpg, exportManualQuadsFile, exportPdf, runAuto, workerError]);
 
   useKeyboardShortcuts({
     busy,
@@ -995,6 +1041,10 @@ export function SlidesThiefApp() {
           reviewText={reviewText}
           statusTone={statusTone}
           statusText={statusText}
+          errorMessage={workerError}
+          errorDetails={errorDetails}
+          onDismissError={dismissError}
+          onRetryError={retryError}
           exportUrl={exportArtifacts.pdf?.url ?? null}
           exportName={exportArtifacts.pdf?.filename ?? normalizePdfName(pdfBaseName)}
           isIOS={isIOS}

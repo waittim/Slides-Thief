@@ -41,14 +41,21 @@ export function SidebarHarness({
   initialHasRun = false,
   initialDetecting = false,
   initialProgress = null,
+  initialErrorMessage,
+  initialErrorDetails,
 }: {
   initialBusy?: boolean;
   initialSlides?: SlideItem[];
   initialHasRun?: boolean;
   initialDetecting?: boolean;
   initialProgress?: { current: number; total: number } | null;
+  initialErrorMessage?: string;
+  initialErrorDetails?: string;
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
+  const [errorMessage, setErrorMessage] = useState(initialErrorMessage ?? "");
+  const [errorDetails, setErrorDetails] = useState(initialErrorDetails);
+  const [retriedAction, setRetriedAction] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(initialDetecting);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(initialProgress);
   const [detectionCancelled, setDetectionCancelled] = useState(false);
@@ -136,6 +143,13 @@ export function SidebarHarness({
                   ? text.reviewReady
                   : text.ready
         }
+        errorMessage={errorMessage}
+        errorDetails={errorDetails}
+        onDismissError={() => setErrorMessage("")}
+        onRetryError={() => {
+          setRetriedAction("retried");
+          setErrorMessage("");
+        }}
         exportUrl={exported ? "blob:http://localhost/test-pdf" : null}
         exportName="deck.pdf"
         isIOS={false}
@@ -274,6 +288,9 @@ export function SidebarHarness({
       </output>
       <output data-testid="batch-redetected-count">
         {batchRedetectedCount}
+      </output>
+      <output data-testid="retry-status">
+        {retriedAction ?? "idle"}
       </output>
       <button type="button" data-testid="mark-stale" onClick={() => setIsStale(true)}>
         Mark Stale

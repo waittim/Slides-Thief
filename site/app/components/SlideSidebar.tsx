@@ -24,6 +24,10 @@ interface SlideSidebarProps {
   reviewText: ReviewUiCopy;
   statusTone: StatusDotProps["status"];
   statusText: string;
+  errorMessage?: string;
+  errorDetails?: string;
+  onDismissError?: () => void;
+  onRetryError?: () => void;
   exportUrl?: string | null;
   exportName?: string;
   isIOS: boolean;
@@ -72,6 +76,10 @@ export function SlideSidebar({
   reviewText,
   statusTone,
   statusText,
+  errorMessage,
+  errorDetails,
+  onDismissError,
+  onRetryError,
   exportUrl,
   exportName,
   isIOS,
@@ -102,6 +110,39 @@ export function SlideSidebar({
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const dragSourceIndexRef = useRef<number | null>(null);
+  const [showErrorDetails, setShowErrorDetails] = useState(false);
+  const [copiedError, setCopiedError] = useState(false);
+
+  useEffect(() => {
+    setShowErrorDetails(false);
+    setCopiedError(false);
+  }, [errorMessage]);
+
+  const handleCopyError = React.useCallback(async () => {
+    if (!errorMessage) return;
+    const fullText =
+      errorDetails && errorDetails !== errorMessage
+        ? `${errorMessage}\n\n${errorDetails}`
+        : errorMessage;
+    try {
+      if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(fullText);
+      } else if (typeof document !== "undefined") {
+        const textarea = document.createElement("textarea");
+        textarea.value = fullText;
+        textarea.style.position = "fixed";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedError(true);
+      window.setTimeout(() => setCopiedError(false), 2000);
+    } catch {
+      // Ignore clipboard failure
+    }
+  }, [errorMessage, errorDetails]);
 
   const handleSlideDragStart = (event: React.DragEvent<HTMLLIElement>, index: number) => {
     if (busy) {
@@ -251,6 +292,91 @@ export function SlideSidebar({
         </div>
       ) : null}
       <div className="sidebarRunMeta">
+        {errorMessage ? (
+          <div className="sidebarErrorBanner">
+            <div className="sidebarErrorBannerHeader">
+              <div className="sidebarErrorIcon" aria-hidden="true">
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <p className="sidebarErrorMessage" role="alert" title={errorMessage}>
+                {errorMessage}
+              </p>
+              {onDismissError ? (
+                <button
+                  type="button"
+                  className="sidebarErrorDismiss"
+                  title={text.dismissError}
+                  aria-label={text.dismissError}
+                  onClick={onDismissError}
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                  </svg>
+                </button>
+              ) : null}
+            </div>
+            <div className="sidebarErrorActions">
+              {onRetryError ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="sidebarErrorRetryButton"
+                  disabled={busy}
+                  onClick={onRetryError}
+                >
+                  {text.retry}
+                </Button>
+              ) : null}
+              {errorDetails && errorDetails !== errorMessage ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="sidebarErrorDetailsButton"
+                  onClick={() => setShowErrorDetails((prev) => !prev)}
+                >
+                  {showErrorDetails ? text.collapse : text.errorDetails}
+                </Button>
+              ) : null}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="sidebarErrorCopyButton"
+                onClick={handleCopyError}
+              >
+                {copiedError ? text.errorCopied : text.copyError}
+              </Button>
+            </div>
+            {showErrorDetails && errorDetails ? (
+              <div className="sidebarErrorDetails">
+                <pre>{errorDetails}</pre>
+              </div>
+            ) : null}
+          </div>
+        ) : null}
         <div className="sidebarStatus" role="status" aria-live="polite">
           {deletedNotice ? (
             <>
@@ -273,7 +399,7 @@ export function SlideSidebar({
           ) : (
             <>
               <StatusDot status={statusTone} />
-              <span className="statusLine">{statusText}</span>
+              <span className="statusLine" title={statusText}>{statusText}</span>
               {exporting && cancelExport ? (
                 <Button
                   variant="ghost"
