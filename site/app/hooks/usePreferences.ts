@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { LocaleValue } from "../i18n";
 import { copy, detectBrowserLocale } from "../i18n";
+import {
+  loadStoredPreferences,
+  saveStoredPreferences,
+  type StoredPreferences,
+} from "../lib/preferenceStorage";
 import { defaultSettings, type Settings, type ThemeValue } from "../lib/types";
 
 const MOBILE_BREAKPOINT = "(max-width: 834px)";
@@ -15,6 +20,9 @@ export function usePreferences(markExportStale: () => void) {
   const [locale, setLocale] = useState<LocaleValue>("en");
 
   const localeRef = useRef<LocaleValue>("en");
+  const explicitLocaleRef = useRef<LocaleValue | null>(null);
+  const themeRef = useRef<ThemeValue>("auto");
+  const pdfBaseNameRef = useRef("flattened_slides");
   const settingsRef = useRef<Settings>(defaultSettings);
   const settingsMenuRef = useRef<HTMLDetailsElement | null>(null);
   const moreSettingsRef = useRef<HTMLDetailsElement | null>(null);
@@ -24,12 +32,66 @@ export function usePreferences(markExportStale: () => void) {
     settingsRef.current = settings;
   }, [settings]);
 
+  useEffect(() => {
+    themeRef.current = theme;
+  }, [theme]);
+
+  useEffect(() => {
+    pdfBaseNameRef.current = pdfBaseName;
+  }, [pdfBaseName]);
+
+  const savePreferences = useCallback((overrides?: Partial<StoredPreferences>) => {
+    saveStoredPreferences({
+      version: 1,
+      theme: overrides?.theme ?? themeRef.current,
+      explicitLocale:
+        overrides?.explicitLocale !== undefined
+          ? overrides.explicitLocale
+          : explicitLocaleRef.current,
+      settings: overrides?.settings ?? settingsRef.current,
+      pdfBaseName: overrides?.pdfBaseName ?? pdfBaseNameRef.current,
+    });
+  }, []);
+
   const updateSettings = useCallback(
     (updater: (current: Settings) => Settings) => {
       markExportStale();
-      setSettings(updater);
+      setSettings((current) => {
+        const next = updater(current);
+        settingsRef.current = next;
+        savePreferences({ settings: next });
+        return next;
+      });
     },
-    [markExportStale],
+    [markExportStale, savePreferences],
+  );
+
+  const updateTheme = useCallback(
+    (newTheme: ThemeValue) => {
+      themeRef.current = newTheme;
+      setTheme(newTheme);
+      savePreferences({ theme: newTheme });
+    },
+    [savePreferences],
+  );
+
+  const setUserLocale = useCallback(
+    (newLocale: LocaleValue) => {
+      explicitLocaleRef.current = newLocale;
+      localeRef.current = newLocale;
+      setLocale(newLocale);
+      savePreferences({ explicitLocale: newLocale });
+    },
+    [savePreferences],
+  );
+
+  const updatePdfBaseName = useCallback(
+    (name: string) => {
+      pdfBaseNameRef.current = name;
+      setPdfBaseName(name);
+      savePreferences({ pdfBaseName: name });
+    },
+    [savePreferences],
   );
 
   useEffect(() => {
@@ -52,19 +114,64 @@ export function usePreferences(markExportStale: () => void) {
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
+      const stored = loadStoredPreferences();
+      if (stored) {
+        if (stored.theme) {
+          themeRef.current = stored.theme;
+          setTheme(stored.theme);
+        }
+        if (stored.settings) {
+          settingsRef.current = stored.settings as Settings;
+          setSettings(stored.settings as Settings);
+        }
+        if (typeof stored.pdfBaseName === "string") {
+          pdfBaseNameRef.current = stored.pdfBaseName;
+          setPdfBaseName(stored.pdfBaseName);
+        }
+        if (stored.explicitLocale) {
+          const explicit = stored.explicitLocale;
+          explicitLocaleRef.current = explicit;
+          localeRef.current = explicit;
+          setLocale((current) => {
+            if (current === explicit) {
+              if (typeof document !== "undefined") {
+                document.documentElement.lang = explicit;
+                document.title = copy[explicit].appTitle;
+              }
+            }
+            return explicit;
+          });
+          return;
+        }
+      }
+
       const browserLocale = detectBrowserLocale();
+      localeRef.current = browserLocale;
       setLocale((current) => {
         if (current === browserLocale) {
           if (typeof document !== "undefined") {
             document.documentElement.lang = browserLocale;
+            document.title = copy[browserLocale].appTitle;
           }
-          return current;
         }
         return browserLocale;
       });
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      if (explicitLocaleRef.current === null) {
+        const browserLocale = detectBrowserLocale();
+        localeRef.current = browserLocale;
+        setLocale(browserLocale);
+      }
+    };
+
+    window.addEventListener("languagechange", handleLanguageChange);
+    return () => window.removeEventListener("languagechange", handleLanguageChange);
   }, []);
 
   useLayoutEffect(() => {
@@ -126,11 +233,11 @@ export function usePreferences(markExportStale: () => void) {
     inspectorCollapsed,
     setInspectorCollapsed,
     pdfBaseName,
-    setPdfBaseName,
+    setPdfBaseName: updatePdfBaseName,
     theme,
-    setTheme,
+    setTheme: updateTheme,
     locale,
-    setLocale,
+    setLocale: setUserLocale,
     localeRef,
     settingsMenuRef,
     moreSettingsRef,

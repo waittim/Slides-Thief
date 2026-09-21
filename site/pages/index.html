@@ -71,6 +71,9 @@
         }
       }
     </script>
+    <script>
+      try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.theme==="dark"||p.theme==="light"||p.theme==="auto"){document.documentElement.dataset.theme=p.theme;}}catch(e){}
+    </script>
     <title>Slides Thief - Straighten Slide &amp; Document Photos into PDFs</title>
   </head>
   <body>

@@ -214,11 +214,19 @@ PDF 的页序完全由导入时的 `a.name.localeCompare(b.name, undefined, {num
 
 **建议**：服务端渲染时根据 `Accept-Language` 或路由段输出正确的 `lang`。
 
-### 27. 语言、主题、导出设置全部不持久化
+### 27. 语言、主题、导出设置全部不持久化 [已修复]
 
 全仓库搜索 `localStorage` / `sessionStorage` / `indexedDB` 零命中。每次刷新，主题回到"自动"、语言回到浏览器检测值（会覆盖用户上次的手动选择）、宽度/质量/输出效果/目标文件名全部重置为默认。对于会反复使用的批处理工具，这个代价不小。
 
 **建议**：把偏好写入 `localStorage`，并明确区分"用户显式选择"和"自动检测"——前者不应被 `detectBrowserLocale()` 覆盖。
+
+**状态**：已修复。
+- 引入偏好设置持久化模块（`preferenceStorage.ts`），通过 `try...catch` 安全读写 `localStorage`，兼顾私密浏览与受限沙箱环境；
+- 明确区分「显式选择语言」与「浏览器自动检测」，显式选择后持久化，刷新不再被 `detectBrowserLocale()` 覆盖；未显式选择时保持自适应浏览器与 `languagechange` 事件；
+- 导出参数（原稿比例与方向、输出纸张/页面尺寸、输出宽高、图像质量、增强模式、填充色）、目标文件名及明暗主题完整持久化；
+- 在 HTML `<head>` 注入预水合轻量主题脚本，消除暗色模式刷新白屏闪烁；
+- 服务端渲染与客户端水合保持安全，消除 Hydration Mismatch；
+- 兼容 Sites 双构建与 GitHub Pages 静态构建。
 
 ### 28. 刷新页面即丢失全部工作，且没有任何警告
 

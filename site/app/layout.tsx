@@ -9,6 +9,7 @@ const title = PRODUCT_METADATA.title;
 const description = PRODUCT_METADATA.description;
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
+const themeScript = `try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.theme==="dark"||p.theme==="light"||p.theme==="auto"){document.documentElement.dataset.theme=p.theme;}}catch(e){}`;
  
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -94,6 +95,7 @@ export default async function RootLayout({
           }}
         />
         <script dangerouslySetInnerHTML={{ __html: viewportScript }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body suppressHydrationWarning>{children}</body>
     </html>
