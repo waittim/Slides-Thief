@@ -1218,6 +1218,22 @@ a:hover {
   background: color-mix(in srgb, var(--muted), transparent 88%);
 }
 
+.artifactCardHelp {
+  margin-top: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.links a.artifactCard:hover .artifactCardHelp {
+  color: var(--text);
+}
+
+.links a.artifactCard.sidebarLink--stale .artifactCardHelp {
+  color: var(--muted);
+}
+
 .sectionHead {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto auto;

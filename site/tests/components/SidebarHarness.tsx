@@ -44,6 +44,7 @@ export function SidebarHarness({
   initialErrorMessage,
   initialErrorDetails,
   isMobile = false,
+  isIOS = false,
 }: {
   initialBusy?: boolean;
   initialSlides?: SlideItem[];
@@ -53,6 +54,7 @@ export function SidebarHarness({
   initialErrorMessage?: string;
   initialErrorDetails?: string;
   isMobile?: boolean;
+  isIOS?: boolean;
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
   const [errorMessage, setErrorMessage] = useState(initialErrorMessage ?? "");
@@ -154,7 +156,7 @@ export function SidebarHarness({
         }}
         exportUrl={exported ? "blob:http://localhost/test-pdf" : null}
         exportName="deck.pdf"
-        isIOS={false}
+        isIOS={isIOS}
         clearAllSlides={() => {
           setSlides([]);
           setHasRun(false);

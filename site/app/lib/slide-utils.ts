@@ -1,10 +1,10 @@
-import type { Quad } from "../detection/types";
-import type { LocaleCopy, ReviewUiCopy } from "../i18n";
-import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio";
+import type { Quad } from "../detection/types.ts";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n.ts";
+import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio.ts";
 import {
   loadImage,
-} from "./canvas-utils";
-import { renderPerspectivePage } from "./perspective-render";
+} from "./canvas-utils.ts";
+import { renderPerspectivePage } from "./perspective-render.ts";
 import {
   AppError,
   heifExtensions,
@@ -14,7 +14,7 @@ import {
   type HandlePosition,
   type Settings,
   type SlideItem,
-} from "./types";
+} from "./types.ts";
 
 export function makeId(file: File, index: number) {
   return `${index}-${file.name}-${file.lastModified}-${file.size}`;
@@ -33,7 +33,7 @@ export {
   type DisplayFileNameOptions,
   DISPLAY_FILENAME_MAX_LENGTH_DESKTOP,
   DISPLAY_FILENAME_MAX_LENGTH_MOBILE,
-} from "../filename";
+} from "../filename.ts";
 
 export function isHeifImage(file: File) {
   return hasExtension(file, heifExtensions) || heifMimeTypes.has(file.type.toLowerCase());
@@ -168,7 +168,7 @@ export function clampQuadCoordinate(value: number, size: number, maxOutside: num
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
 }
 
-export { adaptQuadToDimensions, applyQuadToSlide } from "./slide-transitions";
+export { adaptQuadToDimensions, applyQuadToSlide } from "./slide-transitions.ts";
 
 export async function resolveSlideDimensions(slide: SlideItem): Promise<{ width: number; height: number }> {
   if (slide.width > 0 && slide.height > 0) {
@@ -246,10 +246,31 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
   } as SlideItem));
 }
 
+export function isIOSUserAgent(
+  userAgent?: string,
+  platform?: string,
+  maxTouchPoints?: number,
+): boolean {
+  if (typeof window === "undefined" && !userAgent) return false;
+  const ua = userAgent ?? (typeof window !== "undefined" ? window.navigator.userAgent : "");
+  const plat = platform ?? (typeof window !== "undefined" ? window.navigator.platform : "");
+  const touchPoints =
+    maxTouchPoints !== undefined
+      ? maxTouchPoints
+      : typeof window !== "undefined"
+        ? window.navigator.maxTouchPoints
+        : 0;
+  return /iPad|iPhone|iPod/.test(ua) || (plat === "MacIntel" && touchPoints > 1);
+}
+
 export function triggerDownload(url: string, filename: string, isIOS = false) {
   if (typeof window === "undefined" || typeof document === "undefined") return;
   if (isIOS) {
-    window.open(url, "_blank");
+    try {
+      window.open(url, "_blank");
+    } catch {
+      // ignore popup blocking errors
+    }
     return;
   }
   const link = document.createElement("a");
@@ -264,4 +285,4 @@ export function triggerDownload(url: string, filename: string, isIOS = false) {
   }
 }
 
-export { exportManualQuads } from "./export-utils";
+export { exportManualQuads } from "./export-utils.ts";

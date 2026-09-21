@@ -15,6 +15,7 @@ import {
   confidenceText,
   buildAdjustedThumbnail,
   exportManualQuads as buildManualQuads,
+  isIOSUserAgent,
   messageFromError,
   resolvedSlideRatio,
   stripFileExtension,
@@ -638,10 +639,7 @@ export function SlidesThiefApp() {
   }, [detecting, reviewCount, setSelectedId, setZoomMode, slides]);
 
   useEffect(() => {
-    const ua = window.navigator.userAgent;
-    const isIOSDevice =
-      /iPad|iPhone|iPod/.test(ua) ||
-      (window.navigator.platform === "MacIntel" && window.navigator.maxTouchPoints > 1);
+    const isIOSDevice = isIOSUserAgent();
     isIOSRef.current = isIOSDevice;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsIOS(isIOSDevice);

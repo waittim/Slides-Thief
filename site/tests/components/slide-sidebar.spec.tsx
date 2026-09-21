@@ -106,6 +106,90 @@ test("direct JPG export supports multiple slides with Download JPGs zip link", a
   await expect(downloadJpgsLink).toHaveAttribute("download", "deck-jpgs.zip");
 });
 
+test("iOS export flow renders Open PDF link without download attribute and shows share instruction", async ({ mount }) => {
+  const component = await mount(<SidebarHarness isIOS={true} />);
+  const fileInput = component.locator('input[type="file"]').first();
+
+  await fileInput.setInputFiles({
+    name: "slide-1.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("slide-1"),
+  });
+
+  await component.getByRole("button", { name: "Auto straighten" }).click();
+  const generatePdfBtn = component.getByRole("button", { name: "Generate PDF" });
+  await generatePdfBtn.click();
+
+  // Desktop "Download PDF" should not exist
+  await expect(component.getByRole("link", { name: "Download PDF" })).toHaveCount(0);
+
+  // iOS "Open PDF" link exists, has target="_blank", and does not have download attribute
+  const openPdfLink = component.getByRole("link", { name: /Open PDF/i });
+  await expect(openPdfLink).toBeVisible();
+  await expect(openPdfLink).toHaveAttribute("target", "_blank");
+  await expect(openPdfLink).not.toHaveAttribute("download");
+
+  // Instructions for iOS Safari are visible
+  await expect(component.getByText("In the new tab, tap Share → Save to Files")).toBeVisible();
+});
+
+test("iOS export flow for single JPG renders Open JPG with share instruction", async ({ mount }) => {
+  const component = await mount(<SidebarHarness isIOS={true} />);
+  const fileInput = component.locator('input[type="file"]').first();
+
+  await fileInput.setInputFiles({
+    name: "slide-1.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("slide-1"),
+  });
+
+  await component.getByRole("button", { name: "Auto straighten" }).click();
+  const exportJpgBtn = component.getByRole("button", { name: "Export JPG" });
+  await exportJpgBtn.click();
+
+  // Desktop "Download JPG" should not exist
+  await expect(component.getByRole("link", { name: "Download JPG" })).toHaveCount(0);
+
+  // iOS "Open JPG" link exists, has target="_blank", and does not have download attribute
+  const openJpgLink = component.getByRole("link", { name: /Open JPG/i });
+  await expect(openJpgLink).toBeVisible();
+  await expect(openJpgLink).toHaveAttribute("target", "_blank");
+  await expect(openJpgLink).not.toHaveAttribute("download");
+
+  // Instructions for iOS Safari are visible
+  await expect(component.getByText("In the new tab, tap Share → Save to Files")).toBeVisible();
+});
+
+test("iOS export flow for multiple JPGs renders Download JPGs zip without tab share instruction", async ({ mount }) => {
+  const component = await mount(<SidebarHarness isIOS={true} />);
+  const fileInput = component.locator('input[type="file"]').first();
+
+  await fileInput.setInputFiles([
+    {
+      name: "slide-1.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("slide-1"),
+    },
+    {
+      name: "slide-2.png",
+      mimeType: "image/png",
+      buffer: Buffer.from("slide-2"),
+    },
+  ]);
+
+  await component.getByRole("button", { name: "Auto straighten" }).click();
+  const exportJpgBtn = component.getByRole("button", { name: "Export JPG" });
+  await exportJpgBtn.click();
+
+  // Multi-slide ZIP on iOS keeps Download JPGs title, removes download attribute for Safari compatibility
+  const downloadJpgsLink = component.getByRole("link", { name: "Download JPGs" });
+  await expect(downloadJpgsLink).toBeVisible();
+  await expect(downloadJpgsLink).not.toHaveAttribute("download");
+
+  // ZIP does not open as an inline viewable page, so the tab share instruction is not shown
+  await expect(component.getByText("In the new tab, tap Share → Save to Files")).toHaveCount(0);
+});
+
 test("dropzone shows Add more photos and appends subsequent file uploads", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
   const fileInput = component.locator('input[type="file"][accept*="image"]');

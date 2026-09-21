@@ -3,6 +3,7 @@ import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { slideBadgeTitle } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
 import type { ExportArtifact, SlideItem } from "../lib/types";
+import { ExportArtifactCard } from "./ExportArtifactCard";
 import { Button, CountBadge, StatusDot, type StatusDotProps } from "./ui";
 
 interface SlideSidebarProps {
@@ -444,100 +445,27 @@ export function SlideSidebar({
         {(pdfUrl || jpgArtifact) ? (
           <div className="links sidebarLinks sidebarArtifacts">
             {pdfUrl ? (
-              <a
-                href={pdfUrl}
-                download={isIOS ? undefined : pdfFilename}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`artifactCard ${isPdfStale ? "artifactCard--stale sidebarLink--stale" : ""}`}
-                title={isPdfStale ? text.staleExportHint : `${text.downloadPdf}: ${pdfFilename}`}
-              >
-                <div className="artifactCardIcon" aria-hidden="true">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                </div>
-                <div className="artifactCardInfo">
-                  <div className="artifactCardPrimary">
-                    <span className="artifactCardTitle">{text.downloadPdf}</span>
-                    {isPdfStale ? (
-                      <span className="sidebarStaleBadge" aria-hidden="true">
-                        {text.staleBadge}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="artifactCardMeta">
-                    <span className="artifactCardName" title={pdfFilename}>
-                      {pdfFilename}
-                    </span>
-                    {pdfArtifact?.byteLength ? (
-                      <span className="artifactCardSize">
-                        {formatBytes(pdfArtifact.byteLength)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </a>
+              <ExportArtifactCard
+                format="pdf"
+                url={pdfUrl}
+                filename={pdfFilename}
+                byteLength={pdfArtifact?.byteLength}
+                isStale={isPdfStale}
+                isIOS={isIOS}
+                text={text}
+              />
             ) : null}
             {jpgArtifact ? (
-              <a
-                href={jpgArtifact.url}
-                download={isIOS ? undefined : jpgArtifact.filename}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`artifactCard ${isJpgStale ? "artifactCard--stale sidebarLink--stale" : ""}`}
-                title={isJpgStale ? text.staleExportHint : `${readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}: ${jpgArtifact.filename}`}
-              >
-                <div className="artifactCardIcon" aria-hidden="true">
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                </div>
-                <div className="artifactCardInfo">
-                  <div className="artifactCardPrimary">
-                    <span className="artifactCardTitle">
-                      {readySlides.length === 1 ? text.downloadJpg : text.downloadJpgZip}
-                    </span>
-                    {isJpgStale ? (
-                      <span className="sidebarStaleBadge" aria-hidden="true">
-                        {text.staleBadge}
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="artifactCardMeta">
-                    <span className="artifactCardName" title={jpgArtifact.filename}>
-                      {jpgArtifact.filename}
-                    </span>
-                    {jpgArtifact.byteLength ? (
-                      <span className="artifactCardSize">
-                        {formatBytes(jpgArtifact.byteLength)}
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
-              </a>
+              <ExportArtifactCard
+                format="jpg"
+                url={jpgArtifact.url}
+                filename={jpgArtifact.filename}
+                byteLength={jpgArtifact.byteLength}
+                isStale={isJpgStale}
+                isIOS={isIOS}
+                multiSlideJpg={readySlides.length > 1}
+                text={text}
+              />
             ) : null}
             {hasStaleExport ? (
               <p className="sidebarStaleNotice" role="note">
