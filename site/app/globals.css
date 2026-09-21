@@ -2852,6 +2852,44 @@ canvas {
   to { transform: scale(1); opacity: 1; }
 }
 
+/* Confirmation Modal styles */
+.confirmModalCard {
+  max-width: 420px;
+}
+
+.confirmModalContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.confirmModalMessage {
+  margin: 0;
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-relaxed);
+  color: var(--text);
+}
+
+.confirmModalActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding-top: var(--space-2);
+}
+
+@media (max-width: 480px) {
+  .confirmModalActions {
+    flex-direction: column-reverse;
+    gap: var(--space-2);
+  }
+
+  .confirmModalActions .uiButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   button:not(:disabled):not(.cornerHandle):active,
   .moreSettings summary:active,

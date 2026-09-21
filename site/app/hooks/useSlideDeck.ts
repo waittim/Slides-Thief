@@ -6,7 +6,7 @@ export function useSlideDeck(
   markExportStale: () => void,
   clearExport: () => void,
   cancelActiveDrag: () => void,
-  confirmClearText: (count: number) => string,
+  confirmClearText?: (count: number) => string,
 ) {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -95,14 +95,12 @@ export function useSlideDeck(
   const clearAllSlides = useCallback(() => {
     const count = slidesRef.current.length;
     if (!count) return;
-    const shouldClear = window.confirm(confirmClearText(count));
-    if (!shouldClear) return;
     pushHistory();
     clearExport();
     cancelActiveDrag();
     setSlides([]);
     setSelectedId(null);
-  }, [cancelActiveDrag, clearExport, confirmClearText, pushHistory]);
+  }, [cancelActiveDrag, clearExport, pushHistory]);
 
   const selectNextSlide = useCallback(
     (onSelect?: () => void) => {

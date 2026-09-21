@@ -334,5 +334,48 @@ test("slide reordering updates page order with buttons, Alt+Arrow keys, and supp
   await expect(rows.nth(1).locator(".idx")).toHaveText("02");
 });
 
+test("clearing all slides opens styled ConfirmModal, cancel keeps slides, and confirm clears slides", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+
+  // Click Clear all button
+  const clearBtn = page.locator(".clearAction");
+  await clearBtn.click();
+
+  // Styled ConfirmModal appears
+  const modal = page.locator(".confirmModalCard");
+  await expect(modal).toBeVisible();
+  await expect(modal.locator("#confirm-dialog-title")).toHaveText("Clear all images");
+  await expect(modal.locator("#confirm-dialog-desc")).toHaveText("Are you sure you want to clear all 2 images?");
+
+  const cancelBtn = modal.locator(".confirmModalCancelBtn");
+  const confirmBtn = modal.locator(".confirmModalConfirmBtn");
+
+  await expect(cancelBtn).toHaveText("Keep images");
+  await expect(confirmBtn).toHaveText("Clear all");
+  await expect(confirmBtn).toHaveClass(/uiButton--danger/);
+
+  // Clicking cancel dismisses modal and keeps slides
+  await cancelBtn.click();
+  await expect(modal).toHaveCount(0);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("2");
+
+  // Click Clear all again
+  await clearBtn.click();
+  await expect(modal).toBeVisible();
+
+  // Clicking confirm clears all slides
+  await confirmBtn.click();
+  await expect(modal).toHaveCount(0);
+  await expect(page.locator(".uiCountBadge").first()).toHaveText("0");
+  await expect(page.locator(".fileRow")).toHaveCount(0);
+  await expect(page.locator(".clearAction")).toHaveCount(0);
+});
+
 
 

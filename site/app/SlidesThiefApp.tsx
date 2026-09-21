@@ -45,7 +45,7 @@ import { Header } from "./components/Header";
 import { InspectorPanel } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
-import { Button } from "./components/ui";
+import { Button, ConfirmModal } from "./components/ui";
 import { PRODUCT_METADATA } from "./product-metadata";
 
 const APP_VERSION = PRODUCT_METADATA.version;
@@ -74,6 +74,10 @@ export function SlidesThiefApp() {
   }, []);
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+  const [isConfirmReviewOpen, setIsConfirmReviewOpen] = useState(false);
+  const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "jpg" | null>(null);
+  const isAnyModalOpen = isInfoOpen || isConfirmClearOpen || isConfirmReviewOpen;
   const [isIOS, setIsIOS] = useState(false);
   const isIOSRef = useRef(false);
 
@@ -158,13 +162,27 @@ export function SlidesThiefApp() {
     canUndo,
     canRedo,
     deleteSlide: deleteSlideDeck,
-    clearAllSlides,
+    clearAllSlides: performClearAll,
     selectNextSlide: selectNextSlideDeck,
     selectPrevSlide: selectPrevSlideDeck,
     moveSlide,
     moveSlideUp,
     moveSlideDown,
   } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag, confirmClearText);
+
+  const handleRequestClearAll = useCallback(() => {
+    if (slidesRef.current.length === 0) return;
+    setIsConfirmClearOpen(true);
+  }, [slidesRef]);
+
+  const handleConfirmClearAll = useCallback(() => {
+    setIsConfirmClearOpen(false);
+    performClearAll();
+  }, [performClearAll]);
+
+  const handleCancelClearAll = useCallback(() => {
+    setIsConfirmClearOpen(false);
+  }, []);
 
   const [deletedNotice, setDeletedNotice] = useState<{ id: string; name: string } | null>(null);
   const deleteNoticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -854,22 +872,7 @@ export function SlidesThiefApp() {
     reDetectSlides([selectedSlide.id]);
   }, [reDetectSlides, selectedSlide]);
 
-  const confirmExportReady = useCallback((): boolean => {
-    if (!readySlides.length) return false;
-    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
-    if (pagesNeedingReview.length) {
-      const shouldContinue = window.confirm(reviewText.reviewConfirmation(pagesNeedingReview.length));
-      if (!shouldContinue) {
-        setSelectedId(pagesNeedingReview[0].id);
-        setZoomMode("fit");
-        return false;
-      }
-    }
-    return true;
-  }, [readySlides, reviewText, setSelectedId, setZoomMode]);
-
-  const exportPdf = useCallback(() => {
-    if (!confirmExportReady()) return;
+  const performExportPdf = useCallback(() => {
     const worker = ensureExportWorker();
     if (!worker) return;
     const filename = normalizePdfName(pdfBaseName);
@@ -885,10 +888,9 @@ export function SlidesThiefApp() {
       settings,
       filename,
     });
-  }, [confirmExportReady, ensureExportWorker, pdfBaseName, readySlides, settings, text.generating]);
+  }, [ensureExportWorker, pdfBaseName, readySlides, settings, text.generating]);
 
-  const exportJpg = useCallback(() => {
-    if (!confirmExportReady()) return;
+  const performExportJpg = useCallback(() => {
     const worker = ensureExportWorker();
     if (!worker) return;
     const filename =
@@ -905,7 +907,60 @@ export function SlidesThiefApp() {
       settings,
       filename,
     });
-  }, [confirmExportReady, ensureExportWorker, pdfBaseName, readySlides, settings, text.generatingJpg]);
+  }, [ensureExportWorker, pdfBaseName, readySlides, settings, text.generatingJpg]);
+
+  const exportPdf = useCallback(() => {
+    if (!readySlides.length) return;
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (pagesNeedingReview.length > 0) {
+      setPendingExportFormat("pdf");
+      setIsConfirmReviewOpen(true);
+      return;
+    }
+    performExportPdf();
+  }, [performExportPdf, readySlides]);
+
+  const exportJpg = useCallback(() => {
+    if (!readySlides.length) return;
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (pagesNeedingReview.length > 0) {
+      setPendingExportFormat("jpg");
+      setIsConfirmReviewOpen(true);
+      return;
+    }
+    performExportJpg();
+  }, [performExportJpg, readySlides]);
+
+  const handleConfirmReviewExport = useCallback(() => {
+    setIsConfirmReviewOpen(false);
+    const format = pendingExportFormat;
+    setPendingExportFormat(null);
+    if (format === "pdf") {
+      performExportPdf();
+    } else if (format === "jpg") {
+      performExportJpg();
+    }
+  }, [pendingExportFormat, performExportJpg, performExportPdf]);
+
+  const handleCancelReviewExport = useCallback(() => {
+    setIsConfirmReviewOpen(false);
+    setPendingExportFormat(null);
+    const pagesNeedingReview = readySlides.filter((slide) => slide.needsReview);
+    if (pagesNeedingReview.length > 0) {
+      setSelectedId(pagesNeedingReview[0].id);
+      setZoomMode("fit");
+    }
+  }, [readySlides, setSelectedId, setZoomMode]);
+
+  const handleDismissReviewModal = useCallback(() => {
+    setIsConfirmReviewOpen(false);
+    setPendingExportFormat(null);
+  }, []);
+
+  const reviewSlideCount = useMemo(
+    () => readySlides.filter((slide) => slide.needsReview).length,
+    [readySlides],
+  );
 
   const retryError = useMemo(() => {
     if (!workerError || !errorAction) return undefined;
@@ -944,7 +999,7 @@ export function SlidesThiefApp() {
     exportPdf,
     handleRedo,
     handleUndo,
-    isInfoOpen,
+    isInfoOpen: isAnyModalOpen,
     selectedIdRef,
     selectNextSlide,
     selectPrevSlide,
@@ -953,7 +1008,7 @@ export function SlidesThiefApp() {
 
   useWindowImport({
     busy,
-    isInfoOpen,
+    isInfoOpen: isAnyModalOpen,
     slidesRef,
     loadFiles,
     setDragActive,
@@ -983,7 +1038,7 @@ export function SlidesThiefApp() {
 
   return (
     <div className="app" aria-busy={busy || Boolean(busyText)}>
-      {dragActive && !busy && !isInfoOpen ? (
+      {dragActive && !busy && !isAnyModalOpen ? (
         <div className="windowDragOverlay" aria-hidden="true">
           <div className="windowDragOverlayCard">
             <div className="windowDragOverlayIcon" aria-hidden="true">
@@ -1008,7 +1063,7 @@ export function SlidesThiefApp() {
         </div>
       ) : null}
       <Header
-        isInfoOpen={isInfoOpen}
+        isInfoOpen={isAnyModalOpen}
         text={text}
         ratioUi={ratioUi}
         settings={settings}
@@ -1031,8 +1086,8 @@ export function SlidesThiefApp() {
 
       <main
         className={`shell ${inspectorCollapsed ? "inspectorCollapsed" : ""}`}
-        aria-hidden={isInfoOpen || undefined}
-        inert={isInfoOpen ? true : undefined}
+        aria-hidden={isAnyModalOpen || undefined}
+        inert={isAnyModalOpen ? true : undefined}
       >
         <SlideSidebar
           busy={busy}
@@ -1060,7 +1115,7 @@ export function SlidesThiefApp() {
           exportUrl={exportArtifacts.pdf?.url ?? null}
           exportName={exportArtifacts.pdf?.filename ?? normalizePdfName(pdfBaseName)}
           isIOS={isIOS}
-          clearAllSlides={clearAllSlides}
+          clearAllSlides={handleRequestClearAll}
           inputRef={inputRef}
           manualInputRef={manualInputRef}
           loadFiles={loadFiles}
@@ -1169,7 +1224,7 @@ export function SlidesThiefApp() {
         {cornerAnnouncement}
       </p>
 
-      <footer className="prefsBar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
+      <footer className="prefsBar" aria-hidden={isAnyModalOpen || undefined} inert={isAnyModalOpen ? true : undefined}>
         <PreferencesControls
           infoButtonRef={infoButtonRef}
           placement="footer"
@@ -1189,6 +1244,33 @@ export function SlidesThiefApp() {
         closeInfoButtonRef={closeInfoButtonRef}
         text={text}
         appVersion={APP_VERSION}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        onClose={handleCancelClearAll}
+        onConfirm={handleConfirmClearAll}
+        title={text.clearAllTitle}
+        message={text.clearAllConfirm(slides.length)}
+        confirmLabel={text.clearAllAction}
+        cancelLabel={text.keepSlidesAction}
+        destructive
+        closeLabel={text.close}
+      />
+
+      <ConfirmModal
+        isOpen={isConfirmReviewOpen}
+        onClose={handleDismissReviewModal}
+        onCancel={handleCancelReviewExport}
+        onConfirm={handleConfirmReviewExport}
+        title={reviewText.reviewModalTitle}
+        message={reviewText.reviewConfirmation(reviewSlideCount)}
+        confirmLabel={reviewText.reviewModalConfirm}
+        cancelLabel={reviewText.reviewModalCancel}
+        confirmVariant="primary"
+        cancelVariant="secondary"
+        autoFocusButton="cancel"
+        closeLabel={text.close}
       />
     </div>
   );

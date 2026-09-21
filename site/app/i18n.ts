@@ -191,6 +191,9 @@ export type ReviewUiCopy = {
   privacy: string;
   reviewSummary: (count: number) => string;
   reviewConfirmation: (count: number) => string;
+  reviewModalTitle: string;
+  reviewModalConfirm: string;
+  reviewModalCancel: string;
   reviewReasonsTitle: string;
   reviewFallbackTitle: string;
   reviewReasons: Record<ReviewReason, string>;
@@ -207,6 +210,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "隐私",
     reviewSummary: (count) => `${count} 张照片建议复查`,
     reviewConfirmation: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+    reviewModalTitle: "导出前复查",
+    reviewModalConfirm: "仍然生成",
+    reviewModalCancel: "先去复查",
     reviewReasonsTitle: "复查原因",
     reviewFallbackTitle: "需手动调整四角",
     reviewReasons: {
@@ -228,6 +234,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "隱私",
     reviewSummary: (count) => `${count} 張相片建議檢查`,
     reviewConfirmation: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+    reviewModalTitle: "匯出前檢查",
+    reviewModalConfirm: "仍然產生",
+    reviewModalCancel: "先去檢查",
     reviewReasonsTitle: "檢查原因",
     reviewFallbackTitle: "需手動調整四角",
     reviewReasons: {
@@ -250,6 +259,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} may need review`,
     reviewConfirmation: (count) =>
       `${count} photo${count === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
+    reviewModalTitle: "Review before export",
+    reviewModalConfirm: "Export anyway",
+    reviewModalCancel: "Review slides",
     reviewReasonsTitle: "Reasons for review",
     reviewFallbackTitle: "Manual corner adjustment required",
     reviewReasons: {
@@ -273,6 +285,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión`,
     reviewConfirmation: (count) =>
       `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión. ¿Generar el PDF de todos modos?`,
+    reviewModalTitle: "Revisar antes de exportar",
+    reviewModalConfirm: "Exportar de todos modos",
+    reviewModalCancel: "Revisar primero",
     reviewReasonsTitle: "Motivos de revisión",
     reviewFallbackTitle: "Se requiere ajuste manual de esquinas",
     reviewReasons: {
@@ -295,6 +310,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} à vérifier`,
     reviewConfirmation: (count) =>
       `${count} photo${count === 1 ? "" : "s"} à vérifier. Générer quand même le PDF ?`,
+    reviewModalTitle: "Vérifier avant d’exporter",
+    reviewModalConfirm: "Exporter quand même",
+    reviewModalCancel: "Vérifier d’abord",
     reviewReasonsTitle: "Raisons de vérification",
     reviewFallbackTitle: "Ajustement manuel des coins requis",
     reviewReasons: {
@@ -318,6 +336,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden`,
     reviewConfirmation: (count) =>
       `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden. PDF trotzdem erstellen?`,
+    reviewModalTitle: "Vor dem Export prüfen",
+    reviewModalConfirm: "Trotzdem exportieren",
+    reviewModalCancel: "Zuerst prüfen",
     reviewReasonsTitle: "Gründe für Prüfung",
     reviewFallbackTitle: "Manuelle Eckanpassung erforderlich",
     reviewReasons: {
@@ -339,6 +360,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "プライバシー",
     reviewSummary: (count) => `${count}枚の写真を確認してください`,
     reviewConfirmation: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+    reviewModalTitle: "エクスポート前の確認",
+    reviewModalConfirm: "このまま生成",
+    reviewModalCancel: "確認に戻る",
     reviewReasonsTitle: "確認が必要な理由",
     reviewFallbackTitle: "手動での四隅調整が必要です",
     reviewReasons: {
@@ -360,6 +384,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     privacy: "개인정보 보호",
     reviewSummary: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
     reviewConfirmation: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+    reviewModalTitle: "내보내기 전 검토",
+    reviewModalConfirm: "그래도 생성",
+    reviewModalCancel: "먼저 검토",
     reviewReasonsTitle: "검토 권장 사유",
     reviewFallbackTitle: "수동 모서리 조정 필요",
     reviewReasons: {
@@ -383,6 +410,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão`,
     reviewConfirmation: (count) =>
       `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão. Gerar o PDF mesmo assim?`,
+    reviewModalTitle: "Revisar antes de exportar",
+    reviewModalConfirm: "Exportar mesmo assim",
+    reviewModalCancel: "Revisar primeiro",
     reviewReasonsTitle: "Motivos para revisão",
     reviewFallbackTitle: "Ajuste manual dos cantos necessário",
     reviewReasons: {
@@ -741,6 +771,9 @@ export const copy = {
     shortcutNudge: "方向键 (+Shift) 8 方向微调角点",
     clearAll: "清空全部",
     clearAllConfirm: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
+    clearAllTitle: "清空全部图片",
+    clearAllAction: "清空全部",
+    keepSlidesAction: "保留照片",
     deleteSlideHint: "删除此图片",
     moveUp: "上移",
     moveDown: "下移",
@@ -880,6 +913,9 @@ export const copy = {
     shortcutNudge: "方向鍵 (+Shift) 8 方向微調角點",
     clearAll: "清空全部",
     clearAllConfirm: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
+    clearAllTitle: "清空全部圖片",
+    clearAllAction: "清空全部",
+    keepSlidesAction: "保留相片",
     deleteSlideHint: "刪除此圖片",
     moveUp: "上移",
     moveDown: "下移",
@@ -1019,6 +1055,9 @@ export const copy = {
     shortcutNudge: "Arrow keys (+Shift) nudge handle",
     clearAll: "Clear all",
     clearAllConfirm: (count: number) => `Are you sure you want to clear all ${count} images?`,
+    clearAllTitle: "Clear all images",
+    clearAllAction: "Clear all",
+    keepSlidesAction: "Keep images",
     deleteSlideHint: "Delete image",
     moveUp: "Move up",
     moveDown: "Move down",
@@ -1158,6 +1197,9 @@ export const copy = {
     shortcutNudge: "Flechas (+Shift) ajustar esquina",
     clearAll: "Limpiar todo",
     clearAllConfirm: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
+    clearAllTitle: "Borrar todas las imágenes",
+    clearAllAction: "Borrar todo",
+    keepSlidesAction: "Conservar imágenes",
     deleteSlideHint: "Eliminar imagen",
     moveUp: "Subir",
     moveDown: "Bajar",
@@ -1297,6 +1339,9 @@ export const copy = {
     shortcutNudge: "Touches fléchées (+Shift) ajuster coin",
     clearAll: "Tout effacer",
     clearAllConfirm: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
+    clearAllTitle: "Effacer toutes les images",
+    clearAllAction: "Tout effacer",
+    keepSlidesAction: "Conserver les images",
     deleteSlideHint: "Supprimer l'image",
     moveUp: "Monter",
     moveDown: "Descendre",
@@ -1436,6 +1481,9 @@ export const copy = {
     shortcutNudge: "Pfeiltasten (+Shift) Eckpunkt anpassen",
     clearAll: "Alles löschen",
     clearAllConfirm: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
+    clearAllTitle: "Alle Bilder löschen",
+    clearAllAction: "Alles löschen",
+    keepSlidesAction: "Bilder behalten",
     deleteSlideHint: "Bild löschen",
     moveUp: "Nach oben",
     moveDown: "Nach unten",
@@ -1575,6 +1623,9 @@ export const copy = {
     shortcutNudge: "矢印キー (+Shift) で頂点を微調整",
     clearAll: "すべて消去",
     clearAllConfirm: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
+    clearAllTitle: "すべての画像を消去",
+    clearAllAction: "すべて消去",
+    keepSlidesAction: "画像を保持",
     deleteSlideHint: "画像を削除",
     moveUp: "上へ移動",
     moveDown: "下へ移動",
@@ -1714,6 +1765,9 @@ export const copy = {
     shortcutNudge: "방향키 (+Shift) 미세 조정",
     clearAll: "모두 지우기",
     clearAllConfirm: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
+    clearAllTitle: "모든 이미지 지우기",
+    clearAllAction: "모두 지우기",
+    keepSlidesAction: "이미지 유지",
     deleteSlideHint: "이미지 삭제",
     moveUp: "위로 이동",
     moveDown: "아래로 이동",
@@ -1853,6 +1907,9 @@ export const copy = {
     shortcutNudge: "Setas (+Shift) ajustar ponto",
     clearAll: "Limpar tudo",
     clearAllConfirm: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
+    clearAllTitle: "Limpar todas as imagens",
+    clearAllAction: "Limpar tudo",
+    keepSlidesAction: "Manter imagens",
     deleteSlideHint: "Excluir imagem",
     moveUp: "Mover para cima",
     moveDown: "Mover para baixo",
