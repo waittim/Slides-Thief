@@ -99,11 +99,9 @@ export function SlideSidebar({
   reDetectSelected,
   applyQuadToSelected,
 }: SlideSidebarProps) {
-  const [exportMenuOpen, setExportMenuOpen] = useState(false);
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const dragSourceIndexRef = useRef<number | null>(null);
-  const splitButtonRef = useRef<HTMLDivElement | null>(null);
 
   const handleSlideDragStart = (event: React.DragEvent<HTMLLIElement>, index: number) => {
     if (busy) {
@@ -180,27 +178,6 @@ export function SlideSidebar({
     setDropTarget(null);
   };
 
-  useEffect(() => {
-    if (!exportMenuOpen) return;
-    const handlePointerDown = (event: MouseEvent | PointerEvent) => {
-      if (splitButtonRef.current && !splitButtonRef.current.contains(event.target as Node)) {
-        setExportMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setExportMenuOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [exportMenuOpen]);
-
-  const isMenuOpen = exportMenuOpen && !busy && readySlides.length > 0;
   const pdfArtifact = exportArtifacts?.pdf;
   const pdfUrl = pdfArtifact?.url ?? exportUrl ?? null;
   const pdfFilename = pdfArtifact?.filename ?? exportName ?? "presentation.pdf";
@@ -214,81 +191,32 @@ export function SlideSidebar({
   return (
     <aside className="sidebar">
       <div className="sidebarActions">
-        <Button variant="primary" disabled={busy || !slides.length} onClick={runAuto}>
+        <Button
+          variant="primary"
+          className="runAutoButton"
+          disabled={busy || !slides.length}
+          onClick={runAuto}
+        >
           {text.runAuto}
         </Button>
-        <div className="splitButton" ref={splitButtonRef}>
-          <Button
-            variant="accent"
-            className="splitButtonMain"
-            disabled={busy || !readySlides.length}
-            title={`${mainButtonLabel} (⌘↵ / Ctrl+Enter)`}
-            onClick={() => {
-              setExportMenuOpen(false);
-              exportPdf();
-            }}
-          >
-            {mainButtonLabel}
-          </Button>
-          <button
-            type="button"
-            className="splitButtonToggle uiButton uiButton--accent"
-            disabled={busy || !readySlides.length}
-            aria-haspopup="menu"
-            aria-expanded={isMenuOpen}
-            aria-label={text.exportOptions}
-            onClick={() => setExportMenuOpen((open) => !open)}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
-          </button>
-          {isMenuOpen ? (
-            <div className="exportMenu" role="menu">
-              <div className="exportMenuHeading">{text.exportOptions}</div>
-              <button
-                type="button"
-                role="menuitem"
-                className="exportMenuItem"
-                onClick={() => {
-                  setExportMenuOpen(false);
-                  exportJpg();
-                }}
-              >
-                <svg
-                  className="exportMenuItemIcon"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  aria-hidden="true"
-                >
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                <span className="exportMenuItemText">
-                  <span className="exportMenuItemTitle">{text.exportJpg}</span>
-                  <span className="exportMenuItemDesc">{text.exportJpgDescription}</span>
-                </span>
-              </button>
-            </div>
-          ) : null}
-        </div>
+        <Button
+          variant="accent"
+          className="exportPdfButton"
+          disabled={busy || !readySlides.length}
+          title={`${mainButtonLabel} (⌘↵ / Ctrl+Enter)`}
+          onClick={exportPdf}
+        >
+          {mainButtonLabel}
+        </Button>
+        <Button
+          variant="accent"
+          className="exportJpgButton"
+          disabled={busy || !readySlides.length}
+          title={text.exportJpgDescription ? `${text.exportJpg} (${text.exportJpgDescription})` : text.exportJpg}
+          onClick={exportJpg}
+        >
+          {text.exportJpg}
+        </Button>
       </div>
       {slides.length > 0 ? (
         <div className="manualQuadsActions">

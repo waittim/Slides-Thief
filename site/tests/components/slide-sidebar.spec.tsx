@@ -36,7 +36,7 @@ test("file selection, straighten, and export controls follow the user-visible st
   await expect(component.getByTestId("workflow-status")).toHaveText("manual-imported");
 });
 
-test("split button toggle opens export menu and exports JPG for single slide with dual links", async ({ mount }) => {
+test("direct export buttons export JPG and PDF for single slide with dual links", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
   const fileInput = component.locator('input[type="file"]').first();
 
@@ -46,24 +46,18 @@ test("split button toggle opens export menu and exports JPG for single slide wit
     buffer: Buffer.from("not-used-by-this-component-test"),
   });
 
-  const exportToggle = component.getByRole("button", { name: "Export options" });
-  await expect(exportToggle).toBeDisabled();
+  const exportJpgBtn = component.getByRole("button", { name: "Export JPG" });
+  const generatePdfBtn = component.getByRole("button", { name: "Generate PDF" });
+  await expect(exportJpgBtn).toBeDisabled();
+  await expect(generatePdfBtn).toBeDisabled();
 
   await component.getByRole("button", { name: "Auto straighten" }).click();
-  await expect(exportToggle).toBeEnabled();
+  await expect(exportJpgBtn).toBeEnabled();
+  await expect(generatePdfBtn).toBeEnabled();
 
-  // Menu closed initially
-  await expect(component.getByRole("menu")).toHaveCount(0);
-
-  // Clicking chevron opens export menu
-  await exportToggle.click();
-  await expect(component.getByRole("menu")).toBeVisible();
-  await expect(component.getByRole("menuitem", { name: /Export JPG images/i })).toBeVisible();
-
-  // Clicking "Export JPG images" calls exportJpg and closes menu
-  await component.getByRole("menuitem", { name: /Export JPG images/i }).click();
+  // Clicking "Export JPG" directly calls exportJpg
+  await exportJpgBtn.click();
   await expect(component.getByTestId("workflow-status")).toHaveText("exported-jpg");
-  await expect(component.getByRole("menu")).toHaveCount(0);
 
   // Download JPG link appears with single slide label and download attribute
   const downloadJpgLink = component.getByRole("link", { name: "Download JPG" });
@@ -71,7 +65,7 @@ test("split button toggle opens export menu and exports JPG for single slide wit
   await expect(downloadJpgLink).toHaveAttribute("download", "deck.jpg");
 
   // Clicking Generate PDF enables PDF download as well; both links appear stacked
-  await component.getByRole("button", { name: "Generate PDF" }).click();
+  await generatePdfBtn.click();
   const downloadPdfLink = component.getByRole("link", { name: "Download PDF" });
   await expect(downloadPdfLink).toBeVisible();
   await expect(downloadPdfLink).toHaveAttribute("download", "deck.pdf");
@@ -79,7 +73,7 @@ test("split button toggle opens export menu and exports JPG for single slide wit
   await expect(downloadJpgLink).toHaveAttribute("download", "deck.jpg");
 });
 
-test("export menu supports multiple slides with Download JPGs link and Escape to close", async ({ mount, page }) => {
+test("direct JPG export supports multiple slides with Download JPGs zip link", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
   const fileInput = component.locator('input[type="file"]').first();
 
@@ -96,20 +90,14 @@ test("export menu supports multiple slides with Download JPGs link and Escape to
     },
   ]);
 
+  const exportJpgBtn = component.getByRole("button", { name: "Export JPG" });
+  await expect(exportJpgBtn).toBeDisabled();
+
   await component.getByRole("button", { name: "Auto straighten" }).click();
+  await expect(exportJpgBtn).toBeEnabled();
 
-  const exportToggle = component.getByRole("button", { name: "Export options" });
-  await exportToggle.click();
-  await expect(component.getByRole("menu")).toBeVisible();
-
-  // Escape key closes menu
-  await page.keyboard.press("Escape");
-  await expect(component.getByRole("menu")).toHaveCount(0);
-
-  // Reopen and export JPGs
-  await exportToggle.click();
-  await expect(component.getByRole("menu")).toBeVisible();
-  await component.getByRole("menuitem", { name: /Export JPG images/i }).click();
+  // Clicking "Export JPG" directly calls exportJpg
+  await exportJpgBtn.click();
   await expect(component.getByTestId("workflow-status")).toHaveText("exported-jpg");
 
   // Multi-slide text is "Download JPGs" and target file is zip
