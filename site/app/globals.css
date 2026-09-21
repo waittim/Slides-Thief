@@ -1432,7 +1432,8 @@ button.clearAction:disabled {
 }
 
 .fileRow.active .slideSelectButton,
-.slideRow.active .slideSelectButton {
+.slideRow.active .slideSelectButton,
+.slideSelectButton[aria-current="true"] {
   border-color: var(--accent-2);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-2), transparent 82%);
 }

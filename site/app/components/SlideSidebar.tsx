@@ -702,7 +702,7 @@ export function SlideSidebar({
                   variant="ghost"
                   size="touch"
                   className="slideSelectButton"
-                  aria-pressed={active}
+                  aria-current={active ? "true" : undefined}
                   onClick={() => selectAt(index)}
                 >
                   <span className="idx" title={text.dragToReorder}>{String(index + 1).padStart(2, "0")}</span>

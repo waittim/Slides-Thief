@@ -532,3 +532,29 @@ test("toggling details button displays and hides detailed error text", async ({ 
   await collapseBtn.click();
   await expect(component.locator(".sidebarErrorDetails")).toHaveCount(0);
 });
+
+test("slide selection exposes aria-current for active slide instead of aria-pressed toggle", async ({ mount }) => {
+  const slide1 = makeTestSlide({ id: "s1", name: "slide-1.png", status: "ready" });
+  const slide2 = makeTestSlide({ id: "s2", name: "slide-2.png", status: "ready" });
+
+  const component = await mount(
+    <SidebarHarness initialSlides={[slide1, slide2]} initialHasRun={true} />,
+  );
+
+  const selectButtons = component.locator(".slideSelectButton");
+  await expect(selectButtons).toHaveCount(2);
+
+  // Initially, first slide is active (has aria-current="true", no aria-pressed)
+  await expect(selectButtons.nth(0)).toHaveAttribute("aria-current", "true");
+  await expect(selectButtons.nth(0)).not.toHaveAttribute("aria-pressed");
+
+  // Second slide is inactive (no aria-current, no aria-pressed)
+  await expect(selectButtons.nth(1)).not.toHaveAttribute("aria-current");
+  await expect(selectButtons.nth(1)).not.toHaveAttribute("aria-pressed");
+
+  // Clicking second slide makes it active and updates aria-current
+  await selectButtons.nth(1).click();
+  await expect(selectButtons.nth(0)).not.toHaveAttribute("aria-current");
+  await expect(selectButtons.nth(1)).toHaveAttribute("aria-current", "true");
+});
+
