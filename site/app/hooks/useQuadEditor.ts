@@ -17,15 +17,15 @@ type DragHandleRef = MutableRefObject<number | null>;
 type QuadEditorOptions = {
   selectedSlide: SlideItem | null;
   text: LocaleCopy;
-  settings: Settings;
+  settings?: Pick<Settings, "sourceFormat" | "sourceOrientation" | "sourceCustomRatio">;
   setSlides: Dispatch<SetStateAction<SlideItem[]>>;
-  setBusyText: (text: string) => void;
+  setBusyText?: (text: string) => void;
   setCornerAnnouncement: (announcement: string) => void;
   setHandlePositions: Dispatch<SetStateAction<HandlePosition[]>>;
   markExportStale: () => void;
   clearExport?: () => void;
   pushHistory: () => void;
-  startDetection: (
+  startDetection?: (
     files: Array<{ id: string; name: string; file: File }>,
     settings: Pick<Settings, "sourceFormat" | "sourceOrientation" | "sourceCustomRatio">,
   ) => number | null;
@@ -266,35 +266,43 @@ export function useQuadEditor({
     setCornerAnnouncement(`${text.cornerHandle} ${index + 1}: X ${Math.round(next[index][0])}, Y ${Math.round(next[index][1])}`);
   }, [canvasRenderRef, latestDragQuadRef, paintCanvas, pushHistory, redrawCanvas, refreshSlideThumbnail, scaleRef, selectedSlide, setCornerAnnouncement, setHandlePositions, text.cornerHandle, updateSlideQuad]);
 
-  const resetSelected = useCallback(() => {
-    if (!selectedSlide) return;
-    markExportStale();
+  const restoreSelectedAutoDetection = useCallback(() => {
+    if (!selectedSlide || !selectedSlide.autoDetection || selectedSlide.status !== "ready") return;
     cancelActiveDrag();
-    if (selectedSlide.autoDetection) {
-      const snapshot = selectedSlide.autoDetection;
-      const next = cloneQuad(snapshot.quad);
-      setSlides((current) =>
-        current.map((slide) => {
-          if (slide.id !== selectedSlide.id) return slide;
-          return restoreAutoDetection(slide);
-        }),
-      );
-      void refreshSlideThumbnail(selectedSlide.id, next);
-      return;
+    pushHistory();
+    markExportStale();
+    const snapshot = selectedSlide.autoDetection;
+    const next = cloneQuad(snapshot.quad);
+    const render = canvasRenderRef.current;
+    if (render && render.slideId === selectedSlide.id) {
+      paintCanvas(next);
+      setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
     }
-
-    const jobId = startDetection(
-      [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
-      settings,
+    setSlides((current) =>
+      current.map((slide) => {
+        if (slide.id !== selectedSlide.id) return slide;
+        return restoreAutoDetection(slide);
+      }),
     );
-    if (jobId !== null) setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-  }, [cancelActiveDrag, markExportStale, refreshSlideThumbnail, selectedSlide, setBusyText, setSlides, settings, startDetection, text.stretching]);
+    void refreshSlideThumbnail(selectedSlide.id, next);
+  }, [
+    cancelActiveDrag,
+    canvasRenderRef,
+    markExportStale,
+    paintCanvas,
+    pushHistory,
+    refreshSlideThumbnail,
+    selectedSlide,
+    setHandlePositions,
+    setSlides,
+  ]);
 
   return {
     dragHandle,
     cancelActiveDrag,
     updateSlideQuad,
-    resetSelected,
+    restoreAutoDetection: restoreSelectedAutoDetection,
+    resetSelected: restoreSelectedAutoDetection,
     onHandlePointerDown,
     onHandlePointerMove,
     onHandlePointerUp,

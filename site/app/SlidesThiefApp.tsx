@@ -361,6 +361,7 @@ export function SlidesThiefApp() {
   const {
     dragHandle,
     cancelActiveDrag: cancelQuadDrag,
+    restoreAutoDetection,
     resetSelected,
     onHandlePointerDown,
     onHandlePointerMove,
@@ -1318,6 +1319,7 @@ export function SlidesThiefApp() {
           zoomIn={zoomIn}
           setZoomMode={setZoomMode}
           resetSelected={resetSelected}
+          restoreAutoDetection={restoreAutoDetection}
           onHandlePointerDown={onHandlePointerDown}
           onHandlePointerMove={onHandlePointerMove}
           onHandlePointerUp={onHandlePointerUp}

@@ -1,8 +1,31 @@
 import type { Quad } from "../detection/types";
 import type { SlideItem } from "./types";
 
-function cloneQuad(quad: Quad): Quad {
+export function cloneQuad(quad: Quad): Quad {
   return quad.map((point) => [point[0], point[1]]) as Quad;
+}
+
+/** Check whether two quads have approximately identical corner coordinates. */
+export function isQuadEqual(q1: Quad | null | undefined, q2: Quad | null | undefined, tolerance = 0.01): boolean {
+  if (!q1 || !q2) return q1 === q2;
+  if (q1.length !== q2.length) return false;
+  return q1.every(([x1, y1], i) => {
+    const p2 = q2[i];
+    return p2 !== undefined && Math.abs(x1 - p2[0]) <= tolerance && Math.abs(y1 - p2[1]) <= tolerance;
+  });
+}
+
+/**
+ * Checks whether a slide has an automatic detection snapshot that differs
+ * from its current state, meaning it can be restored.
+ */
+export function canRestoreAutoDetection(slide: SlideItem | null | undefined): boolean {
+  if (!slide || slide.status !== "ready" || !slide.autoDetection) return false;
+  const snapshot = slide.autoDetection;
+  const quadChanged = !isQuadEqual(slide.quad, snapshot.quad);
+  const methodChanged = slide.method !== snapshot.method;
+  const reviewChanged = slide.needsReview !== snapshot.needsReview;
+  return quadChanged || methodChanged || reviewChanged;
 }
 
 /** Restore the last automatic result, including the metadata that drives review UI. */

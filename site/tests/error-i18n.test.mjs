@@ -253,3 +253,27 @@ test("isAppError and toAppErrorPayload utility behavior", () => {
   assert.equal(payloadFromUnknown.code, "export-worker-failed");
   assert.equal(payloadFromUnknown.message, "custom error");
 });
+
+test("all 9 locales define complete restore and redetect UI copy", () => {
+  const keys = [
+    "restoreAuto",
+    "restoreAutoTitle",
+    "restoreAutoNoSnapshot",
+    "restoreAutoUnchanged",
+    "reDetectSlide",
+    "reDetectSlideTitle",
+    "reDetectBusy",
+    "reDetectConverting",
+    "reDetectDetecting",
+    "reDetectUnavailable",
+  ];
+
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    for (const key of keys) {
+      assert.equal(typeof localeCopy[key], "string", `copy.${locale}.${key} should be string`);
+      assert.ok(localeCopy[key].length > 0, `copy.${locale}.${key} should not be empty`);
+    }
+  }
+});

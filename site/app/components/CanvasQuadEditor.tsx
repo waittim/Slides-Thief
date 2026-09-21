@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { LocaleCopy, ReviewUiCopy } from "../i18n";
+import { canRestoreAutoDetection } from "../lib/slide-transitions";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
 import { Button } from "./ui";
@@ -23,7 +24,8 @@ export interface CanvasQuadEditorProps {
   zoomOut: () => void;
   zoomIn: () => void;
   setZoomMode: (mode: "fit" | "manual") => void;
-  resetSelected: () => void;
+  resetSelected?: () => void;
+  restoreAutoDetection?: () => void;
   onHandlePointerDown: (index: number, event: React.PointerEvent<HTMLButtonElement>) => void;
   onHandlePointerMove: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onHandlePointerUp: (event: React.PointerEvent<HTMLButtonElement>) => void;
@@ -61,6 +63,7 @@ export function CanvasQuadEditor({
   zoomIn,
   setZoomMode,
   resetSelected,
+  restoreAutoDetection,
   onHandlePointerDown,
   onHandlePointerMove,
   onHandlePointerUp,
@@ -100,6 +103,37 @@ export function CanvasQuadEditor({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isQuadMenuOpen]);
+
+  const handleRestore = restoreAutoDetection ?? resetSelected;
+  const canRestore = Boolean(handleRestore && canRestoreAutoDetection(selectedSlide));
+
+  const restoreTooltip = (() => {
+    if (!selectedSlide) return text.noSlide;
+    if (selectedSlide.status !== "ready") return text.waiting;
+    if (!selectedSlide.autoDetection) return text.restoreAutoNoSnapshot;
+    if (!canRestore) return text.restoreAutoUnchanged;
+    return text.restoreAutoTitle;
+  })();
+
+  const isRedetectDisabled =
+    !selectedSlide ||
+    busy ||
+    selectedSlide.status === "converting" ||
+    selectedSlide.status === "detecting" ||
+    !selectedSlide.url ||
+    selectedSlide.error?.code === "conversion-failed";
+
+  const redetectTooltip = (() => {
+    if (!selectedSlide) return text.noSlide;
+    if (busy) return text.reDetectBusy;
+    if (selectedSlide.status === "converting") return text.reDetectConverting;
+    if (selectedSlide.status === "detecting") return text.reDetectDetecting;
+    if (!selectedSlide.url || selectedSlide.error?.code === "conversion-failed") {
+      return text.reDetectUnavailable;
+    }
+    return text.reDetectSlideTitle;
+  })();
+
   return (
     <section className={`workspace ${isReviewMode ? "inReviewMode" : ""}`}>
       {isReviewMode && reviewBannerProps ? (
@@ -198,22 +232,27 @@ export function CanvasQuadEditor({
             {text.fit}
           </Button>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="reviewResetButton"
-          disabled={!selectedSlide || selectedSlide.status !== "ready"}
-          onClick={resetSelected}
-        >
-          {text.resetSlide}
-        </Button>
+        {handleRestore ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="reviewResetButton"
+            disabled={!canRestore}
+            title={restoreTooltip}
+            aria-label={restoreTooltip}
+            onClick={handleRestore}
+          >
+            {text.restoreAuto || text.resetSlide}
+          </Button>
+        ) : null}
         {reDetectCurrent ? (
           <Button
             variant="ghost"
             size="sm"
             className="reviewRedetectButton"
-            disabled={!selectedSlide || busy || selectedSlide.status === "converting"}
-            title={text.reDetectSlide}
+            disabled={isRedetectDisabled}
+            title={redetectTooltip}
+            aria-label={redetectTooltip}
             onClick={reDetectCurrent}
           >
             {text.reDetectSlide}
