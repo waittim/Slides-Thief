@@ -316,6 +316,7 @@ export function SlidesThiefApp() {
     stageRef,
     canvasRef,
     loupeCanvasRef,
+    loupeOverlayRef,
     handleRefs,
     canvasRenderRef,
     viewportRef,
@@ -328,6 +329,7 @@ export function SlidesThiefApp() {
     paintCanvas,
     redrawCanvas,
     updateLoupeCanvas,
+    updateLoupePosition,
     resetViewport,
     zoomOut,
     zoomIn,
@@ -358,6 +360,7 @@ export function SlidesThiefApp() {
     paintCanvas,
     redrawCanvas,
     updateLoupeCanvas,
+    updateLoupePosition,
     stageRef,
     isSpacePressed,
   });
@@ -1316,6 +1319,8 @@ export function SlidesThiefApp() {
           stageRef={stageRef}
           canvasRef={canvasRef}
           loupeCanvasRef={loupeCanvasRef}
+          loupeOverlayRef={loupeOverlayRef}
+          updateLoupePosition={updateLoupePosition}
           handleRefs={handleRefs}
           slides={slides}
           selectedSlide={selectedSlide}

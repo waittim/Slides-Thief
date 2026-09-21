@@ -3,6 +3,7 @@ import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { canRestoreAutoDetection } from "../lib/slide-transitions";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
+import { calculateLoupePosition } from "../lib/viewport-math";
 import { Button } from "./ui";
 import { ReviewModeBanner, type ReviewModeBannerProps } from "./ReviewModeBanner";
 
@@ -10,6 +11,8 @@ export interface CanvasQuadEditorProps {
   stageRef: React.RefObject<HTMLDivElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   loupeCanvasRef: React.RefObject<HTMLCanvasElement | null>;
+  loupeOverlayRef?: React.RefObject<HTMLDivElement | null>;
+  updateLoupePosition?: (handleIndex: number | null, handlePos?: HandlePosition) => void;
   handleRefs: React.MutableRefObject<Array<HTMLButtonElement | null>>;
   slides: SlideItem[];
   selectedSlide: SlideItem | null;
@@ -50,6 +53,8 @@ export function CanvasQuadEditor({
   stageRef,
   canvasRef,
   loupeCanvasRef,
+  loupeOverlayRef,
+  updateLoupePosition,
   handleRefs,
   slides,
   selectedSlide,
@@ -87,6 +92,8 @@ export function CanvasQuadEditor({
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
+  const localLoupeOverlayRef = useRef<HTMLDivElement | null>(null);
+  const effectiveLoupeOverlayRef = loupeOverlayRef ?? localLoupeOverlayRef;
 
   useEffect(() => {
     if (!isQuadMenuOpen) return;
@@ -378,18 +385,42 @@ export function CanvasQuadEditor({
                     );
                   })
                 : null}
-              {dragHandle !== null && handlePositions[dragHandle] && (
-                <div
-                  className="loupeOverlay"
-                  style={{
-                    left: `${handlePositions[dragHandle].left}px`,
-                    top: `${handlePositions[dragHandle].top}px`,
-                  }}
-                >
-                  <canvas ref={loupeCanvasRef} className="loupeCanvas" />
-                  <div className="loupeCrosshair" />
-                </div>
-              )}
+              {dragHandle !== null && handlePositions[dragHandle] && (() => {
+                const stage = stageRef.current;
+                const canvas = canvasRef.current;
+                const stageRect = stage
+                  ? {
+                      left: stage.getBoundingClientRect().left + stage.clientLeft,
+                      top: stage.getBoundingClientRect().top + stage.clientTop,
+                      right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
+                      bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
+                      width: stage.clientWidth,
+                      height: stage.clientHeight,
+                    }
+                  : null;
+                const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
+                const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
+                const pos = calculateLoupePosition({
+                  handlePos: handlePositions[dragHandle],
+                  stageRect,
+                  canvasRect,
+                  canvasSize,
+                });
+                return (
+                  <div
+                    ref={effectiveLoupeOverlayRef}
+                    className="loupeOverlay"
+                    data-placement={pos.placement}
+                    style={{
+                      left: `${pos.left}px`,
+                      top: `${pos.top}px`,
+                    }}
+                  >
+                    <canvas ref={loupeCanvasRef} className="loupeCanvas" />
+                    <div className="loupeCrosshair" />
+                  </div>
+                );
+              })()}
             </div>
           ) : (
             <div className="empty">

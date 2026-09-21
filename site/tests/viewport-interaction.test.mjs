@@ -8,6 +8,7 @@ const {
   isMouseWheelEvent,
   calculateAutoPanVelocity,
   isEditableTarget,
+  calculateLoupePosition,
 } = await import(new URL("../app/lib/viewport-math.ts", import.meta.url).href);
 
 test("calculateZoomFactor computes valid multipliers", () => {
@@ -138,3 +139,108 @@ test("isEditableTarget identifies input and textarea elements", () => {
   assert.equal(isEditableTarget({ tagName: "DIV", isContentEditable: true }), true);
   assert.equal(isEditableTarget({ tagName: "DIV", getAttribute: (k) => (k === "role" ? "textbox" : null) }), true);
 });
+
+test("calculateLoupePosition places loupe above handle by default when space is ample", () => {
+  const result = calculateLoupePosition({
+    handlePos: { left: 400, top: 300 },
+    viewportBounds: { minX: 10, minY: 10, maxX: 800, maxY: 600 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  assert.equal(result.placement, "top");
+  // top = hy - gap - loupeSize = 300 - 16 - 120 = 164
+  assert.equal(result.top, 164);
+  // left = hx - loupeSize / 2 = 400 - 60 = 340
+  assert.equal(result.left, 340);
+});
+
+test("calculateLoupePosition dynamically flips to bottom when handle is near top boundary", () => {
+  // Near top boundary: hy = 30, topAbove = 30 - 16 - 120 = -106 < minY (10)
+  const result = calculateLoupePosition({
+    handlePos: { left: 400, top: 30 },
+    viewportBounds: { minX: 10, minY: 10, maxX: 800, maxY: 600 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  assert.equal(result.placement, "bottom");
+  // top = hy + gap = 30 + 16 = 46
+  assert.equal(result.top, 46);
+  assert.equal(result.left, 340);
+  // Ensure the loupe bottom is well within maxY
+  assert.ok(result.top + 120 <= 600);
+});
+
+test("calculateLoupePosition clamps horizontally to margins near viewport edges", () => {
+  // Near top-left corner (like Corner 1)
+  const topLeft = calculateLoupePosition({
+    handlePos: { left: 20, top: 20 },
+    viewportBounds: { minX: 10, minY: 10, maxX: 800, maxY: 600 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  assert.equal(topLeft.placement, "bottom");
+  assert.equal(topLeft.top, 36); // 20 + 16
+  // Left: 20 - 60 = -40, clamped to minX = 10
+  assert.equal(topLeft.left, 10);
+  assert.ok(topLeft.left >= 10);
+  assert.ok(topLeft.left + 120 <= 800);
+
+  // Near top-right corner (like Corner 2)
+  const topRight = calculateLoupePosition({
+    handlePos: { left: 780, top: 20 },
+    viewportBounds: { minX: 10, minY: 10, maxX: 800, maxY: 600 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  assert.equal(topRight.placement, "bottom");
+  assert.equal(topRight.top, 36);
+  // Left: 780 - 60 = 720, clamped to maxX - 120 = 800 - 120 = 680
+  assert.equal(topRight.left, 680);
+  assert.ok(topRight.left + 120 <= 800);
+});
+
+test("calculateLoupePosition flips to side when vertical space is severely constrained", () => {
+  // Height is only 100px (minY = 10, maxY = 90) -> neither above nor below fits loupeSize (120)
+  const result = calculateLoupePosition({
+    handlePos: { left: 200, top: 50 },
+    viewportBounds: { minX: 10, minY: 10, maxX: 800, maxY: 90 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  assert.equal(result.placement, "right");
+  // Left = hx + gap = 200 + 16 = 216
+  assert.equal(result.left, 216);
+  // Vertical clamped within [minY, maxY - loupeSize] -> minX
+  assert.equal(result.top, 10);
+});
+
+test("calculateLoupePosition derives viewport bounds from stageRect and canvasRect", () => {
+  const result = calculateLoupePosition({
+    handlePos: { left: 30, top: 30 },
+    stageRect: { left: 100, top: 50, width: 800, height: 600 },
+    canvasRect: { left: 100, top: 50, width: 800, height: 600 },
+    canvasSize: { width: 800, height: 600 },
+    loupeSize: 120,
+    gap: 16,
+    margin: 8,
+  });
+
+  // Stage rect and canvas rect match (0 offset).
+  // Near top (top = 30), so it should flip to bottom and clamp to left margin.
+  assert.equal(result.placement, "bottom");
+  assert.equal(result.top, 46); // 30 + 16
+  assert.equal(result.left, 8);  // 30 - 60 = -30 clamped to margin 8
+  assert.ok(result.top >= 8);
+  assert.ok(result.top + 120 <= 600);
+});
+

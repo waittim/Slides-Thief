@@ -3109,8 +3109,6 @@ canvas {
   box-shadow: var(--shadow-loupe);
   overflow: hidden;
   background: var(--panel);
-  transform: translate(-50%, -100%);
-  margin-top: calc(-1 * var(--space-5));
 }
 
 .loupeCanvas {

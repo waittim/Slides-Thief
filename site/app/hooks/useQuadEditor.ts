@@ -40,6 +40,7 @@ type QuadEditorOptions = {
   paintCanvas: (quad: Quad | null) => void;
   redrawCanvas: () => void;
   updateLoupeCanvas: (quad: Quad | null, handleIndex: number | null) => void;
+  updateLoupePosition?: (handleIndex: number | null, handlePos?: HandlePosition) => void;
   stageRef?: MutableRefObject<HTMLDivElement | null>;
   isSpacePressed?: boolean;
 };
@@ -65,6 +66,7 @@ export function useQuadEditor({
   paintCanvas,
   redrawCanvas,
   updateLoupeCanvas,
+  updateLoupePosition,
   stageRef,
   isSpacePressed = false,
 }: QuadEditorOptions) {
@@ -260,10 +262,11 @@ export function useQuadEditor({
     dragHandleRef.current = index;
     setDragHandle(index);
     updateLoupeCanvas(selectedSlide.quad, index);
+    updateLoupePosition?.(index);
     lastHandlePointerClientRef.current = { clientX: event.clientX, clientY: event.clientY };
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
-  }, [canvasRenderRef, dragHandleRef, isSpacePressed, latestDragQuadRef, pushHistory, selectedSlide, updateLoupeCanvas]);
+  }, [canvasRenderRef, dragHandleRef, isSpacePressed, latestDragQuadRef, pushHistory, selectedSlide, updateLoupeCanvas, updateLoupePosition]);
 
   const onHandlePointerMove = useCallback((event: PointerEvent<HTMLButtonElement>) => {
     const handleIndex = dragHandleRef.current;

@@ -7,6 +7,7 @@ import {
   calculateNewZoom,
   calculateScrollAdjustment,
   calculateZoomFactor,
+  calculateLoupePosition,
   isEditableTarget,
   isMouseWheelEvent,
   type ZoomAnchor,
@@ -38,6 +39,7 @@ export function useCanvasViewport({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loupeOverlayRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const canvasRenderRef = useRef<CanvasRenderState | null>(null);
@@ -85,6 +87,46 @@ export function useCanvasViewport({
       size,
     );
   }, []);
+
+  const handlePositionsRef = useRef<HandlePosition[]>([]);
+  handlePositionsRef.current = handlePositions;
+
+  const updateLoupePosition = useCallback(
+    (handleIndex: number | null, handlePos?: HandlePosition) => {
+      const loupeOverlay = loupeOverlayRef.current;
+      const stage = stageRef.current;
+      const canvas = canvasRef.current;
+      if (!loupeOverlay || handleIndex === null) return;
+
+      const pos = handlePos ?? handlePositionsRef.current[handleIndex];
+      if (!pos) return;
+
+      const stageRect = stage
+        ? {
+            left: stage.getBoundingClientRect().left + stage.clientLeft,
+            top: stage.getBoundingClientRect().top + stage.clientTop,
+            right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
+            bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
+            width: stage.clientWidth,
+            height: stage.clientHeight,
+          }
+        : null;
+      const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
+      const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
+
+      const result = calculateLoupePosition({
+        handlePos: pos,
+        stageRect,
+        canvasRect,
+        canvasSize,
+      });
+
+      loupeOverlay.style.left = `${result.left}px`;
+      loupeOverlay.style.top = `${result.top}px`;
+      loupeOverlay.dataset.placement = result.placement;
+    },
+    [],
+  );
 
   const paintCanvas = useCallback((quad: Quad | null) => {
     const canvas = canvasRef.current;
@@ -140,8 +182,11 @@ export function useCanvasViewport({
       ctx.fillText(String(index + 1), left, top + 1);
     });
 
-    if (dragHandleRef.current !== null) updateLoupeCanvas(quad, dragHandleRef.current);
-  }, [dragHandleRef, updateLoupeCanvas]);
+    if (dragHandleRef.current !== null) {
+      updateLoupeCanvas(quad, dragHandleRef.current);
+      updateLoupePosition(dragHandleRef.current, positions[dragHandleRef.current]);
+    }
+  }, [dragHandleRef, updateLoupeCanvas, updateLoupePosition]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -545,6 +590,7 @@ export function useCanvasViewport({
     stageRef,
     canvasRef,
     loupeCanvasRef,
+    loupeOverlayRef,
     handleRefs,
     canvasRenderRef,
     viewportRef,
@@ -559,6 +605,7 @@ export function useCanvasViewport({
     paintCanvas,
     redrawCanvas,
     updateLoupeCanvas,
+    updateLoupePosition,
     resetViewport,
     zoomOut,
     zoomIn,

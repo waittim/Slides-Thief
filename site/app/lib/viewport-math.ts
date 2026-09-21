@@ -147,3 +147,164 @@ export function isEditableTarget(target: EventTarget | null): boolean {
   if (element.getAttribute && element.getAttribute("role") === "textbox") return true;
   return false;
 }
+
+export interface LoupePositionOptions {
+  handlePos: { left: number; top: number };
+  viewportBounds?: {
+    minX: number;
+    minY: number;
+    maxX: number;
+    maxY: number;
+  };
+  stageRect?: Rect | ContainerRect | null;
+  canvasRect?: Rect | null;
+  canvasSize?: { width: number; height: number } | null;
+  loupeSize?: number;
+  gap?: number;
+  margin?: number;
+}
+
+export interface LoupePositionResult {
+  left: number;
+  top: number;
+  placement: "top" | "bottom" | "left" | "right";
+}
+
+/**
+ * Calculates dynamic position for the magnifying loupe overlay.
+ * Automatically flips to bottom or side when near viewport/canvas edges
+ * and clamps within visible container bounds to prevent clipping.
+ */
+export function calculateLoupePosition(options: LoupePositionOptions): LoupePositionResult {
+  const {
+    handlePos,
+    viewportBounds,
+    stageRect,
+    canvasRect,
+    canvasSize,
+    loupeSize = 120,
+    gap = 16,
+    margin = 8,
+  } = options;
+
+  let minX = margin;
+  let minY = margin;
+  let maxX = 2000;
+  let maxY = 2000;
+
+  if (viewportBounds) {
+    minX = viewportBounds.minX;
+    minY = viewportBounds.minY;
+    maxX = viewportBounds.maxX;
+    maxY = viewportBounds.maxY;
+  } else if (stageRect && canvasRect) {
+    const sLeft = stageRect.left;
+    const sTop = stageRect.top;
+    const sRight = "right" in stageRect ? stageRect.right : stageRect.left + stageRect.width;
+    const sBottom = "bottom" in stageRect ? stageRect.bottom : stageRect.top + stageRect.height;
+
+    const winWidth = typeof window !== "undefined" ? window.innerWidth : Infinity;
+    const winHeight = typeof window !== "undefined" ? window.innerHeight : Infinity;
+
+    const visibleLeft = Math.max(0, sLeft);
+    const visibleTop = Math.max(0, sTop);
+    const visibleRight = Math.min(winWidth, sRight);
+    const visibleBottom = Math.min(winHeight, sBottom);
+
+    const cLeft = canvasRect.left;
+    const cTop = canvasRect.top;
+
+    minX = visibleLeft - cLeft + margin;
+    minY = visibleTop - cTop + margin;
+    maxX = visibleRight - cLeft - margin;
+    maxY = visibleBottom - cTop - margin;
+
+    const canvasW = canvasSize?.width ?? ("width" in canvasRect ? canvasRect.width : 0);
+    const canvasH = canvasSize?.height ?? ("height" in canvasRect ? canvasRect.height : 0);
+
+    minX = Math.max(minX, margin);
+    minY = Math.max(minY, margin);
+    if (canvasW > 0) {
+      maxX = Math.min(maxX, canvasW - margin);
+    }
+    if (canvasH > 0) {
+      maxY = Math.min(maxY, canvasH - margin);
+    }
+  } else if (canvasSize) {
+    minX = margin;
+    minY = margin;
+    maxX = canvasSize.width - margin;
+    maxY = canvasSize.height - margin;
+  }
+
+  if (maxX < minX) maxX = minX + loupeSize;
+  if (maxY < minY) maxY = minY + loupeSize;
+
+  const hx = handlePos.left;
+  const hy = handlePos.top;
+
+  const topAbove = hy - gap - loupeSize;
+  const bottomBelow = hy + gap + loupeSize;
+
+  const canFitAbove = topAbove >= minY;
+  const canFitBelow = bottomBelow <= maxY;
+
+  let placement: "top" | "bottom" | "left" | "right" = "top";
+  let chosenLeft = hx - loupeSize / 2;
+  let chosenTop = topAbove;
+
+  if (canFitAbove) {
+    placement = "top";
+    chosenTop = topAbove;
+  } else if (canFitBelow) {
+    placement = "bottom";
+    chosenTop = hy + gap;
+  } else {
+    // Neither vertical position fits fully. Check horizontal sides.
+    const leftRight = hx + gap;
+    const rightRight = leftRight + loupeSize;
+    const leftLeft = hx - gap - loupeSize;
+    const canFitRight = rightRight <= maxX;
+    const canFitLeft = leftLeft >= minX;
+
+    if (canFitRight) {
+      placement = "right";
+      chosenLeft = leftRight;
+      chosenTop = hy - loupeSize / 2;
+    } else if (canFitLeft) {
+      placement = "left";
+      chosenLeft = leftLeft;
+      chosenTop = hy - loupeSize / 2;
+    } else {
+      // Neither side fits completely either; pick vertical side with more room
+      const spaceAbove = hy - minY;
+      const spaceBelow = maxY - hy;
+      if (spaceBelow > spaceAbove) {
+        placement = "bottom";
+        chosenTop = hy + gap;
+      } else {
+        placement = "top";
+        chosenTop = topAbove;
+      }
+    }
+  }
+
+  // Clamping within visible boundaries
+  if (maxX >= minX + loupeSize) {
+    chosenLeft = Math.max(minX, Math.min(maxX - loupeSize, chosenLeft));
+  } else {
+    chosenLeft = minX;
+  }
+
+  if (maxY >= minY + loupeSize) {
+    chosenTop = Math.max(minY, Math.min(maxY - loupeSize, chosenTop));
+  } else {
+    chosenTop = minY;
+  }
+
+  return {
+    left: Math.round(chosenLeft),
+    top: Math.round(chosenTop),
+    placement,
+  };
+}

@@ -526,6 +526,8 @@ test("auto-pans canvas viewport when dragging corner handle near stage edges", a
   for (let i = 0; i < 8; i++) {
     await zoomInBtn.click();
   }
+  await expect(page.getByText("300%")).toBeVisible();
+  await page.waitForTimeout(100);
 
   // Set scroll offset so there is room to scroll towards top-left
   await stage.evaluate((el) => {
@@ -554,6 +556,52 @@ test("auto-pans canvas viewport when dragging corner handle near stage edges", a
   }).toPass({ timeout: 5000 });
 
   await page.mouse.up();
+});
+
+test("dynamically flips loupe below handle and clamps within viewport when dragging top corner handle", async ({ page }) => {
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles(fixture);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+  const firstCorner = page.getByRole("button", { name: /Corner 1:/ });
+  await expect(firstCorner).toBeVisible({ timeout: 30_000 });
+
+  const stage = page.locator(".stage");
+  const stageBox = await stage.boundingBox();
+  expect(stageBox).not.toBeNull();
+  if (!stageBox) return;
+
+  const cornerBox = await firstCorner.boundingBox();
+  expect(cornerBox).not.toBeNull();
+  if (!cornerBox) return;
+
+  // Press down on Corner 1 (top-left corner)
+  await page.mouse.move(cornerBox.x + cornerBox.width / 2, cornerBox.y + cornerBox.height / 2);
+  await page.mouse.down();
+
+  const loupe = page.locator(".loupeOverlay");
+  await expect(loupe).toBeVisible();
+
+  // The top-left corner is near the top of the canvas, so the loupe must flip below the handle
+  await expect(loupe).toHaveAttribute("data-placement", "bottom");
+
+  const loupeBox = await loupe.boundingBox();
+  expect(loupeBox).not.toBeNull();
+  if (!loupeBox) return;
+
+  // Verify loupe is positioned below the corner handle (its top is below the handle center)
+  expect(loupeBox.y).toBeGreaterThan(cornerBox.y);
+
+  // Verify loupe is completely inside the visible stage bounds (no clipping on top or left)
+  expect(loupeBox.y).toBeGreaterThanOrEqual(stageBox.y);
+  expect(loupeBox.x).toBeGreaterThanOrEqual(stageBox.x);
+  expect(loupeBox.x + loupeBox.width).toBeLessThanOrEqual(stageBox.x + stageBox.width + 1);
+
+  await page.mouse.up();
+  await expect(loupe).not.toBeVisible();
 });
 
 
