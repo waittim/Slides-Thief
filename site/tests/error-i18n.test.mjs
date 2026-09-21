@@ -18,6 +18,7 @@ const {
   copy,
   reviewUiCopy,
   ratioUiCopy,
+  detectAcceptLanguageLocale,
 } = await import(new URL("../app/i18n.ts", import.meta.url).href);
 
 const ALL_LOCALES = localeOptions.map((opt) => opt.value);
@@ -301,4 +302,27 @@ test("all 9 locales define consistent orientation copy across copy and ratioUiCo
     assert.ok(ratioCopy.portrait.length > 0, `ratioUiCopy.${locale}.portrait should not be empty`);
   }
 });
+
+test("detectAcceptLanguageLocale resolves locale based on quality values and fallbacks", () => {
+  assert.equal(detectAcceptLanguageLocale(undefined), "en");
+  assert.equal(detectAcceptLanguageLocale(null), "en");
+  assert.equal(detectAcceptLanguageLocale(""), "en");
+  assert.equal(detectAcceptLanguageLocale("*"), "en");
+  assert.equal(detectAcceptLanguageLocale("zh-CN,zh;q=0.9,en;q=0.8"), "zh-CN");
+  assert.equal(detectAcceptLanguageLocale("zh-TW,zh;q=0.9"), "zh-TW");
+  assert.equal(detectAcceptLanguageLocale("zh-HK,zh;q=0.9"), "zh-TW");
+  assert.equal(detectAcceptLanguageLocale("zh-Hans,zh;q=0.9"), "zh-CN");
+  assert.equal(detectAcceptLanguageLocale("ja,en-US;q=0.7"), "ja");
+  assert.equal(detectAcceptLanguageLocale("en-US,en;q=0.9"), "en");
+  assert.equal(detectAcceptLanguageLocale("es-ES,es;q=0.8"), "es");
+  assert.equal(detectAcceptLanguageLocale("fr-FR,fr;q=0.8"), "fr");
+  assert.equal(detectAcceptLanguageLocale("de-DE,de;q=0.8"), "de");
+  assert.equal(detectAcceptLanguageLocale("ko-KR,ko;q=0.8"), "ko");
+  assert.equal(detectAcceptLanguageLocale("pt-BR,pt;q=0.8"), "pt-BR");
+  assert.equal(detectAcceptLanguageLocale("pt-PT,pt;q=0.8"), "pt-BR");
+  assert.equal(detectAcceptLanguageLocale("ru-RU,ru;q=0.9"), "en");
+  assert.equal(detectAcceptLanguageLocale("zh-CN;q=0,en;q=0.8"), "en");
+  assert.equal(detectAcceptLanguageLocale("ja;q=0.3, es;q=0.9"), "es");
+});
+
 

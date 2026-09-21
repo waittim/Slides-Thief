@@ -18,6 +18,7 @@ export function usePreferences(markExportStale: () => void) {
   const settingsRef = useRef<Settings>(defaultSettings);
   const settingsMenuRef = useRef<HTMLDetailsElement | null>(null);
   const moreSettingsRef = useRef<HTMLDetailsElement | null>(null);
+  const initialMountRef = useRef(true);
 
   useEffect(() => {
     settingsRef.current = settings;
@@ -36,6 +37,13 @@ export function usePreferences(markExportStale: () => void) {
   }, [theme]);
 
   useEffect(() => {
+    if (initialMountRef.current) {
+      initialMountRef.current = false;
+      if (locale === "en" && typeof document !== "undefined" && document.documentElement.lang && document.documentElement.lang !== "en") {
+        localeRef.current = locale;
+        return;
+      }
+    }
     const localizedText = copy[locale];
     document.documentElement.lang = locale;
     document.title = localizedText.appTitle;
@@ -45,7 +53,15 @@ export function usePreferences(markExportStale: () => void) {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const browserLocale = detectBrowserLocale();
-      setLocale((current) => (current === browserLocale ? current : browserLocale));
+      setLocale((current) => {
+        if (current === browserLocale) {
+          if (typeof document !== "undefined") {
+            document.documentElement.lang = browserLocale;
+          }
+          return current;
+        }
+        return browserLocale;
+      });
     }, 0);
 
     return () => window.clearTimeout(timeoutId);

@@ -2167,6 +2167,41 @@ export function detectBrowserLocale(): LocaleValue {
   return "en";
 }
 
+export function detectAcceptLanguageLocale(header: string | null | undefined): LocaleValue {
+  if (!header || typeof header !== "string") return "en";
+
+  const entries: { tag: string; q: number }[] = [];
+  const parts = header.split(",");
+  for (const part of parts) {
+    const segments = part.split(";");
+    const tag = segments[0]?.trim();
+    if (!tag || tag === "*") continue;
+
+    let q = 1.0;
+    for (let i = 1; i < segments.length; i++) {
+      const [rawKey, rawVal] = segments[i].split("=");
+      if (rawKey?.trim().toLowerCase() === "q") {
+        const parsedQ = parseFloat(rawVal?.trim() ?? "");
+        if (!isNaN(parsedQ)) {
+          q = parsedQ;
+        }
+      }
+    }
+    if (q > 0) {
+      entries.push({ tag, q });
+    }
+  }
+
+  entries.sort((a, b) => b.q - a.q);
+
+  for (const entry of entries) {
+    const locale = supportedLocaleFromLanguage(entry.tag);
+    if (locale) return locale;
+  }
+
+  return "en";
+}
+
 export function detectionMethodText(method: SlideDetectionMethod, locale: LocaleValue) {
   const reviewText = reviewUiCopy[locale];
   if (method === "manual") return reviewText.manualAdjustment;

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { detectAcceptLanguageLocale } from "./i18n";
 import "./globals.css";
 import { PRODUCT_METADATA } from "./product-metadata";
 
@@ -46,13 +48,21 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let lang = "en";
+  try {
+    const requestHeaders = await headers();
+    lang = detectAcceptLanguageLocale(requestHeaders.get("accept-language"));
+  } catch {
+    lang = "en";
+  }
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
         {/* Keep icon/manifest relative so local/dev origins stay same-origin with start_url. */}
         <link rel="icon" href="/favicon.svg" />
