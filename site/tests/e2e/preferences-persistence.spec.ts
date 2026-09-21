@@ -85,3 +85,46 @@ test("persists export settings, enhancement mode, and target filename across rel
   await expect(page.locator('label:has(span:text-matches("Width|宽度", "i")) input').first()).toHaveValue("1920");
   await expect(page.locator('label:has(span:text-matches("Export quality|导出质量", "i")) input').first()).toHaveValue("88");
 });
+
+test("persists telemetry opt-out across page reload and sets ga-disable flag", async ({ page }) => {
+  await page.goto("/");
+
+  // 1. Open the About modal
+  const infoButton = page.locator("button.infoButton:visible").first();
+  await expect(infoButton).toBeVisible();
+  await infoButton.click();
+
+  const modalCard = page.locator(".modalCard");
+  await expect(modalCard).toBeVisible();
+
+  // 2. Find telemetry switch inside modal, verify it starts enabled
+  const telemetrySwitch = page.getByRole("switch", { name: /Anonymous Usage Analytics|匿名使用统计/i });
+  await expect(telemetrySwitch).toBeVisible();
+  await expect(telemetrySwitch).toBeChecked();
+
+  // 3. Toggle off telemetry
+  await telemetrySwitch.click();
+  await expect(telemetrySwitch).not.toBeChecked();
+
+  // 4. Verify ga-disable flag is set on window
+  const isOptedOutBeforeReload = await page.evaluate(() => {
+    return (window as unknown as Record<string, unknown>)["ga-disable-G-74RGGMV3PH"] === true;
+  });
+  expect(isOptedOutBeforeReload).toBe(true);
+
+  // 5. Reload page
+  await page.reload();
+
+  // 6. Verify window ga-disable flag is set immediately on reload (from pre-load script)
+  const isOptedOutAfterReload = await page.evaluate(() => {
+    return (window as unknown as Record<string, unknown>)["ga-disable-G-74RGGMV3PH"] === true;
+  });
+  expect(isOptedOutAfterReload).toBe(true);
+
+  // 7. Open About modal again and verify switch remains unchecked
+  const infoButtonAfterReload = page.locator("button.infoButton:visible").first();
+  await infoButtonAfterReload.click();
+  const telemetrySwitchAfterReload = page.getByRole("switch", { name: /Anonymous Usage Analytics|匿名使用统计/i });
+  await expect(telemetrySwitchAfterReload).toBeVisible();
+  await expect(telemetrySwitchAfterReload).not.toBeChecked();
+});

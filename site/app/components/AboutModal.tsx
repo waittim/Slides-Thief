@@ -1,7 +1,7 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n";
 import { PRODUCT_METADATA } from "../product-metadata";
-import { ModalShell } from "./ui";
+import { ModalShell, Switch } from "./ui";
 
 interface AboutModalProps {
   isInfoOpen: boolean;
@@ -10,6 +10,8 @@ interface AboutModalProps {
   closeInfoButtonRef: React.RefObject<HTMLButtonElement | null>;
   text: LocaleCopy;
   appVersion: string;
+  telemetryEnabled?: boolean;
+  setTelemetryEnabled?: (enabled: boolean) => void;
 }
 
 function ShortcutChord({ keys }: { keys: readonly string[] }) {
@@ -29,6 +31,8 @@ export function AboutModal({
   closeInfoButtonRef,
   text,
   appVersion,
+  telemetryEnabled = true,
+  setTelemetryEnabled,
 }: AboutModalProps) {
   return (
     <ModalShell
@@ -41,9 +45,27 @@ export function AboutModal({
       closeLabel={text.close}
     >
       <p className="modalDesc">{text.infoDesc}</p>
-      <p className="modalPrivacy">
-        <strong>{text.infoPrivacy}</strong>
-      </p>
+      <div className="modalPrivacy modalPrivacyCard">
+        <p className="modalPrivacyText">
+          <strong>{text.infoPrivacy}</strong>
+        </p>
+        <div className="modalTelemetry">
+          <div className="modalTelemetryHeader">
+            <div className="modalTelemetryHeaderContent">
+              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
+              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
+            </div>
+            {setTelemetryEnabled && (
+              <Switch
+                aria-label={text.telemetryTitle}
+                checked={telemetryEnabled}
+                label={telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled}
+                onChange={setTelemetryEnabled}
+              />
+            )}
+          </div>
+        </div>
+      </div>
       <div className="modalShortcuts">
         <h4>{text.shortcutsTitle}</h4>
         <div className="shortcutGrid">

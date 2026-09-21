@@ -114,6 +114,15 @@ test("sanitizeStoredPreferences validates theme and explicitLocale", () => {
     explicitLocale: null,
   });
   assert.equal(autoLocale.explicitLocale, null);
+
+  const telemetryFalse = sanitizeStoredPreferences({ telemetry: false });
+  assert.equal(telemetryFalse.telemetry, false);
+
+  const telemetryTrue = sanitizeStoredPreferences({ telemetry: true });
+  assert.equal(telemetryTrue.telemetry, true);
+
+  const telemetryInvalid = sanitizeStoredPreferences({ telemetry: "false" });
+  assert.equal(telemetryInvalid.telemetry, undefined);
 });
 
 test("loadStoredPreferences and saveStoredPreferences round-trip with localStorage", () => {
@@ -128,6 +137,7 @@ test("loadStoredPreferences and saveStoredPreferences round-trip with localStora
       theme: "dark",
       explicitLocale: "ja",
       pdfBaseName: "conf_slides",
+      telemetry: false,
       settings: sanitizeSettings({
         width: 1920,
         quality: 0.88,
@@ -142,6 +152,7 @@ test("loadStoredPreferences and saveStoredPreferences round-trip with localStora
     assert.equal(loaded.theme, "dark");
     assert.equal(loaded.explicitLocale, "ja");
     assert.equal(loaded.pdfBaseName, "conf_slides");
+    assert.equal(loaded.telemetry, false);
     assert.equal(loaded.settings.width, 1920);
     assert.equal(loaded.settings.quality, 0.88);
     assert.equal(loaded.settings.enhancement, "high-contrast");

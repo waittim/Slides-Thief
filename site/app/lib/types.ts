@@ -6,18 +6,13 @@ import type { OutputPageRatio, SourceFormatSettings } from "../ratio";
 export * from "./errors.ts";
 import type { AppErrorCode } from "./errors.ts";
 
-export interface GtagWindow extends Window {
-  gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
-}
-
-export function trackEvent(name: string, params?: Record<string, unknown>) {
-  if (typeof window !== "undefined") {
-    const gtagWindow = window as unknown as GtagWindow;
-    if (gtagWindow.gtag) {
-      gtagWindow.gtag("event", name, params);
-    }
-  }
-}
+export {
+  GA_MEASUREMENT_ID,
+  type GtagWindow,
+  isTelemetryOptedOut,
+  setTelemetryOptOut,
+  trackEvent,
+} from "./telemetry.ts";
 
 export type ThemeValue = "auto" | "light" | "dark";
 

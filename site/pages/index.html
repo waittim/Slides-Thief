@@ -1,6 +1,10 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google Analytics opt-out check before gtag loads -->
+    <script>
+      try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.telemetry===false){window["ga-disable-G-74RGGMV3PH"]=true;}}catch(e){}
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH"></script>
     <script>
@@ -8,7 +12,9 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
 
-      gtag('config', 'G-74RGGMV3PH');
+      if (!window['ga-disable-G-74RGGMV3PH']) {
+        gtag('config', 'G-74RGGMV3PH');
+      }
     </script>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

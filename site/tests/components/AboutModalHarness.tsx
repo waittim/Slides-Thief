@@ -4,6 +4,7 @@ import { AboutModal } from "../../app/components/AboutModal";
 
 export function AboutModalHarness() {
   const [isInfoOpen, setIsInfoOpen] = useState(true);
+  const [telemetry, setTelemetry] = useState(true);
   const infoModalRef = useRef<HTMLDivElement | null>(null);
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
 
@@ -16,6 +17,8 @@ export function AboutModalHarness() {
         closeInfoButtonRef={closeInfoButtonRef}
         text={copy["zh-CN"]}
         appVersion="2.3.0"
+        telemetryEnabled={telemetry}
+        setTelemetryEnabled={setTelemetry}
       />
     </div>
   );

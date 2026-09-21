@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { detectAcceptLanguageLocale } from "./i18n";
 import "./globals.css";
+import { GA_MEASUREMENT_ID } from "./lib/telemetry";
 import { PRODUCT_METADATA } from "./product-metadata";
 
 const siteUrl = PRODUCT_METADATA.website;
@@ -10,6 +11,7 @@ const description = PRODUCT_METADATA.description;
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
 const themeScript = `try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.theme==="dark"||p.theme==="light"||p.theme==="auto"){document.documentElement.dataset.theme=p.theme;}}catch(e){}`;
+const telemetryScript = `try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.telemetry===false){window["ga-disable-${GA_MEASUREMENT_ID}"]=true;}}catch(e){}`;
  
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -80,9 +82,11 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content={PRODUCT_METADATA.name} />
+        {/* Google Analytics opt-out check before gtag loads */}
+        <script dangerouslySetInnerHTML={{ __html: telemetryScript }} />
         {/* Google tag (gtag.js) */}
         {/* eslint-disable-next-line @next/next/next-script-for-ga */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH" />
+        <script async src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`} />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -90,7 +94,9 @@ export default async function RootLayout({
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
 
-              gtag('config', 'G-74RGGMV3PH');
+              if (!window['ga-disable-${GA_MEASUREMENT_ID}']) {
+                gtag('config', '${GA_MEASUREMENT_ID}');
+              }
             `,
           }}
         />

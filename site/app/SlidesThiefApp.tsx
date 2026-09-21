@@ -139,6 +139,8 @@ export function SlidesThiefApp() {
     setTheme,
     locale,
     setLocale,
+    telemetry,
+    setTelemetry,
     localeRef,
     settingsRef,
     settingsMenuRef,
@@ -1449,6 +1451,8 @@ export function SlidesThiefApp() {
         closeInfoButtonRef={closeInfoButtonRef}
         text={text}
         appVersion={APP_VERSION}
+        telemetryEnabled={telemetry}
+        setTelemetryEnabled={setTelemetry}
       />
 
       <ConfirmModal

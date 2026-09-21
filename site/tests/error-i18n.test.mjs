@@ -325,4 +325,23 @@ test("detectAcceptLanguageLocale resolves locale based on quality values and fal
   assert.equal(detectAcceptLanguageLocale("ja;q=0.3, es;q=0.9"), "es");
 });
 
+test("all 9 locales define complete privacy and telemetry copy", () => {
+  const privacyKeys = [
+    "infoPrivacy",
+    "telemetryTitle",
+    "telemetryDesc",
+    "telemetryEnabled",
+    "telemetryDisabled",
+  ];
+
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    for (const key of privacyKeys) {
+      assert.equal(typeof localeCopy[key], "string", `copy.${locale}.${key} should be string`);
+      assert.ok(localeCopy[key].length > 0, `copy.${locale}.${key} should not be empty`);
+    }
+  }
+});
+
 

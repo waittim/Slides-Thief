@@ -13,6 +13,7 @@ export interface StoredPreferences {
   explicitLocale?: LocaleValue | null;
   settings?: Partial<Settings>;
   pdfBaseName?: string;
+  telemetry?: boolean;
 }
 
 const VALID_THEMES = new Set<ThemeValue>(["auto", "light", "dark"]);
@@ -119,6 +120,10 @@ export function sanitizeStoredPreferences(input: unknown): StoredPreferences {
 
   if (typeof record.settings === "object" && record.settings !== null) {
     result.settings = sanitizeSettings(record.settings);
+  }
+
+  if (typeof record.telemetry === "boolean") {
+    result.telemetry = record.telemetry;
   }
 
   return result;
