@@ -169,3 +169,78 @@ export function loadImage(url: string) {
     image.src = url;
   });
 }
+
+export interface CanvasThemeColors {
+  quadStroke: string;
+  imageStroke: string;
+  handleFill: string;
+  handleStroke: string;
+  handleText: string;
+}
+
+export const DEFAULT_CANVAS_THEME_COLORS_LIGHT: CanvasThemeColors = {
+  quadStroke: "#0f766e",
+  imageStroke: "rgba(16, 20, 22, 0.18)",
+  handleFill: "#ffd84a",
+  handleStroke: "rgba(16, 20, 22, 0.92)",
+  handleText: "#172026",
+};
+
+export const DEFAULT_CANVAS_THEME_COLORS_DARK: CanvasThemeColors = {
+  quadStroke: "#32c8ba",
+  imageStroke: "rgba(255, 255, 255, 0.36)",
+  handleFill: "#ffd84a",
+  handleStroke: "rgba(16, 20, 22, 0.92)",
+  handleText: "#172026",
+};
+
+/**
+ * Resolves theme-aware canvas colors from CSS variables on the DOM,
+ * ensuring proper contrast and adherence to DESIGN.md tokens in both
+ * light and dark themes.
+ */
+export function resolveCanvasThemeColors(container?: HTMLElement | null): CanvasThemeColors {
+  if (typeof window === "undefined" || typeof document === "undefined") {
+    return DEFAULT_CANVAS_THEME_COLORS_LIGHT;
+  }
+
+  const rootTheme = document.documentElement?.dataset?.theme;
+  const prefersDark = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+  const isDark = rootTheme === "dark" || (rootTheme === "auto" && prefersDark) || (!rootTheme && prefersDark);
+
+  const fallback = isDark ? DEFAULT_CANVAS_THEME_COLORS_DARK : DEFAULT_CANVAS_THEME_COLORS_LIGHT;
+
+  try {
+    const parent = container ?? document.body ?? document.documentElement;
+    if (!parent) return fallback;
+
+    const probe = document.createElement("div");
+    probe.style.display = "none";
+    probe.setAttribute("aria-hidden", "true");
+    parent.appendChild(probe);
+
+    const resolveVar = (varName: string, fallbackVal: string) => {
+      probe.style.color = `var(${varName})`;
+      const computed = getComputedStyle(probe).color;
+      return computed || fallbackVal;
+    };
+
+    const quadStroke = resolveVar("--canvas-quad-stroke", resolveVar("--accent-2", fallback.quadStroke));
+    const imageStroke = resolveVar("--canvas-image-stroke", fallback.imageStroke);
+    const handleFill = resolveVar("--canvas-handle-fill", resolveVar("--handle", fallback.handleFill));
+    const handleStroke = resolveVar("--canvas-handle-stroke", resolveVar("--color-ink-950", fallback.handleStroke));
+    const handleText = resolveVar("--canvas-handle-text", resolveVar("--color-ink-900", fallback.handleText));
+
+    probe.remove();
+
+    return {
+      quadStroke,
+      imageStroke,
+      handleFill,
+      handleStroke,
+      handleText,
+    };
+  } catch {
+    return fallback;
+  }
+}

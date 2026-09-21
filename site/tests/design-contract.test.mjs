@@ -142,6 +142,11 @@ test("design artifacts stay aligned with the CSS contract", () => {
 
   assert.doesNotMatch(semanticTokens, /#[0-9a-f]{3,8}\b/i);
   assert.doesNotMatch(semanticTokens, /\brgba?\(/i);
+  assert.match(semanticTokens, /--canvas-quad-stroke:\s*var\(--accent-2\);/);
+  assert.match(semanticTokens, /--canvas-image-stroke:\s*light-dark\(var\(--color-canvas-image-stroke-light\),\s*var\(--color-canvas-image-stroke-dark\)\);/);
+  assert.match(semanticTokens, /--canvas-handle-fill:\s*var\(--handle\);/);
+  assert.match(semanticTokens, /--canvas-handle-stroke:\s*var\(--color-ink-950\);/);
+  assert.match(semanticTokens, /--canvas-handle-text:\s*var\(--color-ink-900\);/);
   assert.doesNotMatch(componentTokens, /--component-[^:]+:\s*(?:9|11|13)px\b/);
 
   const layout = {

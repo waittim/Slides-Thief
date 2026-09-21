@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { Quad } from "../detection/types";
+import { CanvasThemeColors, resolveCanvasThemeColors } from "../lib/canvas-utils";
 import { maxQuadOutside, quadHandlePositions } from "../lib/slide-utils";
-import type { CanvasRenderState, HandlePosition, SlideItem } from "../lib/types";
+import type { CanvasRenderState, HandlePosition, SlideItem, ThemeValue } from "../lib/types";
 import {
   calculateNewZoom,
   calculateScrollAdjustment,
@@ -21,6 +22,7 @@ type CanvasViewportOptions = {
   setSlides: Dispatch<SetStateAction<SlideItem[]>>;
   latestDragQuadRef: DragQuadRef;
   dragHandleRef: DragHandleRef;
+  theme?: ThemeValue;
 };
 
 export function useCanvasViewport({
@@ -28,6 +30,7 @@ export function useCanvasViewport({
   setSlides,
   latestDragQuadRef,
   dragHandleRef,
+  theme,
 }: CanvasViewportOptions) {
   const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
   const [zoom, setZoom] = useState(1);
@@ -54,6 +57,7 @@ export function useCanvasViewport({
   const zoomModeRef = useRef<"fit" | "manual">("fit");
   const isSpacePressedRef = useRef(false);
   const isPanningRef = useRef(false);
+  const themeColorsRef = useRef<CanvasThemeColors>(resolveCanvasThemeColors());
 
   zoomRef.current = zoom;
   zoomModeRef.current = zoomMode;
@@ -137,13 +141,15 @@ export function useCanvasViewport({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const colors = themeColorsRef.current;
+
     ctx.clearRect(0, 0, width, height);
     const imageX = padX * scale;
     const imageY = padY * scale;
     const imageWidth = image.naturalWidth * scale;
     const imageHeight = image.naturalHeight * scale;
     ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
-    ctx.strokeStyle = "rgba(255, 255, 255, .36)";
+    ctx.strokeStyle = colors.imageStroke;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
 
@@ -157,7 +163,7 @@ export function useCanvasViewport({
     });
 
     ctx.lineWidth = Math.max(3, Math.min(7, width / 420));
-    ctx.strokeStyle = "rgba(200, 69, 53, .98)";
+    ctx.strokeStyle = colors.quadStroke;
     ctx.beginPath();
     positions.forEach(({ left, top }, index) => {
       if (index === 0) ctx.moveTo(left, top);
@@ -168,14 +174,14 @@ export function useCanvasViewport({
 
     positions.forEach(({ left, top }, index) => {
       const radius = compact ? 12 : Math.max(9, Math.min(18, width / 150));
-      ctx.fillStyle = "rgba(255, 216, 74, .96)";
-      ctx.strokeStyle = "rgba(16, 20, 22, .92)";
+      ctx.fillStyle = colors.handleFill;
+      ctx.strokeStyle = colors.handleStroke;
       ctx.lineWidth = Math.max(2, Math.min(4, width / 700));
       ctx.beginPath();
       ctx.arc(left, top, radius, 0, Math.PI * 2);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = "#172026";
+      ctx.fillStyle = colors.handleText;
       ctx.font = `700 ${Math.max(13, Math.min(18, width / 80))}px -apple-system, BlinkMacSystemFont, sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -276,6 +282,7 @@ export function useCanvasViewport({
       canvasRenderRef.current = { slideId: slide.id, image, width, height, padX, padY, scale, compact };
       setDisplayZoom((current) => (Math.abs(current - scale) < 0.0001 ? current : scale));
       setHandlePositions(previewQuad ? quadHandlePositions(previewQuad, padX, padY, scale) : []);
+      themeColorsRef.current = resolveCanvasThemeColors(stage);
       paintCanvas(previewQuad);
 
       if (zoomMode === "fit") {
@@ -339,6 +346,50 @@ export function useCanvasViewport({
       }
     };
   }, [scheduleRedraw]);
+
+  const updateColorsAndRepaint = useCallback(() => {
+    themeColorsRef.current = resolveCanvasThemeColors(stageRef.current);
+    const render = canvasRenderRef.current;
+    if (render && selectedSlide) {
+      const previewQuad = latestDragQuadRef.current?.id === selectedSlide.id
+        ? latestDragQuadRef.current.quad
+        : selectedSlide.quad;
+      paintCanvas(previewQuad);
+    }
+  }, [latestDragQuadRef, paintCanvas, selectedSlide]);
+
+  useEffect(() => {
+    updateColorsAndRepaint();
+  }, [theme, updateColorsAndRepaint]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === "data-theme") {
+          updateColorsAndRepaint();
+          break;
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const handleMediaChange = () => {
+      updateColorsAndRepaint();
+    };
+    mediaQuery?.addEventListener?.("change", handleMediaChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery?.removeEventListener?.("change", handleMediaChange);
+    };
+  }, [updateColorsAndRepaint]);
 
   const resetViewport = useCallback(() => {
     imageCacheRef.current = null;

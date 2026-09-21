@@ -12,6 +12,9 @@ const {
   contentPixelBounds,
   medianValue,
   sampleBlurredEdgeRgb,
+  resolveCanvasThemeColors,
+  DEFAULT_CANVAS_THEME_COLORS_LIGHT,
+  DEFAULT_CANVAS_THEME_COLORS_DARK,
 } = await import(new URL("../app/lib/canvas-utils.ts", import.meta.url).href);
 
 test("solveLinearSystem solves 2x2 system accurately", () => {
@@ -120,4 +123,30 @@ test("sampleBlurredEdgeRgb computes average RGB in spatial radius", () => {
 
   const sampled = sampleBlurredEdgeRgb(data, width, height, 2, 2, 1);
   assert.deepEqual(sampled, [255, 0, 0]);
+});
+
+test("canvas theme colors adhere to DESIGN.md tokens and maintain contrast across themes", () => {
+  // 1. Verify light mode defaults adhere to Teal Precision (#0f766e) and not terracotta (#c84535)
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_LIGHT.quadStroke, "#0f766e");
+  assert.notEqual(DEFAULT_CANVAS_THEME_COLORS_LIGHT.quadStroke, "#c84535");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_LIGHT.handleFill, "#ffd84a");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_LIGHT.handleText, "#172026");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_LIGHT.imageStroke, "rgba(16, 20, 22, 0.18)");
+
+  // 2. Verify dark mode defaults adhere to Teal Precision dark (#32c8ba)
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_DARK.quadStroke, "#32c8ba");
+  assert.notEqual(DEFAULT_CANVAS_THEME_COLORS_DARK.quadStroke, "#c84535");
+  assert.notEqual(DEFAULT_CANVAS_THEME_COLORS_DARK.quadStroke, "#ff7b68");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_DARK.handleFill, "#ffd84a");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_DARK.handleText, "#172026");
+  assert.equal(DEFAULT_CANVAS_THEME_COLORS_DARK.imageStroke, "rgba(255, 255, 255, 0.36)");
+
+  // 3. Verify resolveCanvasThemeColors in Node/SSR environment falls back to valid contract
+  const resolved = resolveCanvasThemeColors();
+  assert.ok(resolved.quadStroke);
+  assert.ok(resolved.imageStroke);
+  assert.ok(resolved.handleFill);
+  assert.ok(resolved.handleStroke);
+  assert.ok(resolved.handleText);
+  assert.equal(resolved.quadStroke, "#0f766e");
 });

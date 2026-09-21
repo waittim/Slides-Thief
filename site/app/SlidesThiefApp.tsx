@@ -311,6 +311,7 @@ export function SlidesThiefApp() {
     setSlides,
     latestDragQuadRef,
     dragHandleRef,
+    theme,
   });
   const {
     stageRef,

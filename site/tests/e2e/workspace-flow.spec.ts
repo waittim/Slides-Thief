@@ -604,6 +604,54 @@ test("dynamically flips loupe below handle and clamps within viewport when dragg
   await expect(loupe).not.toBeVisible();
 });
 
+test("canvas quad stroke aligns with Teal Precision tokens and adapts across themes", async ({ page }) => {
+  await page.addInitScript(() => {
+    (window as any).__canvasStrokeStyles = [];
+    const origStroke = CanvasRenderingContext2D.prototype.stroke;
+    CanvasRenderingContext2D.prototype.stroke = function () {
+      (window as any).__canvasStrokeStyles.push(this.strokeStyle);
+      return origStroke.apply(this, arguments as any);
+    };
+  });
+
+  await page.goto("/");
+
+  const fileInput = page.locator('input[type="file"]');
+  await fileInput.setInputFiles(fixture);
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
+
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+  const firstCorner = page.getByRole("button", { name: /Corner 1:/ });
+  await expect(firstCorner).toBeVisible({ timeout: 30_000 });
+
+  // 1. Verify in light theme, strokeStyle matches Teal Precision light (#0f766e) and NOT terracotta (#c84535)
+  const lightStrokes: string[] = await page.evaluate(() => (window as any).__canvasStrokeStyles);
+  expect(lightStrokes.some((s) => s === "#0f766e" || s === "rgb(15, 118, 110)")).toBe(true);
+  expect(lightStrokes.some((s) => s.includes("200, 69, 53") || s.toLowerCase() === "#c84535")).toBe(false);
+
+  // 2. Switch theme to Dark
+  await page.evaluate(() => ((window as any).__canvasStrokeStyles = []));
+  const themeSelect = page.locator("label.themeSetting select").first();
+  if (await themeSelect.isVisible()) {
+    await themeSelect.selectOption("dark");
+  } else {
+    await page.evaluate(() => {
+      document.documentElement.dataset.theme = "dark";
+    });
+  }
+
+  // Wait for canvas repaint in dark theme
+  await expect
+    .poll(
+      async () => {
+        const darkStrokes: string[] = await page.evaluate(() => (window as any).__canvasStrokeStyles);
+        return darkStrokes.some((s) => s === "#32c8ba" || s === "rgb(50, 200, 186)");
+      },
+      { timeout: 5000 },
+    )
+    .toBe(true);
+});
+
 
 
 
