@@ -216,6 +216,18 @@ test("dropzone shows Add more photos and appends subsequent file uploads", async
   await expect(component.locator(".uiCountBadge")).toHaveText("2");
 });
 
+test("shows Try Sample Image in sidebar when empty and loads sample slide on click", async ({ mount }) => {
+  const component = await mount(<SidebarHarness />);
+  const sampleBtn = component.getByRole("button", { name: "Try Sample Image" });
+
+  await expect(sampleBtn).toBeVisible();
+  await sampleBtn.click();
+
+  await expect(component.getByText("sample.jpg", { exact: true })).toBeVisible();
+  await expect(component.getByText("Add more photos")).toBeVisible();
+  await expect(component.getByRole("button", { name: "Try Sample Image" })).toHaveCount(0);
+});
+
 test("marks export artifact as stale with visual indicator and notice instead of removing download link", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
   const fileInput = component.locator('input[type="file"]').first();

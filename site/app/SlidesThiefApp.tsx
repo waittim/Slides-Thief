@@ -45,6 +45,7 @@ import { useWindowImport } from "./hooks/useWindowImport";
 import { hasFreshExport, shouldWarnOnUnload } from "./lib/before-unload";
 import { AboutModal } from "./components/AboutModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
+import { generateSampleSlideFile } from "./lib/sample-slide";
 import { Header } from "./components/Header";
 import { InspectorPanel, type MetricItem } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
@@ -480,6 +481,15 @@ export function SlidesThiefApp() {
     resetViewport,
     pushHistory,
   });
+
+  const handleLoadSample = useCallback(async () => {
+    try {
+      const file = await generateSampleSlideFile();
+      await loadFiles([file]);
+    } catch (error) {
+      setWorkerError(isAppError(error) ? error : messageFromError(error));
+    }
+  }, [loadFiles, setWorkerError]);
 
   const selectNextSlide = useCallback(() => {
     selectNextSlideDeck(() => setZoomMode("fit"));
@@ -1331,9 +1341,12 @@ export function SlidesThiefApp() {
           selectReviewNeeded={selectReviewNeeded}
           reDetectSelected={reDetectSelected}
           applyQuadToSelected={() => void applyCurrentQuad("selected")}
+          onLoadSample={handleLoadSample}
         />
 
         <CanvasQuadEditor
+          onUpload={() => inputRef.current?.click()}
+          onLoadSample={handleLoadSample}
           isReviewMode={isReviewMode}
           reviewBannerProps={reviewBannerProps}
           stageRef={stageRef}

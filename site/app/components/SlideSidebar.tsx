@@ -56,6 +56,7 @@ interface SlideSidebarProps {
   selectReviewNeeded?: () => void;
   reDetectSelected?: () => void;
   applyQuadToSelected?: () => void;
+  onLoadSample?: () => void;
 }
 
 export function SlideSidebar({
@@ -107,6 +108,7 @@ export function SlideSidebar({
   selectReviewNeeded,
   reDetectSelected,
   applyQuadToSelected,
+  onLoadSample,
 }: SlideSidebarProps) {
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
@@ -528,6 +530,33 @@ export function SlideSidebar({
             {!isMobile && <span>{text.dropSubtitle}</span>}
           </span>
         </button>
+        {slides.length === 0 && onLoadSample && (
+          <div className="sidebarEmptySample">
+            <span className="sidebarEmptyOr">{text.orDivider}</span>
+            <Button
+              variant="secondary"
+              size="sm"
+              className="sidebarSampleButton"
+              disabled={busy}
+              onClick={onLoadSample}
+            >
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <polygon points="5 3 19 12 5 21 5 3" />
+              </svg>
+              <span>{text.trySample}</span>
+            </Button>
+          </div>
+        )}
         {selectedBatchIds && selectedBatchIds.size > 0 ? (
           <div className="batchActionBar" role="toolbar" aria-label={text.selectedCount(selectedBatchIds.size)}>
             <div className="batchActionInfo">

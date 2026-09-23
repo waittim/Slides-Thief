@@ -5,9 +5,12 @@ import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
 import { calculateLoupePosition } from "../lib/viewport-math";
 import { Button } from "./ui";
+import { CanvasEmptyState } from "./CanvasEmptyState";
 import { ReviewModeBanner, type ReviewModeBannerProps } from "./ReviewModeBanner";
 
 export interface CanvasQuadEditorProps {
+  onUpload?: () => void;
+  onLoadSample?: () => void;
   stageRef: React.RefObject<HTMLDivElement | null>;
   canvasRef: React.RefObject<HTMLCanvasElement | null>;
   loupeCanvasRef: React.RefObject<HTMLCanvasElement | null>;
@@ -50,6 +53,8 @@ export interface CanvasQuadEditorProps {
 }
 
 export function CanvasQuadEditor({
+  onUpload,
+  onLoadSample,
   stageRef,
   canvasRef,
   loupeCanvasRef,
@@ -485,6 +490,14 @@ export function CanvasQuadEditor({
                   );
                 })()}
               </div>
+            ) : slides.length === 0 ? (
+              <CanvasEmptyState
+                text={text}
+                isMobile={isMobile}
+                onUpload={onUpload}
+                onLoadSample={onLoadSample}
+                busy={busy}
+              />
             ) : (
               <div className="empty">
                 {selectedSlide && previewErrorSlideId === selectedSlide.id

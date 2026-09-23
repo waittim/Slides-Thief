@@ -790,6 +790,29 @@ test("desktop review bar retains previous/next buttons and page indicator withou
   await expect(fileName).toHaveText("dark-slide-light-wall.png");
 });
 
+test("displays guided empty state on initial load and loads sample slide on click", async ({ page }) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  // Canvas empty state elements are visible
+  const emptyState = page.locator(".canvasEmptyState");
+  await expect(emptyState).toBeVisible();
+  await expect(emptyState.getByText("Turn angled slide photos into flat, crystal-clear documents")).toBeVisible();
+  await expect(emptyState.getByText(/100% local browser processing/i)).toBeVisible();
+  await expect(emptyState.locator(".emptyWorkflow")).toBeVisible();
+  await expect(emptyState.locator(".emptyTipsCard")).toBeVisible();
+
+  // Try sample image button in canvas empty state
+  const sampleBtn = emptyState.getByRole("button", { name: "Try Sample Image" });
+  await expect(sampleBtn).toBeVisible();
+  await sampleBtn.click();
+
+  // Slide is loaded into workspace
+  await expect(page.locator("button.slideSelectButton[title='sample-presentation-slide.jpg']")).toBeVisible({ timeout: 15_000 });
+  await expect(emptyState).toHaveCount(0);
+});
+
+
 
 
 

@@ -366,5 +366,37 @@ test("all 9 locales define complete iOS export copy", () => {
   }
 });
 
+test("all 9 locales define complete empty state workflow and tips copy", () => {
+  const emptyKeys = [
+    "empty",
+    "emptyTitle",
+    "emptySubtitle",
+    "trySample",
+    "orDivider",
+    "workflowStep1Title",
+    "workflowStep1Desc",
+    "workflowStep2Title",
+    "workflowStep2Desc",
+    "workflowStep3Title",
+    "workflowStep3Desc",
+    "tipsHeading",
+    "tipCornersTitle",
+    "tipCornersDesc",
+    "tipOcclusionTitle",
+    "tipOcclusionDesc",
+    "tipContrastTitle",
+    "tipContrastDesc",
+  ];
+
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    for (const key of emptyKeys) {
+      assert.equal(typeof localeCopy[key], "string", `copy.${locale}.${key} should be string`);
+      assert.ok(localeCopy[key].length > 0, `copy.${locale}.${key} should not be empty`);
+    }
+  }
+});
+
 
 
