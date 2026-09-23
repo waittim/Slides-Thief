@@ -22,6 +22,14 @@ test("renders desktop preference bar inside semantic nav with accessible label a
   await infoButton.click();
   await expect(component.getByTestId("info-status")).toHaveText("open");
 
+  // Shortcuts button is present with accessible label and opens shortcuts
+  const shortcutsButton = nav.locator(".shortcutsButton");
+  await expect(shortcutsButton).toBeVisible();
+  await expect(shortcutsButton).toHaveAttribute("aria-label", "快捷键指南 (?)");
+  await expect(shortcutsButton).toHaveAttribute("title", "快捷键指南 (?)");
+  await shortcutsButton.click();
+  await expect(component.getByTestId("shortcuts-status")).toHaveText("open");
+
   // Theme select
   const themeSelect = nav.locator(".themeSetting select");
   await expect(themeSelect).toBeVisible();
@@ -52,6 +60,14 @@ test("renders mobile menu placement without privacy badge and with menu layout c
   await expect(infoButton).toHaveAttribute("aria-label", "About Slides Thief");
   await infoButton.click();
   await expect(component.getByTestId("info-status")).toHaveText("open");
+
+  // Shortcuts button has menu styling classes and is visible in mobile viewport
+  const shortcutsButton = component.locator(".shortcutsButton.settingsMenuInfoRow.settingsMenuShortcuts");
+  await expect(shortcutsButton).toBeVisible();
+  await expect(shortcutsButton).toHaveAttribute("aria-label", "Keyboard Shortcuts (?)");
+  await expect(shortcutsButton).toHaveAttribute("title", "Keyboard Shortcuts (?)");
+  await shortcutsButton.click();
+  await expect(component.getByTestId("shortcuts-status")).toHaveText("open");
 
   // Theme select has menu styling class
   const themeLabel = component.locator(".themeSetting.settingsMenuTheme");

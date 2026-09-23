@@ -17,6 +17,7 @@ export type GlobalKeyboardShortcutActions = {
   moveSlideDown?: (id: string) => void;
   isReviewMode?: boolean;
   exitReviewMode?: () => void;
+  openShortcuts?: () => void;
 };
 
 function isEditableTarget(target: EventTarget | null) {
@@ -38,6 +39,13 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
     if (actions.isReviewMode && event.key === "Escape") {
       event.preventDefault();
       actions.exitReviewMode?.();
+      return;
+    }
+
+    // Open keyboard shortcuts modal: ?
+    if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      event.preventDefault();
+      actions.openShortcuts?.();
       return;
     }
 

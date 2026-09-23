@@ -496,7 +496,8 @@ a:hover {
 .settingsMenuBody > .settingsMenuDivider,
 .settingsMenuBody > .settingsMenuTheme,
 .settingsMenuBody > .settingsMenuLanguage,
-.settingsMenuBody > .settingsMenuInfo {
+.settingsMenuBody > .settingsMenuInfo,
+.settingsMenuBody > .settingsMenuShortcuts {
   display: none;
 }
 
@@ -2624,7 +2625,8 @@ canvas {
     grid-column: 1 / -1;
   }
 
-  .settingsMenuBody > .settingsMenuInfo {
+  .settingsMenuBody > .settingsMenuInfo,
+  .settingsMenuBody > .settingsMenuShortcuts {
     display: flex;
     align-items: center;
     gap: var(--space-3);
@@ -2643,12 +2645,14 @@ canvas {
     transition: border-color 0.15s ease, background-color 0.15s ease;
   }
 
-  .settingsMenuBody > .settingsMenuInfo:hover {
+  .settingsMenuBody > .settingsMenuInfo:hover,
+  .settingsMenuBody > .settingsMenuShortcuts:hover {
     border-color: var(--control-hover);
     background: var(--panel-strong);
   }
 
-  .settingsMenuBody > .settingsMenuInfo svg {
+  .settingsMenuBody > .settingsMenuInfo svg,
+  .settingsMenuBody > .settingsMenuShortcuts svg {
     color: var(--muted);
     flex-shrink: 0;
   }
@@ -2982,8 +2986,9 @@ canvas {
   pointer-events: none;
 }
 
-/* Info Icon Button next to Theme/Language */
-.infoButton {
+/* Info & Shortcuts Icon Buttons next to Theme/Language */
+.infoButton,
+.shortcutsButton {
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -3001,22 +3006,26 @@ canvas {
   padding: 0;
 }
 
-.infoButton:hover {
+.infoButton:hover,
+.shortcutsButton:hover {
   color: var(--text);
   border-color: var(--control-hover);
   background: var(--panel-strong);
 }
 
-.infoButton svg {
+.infoButton svg,
+.shortcutsButton svg {
   display: block;
 }
 
-.prefsBar .infoButtonLabel {
+.prefsBar .infoButtonLabel,
+.prefsBar .shortcutsButtonLabel {
   display: none;
 }
 
 @media (max-width: 834px), (pointer: coarse) {
-  .infoButton {
+  .infoButton,
+  .shortcutsButton {
     width: var(--control-height-touch);
     height: var(--control-height-touch);
     min-width: var(--control-height-touch);
@@ -3289,6 +3298,7 @@ canvas {
   }
 
   .infoButton,
+  .shortcutsButton,
   .modalHeader .modalCloseButton,
   .modalLink,
   .modalLink::after {
@@ -3359,6 +3369,15 @@ canvas {
   margin-top: var(--space-5);
   padding-top: var(--space-4);
   border-top: 1px solid var(--line);
+}
+
+.shortcutsModal {
+  max-width: 500px;
+}
+
+.shortcutsModal .modalShortcuts {
+  padding-top: 0;
+  border-top: none;
 }
 
 .modalShortcuts h4 {

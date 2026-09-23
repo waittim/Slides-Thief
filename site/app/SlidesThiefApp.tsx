@@ -44,6 +44,7 @@ import { useSlideDeck } from "./hooks/useSlideDeck";
 import { useWindowImport } from "./hooks/useWindowImport";
 import { hasFreshExport, shouldWarnOnUnload } from "./lib/before-unload";
 import { AboutModal } from "./components/AboutModal";
+import { ShortcutsModal } from "./components/ShortcutsModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { generateSampleSlideFile } from "./lib/sample-slide";
 import { Header } from "./components/Header";
@@ -79,12 +80,13 @@ export function SlidesThiefApp() {
   }, []);
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmReviewOpen, setIsConfirmReviewOpen] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "jpg" | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [pendingReviewExportFormat, setPendingReviewExportFormat] = useState<"pdf" | "jpg" | null>(null);
-  const isAnyModalOpen = isInfoOpen || isConfirmClearOpen || isConfirmReviewOpen;
+  const isAnyModalOpen = isInfoOpen || isShortcutsOpen || isConfirmClearOpen || isConfirmReviewOpen;
   const [isIOS, setIsIOS] = useState(false);
   const isIOSRef = useRef(false);
 
@@ -100,6 +102,9 @@ export function SlidesThiefApp() {
   const infoButtonRef = useRef<HTMLButtonElement | null>(null);
   const infoModalRef = useRef<HTMLDivElement | null>(null);
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
+  const shortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
+  const shortcutsModalRef = useRef<HTMLDivElement | null>(null);
+  const closeShortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const setExportName = useCallback(() => undefined, []);
 
@@ -1192,6 +1197,7 @@ export function SlidesThiefApp() {
     handleRedo,
     handleUndo,
     isInfoOpen: isAnyModalOpen,
+    openShortcuts: () => setIsShortcutsOpen(true),
     selectedIdRef,
     selectNextSlide: isReviewMode ? handleNextReviewSlide : selectNextSlide,
     selectPrevSlide: isReviewMode ? handlePrevReviewSlide : selectPrevSlide,
@@ -1284,6 +1290,7 @@ export function SlidesThiefApp() {
         updateSettings={updateSettings}
         runAutoWithSettings={runAutoWithSettings}
         setIsInfoOpen={setIsInfoOpen}
+        setIsShortcutsOpen={setIsShortcutsOpen}
       />
 
       <main
@@ -1450,6 +1457,7 @@ export function SlidesThiefApp() {
       >
         <PreferencesControls
           infoButtonRef={infoButtonRef}
+          shortcutsButtonRef={shortcutsButtonRef}
           placement="bar"
           text={text}
           theme={theme}
@@ -1457,6 +1465,7 @@ export function SlidesThiefApp() {
           locale={locale}
           setLocale={setLocale}
           setIsInfoOpen={setIsInfoOpen}
+          setIsShortcutsOpen={setIsShortcutsOpen}
         />
       </nav>
 
@@ -1469,6 +1478,14 @@ export function SlidesThiefApp() {
         appVersion={APP_VERSION}
         telemetryEnabled={telemetry}
         setTelemetryEnabled={setTelemetry}
+      />
+
+      <ShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+        shortcutsModalRef={shortcutsModalRef}
+        closeShortcutsButtonRef={closeShortcutsButtonRef}
+        text={text}
       />
 
       <ConfirmModal

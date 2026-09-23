@@ -129,7 +129,7 @@ export function ReviewModeBanner({
           size="sm"
           className="reviewExitBtn"
           onClick={onExit}
-          title={reviewText.reviewExit}
+          title={`${reviewText.reviewExit} (Esc)`}
         >
           {reviewText.reviewExit}
         </Button>

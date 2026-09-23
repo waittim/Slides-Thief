@@ -282,3 +282,81 @@ test("Alt+ArrowUp and Alt+ArrowDown are ignored while the app is busy", () => {
   assert.equal(altDown.defaultPrevented, true);
 });
 
+test("? triggers openShortcuts", () => {
+  let shortcutsOpened = false;
+  const current = actions({
+    openShortcuts() {
+      shortcutsOpened = true;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const event = new TestKeyboardEvent("keydown", { key: "?" });
+  target.dispatchEvent(event);
+  assert.equal(shortcutsOpened, true);
+  assert.equal(event.defaultPrevented, true);
+});
+
+test("? is ignored when isInfoOpen is true", () => {
+  let shortcutsOpened = false;
+  const current = actions({
+    isInfoOpen: true,
+    openShortcuts() {
+      shortcutsOpened = true;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const event = new TestKeyboardEvent("keydown", { key: "?" });
+  target.dispatchEvent(event);
+  assert.equal(shortcutsOpened, false);
+});
+
+test("? with modifiers (Cmd/Ctrl/Alt) is ignored", () => {
+  let shortcutsOpened = false;
+  const current = actions({
+    openShortcuts() {
+      shortcutsOpened = true;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+  const target = new EventTarget();
+  target.addEventListener("keydown", handler);
+
+  const metaEvent = new TestKeyboardEvent("keydown", { key: "?", metaKey: true });
+  target.dispatchEvent(metaEvent);
+  assert.equal(shortcutsOpened, false);
+
+  const ctrlEvent = new TestKeyboardEvent("keydown", { key: "?", ctrlKey: true });
+  target.dispatchEvent(ctrlEvent);
+  assert.equal(shortcutsOpened, false);
+
+  const altEvent = new TestKeyboardEvent("keydown", { key: "?", altKey: true });
+  target.dispatchEvent(altEvent);
+  assert.equal(shortcutsOpened, false);
+});
+
+test("? is ignored when focus is on an input or textarea target", () => {
+  let shortcutsOpened = false;
+  const current = actions({
+    openShortcuts() {
+      shortcutsOpened = true;
+    },
+  });
+  const handler = createGlobalKeyDownHandler(current);
+
+  const eventInput = new TestKeyboardEvent("keydown", { key: "?" });
+  Object.defineProperty(eventInput, "target", { value: { tagName: "INPUT" } });
+  handler(eventInput);
+  assert.equal(shortcutsOpened, false);
+
+  const eventTextarea = new TestKeyboardEvent("keydown", { key: "?" });
+  Object.defineProperty(eventTextarea, "target", { value: { tagName: "TEXTAREA" } });
+  handler(eventTextarea);
+  assert.equal(shortcutsOpened, false);
+});
+

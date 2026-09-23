@@ -1,17 +1,13 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n";
-import { PRODUCT_METADATA } from "../product-metadata";
-import { ModalShell, Switch } from "./ui";
+import { ModalShell } from "./ui";
 
-interface AboutModalProps {
-  isInfoOpen: boolean;
-  setIsInfoOpen: (open: boolean) => void;
-  infoModalRef: React.RefObject<HTMLDivElement | null>;
-  closeInfoButtonRef: React.RefObject<HTMLButtonElement | null>;
+export interface ShortcutsModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  shortcutsModalRef?: React.RefObject<HTMLDivElement | null>;
+  closeShortcutsButtonRef?: React.RefObject<HTMLButtonElement | null>;
   text: LocaleCopy;
-  appVersion: string;
-  telemetryEnabled?: boolean;
-  setTelemetryEnabled?: (enabled: boolean) => void;
 }
 
 function ShortcutChord({ keys }: { keys: readonly string[] }) {
@@ -24,50 +20,25 @@ function ShortcutChord({ keys }: { keys: readonly string[] }) {
   );
 }
 
-export function AboutModal({
-  isInfoOpen,
-  setIsInfoOpen,
-  infoModalRef,
-  closeInfoButtonRef,
+export function ShortcutsModal({
+  isOpen,
+  onClose,
+  shortcutsModalRef,
+  closeShortcutsButtonRef,
   text,
-  appVersion,
-  telemetryEnabled = true,
-  setTelemetryEnabled,
-}: AboutModalProps) {
+}: ShortcutsModalProps) {
   return (
     <ModalShell
-      isOpen={isInfoOpen}
-      onClose={() => setIsInfoOpen(false)}
-      title={text.infoTitle}
-      appVersion={appVersion}
-      modalRef={infoModalRef}
-      closeButtonRef={closeInfoButtonRef}
+      isOpen={isOpen}
+      onClose={onClose}
+      title={text.shortcutsTitle}
+      modalRef={shortcutsModalRef}
+      closeButtonRef={closeShortcutsButtonRef}
       closeLabel={text.close}
+      titleId="shortcuts-modal-title"
+      className="shortcutsModal"
     >
-      <p className="modalDesc">{text.infoDesc}</p>
-      <div className="modalPrivacy modalPrivacyCard">
-        <p className="modalPrivacyText">
-          <strong>{text.infoPrivacy}</strong>
-        </p>
-        <div className="modalTelemetry">
-          <div className="modalTelemetryHeader">
-            <div className="modalTelemetryHeaderContent">
-              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
-              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
-            </div>
-            {setTelemetryEnabled && (
-              <Switch
-                aria-label={text.telemetryTitle}
-                checked={telemetryEnabled}
-                label={telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled}
-                onChange={setTelemetryEnabled}
-              />
-            )}
-          </div>
-        </div>
-      </div>
       <div className="modalShortcuts">
-        <h4>{text.shortcutsTitle}</h4>
         <div className="shortcutGrid">
           <div className="shortcutItem">
             <ShortcutChord keys={["J"]} />
@@ -87,6 +58,10 @@ export function AboutModal({
           </div>
           <div className="shortcutItem">
             <ShortcutChord keys={["Delete"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Backspace"]} />
             <span>{text.shortcutDelete}</span>
           </div>
           <div className="shortcutItem">
@@ -126,14 +101,6 @@ export function AboutModal({
             <span>{text.shortcutHelp}</span>
           </div>
         </div>
-      </div>
-      <div className="modalLinks">
-        <a href={PRODUCT_METADATA.repository} target="_blank" rel="noopener noreferrer" className="modalLink">
-          {text.infoRepo}
-        </a>
-        <a href={PRODUCT_METADATA.blog} target="_blank" rel="noopener noreferrer" className="modalLink">
-          {text.infoBlog}
-        </a>
       </div>
     </ModalShell>
   );

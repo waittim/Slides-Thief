@@ -728,7 +728,7 @@ export function SlideSidebar({
                     className="slideMoveButton slideMoveUpButton iconOnlyButton"
                     type="button"
                     disabled={busy || index === 0}
-                    title={text.moveSlideUpHint}
+                    title={`${text.moveSlideUpHint} (Alt+↑)`}
                     aria-label={`${text.moveSlideUpHint}: ${slide.name}`}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -755,7 +755,7 @@ export function SlideSidebar({
                     className="slideMoveButton slideMoveDownButton iconOnlyButton"
                     type="button"
                     disabled={busy || index === slides.length - 1}
-                    title={text.moveSlideDownHint}
+                    title={`${text.moveSlideDownHint} (Alt+↓)`}
                     aria-label={`${text.moveSlideDownHint}: ${slide.name}`}
                     onClick={(event) => {
                       event.stopPropagation();
@@ -782,7 +782,7 @@ export function SlideSidebar({
                     className="slideDeleteButton iconOnlyButton"
                     type="button"
                     disabled={busy}
-                    title={text.deleteSlideHint}
+                    title={`${text.deleteSlideHint} (Delete / Backspace)`}
                     aria-label={`${text.deleteSlideHint}: ${slide.name}`}
                     onClick={() => deleteSlide(slide.id)}
                   >

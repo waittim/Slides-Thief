@@ -30,6 +30,7 @@ interface HeaderProps {
   updateSettings: (updater: (current: Settings) => Settings) => void;
   runAutoWithSettings: (settings: Settings) => void;
   setIsInfoOpen: (open: boolean) => void;
+  setIsShortcutsOpen?: (open: boolean) => void;
 }
 
 export function Header({
@@ -52,6 +53,7 @@ export function Header({
   updateSettings,
   runAutoWithSettings,
   setIsInfoOpen,
+  setIsShortcutsOpen,
 }: HeaderProps) {
   const settingsMenuBody = (
     <div className="settingsMenuBody">
@@ -130,6 +132,7 @@ export function Header({
         locale={locale}
         setLocale={setLocale}
         setIsInfoOpen={setIsInfoOpen}
+        setIsShortcutsOpen={setIsShortcutsOpen}
       />
     </div>
   );

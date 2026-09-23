@@ -812,6 +812,50 @@ test("displays guided empty state on initial load and loads sample slide on clic
   await expect(emptyState).toHaveCount(0);
 });
 
+test("opens keyboard shortcuts modal with '?' key and with navbar button, and displays shortcut annotations on buttons", async ({
+  page,
+}) => {
+  page.on("dialog", (dialog) => void dialog.accept());
+  await page.goto("/");
+
+  // Verify shortcuts button exists in prefsBar
+  const shortcutsNavBtn = page.locator("nav.prefsBar .shortcutsButton");
+  await expect(shortcutsNavBtn).toBeVisible();
+  await expect(shortcutsNavBtn).toHaveAttribute("title", "Keyboard Shortcuts (?)");
+
+  // Pressing '?' opens the shortcuts modal
+  await page.keyboard.press("?");
+  const modal = page.locator(".modalCard.shortcutsModal");
+  await expect(modal).toBeVisible();
+  await expect(modal.locator("#shortcuts-modal-title")).toHaveText("Keyboard Shortcuts");
+
+  // Escape key closes it
+  await page.keyboard.press("Escape");
+  await expect(modal).toHaveCount(0);
+
+  // Clicking shortcuts button in nav opens modal
+  await shortcutsNavBtn.click();
+  await expect(modal).toBeVisible();
+
+  // Close button closes modal
+  await modal.locator(".modalCloseButton").click();
+  await expect(modal).toHaveCount(0);
+
+  // Load slides and verify button title annotations
+  const fileInput = page.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles([fixture, fixture2]);
+  await expect(page.locator(".fileRow")).toHaveCount(2);
+
+  const moveUpBtn = page.locator(".slideMoveUpButton").nth(1);
+  await expect(moveUpBtn).toHaveAttribute("title", /Alt\+↑/);
+
+  const moveDownBtn = page.locator(".slideMoveDownButton").first();
+  await expect(moveDownBtn).toHaveAttribute("title", /Alt\+↓/);
+
+  const deleteBtn = page.locator(".slideDeleteButton").first();
+  await expect(deleteBtn).toHaveAttribute("title", /Delete/);
+});
+
 
 
 

@@ -398,5 +398,29 @@ test("all 9 locales define complete empty state workflow and tips copy", () => {
   }
 });
 
+test("all 9 locales define complete keyboard shortcuts copy", () => {
+  const shortcutKeys = [
+    "shortcutsTitle",
+    "shortcutNav",
+    "shortcutDelete",
+    "shortcutUndo",
+    "shortcutRedo",
+    "shortcutExport",
+    "shortcutNudge",
+    "shortcutReorder",
+    "shortcutCloseOrExit",
+    "shortcutHelp",
+  ];
+
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    for (const key of shortcutKeys) {
+      assert.equal(typeof localeCopy[key], "string", `copy.${locale}.${key} should be string`);
+      assert.ok(localeCopy[key].length > 0, `copy.${locale}.${key} should not be empty`);
+    }
+  }
+});
+
 
 
