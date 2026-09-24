@@ -22,7 +22,7 @@ test("restore auto-detection button enabled state and tooltip feedback", () => {
     const canRestore = canRestoreAutoDetection(slide);
     const tooltip = (() => {
       if (!slide) return text.noSlide;
-      if (slide.status !== "ready") return text.waiting;
+      if (slide.status !== "ready") return typeof text.waiting === "function" ? text.waiting(1) : text.waiting;
       if (!slide.autoDetection) return text.restoreAutoNoSnapshot;
       if (!canRestore) return text.restoreAutoUnchanged;
       return text.restoreAutoTitle;

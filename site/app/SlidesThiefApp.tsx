@@ -559,7 +559,7 @@ export function SlidesThiefApp() {
     if (exportArtifacts.pdf && !exportArtifacts.pdf.isStale) return text.generated;
     if (reviewCount) return reviewText.reviewSummary(reviewCount);
     if (hasRun) return text.reviewReady;
-    return `${slides.length} ${text.waiting}`;
+    return typeof text.waiting === "function" ? text.waiting(slides.length) : `${slides.length} ${text.waiting}`;
   }, [
     busyText,
     detecting,

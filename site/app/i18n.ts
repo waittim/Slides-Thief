@@ -12,6 +12,23 @@ import {
   isAppErrorCode,
   LEGACY_ERROR_MESSAGE_TO_CODE,
 } from "./lib/errors.ts";
+import {
+  createPluralMessage,
+  getPluralRules,
+  selectPluralCategory,
+  type PluralCategory,
+  type PluralForms,
+  type PluralFormatter,
+} from "./lib/plural.ts";
+
+export {
+  createPluralMessage,
+  getPluralRules,
+  selectPluralCategory,
+  type PluralCategory,
+  type PluralForms,
+  type PluralFormatter,
+};
 
 export type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
@@ -219,8 +236,12 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "自动检测",
     automaticRecognized: "自动识别",
     privacy: "隐私",
-    reviewSummary: (count) => `${count} 张照片建议复查`,
-    reviewConfirmation: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+    reviewSummary: createPluralMessage("zh-CN", {
+      other: (count) => `${count} 张照片建议复查`,
+    }),
+    reviewConfirmation: createPluralMessage("zh-CN", {
+      other: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+    }),
     reviewModalTitle: "导出前复查",
     reviewModalConfirm: "仍然生成",
     reviewModalCancel: "先去复查",
@@ -253,8 +274,12 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "自動偵測",
     automaticRecognized: "自動辨識",
     privacy: "隱私",
-    reviewSummary: (count) => `${count} 張相片建議檢查`,
-    reviewConfirmation: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+    reviewSummary: createPluralMessage("zh-TW", {
+      other: (count) => `${count} 張相片建議檢查`,
+    }),
+    reviewConfirmation: createPluralMessage("zh-TW", {
+      other: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+    }),
     reviewModalTitle: "匯出前檢查",
     reviewModalConfirm: "仍然產生",
     reviewModalCancel: "先去檢查",
@@ -287,9 +312,14 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "Automatic detection",
     automaticRecognized: "Automatically detected",
     privacy: "Privacy",
-    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} may need review`,
-    reviewConfirmation: (count) =>
-      `${count} photo${count === 1 ? "" : "s"} may need review. Generate the PDF anyway?`,
+    reviewSummary: createPluralMessage("en", {
+      one: (count) => `${count} photo may need review`,
+      other: (count) => `${count} photos may need review`,
+    }),
+    reviewConfirmation: createPluralMessage("en", {
+      one: (count) => `${count} photo may need review. Generate the PDF anyway?`,
+      other: (count) => `${count} photos may need review. Generate the PDF anyway?`,
+    }),
     reviewModalTitle: "Review before export",
     reviewModalConfirm: "Export anyway",
     reviewModalCancel: "Review slides",
@@ -322,10 +352,14 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "Detección automática",
     automaticRecognized: "Detectado automáticamente",
     privacy: "Privacidad",
-    reviewSummary: (count) =>
-      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión`,
-    reviewConfirmation: (count) =>
-      `${count} ${count === 1 ? "foto puede" : "fotos pueden"} necesitar revisión. ¿Generar el PDF de todos modos?`,
+    reviewSummary: createPluralMessage("es", {
+      one: (count) => `${count} foto puede necesitar revisión`,
+      other: (count) => `${count} fotos pueden necesitar revisión`,
+    }),
+    reviewConfirmation: createPluralMessage("es", {
+      one: (count) => `${count} foto puede necesitar revisión. ¿Generar el PDF de todos modos?`,
+      other: (count) => `${count} fotos pueden necesitar revisión. ¿Generar el PDF de todos modos?`,
+    }),
     reviewModalTitle: "Revisar antes de exportar",
     reviewModalConfirm: "Exportar de todos modos",
     reviewModalCancel: "Revisar primero",
@@ -358,9 +392,14 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "Détection automatique",
     automaticRecognized: "Détecté automatiquement",
     privacy: "Confidentialité",
-    reviewSummary: (count) => `${count} photo${count === 1 ? "" : "s"} à vérifier`,
-    reviewConfirmation: (count) =>
-      `${count} photo${count === 1 ? "" : "s"} à vérifier. Générer quand même le PDF ?`,
+    reviewSummary: createPluralMessage("fr", {
+      one: (count) => `${count} photo à vérifier`,
+      other: (count) => `${count} photos à vérifier`,
+    }),
+    reviewConfirmation: createPluralMessage("fr", {
+      one: (count) => `${count} photo à vérifier. Générer quand même le PDF ?`,
+      other: (count) => `${count} photos à vérifier. Générer quand même le PDF ?`,
+    }),
     reviewModalTitle: "Vérifier avant d’exporter",
     reviewModalConfirm: "Exporter quand même",
     reviewModalCancel: "Vérifier d’abord",
@@ -393,10 +432,14 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "Automatische Erkennung",
     automaticRecognized: "Automatisch erkannt",
     privacy: "Datenschutz",
-    reviewSummary: (count) =>
-      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden`,
-    reviewConfirmation: (count) =>
-      `${count} Foto${count === 1 ? " sollte" : "s sollten"} geprüft werden. PDF trotzdem erstellen?`,
+    reviewSummary: createPluralMessage("de", {
+      one: (count) => `${count} Foto sollte geprüft werden`,
+      other: (count) => `${count} Fotos sollten geprüft werden`,
+    }),
+    reviewConfirmation: createPluralMessage("de", {
+      one: (count) => `${count} Foto sollte geprüft werden. PDF trotzdem erstellen?`,
+      other: (count) => `${count} Fotos sollten geprüft werden. PDF trotzdem erstellen?`,
+    }),
     reviewModalTitle: "Vor dem Export prüfen",
     reviewModalConfirm: "Trotzdem exportieren",
     reviewModalCancel: "Zuerst prüfen",
@@ -429,8 +472,12 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "自動検出",
     automaticRecognized: "自動認識",
     privacy: "プライバシー",
-    reviewSummary: (count) => `${count}枚の写真を確認してください`,
-    reviewConfirmation: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+    reviewSummary: createPluralMessage("ja", {
+      other: (count) => `${count}枚の写真を確認してください`,
+    }),
+    reviewConfirmation: createPluralMessage("ja", {
+      other: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+    }),
     reviewModalTitle: "エクスポート前の確認",
     reviewModalConfirm: "このまま生成",
     reviewModalCancel: "確認に戻る",
@@ -463,8 +510,12 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "자동 감지",
     automaticRecognized: "자동 인식",
     privacy: "개인정보 보호",
-    reviewSummary: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
-    reviewConfirmation: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+    reviewSummary: createPluralMessage("ko", {
+      other: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
+    }),
+    reviewConfirmation: createPluralMessage("ko", {
+      other: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+    }),
     reviewModalTitle: "내보내기 전 검토",
     reviewModalConfirm: "그래도 생성",
     reviewModalCancel: "먼저 검토",
@@ -497,10 +548,14 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     automaticDetection: "Detecção automática",
     automaticRecognized: "Detectado automaticamente",
     privacy: "Privacidade",
-    reviewSummary: (count) =>
-      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão`,
-    reviewConfirmation: (count) =>
-      `${count} ${count === 1 ? "foto pode" : "fotos podem"} precisar de revisão. Gerar o PDF mesmo assim?`,
+    reviewSummary: createPluralMessage("pt-BR", {
+      one: (count) => `${count} foto pode precisar de revisão`,
+      other: (count) => `${count} fotos podem precisar de revisão`,
+    }),
+    reviewConfirmation: createPluralMessage("pt-BR", {
+      one: (count) => `${count} foto pode precisar de revisão. Gerar o PDF mesmo assim?`,
+      other: (count) => `${count} fotos podem precisar de revisão. Gerar o PDF mesmo assim?`,
+    }),
     reviewModalTitle: "Revisar antes de exportar",
     reviewModalConfirm: "Exportar mesmo assim",
     reviewModalCancel: "Revisar primeiro",
@@ -843,7 +898,9 @@ export const copy = {
     tipContrastTitle: "清晰边缘对比",
     tipContrastDesc: "投影幕与背景墙面明暗反差越大，自动识别精度越高",
     ready: "待上传",
-    waiting: "张，等待校正",
+    waiting: createPluralMessage("zh-CN", {
+      other: (count: number) => `${count} 张照片，等待校正`,
+    }, "张，等待校正"),
     stretching: "校正中",
     reviewReady: "可审核",
     generating: "生成中",
@@ -905,7 +962,9 @@ export const copy = {
     shortcutExport: "一键导出 PDF",
     shortcutNudge: "方向键 (+Shift) 8 方向微调角点",
     clearAll: "清空全部",
-    clearAllConfirm: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
+    clearAllConfirm: createPluralMessage("zh-CN", {
+      other: (count: number) => `确定要清空全部 ${count} 张图片吗？`,
+    }),
     clearAllTitle: "清空全部图片",
     clearAllAction: "清空全部",
     keepSlidesAction: "保留照片",
@@ -1022,7 +1081,9 @@ export const copy = {
     tipContrastTitle: "清晰邊緣對比",
     tipContrastDesc: "投影幕與背景牆面明暗反差越大，自動辨識精度越高",
     ready: "待上傳",
-    waiting: "張，等待校正",
+    waiting: createPluralMessage("zh-TW", {
+      other: (count: number) => `${count} 張相片，等待校正`,
+    }, "張，等待校正"),
     stretching: "校正中",
     reviewReady: "可檢查",
     generating: "產生中",
@@ -1084,7 +1145,9 @@ export const copy = {
     shortcutExport: "一鍵匯出 PDF",
     shortcutNudge: "方向鍵 (+Shift) 8 方向微調角點",
     clearAll: "清空全部",
-    clearAllConfirm: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
+    clearAllConfirm: createPluralMessage("zh-TW", {
+      other: (count: number) => `確定要清空全部 ${count} 張圖片嗎？`,
+    }),
     clearAllTitle: "清空全部圖片",
     clearAllAction: "清空全部",
     keepSlidesAction: "保留相片",
@@ -1201,7 +1264,10 @@ export const copy = {
     tipContrastTitle: "Ensure clear edge contrast",
     tipContrastDesc: "Strong contrast between the screen and surrounding wall gives optimal detection",
     ready: "Ready",
-    waiting: "images, waiting to straighten",
+    waiting: createPluralMessage("en", {
+      one: (count: number) => `${count} image, waiting to straighten`,
+      other: (count: number) => `${count} images, waiting to straighten`,
+    }, "images, waiting to straighten"),
     stretching: "Straightening",
     reviewReady: "Ready to review",
     generating: "Generating",
@@ -1263,7 +1329,10 @@ export const copy = {
     shortcutExport: "Export PDF",
     shortcutNudge: "Arrow keys (+Shift) nudge handle",
     clearAll: "Clear all",
-    clearAllConfirm: (count: number) => `Are you sure you want to clear all ${count} images?`,
+    clearAllConfirm: createPluralMessage("en", {
+      one: (count: number) => `Are you sure you want to clear ${count} image?`,
+      other: (count: number) => `Are you sure you want to clear all ${count} images?`,
+    }),
     clearAllTitle: "Clear all images",
     clearAllAction: "Clear all",
     keepSlidesAction: "Keep images",
@@ -1380,7 +1449,10 @@ export const copy = {
     tipContrastTitle: "Buen contraste de bordes",
     tipContrastDesc: "Un buen contraste entre la diapositiva y la pared mejora la detección automática",
     ready: "Listo",
-    waiting: "imágenes por enderezar",
+    waiting: createPluralMessage("es", {
+      one: (count: number) => `${count} imagen por enderezar`,
+      other: (count: number) => `${count} imágenes por enderezar`,
+    }, "imágenes por enderezar"),
     stretching: "Enderezando",
     reviewReady: "Listo para revisar",
     generating: "Generando",
@@ -1442,7 +1514,10 @@ export const copy = {
     shortcutExport: "Exportar PDF",
     shortcutNudge: "Flechas (+Shift) ajustar esquina",
     clearAll: "Limpiar todo",
-    clearAllConfirm: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
+    clearAllConfirm: createPluralMessage("es", {
+      one: (count: number) => `¿Seguro que quieres borrar ${count} imagen?`,
+      other: (count: number) => `¿Seguro que quieres borrar las ${count} imágenes?`,
+    }),
     clearAllTitle: "Borrar todas las imágenes",
     clearAllAction: "Borrar todo",
     keepSlidesAction: "Conservar imágenes",
@@ -1462,9 +1537,15 @@ export const copy = {
     applyCorners: "Aplicar esquinas",
     applyCornersTitle: "Aplicar esquinas actuales a otras diapositivas",
     applyToFollowing: "Aplicar a siguientes",
-    applyToFollowingDesc: (count: number) => `Aplicar esquinas a las siguientes ${count} diapositiva${count === 1 ? "" : "s"}`,
+    applyToFollowingDesc: createPluralMessage("es", {
+      one: () => "Aplicar esquinas a la siguiente diapositiva",
+      other: (count: number) => `Aplicar esquinas a las siguientes ${count} diapositivas`,
+    }),
     applyToAll: "Aplicar a todas",
-    applyToAllDesc: (count: number) => `Aplicar esquinas a las otras ${count} diapositiva${count === 1 ? "" : "s"}`,
+    applyToAllDesc: createPluralMessage("es", {
+      one: () => "Aplicar esquinas a la otra diapositiva",
+      other: (count: number) => `Aplicar esquinas a las otras ${count} diapositivas`,
+    }),
     applyToSelected: "Aplicar a seleccionadas",
     applyToSelectedDesc: (count: number) => `Aplicar esquinas a ${count} diapositiva${count === 1 ? "" : "s"} seleccionada${count === 1 ? "" : "s"}`,
     appliedCornersFeedback: (count: number) => `Esquinas aplicadas a ${count} diapositiva${count === 1 ? "" : "s"}`,
@@ -1559,7 +1640,10 @@ export const copy = {
     tipContrastTitle: "Contraste net des bords",
     tipContrastDesc: "Un fort contraste entre la diapositive et le mur garantit la meilleure détection",
     ready: "Prêt",
-    waiting: "images à redresser",
+    waiting: createPluralMessage("fr", {
+      one: (count: number) => `${count} image à redresser`,
+      other: (count: number) => `${count} images à redresser`,
+    }, "images à redresser"),
     stretching: "Redressement",
     reviewReady: "Prêt à vérifier",
     generating: "Création",
@@ -1621,7 +1705,10 @@ export const copy = {
     shortcutExport: "Exporter en PDF",
     shortcutNudge: "Touches fléchées (+Shift) ajuster coin",
     clearAll: "Tout effacer",
-    clearAllConfirm: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
+    clearAllConfirm: createPluralMessage("fr", {
+      one: (count: number) => `Voulez-vous vraiment effacer ${count} image ?`,
+      other: (count: number) => `Voulez-vous vraiment effacer les ${count} images ?`,
+    }),
     clearAllTitle: "Effacer toutes les images",
     clearAllAction: "Tout effacer",
     keepSlidesAction: "Conserver les images",
@@ -1641,9 +1728,15 @@ export const copy = {
     applyCorners: "Appliquer les coins",
     applyCornersTitle: "Appliquer les coins actuels aux autres diapositives",
     applyToFollowing: "Appliquer aux suivantes",
-    applyToFollowingDesc: (count: number) => `Appliquer les coins aux ${count} diapositive${count === 1 ? "" : "s"} suivante${count === 1 ? "" : "s"}`,
+    applyToFollowingDesc: createPluralMessage("fr", {
+      one: () => "Appliquer les coins à la diapositive suivante",
+      other: (count: number) => `Appliquer les coins aux ${count} diapositives suivantes`,
+    }),
     applyToAll: "Appliquer à toutes",
-    applyToAllDesc: (count: number) => `Appliquer les coins aux ${count} autre${count === 1 ? "" : "s"} diapositive${count === 1 ? "" : "s"}`,
+    applyToAllDesc: createPluralMessage("fr", {
+      one: () => "Appliquer les coins à l'autre diapositive",
+      other: (count: number) => `Appliquer les coins aux ${count} autres diapositives`,
+    }),
     applyToSelected: "Appliquer aux sélectionnées",
     applyToSelectedDesc: (count: number) => `Appliquer les coins aux ${count} diapositive${count === 1 ? "" : "s"} sélectionnée${count === 1 ? "" : "s"}`,
     appliedCornersFeedback: (count: number) => `Coins appliqués à ${count} diapositive${count === 1 ? "" : "s"}`,
@@ -1738,7 +1831,10 @@ export const copy = {
     tipContrastTitle: "Klarer Kantenkontrast",
     tipContrastDesc: "Ein deutlicher Kontrast zwischen Folie und Wand sorgt für höchste Genauigkeit",
     ready: "Bereit",
-    waiting: "Bilder warten",
+    waiting: createPluralMessage("de", {
+      one: (count: number) => `${count} Bild wartet`,
+      other: (count: number) => `${count} Bilder warten`,
+    }, "Bilder warten"),
     stretching: "Begradigen",
     reviewReady: "Bereit zur Prüfung",
     generating: "Erstellen",
@@ -1800,7 +1896,10 @@ export const copy = {
     shortcutExport: "PDF exportieren",
     shortcutNudge: "Pfeiltasten (+Shift) Eckpunkt anpassen",
     clearAll: "Alles löschen",
-    clearAllConfirm: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
+    clearAllConfirm: createPluralMessage("de", {
+      one: (count: number) => `Möchten Sie wirklich ${count} Bild löschen?`,
+      other: (count: number) => `Möchten Sie wirklich alle ${count} Bilder löschen?`,
+    }),
     clearAllTitle: "Alle Bilder löschen",
     clearAllAction: "Alles löschen",
     keepSlidesAction: "Bilder behalten",
@@ -1820,9 +1919,15 @@ export const copy = {
     applyCorners: "Ecken übertragen",
     applyCornersTitle: "Aktuelle Ecken auf andere Folien übertragen",
     applyToFollowing: "Auf folgende übertragen",
-    applyToFollowingDesc: (count: number) => `Ecken auf die folgenden ${count} Folie${count === 1 ? "" : "n"} übertragen`,
+    applyToFollowingDesc: createPluralMessage("de", {
+      one: () => "Ecken auf die folgende Folie übertragen",
+      other: (count: number) => `Ecken auf die folgenden ${count} Folien übertragen`,
+    }),
     applyToAll: "Auf alle übertragen",
-    applyToAllDesc: (count: number) => `Ecken auf alle anderen ${count} Folie${count === 1 ? "" : "n"} übertragen`,
+    applyToAllDesc: createPluralMessage("de", {
+      one: () => "Ecken auf die andere Folie übertragen",
+      other: (count: number) => `Ecken auf alle anderen ${count} Folien übertragen`,
+    }),
     applyToSelected: "Auf ausgewählte übertragen",
     applyToSelectedDesc: (count: number) => `Ecken auf ${count} ausgewählte Folie${count === 1 ? "" : "n"} übertragen`,
     appliedCornersFeedback: (count: number) => `Ecken auf ${count} Folie${count === 1 ? "" : "n"} übertragen`,
@@ -1917,7 +2022,9 @@ export const copy = {
     tipContrastTitle: "輪郭のコントラスト",
     tipContrastDesc: "スライドと背後の壁との明暗差が大きいほど、自動認識の精度が高まります",
     ready: "待機中",
-    waiting: "枚、補正待ち",
+    waiting: createPluralMessage("ja", {
+      other: (count: number) => `${count}枚の写真、補正待ち`,
+    }, "枚、補正待ち"),
     stretching: "補正中",
     reviewReady: "確認可能",
     generating: "生成中",
@@ -1979,7 +2086,9 @@ export const copy = {
     shortcutExport: "PDF を出力",
     shortcutNudge: "矢印キー (+Shift) で頂点を微調整",
     clearAll: "すべて消去",
-    clearAllConfirm: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
+    clearAllConfirm: createPluralMessage("ja", {
+      other: (count: number) => `全 ${count} 枚の画像を消去してもよろしいですか？`,
+    }),
     clearAllTitle: "すべての画像を消去",
     clearAllAction: "すべて消去",
     keepSlidesAction: "画像を保持",
@@ -2096,7 +2205,9 @@ export const copy = {
     tipContrastTitle: "선명한 경계 대비",
     tipContrastDesc: "슬라이드와 배경 벽면 간의 명암 대비가 클수록 자동 감지 정확도가 높아집니다",
     ready: "대기",
-    waiting: "장, 보정 대기",
+    waiting: createPluralMessage("ko", {
+      other: (count: number) => `${count}장의 사진, 보정 대기`,
+    }, "장, 보정 대기"),
     stretching: "보정 중",
     reviewReady: "검토 가능",
     generating: "생성 중",
@@ -2158,7 +2269,9 @@ export const copy = {
     shortcutExport: "PDF 내보내기",
     shortcutNudge: "방향키 (+Shift) 미세 조정",
     clearAll: "모두 지우기",
-    clearAllConfirm: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
+    clearAllConfirm: createPluralMessage("ko", {
+      other: (count: number) => `전체 ${count}개의 이미지를 지우시겠습니까?`,
+    }),
     clearAllTitle: "모든 이미지 지우기",
     clearAllAction: "모두 지우기",
     keepSlidesAction: "이미지 유지",
@@ -2275,7 +2388,10 @@ export const copy = {
     tipContrastTitle: "Bom contraste nas bordas",
     tipContrastDesc: "Um bom contraste entre o slide e a parede melhora a detecção automática",
     ready: "Pronto",
-    waiting: "imagens para corrigir",
+    waiting: createPluralMessage("pt-BR", {
+      one: (count: number) => `${count} imagem para corrigir`,
+      other: (count: number) => `${count} imagens para corrigir`,
+    }, "imagens para corrigir"),
     stretching: "Corrigindo",
     reviewReady: "Pronto para revisar",
     generating: "Gerando",
@@ -2298,7 +2414,10 @@ export const copy = {
     iosShareHelp: "Na nova aba, toque em Compartilhar → Salvar em Arquivos",
     importCorners: "Importar cantos",
     exportCorners: "Exportar cantos",
-    manualImportSuccess: (count: number) => `Cantos importados para ${count} imagem${count === 1 ? "" : "ns"}`,
+    manualImportSuccess: createPluralMessage("pt-BR", {
+      one: (count: number) => `Cantos importados para ${count} imagem`,
+      other: (count: number) => `Cantos importados para ${count} imagens`,
+    }),
     duplicateFilesSkipped: (count: number) => `${count} arquivo${count === 1 ? "" : "s"} duplicado${count === 1 ? "" : "s"} ignorado${count === 1 ? "" : "s"}`,
     cancelExport: "Cancelar",
     cancelDetection: "Cancelar",
@@ -2337,7 +2456,10 @@ export const copy = {
     shortcutExport: "Exportar PDF",
     shortcutNudge: "Setas (+Shift) ajustar ponto",
     clearAll: "Limpar tudo",
-    clearAllConfirm: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
+    clearAllConfirm: createPluralMessage("pt-BR", {
+      one: (count: number) => `Tem certeza de que deseja limpar ${count} imagem?`,
+      other: (count: number) => `Tem certeza de que deseja limpar todas as ${count} imagens?`,
+    }),
     clearAllTitle: "Limpar todas as imagens",
     clearAllAction: "Limpar tudo",
     keepSlidesAction: "Manter imagens",
@@ -2357,9 +2479,15 @@ export const copy = {
     applyCorners: "Aplicar cantos",
     applyCornersTitle: "Aplicar cantos atuais a outros slides",
     applyToFollowing: "Aplicar aos seguintes",
-    applyToFollowingDesc: (count: number) => `Aplicar cantos aos próximos ${count} slide${count === 1 ? "" : "s"}`,
+    applyToFollowingDesc: createPluralMessage("pt-BR", {
+      one: () => "Aplicar cantos ao próximo slide",
+      other: (count: number) => `Aplicar cantos aos próximos ${count} slides`,
+    }),
     applyToAll: "Aplicar a todos",
-    applyToAllDesc: (count: number) => `Aplicar cantos a todos os outros ${count} slide${count === 1 ? "" : "s"}`,
+    applyToAllDesc: createPluralMessage("pt-BR", {
+      one: () => "Aplicar cantos ao outro slide",
+      other: (count: number) => `Aplicar cantos a todos os outros ${count} slides`,
+    }),
     applyToSelected: "Aplicar aos selecionados",
     applyToSelectedDesc: (count: number) => `Aplicar cantos a ${count} slide${count === 1 ? "" : "s"} selecionado${count === 1 ? "" : "s"}`,
     appliedCornersFeedback: (count: number) => `Cantos aplicados a ${count} slide${count === 1 ? "" : "s"}`,

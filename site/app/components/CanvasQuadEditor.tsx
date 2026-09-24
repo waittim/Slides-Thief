@@ -151,7 +151,7 @@ export function CanvasQuadEditor({
 
   const restoreTooltip = (() => {
     if (!selectedSlide) return text.noSlide;
-    if (selectedSlide.status !== "ready") return text.waiting;
+    if (selectedSlide.status !== "ready") return typeof text.waiting === "function" ? text.waiting(1) : text.waiting;
     if (!selectedSlide.autoDetection) return text.restoreAutoNoSnapshot;
     if (!canRestore) return text.restoreAutoUnchanged;
     return text.restoreAutoTitle;
