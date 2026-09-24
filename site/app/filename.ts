@@ -1,7 +1,48 @@
 export const PDF_BASENAME_MAX_LENGTH = 100;
+export const DEFAULT_PDF_BASENAME = "flattened_slides";
 
 const INVALID_FILENAME_CHARACTERS = /[\u0000-\u001f\u007f<>:"/\\|?*]/g;
-const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+const INVALID_FILENAME_CHARS_TEST = /[\u0000-\u001f\u007f<>:"/\\|?*]/;
+export const WINDOWS_RESERVED_NAME = /^(con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+
+export type PdfBaseNameValidationReason =
+  | "invalid_characters"
+  | "invalid_extension"
+  | "trailing_dot_or_space"
+  | "reserved_name";
+
+export interface PdfBaseNameValidationResult {
+  isValid: boolean;
+  reason?: PdfBaseNameValidationReason;
+}
+
+export function validatePdfBaseName(value: string): PdfBaseNameValidationResult {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    if (value.length > 0) {
+      return { isValid: false, reason: "trailing_dot_or_space" };
+    }
+    return { isValid: true };
+  }
+
+  if (INVALID_FILENAME_CHARS_TEST.test(value)) {
+    return { isValid: false, reason: "invalid_characters" };
+  }
+
+  if (/\.pdf$/i.test(trimmed)) {
+    return { isValid: false, reason: "invalid_extension" };
+  }
+
+  if (/[. ]+$/.test(value)) {
+    return { isValid: false, reason: "trailing_dot_or_space" };
+  }
+
+  if (WINDOWS_RESERVED_NAME.test(trimmed)) {
+    return { isValid: false, reason: "reserved_name" };
+  }
+
+  return { isValid: true };
+}
 
 export function sanitizePdfBaseName(value: string): string {
   const withoutExtension = value.replace(/\.pdf$/i, "");
@@ -11,7 +52,7 @@ export function sanitizePdfBaseName(value: string): string {
 
 function normalizePdfBase(value: string): string {
   let base = sanitizePdfBaseName(value).trim().replace(/[. ]+$/g, "");
-  if (!base) base = "flattened_slides";
+  if (!base) base = DEFAULT_PDF_BASENAME;
   if (WINDOWS_RESERVED_NAME.test(base)) base = `_${base}`;
   return base;
 }

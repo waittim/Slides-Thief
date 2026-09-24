@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
+  DEFAULT_PDF_BASENAME,
   displayFileName,
   formatZipSlideEntryName,
   normalizeJpgZipName,
@@ -11,6 +12,7 @@ const {
   sanitizePdfBaseName,
   stripFileExtension,
   truncateMiddle,
+  validatePdfBaseName,
 } = await import(new URL("../app/filename.ts", import.meta.url).href);
 
 test("sanitizePdfBaseName removes unsafe filename characters and a pasted extension", () => {
@@ -138,4 +140,111 @@ test("displayFileName preserves short names and applies middle truncation for lo
     displayFileName("presentation_deck_slide_01.jpg", { hideExtension: true, maxLength: 20 }),
     "presentat...slide_01"
   );
+});
+
+test("DEFAULT_PDF_BASENAME is flattened_slides", () => {
+  assert.equal(DEFAULT_PDF_BASENAME, "flattened_slides");
+});
+
+test("validatePdfBaseName validates filenames accurately", () => {
+  // Empty values (default fallback allowed)
+  assert.deepEqual(validatePdfBaseName(""), { isValid: true });
+
+  // Valid names
+  assert.deepEqual(validatePdfBaseName("my_deck"), { isValid: true });
+  assert.deepEqual(validatePdfBaseName("presentation 2026"), { isValid: true });
+  assert.deepEqual(validatePdfBaseName("演示文稿📊"), { isValid: true });
+  assert.deepEqual(validatePdfBaseName("deck-v1.0"), { isValid: true });
+
+  // Invalid characters
+  assert.deepEqual(validatePdfBaseName("报告:第一场"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("path/to/deck"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("path\\to\\deck"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName('deck"quote"'), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("deck*star"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("deck?question"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("deck<angle>"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("deck|pipe"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+  assert.deepEqual(validatePdfBaseName("deck\u0000null"), {
+    isValid: false,
+    reason: "invalid_characters",
+  });
+
+  // Invalid extensions (typing .pdf)
+  assert.deepEqual(validatePdfBaseName("slides.pdf"), {
+    isValid: false,
+    reason: "invalid_extension",
+  });
+  assert.deepEqual(validatePdfBaseName("slides.PDF"), {
+    isValid: false,
+    reason: "invalid_extension",
+  });
+  assert.deepEqual(validatePdfBaseName("  slides.pdf  "), {
+    isValid: false,
+    reason: "invalid_extension",
+  });
+
+  // Trailing dot or space
+  assert.deepEqual(validatePdfBaseName("slides "), {
+    isValid: false,
+    reason: "trailing_dot_or_space",
+  });
+  assert.deepEqual(validatePdfBaseName("slides."), {
+    isValid: false,
+    reason: "trailing_dot_or_space",
+  });
+  assert.deepEqual(validatePdfBaseName("   "), {
+    isValid: false,
+    reason: "trailing_dot_or_space",
+  });
+
+  // Windows reserved device names
+  assert.deepEqual(validatePdfBaseName("con"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
+  assert.deepEqual(validatePdfBaseName("PRN"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
+  assert.deepEqual(validatePdfBaseName("AUX"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
+  assert.deepEqual(validatePdfBaseName("NUL"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
+  assert.deepEqual(validatePdfBaseName("com1"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
+  assert.deepEqual(validatePdfBaseName("lpt9"), {
+    isValid: false,
+    reason: "reserved_name",
+  });
 });

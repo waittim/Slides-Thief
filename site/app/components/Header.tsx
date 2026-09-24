@@ -1,5 +1,12 @@
-import React from "react";
-import { PDF_BASENAME_MAX_LENGTH, sanitizePdfBaseName } from "../filename";
+import React, { useEffect, useState } from "react";
+import {
+  DEFAULT_PDF_BASENAME,
+  PDF_BASENAME_MAX_LENGTH,
+  sanitizePdfBaseName,
+  validatePdfBaseName,
+  WINDOWS_RESERVED_NAME,
+  type PdfBaseNameValidationReason,
+} from "../filename";
 import type { LocaleCopy, LocaleValue, RatioUiCopy } from "../i18n";
 import type { Settings, ThemeValue } from "../lib/types";
 import {
@@ -9,6 +16,24 @@ import {
 } from "./OutputPageControls";
 import { PreferencesControls } from "./PreferencesControls";
 import { SourceFormatControls, SourceOrientationControl } from "./SourceFormatControls";
+
+export function getPdfBaseNameErrorMessage(
+  reason: PdfBaseNameValidationReason | undefined,
+  text: LocaleCopy,
+): string {
+  switch (reason) {
+    case "invalid_characters":
+      return text.pdfNameInvalidChars;
+    case "invalid_extension":
+      return text.pdfNameInvalidExtension;
+    case "trailing_dot_or_space":
+      return text.pdfNameTrailingPeriodOrSpace;
+    case "reserved_name":
+      return text.pdfNameReserved;
+    default:
+      return "";
+  }
+}
 
 interface HeaderProps {
   isInfoOpen: boolean;
@@ -55,6 +80,33 @@ export function Header({
   setIsInfoOpen,
   setIsShortcutsOpen,
 }: HeaderProps) {
+  const [rawPdfBaseName, setRawPdfBaseName] = useState(pdfBaseName);
+
+  useEffect(() => {
+    setRawPdfBaseName(pdfBaseName);
+  }, [pdfBaseName]);
+
+  const validation = validatePdfBaseName(rawPdfBaseName);
+  const hasError = !validation.isValid;
+  const errorMessage = hasError ? getPdfBaseNameErrorMessage(validation.reason, text) : "";
+
+  const handlePdfNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    setRawPdfBaseName(nextValue);
+    setPdfBaseName(nextValue);
+  };
+
+  const handlePdfNameBlur = () => {
+    let sanitized = sanitizePdfBaseName(rawPdfBaseName).trim().replace(/[. ]+$/g, "");
+    if (sanitized && WINDOWS_RESERVED_NAME.test(sanitized)) {
+      sanitized = `_${sanitized}`;
+    }
+    if (sanitized !== rawPdfBaseName) {
+      setRawPdfBaseName(sanitized);
+      setPdfBaseName(sanitized);
+    }
+  };
+
   const settingsMenuBody = (
     <div className="settingsMenuBody">
       <SourceFormatControls
@@ -113,16 +165,28 @@ export function Header({
           </section>
         </div>
       </details>
-      <label className="pdfNameSetting">
-        <span>{text.pdfName}</span>
-        <input
-          value={pdfBaseName}
-          maxLength={PDF_BASENAME_MAX_LENGTH}
-          onChange={(event) => setPdfBaseName(sanitizePdfBaseName(event.target.value))}
-          type="text"
-        />
-        <span className="fileSuffix">.pdf</span>
-      </label>
+      <div className="pdfNameControl">
+        <label className="pdfNameSetting">
+          <span>{text.pdfName}</span>
+          <input
+            id="pdf-base-name-input"
+            value={rawPdfBaseName}
+            placeholder={DEFAULT_PDF_BASENAME}
+            maxLength={PDF_BASENAME_MAX_LENGTH}
+            onChange={handlePdfNameChange}
+            onBlur={handlePdfNameBlur}
+            type="text"
+            aria-invalid={hasError ? "true" : undefined}
+            aria-describedby={hasError ? "pdf-name-error" : undefined}
+          />
+          <span className="fileSuffix">.pdf</span>
+        </label>
+        {hasError && (
+          <div id="pdf-name-error" className="pdfNameError" role="alert">
+            {errorMessage}
+          </div>
+        )}
+      </div>
       <hr className="settingsMenuDivider" />
       <PreferencesControls
         placement="menu"

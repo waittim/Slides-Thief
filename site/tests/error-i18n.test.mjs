@@ -422,5 +422,24 @@ test("all 9 locales define complete keyboard shortcuts copy", () => {
   }
 });
 
+test("all 9 locales have complete filename validation copy", () => {
+  const filenameKeys = [
+    "pdfName",
+    "pdfNameInvalidChars",
+    "pdfNameInvalidExtension",
+    "pdfNameTrailingPeriodOrSpace",
+    "pdfNameReserved",
+  ];
+
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    for (const key of filenameKeys) {
+      assert.equal(typeof localeCopy[key], "string", `copy.${locale}.${key} should be string`);
+      assert.ok(localeCopy[key].length > 0, `copy.${locale}.${key} should not be empty`);
+    }
+  }
+});
+
 
 

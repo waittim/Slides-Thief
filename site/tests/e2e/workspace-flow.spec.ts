@@ -856,6 +856,42 @@ test("opens keyboard shortcuts modal with '?' key and with navbar button, and di
   await expect(deleteBtn).toHaveAttribute("title", /Delete/);
 });
 
+test("filename input preserves raw characters, displays inline validation hint, and normalizes on blur", async ({ page }) => {
+  await page.goto("/");
+
+  const nameInput = page.locator("label.pdfNameSetting input");
+  await expect(nameInput).toBeVisible();
+
+  // 1. Initial state has flattened_slides placeholder
+  await expect(nameInput).toHaveAttribute("placeholder", "flattened_slides");
+
+  // 2. Type text with invalid characters (colon, slash)
+  await nameInput.fill("报告:第一场/上午");
+  await expect(nameInput).toHaveValue("报告:第一场/上午");
+  await expect(nameInput).toHaveAttribute("aria-invalid", "true");
+  await expect(nameInput).toHaveAttribute("aria-describedby", "pdf-name-error");
+
+  const errorDiv = page.locator("#pdf-name-error");
+  await expect(errorDiv).toBeVisible();
+  await expect(errorDiv).toContainText(/Filename cannot contain|文件名不能包含/);
+
+  // 3. Blur input by clicking elsewhere on page
+  const brandHeading = page.locator("h1.brandText");
+  await brandHeading.click();
+
+  // 4. Value is safely sanitized and error goes away
+  await expect(nameInput).toHaveValue("报告第一场上午");
+  await expect(nameInput).not.toHaveAttribute("aria-invalid", "true");
+  await expect(page.locator("#pdf-name-error")).toHaveCount(0);
+
+  // 5. Clear input completely
+  await nameInput.fill("");
+  await brandHeading.click();
+  await expect(nameInput).toHaveValue("");
+  await expect(nameInput).toHaveAttribute("placeholder", "flattened_slides");
+  await expect(page.locator("#pdf-name-error")).toHaveCount(0);
+});
+
 
 
 

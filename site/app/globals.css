@@ -487,10 +487,43 @@ a:hover {
   --settings-columns: max-content max-content max-content max-content minmax(240px, 1fr);
 }
 
-.pdfNameSetting {
+.pdfNameControl {
+  position: relative;
   width: min(100%, var(--component-inspector-width));
   max-width: var(--component-inspector-width);
   justify-self: start;
+}
+
+.pdfNameSetting {
+  width: 100%;
+  max-width: var(--component-inspector-width);
+  justify-self: start;
+}
+
+.pdfNameError {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  left: 0;
+  right: 0;
+  padding: var(--space-1) var(--space-2);
+  background: var(--panel);
+  border: 1px solid var(--warn);
+  border-radius: var(--radius-xs);
+  box-shadow: var(--shadow-small-dark);
+  color: var(--warn);
+  font-size: var(--font-size-xs);
+  line-height: var(--line-height-tight);
+  z-index: 30;
+  pointer-events: none;
+}
+
+.pdfNameSetting input[type="text"][aria-invalid="true"] {
+  border-color: var(--warn);
+}
+
+.pdfNameSetting input[type="text"][aria-invalid="true"]:focus-visible {
+  outline: 2px solid var(--warn);
+  outline-offset: 1px;
 }
 
 .settingsMenuBody > .settingsMenuDivider,
@@ -501,7 +534,8 @@ a:hover {
   display: none;
 }
 
-.settings:has(.moreSettings[open]) {
+.settings:has(.moreSettings[open]),
+.settings:has(.pdfNameError) {
   overflow: visible;
 }
 
@@ -2670,6 +2704,16 @@ canvas {
     min-height: var(--control-height-touch);
   }
 
+  .settingsMenuBody > .pdfNameControl {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    width: 100%;
+    max-width: none;
+    justify-self: stretch;
+  }
+
+  .settingsMenuBody > .pdfNameControl > .pdfNameSetting,
   .settingsMenuBody > .pdfNameSetting {
     display: grid;
     grid-template-columns: var(--settings-label-width) minmax(0, 1fr) auto;
@@ -2682,9 +2726,24 @@ canvas {
     justify-self: stretch;
   }
 
+  .settingsMenuBody > .pdfNameControl .pdfNameError {
+    position: static;
+    padding: 0;
+    padding-left: calc(var(--settings-label-width) + var(--space-3));
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    color: var(--warn);
+    font-size: var(--font-size-xs);
+    line-height: var(--line-height-tight);
+    margin-top: calc(-1 * var(--space-1));
+    margin-bottom: var(--space-1);
+  }
+
   .settingsMenuBody > .ratioSetting > select,
   .settingsMenuBody > .enhancementSetting > select,
   .settingsMenuBody > .sourceCustomSetting > input[type="number"],
+  .settingsMenuBody > .pdfNameControl > .pdfNameSetting > input[type="text"],
   .settingsMenuBody > .pdfNameSetting > input[type="text"] {
     flex: none;
     width: 100%;
