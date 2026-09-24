@@ -3651,8 +3651,8 @@ kbd {
 
 /* Enhanced Canvas Empty State */
 .canvasEmptyState {
-  max-width: 680px;
-  width: min(100%, 680px);
+  max-width: 860px;
+  width: min(100%, 860px);
   margin: var(--space-4) auto;
   padding: var(--space-6);
   background: var(--panel);
@@ -3661,7 +3661,7 @@ kbd {
   box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
-  gap: var(--space-5);
+  gap: var(--space-6);
   text-align: center;
   box-sizing: border-box;
 }
@@ -3699,8 +3699,8 @@ kbd {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-4);
+  gap: var(--space-4);
+  padding: var(--space-5);
   background: color-mix(in srgb, var(--bg) 65%, var(--panel));
   border: 1px solid var(--line);
   border-radius: var(--radius-md);
@@ -3717,7 +3717,7 @@ kbd {
 
 .workflowStepVisual {
   width: 100%;
-  max-width: 150px;
+  max-width: 172px;
   aspect-ratio: 16 / 10;
   display: flex;
   align-items: center;
@@ -3734,20 +3734,22 @@ kbd {
   fill: color-mix(in srgb, var(--bg) 70%, var(--panel));
 }
 
-.svgSlideBg {
+/* The photographed slide still carries the washed-out projector cast. */
+.svgSlideRaw {
+  fill: color-mix(in srgb, var(--muted) 16%, var(--panel));
+}
+
+/* The same slide after correction and readability enhancement. */
+.svgSlideClean {
   fill: var(--panel);
 }
 
-.svgTealAccent {
-  stroke: var(--accent-2);
-}
-
-.svgTextLine {
-  stroke: var(--text);
+.svgTextFill {
+  fill: var(--text);
 }
 
 .svgDetectedQuad {
-  fill: color-mix(in srgb, var(--accent-2) 10%, var(--panel));
+  fill: color-mix(in srgb, var(--accent-2) 10%, transparent);
 }
 
 .svgCornerHandle {
@@ -3756,16 +3758,8 @@ kbd {
   stroke-width: 1.5;
 }
 
-.svgRectifiedSlide {
-  fill: var(--panel);
-}
-
 .svgTealFill {
   fill: var(--accent-2);
-}
-
-.svgChartBg {
-  fill: color-mix(in srgb, var(--accent-2) 10%, var(--panel));
 }
 
 .workflowConnector {
@@ -3781,7 +3775,7 @@ kbd {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .workflowStepHeading {
@@ -3794,7 +3788,11 @@ kbd {
   margin: 0;
   font-size: var(--font-size-sm);
   color: var(--muted);
-  line-height: var(--line-height-tight);
+  line-height: var(--line-height-ui);
+  /* Centered copy wraps badly when the two lines differ a lot in length. */
+  text-wrap: balance;
+  /* Reserve two lines so the three columns stay level whichever locale is active. */
+  min-height: calc(2 * var(--line-height-ui) * var(--font-size-sm));
 }
 
 /* Action Buttons */
@@ -3813,15 +3811,13 @@ kbd {
   gap: var(--space-2);
 }
 
-/* Photography Tips Card */
+/* Photography tips: a supporting footnote, kept lighter than the upload call to action. */
 .emptyTipsCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: color-mix(in srgb, var(--bg) 40%, var(--panel));
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: 1px solid var(--line);
   text-align: left;
 }
 
@@ -3829,25 +3825,25 @@ kbd {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--text);
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  color: var(--muted);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .emptyTipsIcon {
-  color: var(--accent-2);
   flex-shrink: 0;
 }
 
 .emptyTipsTitle {
-  font-size: var(--font-size-md);
-  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 .emptyTipsGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
+  /* Drop to two columns, then one, instead of squeezing three narrow ones. */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: var(--space-4) var(--space-5);
 }
 
 .emptyTipItem {
@@ -3857,11 +3853,7 @@ kbd {
 }
 
 .emptyTipBadge {
-  width: 26px;
-  height: 26px;
-  border-radius: var(--radius-circle);
-  background: color-mix(in srgb, var(--accent-2) 12%, var(--panel));
-  color: var(--accent-2);
+  color: var(--muted);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -3872,7 +3864,7 @@ kbd {
 .emptyTipContent {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: var(--space-1);
 }
 
 .emptyTipName {
@@ -3883,9 +3875,9 @@ kbd {
 
 .emptyTipExplain {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--font-size-xs);
   color: var(--muted);
-  line-height: 1.35;
+  line-height: var(--line-height-body);
 }
 
 /* Responsive adjustments for mobile & small screens */
@@ -3903,6 +3895,7 @@ kbd {
     flex-direction: column;
     align-items: center;
     gap: var(--space-4);
+    padding: var(--space-4);
   }
 
   .workflowConnector {

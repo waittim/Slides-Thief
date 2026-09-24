@@ -2,6 +2,131 @@ import React from "react";
 import type { LocaleCopy } from "../i18n.ts";
 import { Button } from "./ui/Button.tsx";
 
+type Point = readonly [number, number];
+
+/** Quad corners in the canonical order: top-left, top-right, bottom-right, bottom-left. */
+type Quad = readonly [Point, Point, Point, Point];
+
+/** The slide as shot from a seat. The right edge is taller, so that side reads as nearer the lens. */
+const QUAD_ANGLED: Quad = [
+  [32, 26],
+  [136, 18],
+  [126, 78],
+  [26, 72],
+];
+
+/** The same slide after perspective correction. */
+const QUAD_FLAT: Quad = [
+  [24, 20],
+  [136, 20],
+  [136, 80],
+  [24, 80],
+];
+
+interface SlideBar {
+  /** Horizontal span across the slide, 0 at the left edge and 1 at the right edge. */
+  u0: number;
+  u1: number;
+  /** Vertical span down the slide, 0 at the top edge and 1 at the bottom edge. */
+  v0: number;
+  v1: number;
+  accent?: boolean;
+  opacity: number;
+}
+
+/**
+ * Slide content in normalized slide space. Every step draws this same table, so the three
+ * frames read as one slide moving through the pipeline instead of three unrelated pictures.
+ */
+const SLIDE_BARS: readonly SlideBar[] = [
+  { u0: 0.075, u1: 0.42, v0: 0.1, v1: 0.175, accent: true, opacity: 1 },
+  { u0: 0.075, u1: 0.88, v0: 0.3, v1: 0.355, opacity: 0.5 },
+  { u0: 0.075, u1: 0.8, v0: 0.435, v1: 0.49, opacity: 0.38 },
+  { u0: 0.075, u1: 0.85, v0: 0.57, v1: 0.625, opacity: 0.38 },
+  { u0: 0.075, u1: 0.48, v0: 0.705, v1: 0.76, opacity: 0.38 },
+];
+
+/**
+ * Bilinear map from normalized slide space onto a quad. Interpolating down both side edges
+ * before interpolating across keeps every row parallel to the slide's own converging edges.
+ */
+function mapToQuad([tl, tr, br, bl]: Quad, u: number, v: number): Point {
+  const leftX = tl[0] + (bl[0] - tl[0]) * v;
+  const leftY = tl[1] + (bl[1] - tl[1]) * v;
+  const rightX = tr[0] + (br[0] - tr[0]) * v;
+  const rightY = tr[1] + (br[1] - tr[1]) * v;
+  return [leftX + (rightX - leftX) * u, leftY + (rightY - leftY) * u];
+}
+
+/**
+ * A bar is drawn as a mapped polygon rather than a stroked line so it tapers toward the
+ * far edge of the quad on its own, instead of keeping one flat stroke width.
+ */
+function barPoints(quad: Quad, bar: SlideBar): string {
+  const corners: Point[] = [
+    mapToQuad(quad, bar.u0, bar.v0),
+    mapToQuad(quad, bar.u1, bar.v0),
+    mapToQuad(quad, bar.u1, bar.v1),
+    mapToQuad(quad, bar.u0, bar.v1),
+  ];
+  return corners.map(([x, y]) => `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10}`).join(" ");
+}
+
+function quadPoints(quad: Quad): string {
+  return quad.map(([x, y]) => `${x},${y}`).join(" ");
+}
+
+/** `contrast` carries the enhancement story: washed out in the photo, full strength once corrected. */
+function SlideContent({ quad, contrast }: { quad: Quad; contrast: number }) {
+  return (
+    <g opacity={contrast}>
+      {SLIDE_BARS.map((bar) => (
+        <polygon
+          key={`${bar.v0}-${bar.u1}`}
+          points={barPoints(quad, bar)}
+          className={bar.accent ? "svgTealFill" : "svgTextFill"}
+          opacity={bar.opacity}
+        />
+      ))}
+    </g>
+  );
+}
+
+function StepFrame() {
+  return (
+    <rect
+      x="6"
+      y="6"
+      width="148"
+      height="88"
+      rx="8"
+      className="svgCanvasBg"
+      stroke="currentColor"
+      strokeWidth="1.2"
+      strokeOpacity="0.25"
+    />
+  );
+}
+
+function WorkflowArrow() {
+  return (
+    <div className="workflowConnector" aria-hidden="true">
+      <svg
+        width="20"
+        height="20"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      >
+        <path d="M5 12h14m-6-6 6 6-6 6" />
+      </svg>
+    </div>
+  );
+}
+
 export interface CanvasEmptyStateProps {
   text: LocaleCopy;
   isMobile?: boolean;
@@ -42,21 +167,27 @@ export function CanvasEmptyState({
 
       {/* 3-Step Workflow Vector Diagram */}
       <div className="emptyWorkflow" aria-label="Workflow overview">
-        {/* Step 1: Angled Photo */}
+        {/* Step 1: the slide as photographed, off-axis and low contrast */}
         <div className="workflowStep" data-step="1">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
-              {/* Outer photo canvas/background */}
-              <rect x="6" y="6" width="148" height="88" rx="8" className="svgCanvasBg" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.25" />
+              <StepFrame />
               {/* Camera corner brackets */}
-              <path d="M16 16h8m-8 0v8M144 16h-8m8 0v8M16 84h8m-8 0v-8M144 84h-8m8 0v-8" stroke="currentColor" strokeWidth="1.5" strokeOpacity="0.4" strokeLinecap="round" />
-              {/* Skewed / perspective slide */}
-              <polygon points="32,26 136,18 126,78 26,72" className="svgSlideBg" stroke="currentColor" strokeWidth="1.5" />
-              {/* Tilted content lines */}
-              <line x1="38" y1="36" x2="74" y2="33" className="svgTealAccent" strokeWidth="3" strokeLinecap="round" />
-              <line x1="38" y1="46" x2="108" y2="42" className="svgTextLine" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.4" />
-              <line x1="38" y1="54" x2="98" y2="50" className="svgTextLine" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.3" />
-              <line x1="36" y1="62" x2="102" y2="58" className="svgTextLine" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.3" />
+              <path
+                d="M16 16h8m-8 0v8M144 16h-8m8 0v8M16 84h8m-8 0v-8M144 84h-8m8 0v-8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeOpacity="0.4"
+                strokeLinecap="round"
+              />
+              <polygon
+                points={quadPoints(QUAD_ANGLED)}
+                className="svgSlideRaw"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeOpacity="0.45"
+              />
+              <SlideContent quad={QUAD_ANGLED} contrast={0.62} />
             </svg>
           </div>
           <div className="workflowStepInfo">
@@ -65,31 +196,36 @@ export function CanvasEmptyState({
           </div>
         </div>
 
-        {/* Step Connector 1 -> 2 */}
-        <div className="workflowConnector" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14m-6-6 6 6-6 6" />
-          </svg>
-        </div>
+        <WorkflowArrow />
 
-        {/* Step 2: Detect Corners & Quad */}
+        {/* Step 2: the same frame with the detected boundary and draggable corners on top */}
         <div className="workflowStep" data-step="2">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
-              {/* Canvas backdrop */}
-              <rect x="6" y="6" width="148" height="88" rx="8" className="svgCanvasBg" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.25" />
-              {/* Detected quad shape */}
-              <polygon points="32,26 136,18 126,78 26,72" className="svgDetectedQuad" stroke="var(--accent-teal)" strokeWidth="2" strokeDasharray="3 3" />
-              {/* Connecting diagonal grid hint */}
-              <line x1="32" y1="26" x2="126" y2="78" stroke="var(--accent-teal)" strokeWidth="0.8" strokeOpacity="0.2" />
-              <line x1="136" y1="18" x2="26" y2="72" stroke="var(--accent-teal)" strokeWidth="0.8" strokeOpacity="0.2" />
-              {/* Corner handles (Order: TL, TR, BR, BL) */}
-              <circle cx="32" cy="26" r="4.5" className="svgCornerHandle" />
-              <circle cx="136" cy="18" r="4.5" className="svgCornerHandle" />
-              <circle cx="126" cy="78" r="4.5" className="svgCornerHandle" />
-              <circle cx="26" cy="72" r="4.5" className="svgCornerHandle" />
-              {/* Loupe hint on top-left handle */}
-              <circle cx="32" cy="26" r="11" fill="none" stroke="var(--handle)" strokeWidth="1.2" strokeDasharray="2 2" strokeOpacity="0.8" />
+              <StepFrame />
+              <polygon points={quadPoints(QUAD_ANGLED)} className="svgSlideRaw" />
+              <SlideContent quad={QUAD_ANGLED} contrast={0.3} />
+              <polygon
+                points={quadPoints(QUAD_ANGLED)}
+                className="svgDetectedQuad"
+                stroke="var(--accent-2)"
+                strokeWidth="2"
+                strokeDasharray="3 3"
+              />
+              {QUAD_ANGLED.map(([x, y]) => (
+                <circle key={`${x}-${y}`} cx={x} cy={y} r="4.5" className="svgCornerHandle" />
+              ))}
+              {/* Loupe hint on the top-left handle */}
+              <circle
+                cx="32"
+                cy="26"
+                r="11"
+                fill="none"
+                stroke="var(--handle)"
+                strokeWidth="1.2"
+                strokeDasharray="2 2"
+                strokeOpacity="0.8"
+              />
               <line x1="32" y1="18" x2="32" y2="34" stroke="var(--handle)" strokeWidth="1" strokeOpacity="0.5" />
               <line x1="24" y1="26" x2="40" y2="26" stroke="var(--handle)" strokeWidth="1" strokeOpacity="0.5" />
             </svg>
@@ -100,36 +236,33 @@ export function CanvasEmptyState({
           </div>
         </div>
 
-        {/* Step Connector 2 -> 3 */}
-        <div className="workflowConnector" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M5 12h14m-6-6 6 6-6 6" />
-          </svg>
-        </div>
+        <WorkflowArrow />
 
-        {/* Step 3: Straightened & Rectified PDF */}
+        {/* Step 3: the same content rectified and at full contrast */}
         <div className="workflowStep" data-step="3">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
-              {/* Canvas backdrop */}
-              <rect x="6" y="6" width="148" height="88" rx="8" className="svgCanvasBg" stroke="currentColor" strokeWidth="1.2" strokeOpacity="0.25" />
-              {/* Perfectly flat rectified slide rectangle */}
-              <rect x="22" y="18" width="116" height="64" rx="4" className="svgRectifiedSlide" stroke="var(--accent-teal)" strokeWidth="2" />
-              {/* Header banner */}
-              <rect x="28" y="25" width="38" height="6" rx="2" className="svgTealFill" />
-              {/* Clean structured content */}
-              <line x1="28" y1="38" x2="74" y2="38" className="svgTextLine" strokeWidth="2" strokeLinecap="round" />
-              <line x1="28" y1="46" x2="68" y2="46" className="svgTextLine" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.5" />
-              <line x1="28" y1="54" x2="60" y2="54" className="svgTextLine" strokeWidth="2" strokeLinecap="round" strokeOpacity="0.3" />
-              {/* Mini chart card */}
-              <rect x="84" y="32" width="46" height="36" rx="3" className="svgChartBg" stroke="var(--accent-teal)" strokeWidth="0.8" strokeOpacity="0.4" />
-              <line x1="92" y1="60" x2="92" y2="44" stroke="var(--accent-teal)" strokeWidth="3" strokeLinecap="round" />
-              <line x1="100" y1="60" x2="100" y2="38" stroke="var(--handle)" strokeWidth="3" strokeLinecap="round" />
-              <line x1="108" y1="60" x2="108" y2="48" stroke="var(--accent-teal)" strokeWidth="3" strokeLinecap="round" />
-              <line x1="116" y1="60" x2="116" y2="40" stroke="#3b82f6" strokeWidth="3" strokeLinecap="round" />
-              {/* Teal checkmark badge */}
-              <circle cx="132" cy="74" r="8" className="svgTealFill" stroke="var(--panel)" strokeWidth="2" />
-              <path d="m129 74 2 2 4-4" stroke="#ffffff" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+              <StepFrame />
+              <rect
+                x="24"
+                y="20"
+                width="112"
+                height="60"
+                rx="3"
+                className="svgSlideClean"
+                stroke="var(--accent-2)"
+                strokeWidth="1.5"
+              />
+              <SlideContent quad={QUAD_FLAT} contrast={1} />
+              {/* Completion badge */}
+              <circle cx="132" cy="76" r="8" className="svgTealFill" stroke="var(--panel)" strokeWidth="2" />
+              <path
+                d="m129 76 2 2 4-4"
+                stroke="var(--accent-2-text)"
+                strokeWidth="1.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
             </svg>
           </div>
           <div className="workflowStepInfo">
