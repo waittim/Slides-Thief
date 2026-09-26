@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Button } from "./Button";
+import { Icon } from "./Icon";
 
 export interface ModalShellProps {
   isOpen: boolean;
@@ -115,7 +116,7 @@ export function ModalShell({
             onClick={onClose}
             aria-label={closeLabel}
           >
-            &times;
+            <Icon name="xmark" size={13} strokeWidth={2.2} />
           </Button>
         </div>
         <div className="modalBody">{children}</div>

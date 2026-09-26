@@ -4,7 +4,7 @@ import { canRestoreAutoDetection } from "../lib/slide-transitions";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
 import { calculateLoupePosition } from "../lib/viewport-math";
-import { Button } from "./ui";
+import { Button, Icon } from "./ui";
 import { CanvasEmptyState } from "./CanvasEmptyState";
 import { ReviewModeBanner, type ReviewModeBannerProps } from "./ReviewModeBanner";
 
@@ -184,23 +184,25 @@ export function CanvasQuadEditor({
       <div className="reviewBar">
         <Button
           variant="icon"
+          size="sm"
           className="reviewPrevious"
           disabled={!slides.length || selectedIndex <= 0}
           title={`${text.prev} (K / PageUp)`}
           aria-label={text.prev}
           onClick={() => selectAt(selectedIndex - 1)}
         >
-          ‹
+          <Icon name="chevron.backward" size={13} />
         </Button>
         <Button
           variant="icon"
+          size="sm"
           className="reviewNext"
           disabled={!slides.length || selectedIndex < 0 || selectedIndex >= slides.length - 1}
           title={`${text.next} (J / PageDown)`}
           aria-label={text.next}
           onClick={() => selectAt(selectedIndex + 1)}
         >
-          ›
+          <Icon name="chevron.forward" size={13} />
         </Button>
         <div ref={titleRef} className="title" title={selectedSlide?.name}>
           {selectedSlide ? (
@@ -244,58 +246,34 @@ export function CanvasQuadEditor({
         <div className="historyControls">
           <Button
             variant="icon"
+            size="sm"
             className="reviewUndoButton"
             disabled={!canUndo || !handleUndo}
             title={`${text.undo} (⌘Z / Ctrl+Z)`}
             aria-label={text.undo}
             onClick={handleUndo}
           >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="M9 14 4 9l5-5" />
-              <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5v0a5.5 5.5 0 0 1-5.5 5.5H11" />
-            </svg>
+            <Icon name="arrow.uturn.backward" size={13} />
           </Button>
           <Button
             variant="icon"
+            size="sm"
             className="reviewRedoButton"
             disabled={!canRedo || !handleRedo}
             title={`${text.redo} (⇧⌘Z / Ctrl+Y)`}
             aria-label={text.redo}
             onClick={handleRedo}
           >
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <path d="m15 14 5-5-5-5" />
-              <path d="M20 9H9.5A5.5 5.5 0 0 0 4 14.5v0A5.5 5.5 0 0 0 9.5 20H13" />
-            </svg>
+            <Icon name="arrow.uturn.forward" size={13} />
           </Button>
         </div>
         <div className="zoomControls">
-          <Button variant="icon" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
-            −
+          <Button variant="icon" size="sm" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
+            <Icon name="minus" size={13} />
           </Button>
           <span className="zoomValue">{Math.round(displayZoom * 100)}%</span>
-          <Button variant="icon" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
-            +
+          <Button variant="icon" size="sm" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
+            <Icon name="plus" size={13} />
           </Button>
           <Button
             variant="secondary"
@@ -353,19 +331,7 @@ export function CanvasQuadEditor({
             onClick={() => setIsQuadMenuOpen((open) => !open)}
           >
             {text.applyCorners}
-            <svg
-              width="12"
-              height="12"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="6 9 12 15 18 9" />
-            </svg>
+            <Icon name="chevron.down" size={12} />
           </Button>
           {isQuadMenuOpen ? (
             <div className="quadBatchDropdown" role="menu">
@@ -449,7 +415,11 @@ export function CanvasQuadEditor({
                           onPointerCancel={onHandlePointerUp}
                           onLostPointerCapture={onHandlePointerUp}
                           onKeyDown={(event) => onHandleKeyDown(index, event)}
-                        />
+                        >
+                          <span className="cornerHandleBadge" aria-hidden="true">
+                            {index + 1}
+                          </span>
+                        </button>
                       );
                     })
                   : null}
@@ -485,7 +455,16 @@ export function CanvasQuadEditor({
                       }}
                     >
                       <canvas ref={loupeCanvasRef} className="loupeCanvas" />
-                      <div className="loupeCrosshair" />
+                      <div className="loupeCrosshair" aria-hidden="true">
+                        <svg viewBox="0 0 20 20" width="20" height="20" fill="none">
+                          <circle cx="10" cy="10" r="3.25" stroke="var(--handle)" strokeWidth="1.2" />
+                          <circle cx="10" cy="10" r="0.75" fill="var(--handle)" />
+                          <line x1="10" y1="1" x2="10" y2="5.5" stroke="var(--handle)" strokeWidth="1.2" strokeLinecap="round" />
+                          <line x1="10" y1="14.5" x2="10" y2="19" stroke="var(--handle)" strokeWidth="1.2" strokeLinecap="round" />
+                          <line x1="1" y1="10" x2="5.5" y2="10" stroke="var(--handle)" strokeWidth="1.2" strokeLinecap="round" />
+                          <line x1="14.5" y1="10" x2="19" y2="10" stroke="var(--handle)" strokeWidth="1.2" strokeLinecap="round" />
+                        </svg>
+                      </div>
                     </div>
                   );
                 })()}
@@ -520,19 +499,7 @@ export function CanvasQuadEditor({
               aria-label={text.prev}
               onClick={() => selectAt(selectedIndex - 1)}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m15 18-6-6 6-6" />
-              </svg>
+              <Icon name="chevron.backward" size={20} />
             </Button>
             <Button
               variant="icon"
@@ -543,19 +510,7 @@ export function CanvasQuadEditor({
               aria-label={text.next}
               onClick={() => selectAt(selectedIndex + 1)}
             >
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="m9 18 6-6-6-6" />
-              </svg>
+              <Icon name="chevron.forward" size={20} />
             </Button>
           </>
         ) : null}

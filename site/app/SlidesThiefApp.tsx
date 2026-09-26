@@ -44,14 +44,13 @@ import { useSlideDeck } from "./hooks/useSlideDeck";
 import { useWindowImport } from "./hooks/useWindowImport";
 import { hasFreshExport, shouldWarnOnUnload } from "./lib/before-unload";
 import { AboutModal } from "./components/AboutModal";
-import { ShortcutsModal } from "./components/ShortcutsModal";
 import { CanvasQuadEditor } from "./components/CanvasQuadEditor";
 import { generateSampleSlideFile } from "./lib/sample-slide";
 import { Header } from "./components/Header";
 import { InspectorPanel, type MetricItem } from "./components/InspectorPanel";
 import { PreferencesControls } from "./components/PreferencesControls";
 import { SlideSidebar } from "./components/SlideSidebar";
-import { Button, ConfirmModal } from "./components/ui";
+import { Button, ConfirmModal, Icon } from "./components/ui";
 import { PRODUCT_METADATA } from "./product-metadata";
 
 const APP_VERSION = PRODUCT_METADATA.version;
@@ -80,13 +79,12 @@ export function SlidesThiefApp() {
   }, []);
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmReviewOpen, setIsConfirmReviewOpen] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "jpg" | null>(null);
   const [isReviewMode, setIsReviewMode] = useState(false);
   const [pendingReviewExportFormat, setPendingReviewExportFormat] = useState<"pdf" | "jpg" | null>(null);
-  const isAnyModalOpen = isInfoOpen || isShortcutsOpen || isConfirmClearOpen || isConfirmReviewOpen;
+  const isAnyModalOpen = isInfoOpen || isConfirmClearOpen || isConfirmReviewOpen;
   const [isIOS, setIsIOS] = useState(false);
   const isIOSRef = useRef(false);
 
@@ -102,9 +100,6 @@ export function SlidesThiefApp() {
   const infoButtonRef = useRef<HTMLButtonElement | null>(null);
   const infoModalRef = useRef<HTMLDivElement | null>(null);
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
-  const shortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
-  const shortcutsModalRef = useRef<HTMLDivElement | null>(null);
-  const closeShortcutsButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const setExportName = useCallback(() => undefined, []);
 
@@ -1197,7 +1192,7 @@ export function SlidesThiefApp() {
     handleRedo,
     handleUndo,
     isInfoOpen: isAnyModalOpen,
-    openShortcuts: () => setIsShortcutsOpen(true),
+    openShortcuts: () => setIsInfoOpen(true),
     selectedIdRef,
     selectNextSlide: isReviewMode ? handleNextReviewSlide : selectNextSlide,
     selectPrevSlide: isReviewMode ? handlePrevReviewSlide : selectPrevSlide,
@@ -1239,6 +1234,114 @@ export function SlidesThiefApp() {
       ]
     : [];
   const ratioUi = ratioUiCopy[locale];
+  const showEditorFirst = isMobile && readySlides.length > 0;
+  const wasEditorFirstRef = useRef(false);
+
+  useEffect(() => {
+    if (showEditorFirst && !wasEditorFirstRef.current) window.scrollTo(0, 0);
+    wasEditorFirstRef.current = showEditorFirst;
+  }, [showEditorFirst]);
+
+  const sidebarView = (
+    <SlideSidebar
+      key="sidebar"
+      busy={busy}
+      exporting={exporting}
+      cancelExport={cancelExport}
+      detecting={detecting}
+      cancelDetection={cancelDetection}
+      progress={activeProgress}
+      slides={slides}
+      readySlides={readySlides}
+      runAuto={runAuto}
+      exportPdf={exportPdf}
+      exportJpg={exportJpg}
+      exportArtifacts={exportArtifacts}
+      importManualQuads={importManualQuads}
+      exportManualQuads={exportManualQuadsFile}
+      text={text}
+      reviewText={reviewText}
+      statusTone={statusTone}
+      statusText={statusText}
+      errorMessage={localizedWorkerError}
+      errorDetails={errorDetails}
+      onDismissError={dismissError}
+      onRetryError={retryError}
+      exportUrl={exportArtifacts.pdf?.url ?? null}
+      exportName={exportArtifacts.pdf?.filename ?? normalizePdfName(pdfBaseName)}
+      isIOS={isIOS}
+      clearAllSlides={handleRequestClearAll}
+      inputRef={inputRef}
+      manualInputRef={manualInputRef}
+      loadFiles={loadFiles}
+      dragActive={dragActive}
+      setDragActive={setDragActive}
+      isMobile={isMobile}
+      selectedId={selectedId}
+      hasRun={hasRun}
+      selectAt={selectAt}
+      slideStatusText={slideStatusText}
+      deleteSlide={deleteSlide}
+      deletedNotice={deletedNotice}
+      onUndo={handleUndo}
+      moveSlide={moveSlide}
+      moveSlideUp={moveSlideUp}
+      moveSlideDown={moveSlideDown}
+      selectedBatchIds={selectedBatchIds}
+      toggleBatchSelect={toggleBatchSelect}
+      selectAllBatch={selectAllBatch}
+      clearBatchSelection={clearBatchSelection}
+      selectReviewNeeded={selectReviewNeeded}
+      reDetectSelected={reDetectSelected}
+      applyQuadToSelected={() => void applyCurrentQuad("selected")}
+    />
+  );
+  const editorView = (
+    <CanvasQuadEditor
+      key="editor"
+      onUpload={() => inputRef.current?.click()}
+      onLoadSample={handleLoadSample}
+      isReviewMode={isReviewMode}
+      reviewBannerProps={reviewBannerProps}
+      stageRef={stageRef}
+      canvasRef={canvasRef}
+      loupeCanvasRef={loupeCanvasRef}
+      loupeOverlayRef={loupeOverlayRef}
+      updateLoupePosition={updateLoupePosition}
+      handleRefs={handleRefs}
+      slides={slides}
+      selectedSlide={selectedSlide}
+      selectedIndex={selectedIndex}
+      isMobile={isMobile}
+      text={text}
+      displayZoom={displayZoom}
+      previewErrorSlideId={previewErrorSlideId}
+      handlePositions={handlePositions}
+      dragHandle={dragHandle}
+      selectAt={selectAt}
+      zoomOut={zoomOut}
+      zoomIn={zoomIn}
+      setZoomMode={setZoomMode}
+      resetSelected={resetSelected}
+      restoreAutoDetection={restoreAutoDetection}
+      onHandlePointerDown={onHandlePointerDown}
+      onHandlePointerMove={onHandlePointerMove}
+      onHandlePointerUp={onHandlePointerUp}
+      onHandleKeyDown={onHandleKeyDown}
+      canUndo={canUndo && !busy}
+      canRedo={canRedo && !busy}
+      handleUndo={handleUndo}
+      handleRedo={handleRedo}
+      applyQuadToFollowing={() => void applyCurrentQuad("following")}
+      applyQuadToAll={() => void applyCurrentQuad("all")}
+      applyQuadToSelected={() => void applyCurrentQuad("selected")}
+      selectedBatchCount={selectedBatchIds.size}
+      reDetectCurrent={reDetectCurrent}
+      busy={busy}
+      isSpacePressed={isSpacePressed}
+      isPanning={isPanning}
+    />
+  );
 
   return (
     <div
@@ -1290,7 +1393,6 @@ export function SlidesThiefApp() {
         updateSettings={updateSettings}
         runAutoWithSettings={runAutoWithSettings}
         setIsInfoOpen={setIsInfoOpen}
-        setIsShortcutsOpen={setIsShortcutsOpen}
       />
 
       <main
@@ -1298,102 +1400,9 @@ export function SlidesThiefApp() {
         aria-hidden={isAnyModalOpen || undefined}
         inert={isAnyModalOpen ? true : undefined}
       >
-        <SlideSidebar
-          busy={busy}
-          exporting={exporting}
-          cancelExport={cancelExport}
-          detecting={detecting}
-          cancelDetection={cancelDetection}
-          progress={activeProgress}
-          slides={slides}
-          readySlides={readySlides}
-          runAuto={runAuto}
-          exportPdf={exportPdf}
-          exportJpg={exportJpg}
-          exportArtifacts={exportArtifacts}
-          importManualQuads={importManualQuads}
-          exportManualQuads={exportManualQuadsFile}
-          text={text}
-          reviewText={reviewText}
-          statusTone={statusTone}
-          statusText={statusText}
-          errorMessage={localizedWorkerError}
-          errorDetails={errorDetails}
-          onDismissError={dismissError}
-          onRetryError={retryError}
-          exportUrl={exportArtifacts.pdf?.url ?? null}
-          exportName={exportArtifacts.pdf?.filename ?? normalizePdfName(pdfBaseName)}
-          isIOS={isIOS}
-          clearAllSlides={handleRequestClearAll}
-          inputRef={inputRef}
-          manualInputRef={manualInputRef}
-          loadFiles={loadFiles}
-          dragActive={dragActive}
-          setDragActive={setDragActive}
-          isMobile={isMobile}
-          selectedId={selectedId}
-          hasRun={hasRun}
-          selectAt={selectAt}
-          slideStatusText={slideStatusText}
-          deleteSlide={deleteSlide}
-          deletedNotice={deletedNotice}
-          onUndo={handleUndo}
-          moveSlide={moveSlide}
-          moveSlideUp={moveSlideUp}
-          moveSlideDown={moveSlideDown}
-          selectedBatchIds={selectedBatchIds}
-          toggleBatchSelect={toggleBatchSelect}
-          selectAllBatch={selectAllBatch}
-          clearBatchSelection={clearBatchSelection}
-          selectReviewNeeded={selectReviewNeeded}
-          reDetectSelected={reDetectSelected}
-          applyQuadToSelected={() => void applyCurrentQuad("selected")}
-          onLoadSample={handleLoadSample}
-        />
-
-        <CanvasQuadEditor
-          onUpload={() => inputRef.current?.click()}
-          onLoadSample={handleLoadSample}
-          isReviewMode={isReviewMode}
-          reviewBannerProps={reviewBannerProps}
-          stageRef={stageRef}
-          canvasRef={canvasRef}
-          loupeCanvasRef={loupeCanvasRef}
-          loupeOverlayRef={loupeOverlayRef}
-          updateLoupePosition={updateLoupePosition}
-          handleRefs={handleRefs}
-          slides={slides}
-          selectedSlide={selectedSlide}
-          selectedIndex={selectedIndex}
-          isMobile={isMobile}
-          text={text}
-          displayZoom={displayZoom}
-          previewErrorSlideId={previewErrorSlideId}
-          handlePositions={handlePositions}
-          dragHandle={dragHandle}
-          selectAt={selectAt}
-          zoomOut={zoomOut}
-          zoomIn={zoomIn}
-          setZoomMode={setZoomMode}
-          resetSelected={resetSelected}
-          restoreAutoDetection={restoreAutoDetection}
-          onHandlePointerDown={onHandlePointerDown}
-          onHandlePointerMove={onHandlePointerMove}
-          onHandlePointerUp={onHandlePointerUp}
-          onHandleKeyDown={onHandleKeyDown}
-          canUndo={canUndo && !busy}
-          canRedo={canRedo && !busy}
-          handleUndo={handleUndo}
-          handleRedo={handleRedo}
-          applyQuadToFollowing={() => void applyCurrentQuad("following")}
-          applyQuadToAll={() => void applyCurrentQuad("all")}
-          applyQuadToSelected={() => void applyCurrentQuad("selected")}
-          selectedBatchCount={selectedBatchIds.size}
-          reDetectCurrent={reDetectCurrent}
-          busy={busy}
-          isSpacePressed={isSpacePressed}
-          isPanning={isPanning}
-        />
+        {showEditorFirst
+          ? [editorView, sidebarView]
+          : [sidebarView, editorView]}
 
         <InspectorPanel
           inspectorCollapsed={inspectorCollapsed}
@@ -1440,7 +1449,7 @@ export function SlidesThiefApp() {
             title={text.close}
             onClick={clearDeleteNotice}
           >
-            ×
+            <Icon name="xmark" size={13} />
           </Button>
         </div>
       ) : null}
@@ -1457,7 +1466,6 @@ export function SlidesThiefApp() {
       >
         <PreferencesControls
           infoButtonRef={infoButtonRef}
-          shortcutsButtonRef={shortcutsButtonRef}
           placement="bar"
           text={text}
           theme={theme}
@@ -1465,7 +1473,6 @@ export function SlidesThiefApp() {
           locale={locale}
           setLocale={setLocale}
           setIsInfoOpen={setIsInfoOpen}
-          setIsShortcutsOpen={setIsShortcutsOpen}
         />
       </nav>
 
@@ -1478,14 +1485,6 @@ export function SlidesThiefApp() {
         appVersion={APP_VERSION}
         telemetryEnabled={telemetry}
         setTelemetryEnabled={setTelemetry}
-      />
-
-      <ShortcutsModal
-        isOpen={isShortcutsOpen}
-        onClose={() => setIsShortcutsOpen(false)}
-        shortcutsModalRef={shortcutsModalRef}
-        closeShortcutsButtonRef={closeShortcutsButtonRef}
-        text={text}
       />
 
       <ConfirmModal

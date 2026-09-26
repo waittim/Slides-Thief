@@ -162,30 +162,51 @@ export function useCanvasViewport({
       handle.style.top = `${position.top}px`;
     });
 
-    ctx.lineWidth = Math.max(3, Math.min(7, width / 420));
-    ctx.strokeStyle = colors.quadStroke;
+    ctx.save();
     ctx.beginPath();
     positions.forEach(({ left, top }, index) => {
       if (index === 0) ctx.moveTo(left, top);
       else ctx.lineTo(left, top);
     });
     ctx.closePath();
+    ctx.fillStyle = colors.quadStroke.startsWith("#")
+      ? `${colors.quadStroke}14`
+      : "rgba(15, 118, 110, 0.08)";
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, Math.min(4, width / 450));
+    ctx.strokeStyle = colors.quadStroke;
     ctx.stroke();
+    ctx.restore();
 
-    positions.forEach(({ left, top }, index) => {
-      const radius = compact ? 12 : Math.max(9, Math.min(18, width / 150));
-      ctx.fillStyle = colors.handleFill;
-      ctx.strokeStyle = colors.handleStroke;
-      ctx.lineWidth = Math.max(2, Math.min(4, width / 700));
+    positions.forEach(({ left, top }) => {
+      const outerRadius = compact ? 10 : Math.max(8, Math.min(14, width / 180));
+      const innerRadius = Math.max(3.5, outerRadius * 0.42);
+
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.28)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1.5;
+
       ctx.beginPath();
-      ctx.arc(left, top, radius, 0, Math.PI * 2);
+      ctx.arc(left, top, outerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
       ctx.fill();
+
+      ctx.shadowColor = "transparent";
+      ctx.strokeStyle = colors.quadStroke;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.fillStyle = colors.handleText;
-      ctx.font = `700 ${Math.max(13, Math.min(18, width / 80))}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(index + 1), left, top + 1);
+
+      ctx.beginPath();
+      ctx.arc(left, top, innerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = colors.handleFill;
+      ctx.fill();
+      ctx.strokeStyle = colors.handleStroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
     });
 
     if (dragHandleRef.current !== null) {

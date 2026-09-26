@@ -45,7 +45,6 @@ export function SidebarHarness({
   initialErrorDetails,
   isMobile = false,
   isIOS = false,
-  onLoadSample,
 }: {
   initialBusy?: boolean;
   initialSlides?: SlideItem[];
@@ -56,7 +55,6 @@ export function SidebarHarness({
   initialErrorDetails?: string;
   isMobile?: boolean;
   isIOS?: boolean;
-  onLoadSample?: () => void;
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
   const [errorMessage, setErrorMessage] = useState(initialErrorMessage ?? "");
@@ -272,7 +270,6 @@ export function SidebarHarness({
             )
           );
         }}
-        onLoadSample={onLoadSample ?? (() => setSlides([readySlide(queuedSlide(new File(["sample"], "sample.jpg", { type: "image/jpeg" })))]))}
       />
       <output data-testid="workflow-status">
         {manualImported

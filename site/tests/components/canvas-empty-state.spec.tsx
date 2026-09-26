@@ -25,7 +25,10 @@ test("renders the 3-step workflow diagram, action buttons, and photography tips"
   await expect(sampleBtn).toBeVisible();
 
   // Photography tips
-  await expect(component.getByText("Photography Tips for Best Results")).toBeVisible();
+  const tips = component.getByText("Photography Tips for Best Results");
+  await expect(tips).toBeVisible();
+  await expect(component.getByText("Keep all 4 corners visible")).toBeHidden();
+  await tips.click();
   await expect(component.getByText("Keep all 4 corners visible")).toBeVisible();
   await expect(component.getByText("Avoid glare and occlusions")).toBeVisible();
   await expect(component.getByText("Ensure clear edge contrast")).toBeVisible();
@@ -59,11 +62,11 @@ test("disables action buttons when busy is true", async ({ mount }) => {
 test("renders localized copy correctly in Simplified Chinese", async ({ mount }) => {
   const component = await mount(<CanvasEmptyStateHarness initialLocale="zh-CN" />);
 
-  await expect(component.getByText("将倾斜拍摄的幻灯片转换为平整清晰的文档")).toBeVisible();
-  await expect(component.getByText(/100% 浏览器本地处理/i)).toBeVisible();
-  await expect(component.getByText("1. 倾斜拍摄")).toBeVisible();
-  await expect(component.getByText("2. 识别四角")).toBeVisible();
-  await expect(component.getByText("3. 平整校正")).toBeVisible();
+  await expect(component.getByText("倾斜 PPT 翻拍，一键还原平整清晰")).toBeVisible();
+  await expect(component.getByText(/100% 本地处理/i)).toBeVisible();
+  await expect(component.getByText("1. 偏角抓拍")).toBeVisible();
+  await expect(component.getByText("2. 智能贴边")).toBeVisible();
+  await expect(component.getByText("3. 展平生成")).toBeVisible();
   await expect(component.getByRole("button", { name: "尝试示例图片" })).toBeVisible();
   await expect(component.getByText("拍摄小贴士 · 获得最佳校正效果")).toBeVisible();
 });

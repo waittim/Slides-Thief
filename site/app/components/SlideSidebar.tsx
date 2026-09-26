@@ -4,7 +4,7 @@ import { slideBadgeTitle } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
 import type { ExportArtifact, SlideItem } from "../lib/types";
 import { ExportArtifactCard } from "./ExportArtifactCard";
-import { Button, CountBadge, StatusDot, type StatusDotProps } from "./ui";
+import { Button, CountBadge, Icon, StatusDot, type StatusDotProps } from "./ui";
 
 interface SlideSidebarProps {
   busy: boolean;
@@ -56,7 +56,6 @@ interface SlideSidebarProps {
   selectReviewNeeded?: () => void;
   reDetectSelected?: () => void;
   applyQuadToSelected?: () => void;
-  onLoadSample?: () => void;
 }
 
 export function SlideSidebar({
@@ -108,7 +107,6 @@ export function SlideSidebar({
   selectReviewNeeded,
   reDetectSelected,
   applyQuadToSelected,
-  onLoadSample,
 }: SlideSidebarProps) {
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
@@ -231,88 +229,55 @@ export function SlideSidebar({
   const hasStaleExport = (Boolean(pdfUrl) && isPdfStale) || (Boolean(jpgArtifact) && isJpgStale);
   const hasPdfExport = Boolean(pdfUrl);
   const mainButtonLabel = hasPdfExport ? text.regeneratePdf : text.generatePdf;
+  const autoAction = (
+    <Button
+      key="auto"
+      variant={slides.length > 0 && readySlides.length === 0 ? "accent" : "secondary"}
+      className="runAutoButton"
+      disabled={busy || !slides.length}
+      onClick={runAuto}
+    >
+      {text.runAuto}
+    </Button>
+  );
+  const pdfAction = (
+    <Button
+      key="pdf"
+      variant={readySlides.length > 0 ? "accent" : "secondary"}
+      className="exportPdfButton"
+      disabled={busy || !readySlides.length}
+      title={`${mainButtonLabel} (⌘↵ / Ctrl+Enter)`}
+      onClick={exportPdf}
+    >
+      {mainButtonLabel}
+    </Button>
+  );
+  const jpgAction = (
+    <Button
+      key="jpg"
+      variant="secondary"
+      className="exportJpgButton"
+      disabled={busy || !readySlides.length}
+      title={text.exportJpgDescription ? `${text.exportJpg} (${text.exportJpgDescription})` : text.exportJpg}
+      onClick={exportJpg}
+    >
+      {text.exportJpg}
+    </Button>
+  );
 
   return (
     <aside className="sidebar">
       <div className="sidebarActions">
-        <Button
-          variant="primary"
-          className="runAutoButton"
-          disabled={busy || !slides.length}
-          onClick={runAuto}
-        >
-          {text.runAuto}
-        </Button>
-        <Button
-          variant="accent"
-          className="exportPdfButton"
-          disabled={busy || !readySlides.length}
-          title={`${mainButtonLabel} (⌘↵ / Ctrl+Enter)`}
-          onClick={exportPdf}
-        >
-          {mainButtonLabel}
-        </Button>
-        <Button
-          variant="accent"
-          className="exportJpgButton"
-          disabled={busy || !readySlides.length}
-          title={text.exportJpgDescription ? `${text.exportJpg} (${text.exportJpgDescription})` : text.exportJpg}
-          onClick={exportJpg}
-        >
-          {text.exportJpg}
-        </Button>
+        {autoAction}
+        {pdfAction}
+        {jpgAction}
       </div>
-      {slides.length > 0 ? (
-        <div className="manualQuadsActions">
-          <input
-            ref={manualInputRef}
-            className="fileInput"
-            type="file"
-            accept="application/json,.json"
-            disabled={busy}
-            onChange={(event) => {
-              const file = event.currentTarget.files?.[0];
-              event.currentTarget.value = "";
-              if (file) void importManualQuads(file);
-            }}
-          />
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={busy || !slides.length}
-            onClick={() => manualInputRef.current?.click()}
-          >
-            {text.importCorners}
-          </Button>
-          <Button
-            variant="secondary"
-            size="sm"
-            disabled={busy || !readySlides.length}
-            onClick={exportManualQuads}
-          >
-            {text.exportCorners}
-          </Button>
-        </div>
-      ) : null}
       <div className="sidebarRunMeta">
         {errorMessage ? (
           <div className="sidebarErrorBanner">
             <div className="sidebarErrorBannerHeader">
               <div className="sidebarErrorIcon" aria-hidden="true">
-                <svg
-                  width="15"
-                  height="15"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="10" />
-                  <line x1="12" y1="8" x2="12" y2="12" />
-                  <line x1="12" y1="16" x2="12.01" y2="16" />
-                </svg>
+                <Icon name="exclamationmark.circle" size={15} />
               </div>
               <p className="sidebarErrorMessage" role="alert" title={errorMessage}>
                 {errorMessage}
@@ -325,20 +290,7 @@ export function SlideSidebar({
                   aria-label={text.dismissError}
                   onClick={onDismissError}
                 >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                  </svg>
+                  <Icon name="xmark" size={13} strokeWidth={2.2} />
                 </button>
               ) : null}
             </div>
@@ -477,6 +429,44 @@ export function SlideSidebar({
           </div>
         ) : null}
       </div>
+      {slides.length > 0 ? (
+        <details className="manualQuadsDisclosure">
+          <summary className="manualQuadsSummary">
+            <span>{text.cornerData}</span>
+            <Icon name="chevron.down" size={14} aria-hidden="true" />
+          </summary>
+          <div className="manualQuadsActions">
+            <input
+              ref={manualInputRef}
+              className="fileInput"
+              type="file"
+              accept="application/json,.json"
+              disabled={busy}
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) void importManualQuads(file);
+              }}
+            />
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy || !slides.length}
+              onClick={() => manualInputRef.current?.click()}
+            >
+              {text.importCorners}
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={busy || !readySlides.length}
+              onClick={exportManualQuads}
+            >
+              {text.exportCorners}
+            </Button>
+          </div>
+        </details>
+      ) : null}
       <div className="sectionHead">
         <h2>{text.images}</h2>
         <CountBadge count={slides.length} />
@@ -489,7 +479,8 @@ export function SlideSidebar({
             title={text.selectReviewNeeded}
             onClick={selectReviewNeeded}
           >
-            ! {text.selectReviewNeeded}
+            <Icon name="exclamationmark.circle" size={12} />
+            <span>{text.selectReviewNeeded}</span>
           </Button>
         ) : null}
         {slides.length > 0 && (
@@ -530,37 +521,35 @@ export function SlideSidebar({
             {!isMobile && <span>{text.dropSubtitle}</span>}
           </span>
         </button>
-        {slides.length === 0 && onLoadSample && (
-          <div className="sidebarEmptySample">
-            <span className="sidebarEmptyOr">{text.orDivider}</span>
-            <Button
-              variant="secondary"
-              size="sm"
-              className="sidebarSampleButton"
-              disabled={busy}
-              onClick={onLoadSample}
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <polygon points="5 3 19 12 5 21 5 3" />
-              </svg>
-              <span>{text.trySample}</span>
-            </Button>
-          </div>
-        )}
         {selectedBatchIds && selectedBatchIds.size > 0 ? (
           <div className="batchActionBar" role="toolbar" aria-label={text.selectedCount(selectedBatchIds.size)}>
             <div className="batchActionInfo">
               <span className="batchActionCount">{text.selectedCount(selectedBatchIds.size)}</span>
+              <div className="batchActionControls">
+                {selectAllBatch ? (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="batchSelectAllButton"
+                    disabled={busy}
+                    onClick={selectAllBatch}
+                  >
+                    {selectedBatchIds.size === slides.length ? text.deselectAll : text.selectAll}
+                  </Button>
+                ) : null}
+                {clearBatchSelection ? (
+                  <Button
+                    variant="icon"
+                    size="sm"
+                    className="batchClearButton"
+                    aria-label={text.clearSelection}
+                    title={text.clearSelection}
+                    onClick={clearBatchSelection}
+                  >
+                    <Icon name="xmark" size={10} strokeWidth={2.4} />
+                  </Button>
+                ) : null}
+              </div>
             </div>
             <div className="batchActionButtons">
               {reDetectSelected ? (
@@ -585,29 +574,6 @@ export function SlideSidebar({
                   {text.applyToSelected}
                 </Button>
               ) : null}
-              {selectAllBatch ? (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="batchSelectAllButton"
-                  disabled={busy}
-                  onClick={selectAllBatch}
-                >
-                  {selectedBatchIds.size === slides.length ? text.deselectAll : text.selectAll}
-                </Button>
-              ) : null}
-              {clearBatchSelection ? (
-                <Button
-                  variant="icon"
-                  size="sm"
-                  className="batchClearButton"
-                  aria-label={text.clearSelection}
-                  title={text.clearSelection}
-                  onClick={clearBatchSelection}
-                >
-                  ×
-                </Button>
-              ) : null}
             </div>
           </div>
         ) : null}
@@ -622,6 +588,7 @@ export function SlideSidebar({
               hasRun ? "slideRow" : "fileRow",
               active ? "active" : "",
               isBatchSelected ? "selectedBatchRow" : "",
+              selectedBatchIds && selectedBatchIds.size > 0 ? "hasBatchSelection" : "",
               isDragging ? "dragging" : "",
               isDropAbove ? "dropTargetAbove" : "",
               isDropBelow ? "dropTargetBelow" : "",
@@ -722,85 +689,49 @@ export function SlideSidebar({
                   )}
                 </Button>
                 <div className="slideRowActions">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="slideMoveButton slideMoveUpButton iconOnlyButton"
-                    type="button"
-                    disabled={busy || index === 0}
-                    title={`${text.moveSlideUpHint} (Alt+↑)`}
-                    aria-label={`${text.moveSlideUpHint}: ${slide.name}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      moveSlideUp?.(slide.id);
-                    }}
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
+                  <div className="slideMoveButtonGroup">
+                    <Button
+                      variant="icon"
+                      size="sm"
+                      className="slideMoveButton slideMoveUpButton"
+                      type="button"
+                      disabled={busy || index === 0}
+                      title={`${text.moveSlideUpHint} (Alt+↑)`}
+                      aria-label={`${text.moveSlideUpHint}: ${slide.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        moveSlideUp?.(slide.id);
+                      }}
                     >
-                      <polyline points="18 15 12 9 6 15" />
-                    </svg>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="slideMoveButton slideMoveDownButton iconOnlyButton"
-                    type="button"
-                    disabled={busy || index === slides.length - 1}
-                    title={`${text.moveSlideDownHint} (Alt+↓)`}
-                    aria-label={`${text.moveSlideDownHint}: ${slide.name}`}
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      moveSlideDown?.(slide.id);
-                    }}
-                  >
-                    <svg
-                      width="12"
-                      height="12"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.4"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
+                      <Icon name="chevron.up" size={10} />
+                    </Button>
+                    <Button
+                      variant="icon"
+                      size="sm"
+                      className="slideMoveButton slideMoveDownButton"
+                      type="button"
+                      disabled={busy || index === slides.length - 1}
+                      title={`${text.moveSlideDownHint} (Alt+↓)`}
+                      aria-label={`${text.moveSlideDownHint}: ${slide.name}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        moveSlideDown?.(slide.id);
+                      }}
                     >
-                      <polyline points="6 9 12 15 18 9" />
-                    </svg>
-                  </Button>
+                      <Icon name="chevron.down" size={10} />
+                    </Button>
+                  </div>
                   <Button
-                    variant="danger"
-                    size="touch"
-                    className="slideDeleteButton iconOnlyButton"
+                    variant="icon"
+                    size="sm"
+                    className="slideDeleteButton"
                     type="button"
                     disabled={busy}
                     title={`${text.deleteSlideHint} (Delete / Backspace)`}
                     aria-label={`${text.deleteSlideHint}: ${slide.name}`}
                     onClick={() => deleteSlide(slide.id)}
                   >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2.2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <path d="M3 6h18" />
-                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-                    </svg>
+                    <Icon name="trash" size={14} />
                   </Button>
                 </div>
               </li>

@@ -99,7 +99,7 @@ test("renders actionable confidence metric for review-suggested slide", async ({
   const component = await mount(<InspectorHarness slide={reviewSlide} />);
   const metricValues = component.locator(".metric .value");
   const confidenceValue = metricValues.nth(2);
-  await expect(confidenceValue).toHaveText("Review suggested");
+  await expect(confidenceValue).toHaveText("0.65 (Review suggested)");
   await expect(confidenceValue).toHaveAttribute("title", "Confidence: 0.65");
 });
 
@@ -114,7 +114,7 @@ test("renders actionable confidence metric for clean slide", async ({ mount }) =
 
   const component = await mount(<InspectorHarness slide={cleanSlide} />);
   const cleanConfidenceValue = component.locator(".metric .value").nth(2);
-  await expect(cleanConfidenceValue).toHaveText("Looks good");
+  await expect(cleanConfidenceValue).toHaveText("0.92 (Good)");
   await expect(cleanConfidenceValue).toHaveAttribute("title", "Confidence: 0.92");
 });
 

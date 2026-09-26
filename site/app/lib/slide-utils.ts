@@ -135,14 +135,9 @@ export function confidenceSummary(
   }
   const score = slide.confidence ? slide.confidence.toFixed(2) : "0.00";
   const tooltip = `${text.confidence}: ${score}`;
-  if (slide.needsReview) {
-    return {
-      label: reviewText.reviewSuggested,
-      tooltip,
-    };
-  }
+  const status = slide.needsReview ? reviewText.reviewSuggested : reviewText.confidenceGood;
   return {
-    label: reviewText.confidenceGood,
+    label: `${score} (${status})`,
     tooltip,
   };
 }

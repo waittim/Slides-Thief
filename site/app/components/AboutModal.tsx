@@ -45,27 +45,6 @@ export function AboutModal({
       closeLabel={text.close}
     >
       <p className="modalDesc">{text.infoDesc}</p>
-      <div className="modalPrivacy modalPrivacyCard">
-        <p className="modalPrivacyText">
-          <strong>{text.infoPrivacy}</strong>
-        </p>
-        <div className="modalTelemetry">
-          <div className="modalTelemetryHeader">
-            <div className="modalTelemetryHeaderContent">
-              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
-              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
-            </div>
-            {setTelemetryEnabled && (
-              <Switch
-                aria-label={text.telemetryTitle}
-                checked={telemetryEnabled}
-                label={telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled}
-                onChange={setTelemetryEnabled}
-              />
-            )}
-          </div>
-        </div>
-      </div>
       <div className="modalShortcuts">
         <h4>{text.shortcutsTitle}</h4>
         <div className="shortcutGrid">
@@ -87,6 +66,10 @@ export function AboutModal({
           </div>
           <div className="shortcutItem">
             <ShortcutChord keys={["Delete"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Backspace"]} />
             <span>{text.shortcutDelete}</span>
           </div>
           <div className="shortcutItem">
@@ -124,6 +107,27 @@ export function AboutModal({
           <div className="shortcutItem">
             <ShortcutChord keys={["?"]} />
             <span>{text.shortcutHelp}</span>
+          </div>
+        </div>
+      </div>
+      <div className="modalPrivacy modalPrivacyCard">
+        <p className="modalPrivacyText">
+          <strong>{text.infoPrivacy}</strong>
+        </p>
+        <div className="modalTelemetry">
+          <div className="modalTelemetryHeader">
+            <div className="modalTelemetryHeaderContent">
+              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
+              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
+            </div>
+            {setTelemetryEnabled && (
+              <Switch
+                aria-label={text.telemetryTitle}
+                checked={telemetryEnabled}
+                label={telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled}
+                onChange={setTelemetryEnabled}
+              />
+            )}
           </div>
         </div>
       </div>

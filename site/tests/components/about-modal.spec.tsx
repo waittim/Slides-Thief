@@ -15,7 +15,7 @@ test("renders split keyboard shortcut keycaps with consistent sizing", async ({ 
     nodes.map((node) => getComputedStyle(node).fontSize),
   );
   expect(fontSizes.length).toBeGreaterThan(0);
-  expect(new Set(fontSizes)).toEqual(new Set(["12px"]));
+  expect(new Set(fontSizes)).toEqual(new Set(["13px"]));
 });
 
 test("renders privacy statement and interactive telemetry toggle switch", async ({ mount }) => {

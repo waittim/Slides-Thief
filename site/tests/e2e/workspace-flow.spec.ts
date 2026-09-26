@@ -747,6 +747,36 @@ test("preserves page indicator, filename, and mobile floating navigation control
   }
 });
 
+test("mobile keeps import controls available and moves the canvas first after correction", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+
+  await expect(page.locator(".shell > :first-child")).toHaveClass(/sidebar/);
+  await expect(page.locator(".sidebar").getByRole("button", { name: "Click to upload photos" })).toBeVisible();
+
+  await page.locator('input[type="file"][accept*="image"]').setInputFiles(fixture);
+  await page.getByRole("button", { name: "Auto straighten" }).click();
+  await expect(page.getByRole("button", { name: /Corner 1:/ })).toBeVisible({ timeout: 30_000 });
+
+  await expect(page.locator(".shell > :first-child")).toHaveClass(/workspace/);
+  const canvasTop = await page.locator(".stage").evaluate((element) => element.getBoundingClientRect().top);
+  const actionsTop = await page.locator(".sidebarActions").evaluate((element) => element.getBoundingClientRect().top);
+  expect(canvasTop).toBeLessThan(actionsTop);
+  expect(canvasTop).toBeLessThan(300);
+});
+
+test("empty desktop workspace keeps both sidebars and fills a tall viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 2048, height: 1174 });
+  await page.goto("/");
+
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(page.locator(".inspector")).toBeVisible();
+  await expect(page.locator(".canvasEmptyState")).toBeVisible();
+
+  const stageBottom = await page.locator(".stage").evaluate((element) => element.getBoundingClientRect().bottom);
+  expect(Math.abs(stageBottom - 1174)).toBeLessThan(2);
+});
+
 test("desktop review bar retains previous/next buttons and page indicator without floating controls", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
   await page.setViewportSize({ width: 1280, height: 800 });
@@ -812,29 +842,29 @@ test("displays guided empty state on initial load and loads sample slide on clic
   await expect(emptyState).toHaveCount(0);
 });
 
-test("opens keyboard shortcuts modal with '?' key and with navbar button, and displays shortcut annotations on buttons", async ({
+test("opens about modal with '?' key and with navbar info button, and displays shortcut annotations on buttons", async ({
   page,
 }) => {
   page.on("dialog", (dialog) => void dialog.accept());
   await page.goto("/");
 
-  // Verify shortcuts button exists in prefsBar
-  const shortcutsNavBtn = page.locator("nav.prefsBar .shortcutsButton");
-  await expect(shortcutsNavBtn).toBeVisible();
-  await expect(shortcutsNavBtn).toHaveAttribute("title", "Keyboard Shortcuts (?)");
+  // Verify info button exists in prefsBar with shortcut annotation
+  const infoNavBtn = page.locator("nav.prefsBar .infoButton");
+  await expect(infoNavBtn).toBeVisible();
+  await expect(infoNavBtn).toHaveAttribute("title", /Keyboard Shortcuts \(\?\)|About Slides Thief \(\?\)|关于 Slides Thief.* \(\?\)/);
 
-  // Pressing '?' opens the shortcuts modal
+  // Pressing '?' opens the about modal containing shortcuts
   await page.keyboard.press("?");
-  const modal = page.locator(".modalCard.shortcutsModal");
+  const modal = page.locator(".modalCard");
   await expect(modal).toBeVisible();
-  await expect(modal.locator("#shortcuts-modal-title")).toHaveText("Keyboard Shortcuts");
+  await expect(modal.locator(".modalShortcuts h4")).toHaveText(/Keyboard Shortcuts|快捷键指南/);
 
   // Escape key closes it
   await page.keyboard.press("Escape");
   await expect(modal).toHaveCount(0);
 
-  // Clicking shortcuts button in nav opens modal
-  await shortcutsNavBtn.click();
+  // Clicking info button in nav opens about modal
+  await infoNavBtn.click();
   await expect(modal).toBeVisible();
 
   // Close button closes modal
@@ -891,10 +921,6 @@ test("filename input preserves raw characters, displays inline validation hint, 
   await expect(nameInput).toHaveAttribute("placeholder", "flattened_slides");
   await expect(page.locator("#pdf-name-error")).toHaveCount(0);
 });
-
-
-
-
 
 
 

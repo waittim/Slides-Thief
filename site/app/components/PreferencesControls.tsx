@@ -1,11 +1,10 @@
 import React from "react";
 import { localeOptions, type LocaleCopy, type LocaleValue } from "../i18n";
 import type { ThemeValue } from "../lib/types";
-import { Button, Select } from "./ui";
+import { Button, Icon, Select } from "./ui";
 
 export interface PreferencesControlsProps {
   infoButtonRef?: React.RefObject<HTMLButtonElement | null>;
-  shortcutsButtonRef?: React.RefObject<HTMLButtonElement | null>;
   placement?: "bar" | "menu" | "footer";
   text: LocaleCopy;
   theme: ThemeValue;
@@ -13,12 +12,10 @@ export interface PreferencesControlsProps {
   locale: LocaleValue;
   setLocale: (locale: LocaleValue) => void;
   setIsInfoOpen: (open: boolean) => void;
-  setIsShortcutsOpen?: (open: boolean) => void;
 }
 
 export function PreferencesControls({
   infoButtonRef,
-  shortcutsButtonRef,
   placement = "bar",
   text,
   theme,
@@ -26,85 +23,23 @@ export function PreferencesControls({
   locale,
   setLocale,
   setIsInfoOpen,
-  setIsShortcutsOpen,
 }: PreferencesControlsProps) {
   const isMenu = placement === "menu";
 
   return (
     <>
-      {!isMenu && (
-        <span className="privacyBadge" title={text.infoPrivacy}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="m9 12 2 2 4-4" />
-          </svg>
-          <span>{text.noUpload}</span>
-        </span>
-      )}
       <Button
         ref={infoButtonRef}
         type="button"
         variant={isMenu ? "secondary" : "icon"}
         className={`infoButton${isMenu ? " settingsMenuInfoRow settingsMenuInfo" : ""}`}
-        title={text.infoTitle}
+        title={`${text.infoTitle} (?)`}
         aria-label={text.infoTitle}
         onClick={() => setIsInfoOpen(true)}
       >
-        <svg
-          width="18"
-          height="18"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          aria-hidden="true"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 16v-4" />
-          <path d="M12 8h.01" />
-        </svg>
+        <Icon name="info.circle" size={18} />
         <span className="infoButtonLabel">{text.infoTitle}</span>
       </Button>
-      {setIsShortcutsOpen && (
-        <Button
-          ref={shortcutsButtonRef}
-          type="button"
-          variant={isMenu ? "secondary" : "icon"}
-          className={`shortcutsButton${isMenu ? " settingsMenuInfoRow settingsMenuShortcuts" : ""}`}
-          title={`${text.shortcutsTitle} (?)`}
-          aria-label={`${text.shortcutsTitle} (?)`}
-          onClick={() => setIsShortcutsOpen(true)}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
-            <path d="M12 17h.01" />
-          </svg>
-          <span className="shortcutsButtonLabel">{text.shortcutsTitle}</span>
-        </Button>
-      )}
       <label className={`themeSetting${isMenu ? " settingsMenuTheme" : ""}`}>
         <span>{text.theme}</span>
         <Select value={theme} onChange={(event) => setTheme(event.target.value as ThemeValue)}>

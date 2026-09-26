@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatSlideError, type LocaleCopy, type LocaleValue, type ReviewUiCopy } from "../i18n";
 import type { SlideItem } from "../lib/types";
-import { Button, CountBadge } from "./ui";
+import { Button, CountBadge, Icon } from "./ui";
 
 export type MetricItem = [string, React.ReactNode, string?];
 
@@ -137,7 +137,7 @@ export function InspectorPanel({
           aria-controls="inspectorDetails"
           onClick={() => setInspectorCollapsed((value) => !value)}
         >
-          {inspectorCollapsed ? "+" : "−"}
+          <Icon name={inspectorCollapsed ? "plus" : "minus"} size={13} />
         </Button>
       </div>
       <div className="inspectorBody" id="inspectorDetails">
@@ -173,19 +173,7 @@ export function InspectorPanel({
                   onClick={() => onConfirmSlide(selectedSlide.id)}
                   title={reviewText.reviewConfirmSlide}
                 >
-                  <svg
-                    width="13"
-                    height="13"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
+                  <Icon name="checkmark" size={13} />
                   {reviewText.reviewConfirmSlide}
                 </Button>
                 {!isReviewMode && onStartReviewMode && reviewSlideCount > 1 ? (

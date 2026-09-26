@@ -1,6 +1,7 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n.ts";
 import { Button } from "./ui/Button.tsx";
+import { Icon } from "./ui/Icon.tsx";
 
 type Point = readonly [number, number];
 
@@ -99,11 +100,11 @@ function StepFrame() {
       y="6"
       width="148"
       height="88"
-      rx="8"
+      rx="10"
       className="svgCanvasBg"
       stroke="currentColor"
-      strokeWidth="1.2"
-      strokeOpacity="0.25"
+      strokeWidth="1"
+      strokeOpacity="0.12"
     />
   );
 }
@@ -112,16 +113,16 @@ function WorkflowArrow() {
   return (
     <div className="workflowConnector" aria-hidden="true">
       <svg
-        width="20"
-        height="20"
+        width="16"
+        height="16"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
-        strokeWidth="2"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       >
-        <path d="M5 12h14m-6-6 6 6-6 6" />
+        <path d="m9 18 6-6-6-6" />
       </svg>
     </div>
   );
@@ -147,47 +148,74 @@ export function CanvasEmptyState({
       {/* Header Banner */}
       <div className="emptyHeader">
         <div className="emptyPrivacyBadge">
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-          </svg>
+          <Icon name="lock.shield" size={14} />
           <span>{text.emptySubtitle}</span>
         </div>
         <h2 className="emptyTitle">{text.emptyTitle}</h2>
       </div>
 
-      {/* 3-Step Workflow Vector Diagram */}
+      {/* Action Stage: Hero Call to Action */}
+      <div className="emptyActions">
+        <Button
+          variant="accent"
+          size={isMobile ? "touch" : "md"}
+          className="emptyActionBtn emptyUploadBtn"
+          disabled={busy}
+          onClick={onUpload}
+        >
+          <Icon name="photo" size={18} />
+          <span>{isMobile ? text.uploadTitle : text.dropTitle}</span>
+        </Button>
+
+        {onLoadSample && (
+          <Button
+            variant="secondary"
+            size={isMobile ? "touch" : "md"}
+            className="emptyActionBtn emptySampleBtn"
+            disabled={busy}
+            onClick={onLoadSample}
+          >
+            <Icon name="play.fill" size={15} />
+            <span>{text.trySample}</span>
+          </Button>
+        )}
+      </div>
+
+      {/* 3-Step Workflow: Outcome-Driven Visual Strip */}
       <div className="emptyWorkflow" aria-label="Workflow overview">
         {/* Step 1: the slide as photographed, off-axis and low contrast */}
         <div className="workflowStep" data-step="1">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
+              <defs>
+                <filter id="emptyStep1SlideShadow" x="-20%" y="-20%" width="140%" height="150%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.32" />
+                </filter>
+              </defs>
               <StepFrame />
-              {/* Camera corner brackets */}
-              <path
-                d="M16 16h8m-8 0v8M144 16h-8m8 0v8M16 84h8m-8 0v-8M144 84h-8m8 0v-8"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeOpacity="0.4"
-                strokeLinecap="round"
+              {/* Ambient shadow behind the angled slide */}
+              <polygon
+                points={quadPoints(QUAD_ANGLED)}
+                fill="#000000"
+                filter="url(#emptyStep1SlideShadow)"
+                opacity="0.32"
               />
               <polygon
                 points={quadPoints(QUAD_ANGLED)}
                 className="svgSlideRaw"
                 stroke="currentColor"
-                strokeWidth="1.5"
-                strokeOpacity="0.45"
+                strokeWidth="1"
+                strokeOpacity="0.18"
               />
-              <SlideContent quad={QUAD_ANGLED} contrast={0.62} />
+              <SlideContent quad={QUAD_ANGLED} contrast={0.65} />
+              {/* Apple Camera-style viewfinder corner brackets */}
+              <path
+                d="M14 14h9m-9 0v9M146 14h-9m9 0v9M14 86h9m-9 0v-9M146 86h-9m9 0v-9"
+                stroke="var(--accent-2)"
+                strokeWidth="1.8"
+                strokeOpacity="0.78"
+                strokeLinecap="round"
+              />
             </svg>
           </div>
           <div className="workflowStepInfo">
@@ -202,32 +230,68 @@ export function CanvasEmptyState({
         <div className="workflowStep" data-step="2">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
+              <defs>
+                <filter id="emptyStep2SlideShadow" x="-20%" y="-20%" width="140%" height="150%">
+                  <feDropShadow dx="0" dy="4" stdDeviation="3.5" floodColor="#000000" floodOpacity="0.25" />
+                </filter>
+                <filter id="emptyStep2LoupeShadow" x="-50%" y="-50%" width="200%" height="200%">
+                  <feDropShadow dx="0" dy="3" stdDeviation="4" floodColor="#000000" floodOpacity="0.45" />
+                </filter>
+              </defs>
               <StepFrame />
-              <polygon points={quadPoints(QUAD_ANGLED)} className="svgSlideRaw" />
+              <polygon
+                points={quadPoints(QUAD_ANGLED)}
+                fill="#000000"
+                filter="url(#emptyStep2SlideShadow)"
+                opacity="0.25"
+              />
+              <polygon
+                points={quadPoints(QUAD_ANGLED)}
+                className="svgSlideRaw"
+                stroke="currentColor"
+                strokeWidth="1"
+                strokeOpacity="0.12"
+              />
               <SlideContent quad={QUAD_ANGLED} contrast={0.3} />
+              {/* Precision detected bounding quad */}
               <polygon
                 points={quadPoints(QUAD_ANGLED)}
                 className="svgDetectedQuad"
                 stroke="var(--accent-2)"
-                strokeWidth="2"
-                strokeDasharray="3 3"
+                strokeWidth="1.8"
+                strokeDasharray="4 3"
               />
+              {/* Corner handles with Apple-style frosted outer ring + crisp pip */}
               {QUAD_ANGLED.map(([x, y]) => (
-                <circle key={`${x}-${y}`} cx={x} cy={y} r="4.5" className="svgCornerHandle" />
+                <g key={`${x}-${y}`}>
+                  <circle cx={x} cy={y} r="5.5" fill="var(--panel)" stroke="var(--accent-2)" strokeWidth="1.5" />
+                  <circle cx={x} cy={y} r="2.8" className="svgCornerHandle" />
+                </g>
               ))}
-              {/* Loupe hint on the top-left handle */}
-              <circle
-                cx="32"
-                cy="26"
-                r="11"
-                fill="none"
-                stroke="var(--handle)"
-                strokeWidth="1.2"
-                strokeDasharray="2 2"
-                strokeOpacity="0.8"
-              />
-              <line x1="32" y1="18" x2="32" y2="34" stroke="var(--handle)" strokeWidth="1" strokeOpacity="0.5" />
-              <line x1="24" y1="26" x2="40" y2="26" stroke="var(--handle)" strokeWidth="1" strokeOpacity="0.5" />
+              {/* Apple precision magnifying loupe hint on the top-left handle */}
+              <g filter="url(#emptyStep2LoupeShadow)">
+                <circle
+                  cx="32"
+                  cy="26"
+                  r="13"
+                  fill="var(--panel)"
+                  stroke="var(--line)"
+                  strokeWidth="1.2"
+                />
+                <circle
+                  cx="32"
+                  cy="26"
+                  r="11"
+                  fill="none"
+                  stroke="var(--accent-2)"
+                  strokeWidth="1"
+                  strokeDasharray="2 2"
+                  strokeOpacity="0.75"
+                />
+                <line x1="32" y1="16" x2="32" y2="36" stroke="var(--accent-2)" strokeWidth="1" strokeOpacity="0.6" strokeLinecap="round" />
+                <line x1="22" y1="26" x2="42" y2="26" stroke="var(--accent-2)" strokeWidth="1" strokeOpacity="0.6" strokeLinecap="round" />
+                <circle cx="32" cy="26" r="2.5" fill="var(--handle)" stroke="var(--panel)" strokeWidth="1" />
+              </g>
             </svg>
           </div>
           <div className="workflowStepInfo">
@@ -242,27 +306,43 @@ export function CanvasEmptyState({
         <div className="workflowStep" data-step="3">
           <div className="workflowStepVisual" aria-hidden="true">
             <svg viewBox="0 0 160 100" fill="none" className="workflowSvg">
+              <defs>
+                <filter id="emptyStep3SlideShadow" x="-20%" y="-20%" width="140%" height="150%">
+                  <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#000000" floodOpacity="0.12" />
+                  <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#000000" floodOpacity="0.22" />
+                </filter>
+                <filter id="emptyStep3BadgeShadow" x="-40%" y="-40%" width="180%" height="180%">
+                  <feDropShadow dx="0" dy="2" stdDeviation="2.5" floodColor="#30d158" floodOpacity="0.4" />
+                </filter>
+                <linearGradient id="emptyStep3BadgeGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#34c759" />
+                  <stop offset="100%" stopColor="#24a644" />
+                </linearGradient>
+              </defs>
               <StepFrame />
               <rect
                 x="24"
                 y="20"
                 width="112"
                 height="60"
-                rx="3"
+                rx="4.5"
                 className="svgSlideClean"
-                stroke="var(--accent-2)"
-                strokeWidth="1.5"
+                stroke="light-dark(rgba(0,0,0,0.06), rgba(255,255,255,0.12))"
+                strokeWidth="1"
+                filter="url(#emptyStep3SlideShadow)"
               />
               <SlideContent quad={QUAD_FLAT} contrast={1} />
-              {/* Completion badge */}
-              <circle cx="132" cy="76" r="8" className="svgTealFill" stroke="var(--panel)" strokeWidth="2" />
-              <path
-                d="m129 76 2 2 4-4"
-                stroke="var(--accent-2-text)"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
+              {/* Apple-style floating success badge */}
+              <g filter="url(#emptyStep3BadgeShadow)">
+                <circle cx="132" cy="76" r="9" fill="url(#emptyStep3BadgeGrad)" stroke="var(--panel)" strokeWidth="2" />
+                <path
+                  d="m128.5 76 2.5 2.5 5-5"
+                  stroke="#ffffff"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </g>
             </svg>
           </div>
           <div className="workflowStepInfo">
@@ -272,80 +352,13 @@ export function CanvasEmptyState({
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="emptyActions">
-        <Button
-          variant="primary"
-          size={isMobile ? "touch" : "md"}
-          className="emptyActionBtn emptyUploadBtn"
-          disabled={busy}
-          onClick={onUpload}
-        >
-          <svg
-            width="18"
-            height="18"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden="true"
-          >
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-          <span>{isMobile ? text.uploadTitle : text.dropTitle}</span>
-        </Button>
-
-        {onLoadSample && (
-          <Button
-            variant="secondary"
-            size={isMobile ? "touch" : "md"}
-            className="emptyActionBtn emptySampleBtn"
-            disabled={busy}
-            onClick={onLoadSample}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polygon points="5 3 19 12 5 21 5 3" />
-            </svg>
-            <span>{text.trySample}</span>
-          </Button>
-        )}
-      </div>
-
       {/* Photography Tips Card */}
-      <div className="emptyTipsCard" role="complementary" aria-label={text.tipsHeading}>
-        <div className="emptyTipsTitleRow">
-          <svg
-            width="15"
-            height="15"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="emptyTipsIcon"
-            aria-hidden="true"
-          >
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="16" x2="12" y2="12" />
-            <line x1="12" y1="8" x2="12.01" y2="8" />
-          </svg>
+      <details className="emptyTipsCard">
+        <summary className="emptyTipsTitleRow">
+          <Icon name="info.circle" size={16} className="emptyTipsIcon" />
           <span className="emptyTipsTitle">{text.tipsHeading}</span>
-        </div>
+          <Icon name="chevron.down" size={14} className="emptyTipsChevron" />
+        </summary>
 
         <div className="emptyTipsGrid">
           <div className="emptyTipItem">
@@ -386,7 +399,7 @@ export function CanvasEmptyState({
             </div>
           </div>
         </div>
-      </div>
+      </details>
     </div>
   );
 }

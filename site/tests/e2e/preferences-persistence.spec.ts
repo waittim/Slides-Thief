@@ -27,7 +27,7 @@ test("persists explicit user locale choice across reload without being overwritt
   // Explicitly select Simplified Chinese
   await langSelect.selectOption("zh-CN");
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
-  await expect(page.getByRole("button", { name: "自动校正" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "点击或拖拽上传", exact: true })).toBeVisible();
 
   // Reload page
   await page.reload();
@@ -35,7 +35,7 @@ test("persists explicit user locale choice across reload without being overwritt
   // Language should remain zh-CN after reload
   await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
   await expect(page.locator("label.languageSetting select:visible").first()).toHaveValue("zh-CN");
-  await expect(page.getByRole("button", { name: "自动校正" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "点击或拖拽上传", exact: true })).toBeVisible();
 });
 
 test("persists export settings, enhancement mode, and target filename across reload", async ({ page }) => {
@@ -144,9 +144,7 @@ test("desktop renders preferences in semantic nav while mobile unifies them in s
   await expect(page.locator("footer")).toHaveCount(0);
 
   // Desktop preference bar controls are visible
-  await expect(prefsNav.locator(".privacyBadge")).toBeVisible();
   await expect(prefsNav.locator(".infoButton")).toBeVisible();
-  await expect(prefsNav.locator(".shortcutsButton")).toBeVisible();
   await expect(prefsNav.locator(".themeSetting select")).toBeVisible();
   await expect(prefsNav.locator(".languageSetting select")).toBeVisible();
 
@@ -154,7 +152,6 @@ test("desktop renders preferences in semantic nav while mobile unifies them in s
   await expect(page.locator(".settingsMenuBody > .settingsMenuTheme")).toBeHidden();
   await expect(page.locator(".settingsMenuBody > .settingsMenuLanguage")).toBeHidden();
   await expect(page.locator(".settingsMenuBody > .settingsMenuInfo")).toBeHidden();
-  await expect(page.locator(".settingsMenuBody > .settingsMenuShortcuts")).toBeHidden();
 
   // 2. Switch to Mobile viewport
   await page.setViewportSize({ width: 390, height: 844 });
@@ -170,12 +167,10 @@ test("desktop renders preferences in semantic nav while mobile unifies them in s
   const mobileThemeSelect = page.locator(".settingsMenuBody > .settingsMenuTheme select");
   const mobileLangSelect = page.locator(".settingsMenuBody > .settingsMenuLanguage select");
   const mobileInfoButton = page.locator(".settingsMenuBody > .settingsMenuInfo");
-  const mobileShortcutsButton = page.locator(".settingsMenuBody > .settingsMenuShortcuts");
 
   await expect(mobileThemeSelect).toBeVisible();
   await expect(mobileLangSelect).toBeVisible();
   await expect(mobileInfoButton).toBeVisible();
-  await expect(mobileShortcutsButton).toBeVisible();
 
   // Changing theme from mobile menu updates html theme attribute
   await mobileThemeSelect.selectOption("dark");

@@ -22,7 +22,6 @@ export function HeaderHarness({
   const [settingsOpen, setSettingsOpen] = useState(true);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   const settingsMenuRef = useRef<HTMLDetailsElement>(null);
   const moreSettingsRef = useRef<HTMLDetailsElement>(null);
@@ -52,7 +51,6 @@ export function HeaderHarness({
         updateSettings={(updater) => setSettings(updater)}
         runAutoWithSettings={() => {}}
         setIsInfoOpen={setIsInfoOpen}
-        setIsShortcutsOpen={setIsShortcutsOpen}
       />
       <div data-testid="current-pdf-base-name">{pdfBaseName}</div>
       <button type="button" data-testid="outside-button">

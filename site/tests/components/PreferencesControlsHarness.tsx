@@ -17,7 +17,6 @@ export function PreferencesControlsHarness({
   const [theme, setTheme] = useState<ThemeValue>(initialTheme);
   const [locale, setLocale] = useState<LocaleValue>(initialLocale);
   const [isInfoOpen, setIsInfoOpen] = useState(false);
-  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false);
 
   const text = copy[locale];
 
@@ -33,7 +32,6 @@ export function PreferencesControlsHarness({
             locale={locale}
             setLocale={setLocale}
             setIsInfoOpen={setIsInfoOpen}
-            setIsShortcutsOpen={setIsShortcutsOpen}
           />
         </nav>
       ) : (
@@ -47,13 +45,11 @@ export function PreferencesControlsHarness({
               locale={locale}
               setLocale={setLocale}
               setIsInfoOpen={setIsInfoOpen}
-              setIsShortcutsOpen={setIsShortcutsOpen}
             />
           </div>
         </details>
       )}
       <div data-testid="info-status">{isInfoOpen ? "open" : "closed"}</div>
-      <div data-testid="shortcuts-status">{isShortcutsOpen ? "open" : "closed"}</div>
       <div data-testid="theme-status">{theme}</div>
       <div data-testid="locale-status">{locale}</div>
     </div>

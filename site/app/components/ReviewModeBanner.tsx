@@ -1,5 +1,5 @@
 import type { ReviewUiCopy } from "../i18n";
-import { Button } from "./ui/Button";
+import { Button, Icon } from "./ui";
 
 export type ReviewModeBannerProps = {
   currentIndex: number;
@@ -35,19 +35,7 @@ export function ReviewModeBanner({
       <div className="reviewModeBannerMain">
         <div className="reviewModeBannerBadge">
           <span className="reviewModeIcon" aria-hidden="true">
-            <svg
-              width="15"
-              height="15"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
+            <Icon name="magnifyingglass" size={15} />
           </span>
           <strong className="reviewModeTitle">{reviewText.reviewModeTitle}</strong>
           {totalCount > 0 ? (
@@ -70,7 +58,8 @@ export function ReviewModeBanner({
               title={`${reviewText.reviewPrevSlide} (K)`}
               aria-label={reviewText.reviewPrevSlide}
             >
-              ‹ {reviewText.reviewPrevSlide}
+              <Icon name="chevron.backward" size={12} />
+              <span>{reviewText.reviewPrevSlide}</span>
             </Button>
             <Button
               variant="secondary"
@@ -81,7 +70,8 @@ export function ReviewModeBanner({
               title={`${reviewText.reviewNextSlide} (J)`}
               aria-label={reviewText.reviewNextSlide}
             >
-              {reviewText.reviewNextSlide} ›
+              <span>{reviewText.reviewNextSlide}</span>
+              <Icon name="chevron.forward" size={12} />
             </Button>
           </div>
         ) : null}
@@ -96,19 +86,7 @@ export function ReviewModeBanner({
             onClick={onConfirm}
             title={reviewText.reviewConfirmSlide}
           >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+            <Icon name="checkmark" size={14} />
             {reviewText.reviewConfirmSlide}
           </Button>
         ) : null}

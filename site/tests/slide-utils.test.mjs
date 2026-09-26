@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-const { isIOSUserAgent, triggerDownload } = await import(
+const { isIOSUserAgent, triggerDownload, confidenceSummary } = await import(
   new URL("../app/lib/slide-utils.ts", import.meta.url).href
 );
 
@@ -104,4 +104,24 @@ test("triggerDownload handles iOS and non-iOS branches", () => {
     globalThis.window = originalWindow;
     globalThis.document = originalDocument;
   }
+});
+
+test("confidenceSummary formats score and status label correctly", () => {
+  const text = { confidence: "置信度" };
+  const reviewText = { reviewSuggested: "建议复查", confidenceGood: "良好" };
+
+  assert.deepEqual(
+    confidenceSummary({ status: "pending" }, text, reviewText),
+    { label: "-", tooltip: undefined },
+  );
+
+  assert.deepEqual(
+    confidenceSummary({ status: "ready", confidence: 0.95, needsReview: false }, text, reviewText),
+    { label: "0.95 (良好)", tooltip: "置信度: 0.95" },
+  );
+
+  assert.deepEqual(
+    confidenceSummary({ status: "ready", confidence: 0.65, needsReview: true }, text, reviewText),
+    { label: "0.65 (建议复查)", tooltip: "置信度: 0.65" },
+  );
 });

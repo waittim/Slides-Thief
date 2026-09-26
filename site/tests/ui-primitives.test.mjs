@@ -20,7 +20,7 @@ test("slide rows expose sibling selection and deletion controls", async () => {
 
   assert.match(slideSidebar, /<ul className="files">/);
   assert.match(slideSidebar, /<li[\s\S]*className=\{className\}[\s\S]*<Button[\s\S]*className="slideSelectButton"/);
-  assert.match(slideSidebar, /className="slideDeleteButton iconOnlyButton"/);
+  assert.match(slideSidebar, /variant="icon"[\s\S]*className="slideDeleteButton"/);
   assert.doesNotMatch(slideSidebar, /role="button"/);
   assert.doesNotMatch(slideSidebar, /aria-pressed=\{active\}/);
   assert.match(slideSidebar, /aria-current=\{active \? "true" : undefined\}/);

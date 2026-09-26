@@ -2,6 +2,61 @@ import { test, expect } from "@playwright/experimental-ct-react";
 import { SidebarHarness } from "./SidebarHarness";
 import { makeTestSlide } from "./slide-test-helpers";
 
+test("primary and export actions keep their positions when a slide becomes ready", async ({ mount }) => {
+  const component = await mount(<SidebarHarness />);
+  await component.locator('input[type="file"]').first().setInputFiles({
+    name: "deck.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("not-used-by-this-component-test"),
+  });
+
+  const actions = component.locator(".sidebarActions button");
+  await expect(actions).toHaveText(["Auto straighten", "Generate PDF", "Export JPG"]);
+  const positionsBefore = await actions.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const { x, y, width } = button.getBoundingClientRect();
+      return { x, y, width };
+    }),
+  );
+
+  await actions.first().click();
+  await expect(component.getByRole("button", { name: "Generate PDF" })).toBeEnabled();
+  await expect(actions).toHaveText(["Auto straighten", "Generate PDF", "Export JPG"]);
+  const positionsAfter = await actions.evaluateAll((buttons) =>
+    buttons.map((button) => {
+      const { x, y, width } = button.getBoundingClientRect();
+      return { x, y, width };
+    }),
+  );
+
+  expect(positionsAfter).toEqual(positionsBefore);
+  expect(positionsAfter[0].width).toBeGreaterThan(positionsAfter[1].width);
+  expect(positionsAfter[1].y).toBe(positionsAfter[2].y);
+});
+
+test("mobile sidebar actions provide 44px touch targets", async ({ mount, page }) => {
+  await page.setViewportSize({ width: 320, height: 844 });
+  const component = await mount(<SidebarHarness isMobile />);
+  await component.locator('input[type="file"]').first().setInputFiles({
+    name: "deck.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("not-used-by-this-component-test"),
+  });
+
+  const cornerDataSummary = component.locator(".manualQuadsSummary");
+  await expect(cornerDataSummary).toBeVisible();
+  await expect(component.getByRole("button", { name: "Import corners" })).toBeHidden();
+  await cornerDataSummary.click();
+
+  const actionHeights = await component.locator(".sidebarActions button, .manualQuadsActions button").evaluateAll(
+    (buttons) => buttons.map((button) => button.getBoundingClientRect().height),
+  );
+  expect(actionHeights).toHaveLength(5);
+  for (const height of actionHeights) expect(height).toBeGreaterThanOrEqual(44);
+  const summaryHeight = await cornerDataSummary.evaluate((summary) => summary.getBoundingClientRect().height);
+  expect(summaryHeight).toBeGreaterThanOrEqual(44);
+});
+
 test("file selection, straighten, and export controls follow the user-visible state", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
   const fileInput = component.locator('input[type="file"]').first();
@@ -24,6 +79,10 @@ test("file selection, straighten, and export controls follow the user-visible st
   await expect(component.getByTestId("workflow-status")).toHaveText("exported");
   await expect(component.getByRole("link", { name: "Download PDF" })).toHaveAttribute("download", "deck.pdf");
 
+  const cornerDataSummary = component.locator(".manualQuadsSummary");
+  await expect(component.getByRole("button", { name: "Export corners" })).toBeHidden();
+  await cornerDataSummary.focus();
+  await cornerDataSummary.press("Enter");
   await expect(component.getByRole("button", { name: "Export corners" })).toBeEnabled();
   await component.getByRole("button", { name: "Export corners" }).click();
   await expect(component.getByTestId("workflow-status")).toHaveText("manual-exported");
@@ -216,15 +275,8 @@ test("dropzone shows Add more photos and appends subsequent file uploads", async
   await expect(component.locator(".uiCountBadge")).toHaveText("2");
 });
 
-test("shows Try Sample Image in sidebar when empty and loads sample slide on click", async ({ mount }) => {
+test("does not show Try Sample Image in sidebar when empty", async ({ mount }) => {
   const component = await mount(<SidebarHarness />);
-  const sampleBtn = component.getByRole("button", { name: "Try Sample Image" });
-
-  await expect(sampleBtn).toBeVisible();
-  await sampleBtn.click();
-
-  await expect(component.getByText("sample.jpg", { exact: true })).toBeVisible();
-  await expect(component.getByText("Add more photos")).toBeVisible();
   await expect(component.getByRole("button", { name: "Try Sample Image" })).toHaveCount(0);
 });
 
@@ -699,4 +751,3 @@ test("sidebar on mobile applies compact middle-truncation preserving distinguish
   await expect(names.nth(0)).toHaveAttribute("aria-label", cameraPhoto1);
   await expect(names.nth(1)).toHaveAttribute("aria-label", cameraPhoto2);
 });
-

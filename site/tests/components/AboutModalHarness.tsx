@@ -16,7 +16,7 @@ export function AboutModalHarness() {
         infoModalRef={infoModalRef}
         closeInfoButtonRef={closeInfoButtonRef}
         text={copy["zh-CN"]}
-        appVersion="2.3.0"
+        appVersion="3.0.0"
         telemetryEnabled={telemetry}
         setTelemetryEnabled={setTelemetry}
       />
