@@ -6,7 +6,7 @@ test("renders the 3-step workflow diagram, action buttons, and photography tips"
 
   // Title and privacy badge
   await expect(component.getByText("Turn angled slide photos into flat, crystal-clear documents")).toBeVisible();
-  await expect(component.getByText(/100% local browser processing/i)).toBeVisible();
+  await expect(component.getByText(/100% local processing/i)).toBeVisible();
 
   // 3-Step workflow
   await expect(component.getByText("1. Angled Photo")).toBeVisible();
@@ -69,4 +69,16 @@ test("renders localized copy correctly in Simplified Chinese", async ({ mount })
   await expect(component.getByText("3. 展平生成")).toBeVisible();
   await expect(component.getByRole("button", { name: "尝试示例图片" })).toBeVisible();
   await expect(component.getByText("拍摄小贴士 · 获得最佳校正效果")).toBeVisible();
+});
+
+test("renders localized copy correctly in Japanese", async ({ mount }) => {
+  const component = await mount(<CanvasEmptyStateHarness initialLocale="ja" />);
+
+  await expect(component.getByText("斜めのスライド写真、一瞬でまっすぐ鮮明に")).toBeVisible();
+  await expect(component.getByText(/100% ローカル処理/i)).toBeVisible();
+  await expect(component.getByText("1. どこからでも撮影")).toBeVisible();
+  await expect(component.getByText("2. スマート境界検出")).toBeVisible();
+  await expect(component.getByText("3. まっすぐPDF化")).toBeVisible();
+  await expect(component.getByRole("button", { name: "サンプル画像を試す" })).toBeVisible();
+  await expect(component.getByText("きれいに補正するための撮影のコツ")).toBeVisible();
 });

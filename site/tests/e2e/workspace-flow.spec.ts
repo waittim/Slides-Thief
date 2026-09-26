@@ -828,7 +828,7 @@ test("displays guided empty state on initial load and loads sample slide on clic
   const emptyState = page.locator(".canvasEmptyState");
   await expect(emptyState).toBeVisible();
   await expect(emptyState.getByText("Turn angled slide photos into flat, crystal-clear documents")).toBeVisible();
-  await expect(emptyState.getByText(/100% local browser processing/i)).toBeVisible();
+  await expect(emptyState.getByText(/100% local processing/i)).toBeVisible();
   await expect(emptyState.locator(".emptyWorkflow")).toBeVisible();
   await expect(emptyState.locator(".emptyTipsCard")).toBeVisible();
 
