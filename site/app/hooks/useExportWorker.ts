@@ -56,7 +56,6 @@ export function useExportWorker(
         const buffer = message.pdf ?? message.buffer;
         trackEvent(format === "jpg" ? "jpg_export_success" : "pdf_export_success", {
           page_count: slidesRef.current.length,
-          file_size_bytes: buffer.byteLength,
         });
         const prevUrl = exportArtifactsRef.current[format]?.url;
         if (prevUrl) {
@@ -86,6 +85,7 @@ export function useExportWorker(
         setExportProgress(null);
         releaseWorker();
         triggerDownload(url, message.filename, isIOSRef?.current);
+        trackEvent("download_started");
       }
       if (message.type === "error") {
         trackEvent("processing_error", {

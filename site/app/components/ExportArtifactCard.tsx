@@ -1,6 +1,7 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n";
 import { formatBytes } from "../lib/slide-utils";
+import { trackEvent } from "../lib/telemetry";
 
 export interface ExportArtifactCardProps {
   format: "pdf" | "jpg";
@@ -43,6 +44,7 @@ export function ExportArtifactCard({
       download={isIOS ? undefined : filename}
       target="_blank"
       rel="noopener noreferrer"
+      onClick={() => trackEvent("download_started")}
       className={`artifactCard ${isStale ? "artifactCard--stale sidebarLink--stale" : ""}`}
       title={titleAttr}
     >

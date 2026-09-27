@@ -146,11 +146,15 @@ test("trackEvent strips filenames, error text, and unknown parameters", () => {
       error_message: "Could not open private-name.heic",
     });
     trackEvent("image_import", { count: 1, has_heif: true, filename: "private-name.heic" });
+    trackEvent("pdf_export_success", { page_count: 2, file_size_bytes: 12345, filename: "private-name.heic" });
+    trackEvent("download_started", { filename: "private-name.heic", file_size_bytes: 12345 });
     trackEvent("arbitrary_event", { filename: "private-name.heic" });
     assert.deepEqual(events, [
       { command: "event", action: "corner_adjusted", params: undefined },
       { command: "event", action: "processing_error", params: { error_type: "slide_error", error_code: "unknown" } },
       { command: "event", action: "image_import", params: { count: 1, has_heif: true } },
+      { command: "event", action: "pdf_export_success", params: { page_count: 2 } },
+      { command: "event", action: "download_started", params: undefined },
     ]);
     assert.doesNotMatch(JSON.stringify(events), /private-name/);
   } finally {

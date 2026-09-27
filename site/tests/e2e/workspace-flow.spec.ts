@@ -20,7 +20,29 @@ test("converts a real HEIC image locally and exports it as a PDF", async ({ page
   await page.keyboard.press("Control+Enter");
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toBe("flattened_slides.pdf");
-  await expect(page.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", /^blob:/, { timeout: 45_000 });
+  const pdfLink = page.getByRole("link", { name: "Download PDF" });
+  await expect(pdfLink).toHaveAttribute("href", /^blob:/, { timeout: 45_000 });
+
+  const repeatedDownload = page.waitForEvent("download");
+  await pdfLink.click();
+  expect((await repeatedDownload).suggestedFilename()).toBe("flattened_slides.pdf");
+
+  await page.locator(".manualQuadsSummary").click();
+  const cornersDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Export corners" }).click();
+  expect((await cornersDownload).suggestedFilename()).toBe("manual_quads.json");
+
+  const telemetry = await page.evaluate(() => (window as Window & { dataLayer?: unknown[] }).dataLayer ?? []);
+  const downloadEvents = telemetry.filter(
+    (entry): entry is unknown[] => Array.isArray(entry) && entry[0] === "event" && entry[1] === "download_started",
+  );
+  expect(downloadEvents).toEqual([
+    ["event", "download_started"],
+    ["event", "download_started"],
+    ["event", "download_started"],
+  ]);
+  expect(telemetry.find((entry) => Array.isArray(entry) && entry[1] === "pdf_export_success"))
+    .toEqual(["event", "pdf_export_success", { page_count: 1 }]);
 });
 
 test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ page }) => {

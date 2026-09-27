@@ -25,6 +25,7 @@ import {
 import {
   AppError,
   isAppError,
+  trackEvent,
   type ExportArtifact,
   type Settings,
   type SlideItem,
@@ -389,6 +390,7 @@ export function SlidesThiefApp() {
       link.href = url;
       link.download = "manual_quads.json";
       link.click();
+      trackEvent("download_started");
       window.setTimeout(() => URL.revokeObjectURL(url), 0);
       setWorkerError("");
       setCornerAnnouncement(text.exportCorners);

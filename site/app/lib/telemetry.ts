@@ -63,10 +63,9 @@ export function trackEvent(name: string, params: Record<string, unknown> = {}): 
     gtag("event", name, { count, has_heif: params.has_heif });
   } else if (name === "pdf_export_success" || name === "jpg_export_success") {
     const pageCount = safeCount(params.page_count);
-    const fileSize = safeCount(params.file_size_bytes);
-    if (pageCount === undefined || fileSize === undefined) return;
-    gtag("event", name, { page_count: pageCount, file_size_bytes: fileSize });
-  } else if (name === "corner_adjusted") {
+    if (pageCount === undefined) return;
+    gtag("event", name, { page_count: pageCount });
+  } else if (name === "corner_adjusted" || name === "download_started") {
     gtag("event", name);
   } else if (name === "processing_error") {
     const errorType = ERROR_TYPES.has(params.error_type as string) ? params.error_type : "unknown";
