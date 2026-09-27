@@ -20,8 +20,10 @@ is not requested on a subsequent visit while analytics is disabled. Saved opt-ou
 from older versions remain disabled.
 
 Google Analytics can also generate events outside the app's event whitelist.
-Its enhanced file-download measurement can include a `file_name` parameter.
-Before deploying default-on analytics, the owner of the Google Analytics web
-data stream must disable **File downloads** under **Enhanced measurement** and
-verify that no other automatic event sends file names or user-provided content.
-That stream setting is managed in Google Analytics, not in this repository.
+For the `slidesthief.com` data stream (`G-74RGGMV3PH`), **Enhanced measurement**
+is configured to keep only page views enabled. File downloads, site search,
+form interactions, outbound clicks, scrolls, and video engagement are disabled.
+In particular, Google's file-download event can include a `file_name` parameter,
+and its site-search event can include a URL query value. These stream settings
+are managed in Google Analytics rather than this repository and must be checked
+again before each release or if the stream is replaced.

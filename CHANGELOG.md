@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Usage analytics is on by default after stored preferences are checked. Saved opt-outs remain off, and app events exclude filenames and raw errors.
+- Limited the Google Analytics data stream's automatic enhanced measurement to page views; disabled file downloads, site search, form interactions, outbound clicks, scrolls, and video engagement.
 - Corrected web and CLI documentation for source ratios, PDF page layouts, paper sizes, and margin colors.
 - Appended newly imported slides to the current batch instead of silently replacing existing slides.
 - Surfaced enhancement mode to top-level settings and grouped export parameters into logical collapsible sections.
