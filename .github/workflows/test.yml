@@ -35,6 +35,10 @@ jobs:
         working-directory: site
         run: npm ci
 
+      - name: Audit Web dependencies
+        working-directory: site
+        run: npm audit --audit-level=moderate
+
       - name: Check generated detection configuration
         run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/generate_detection_config.py --check
 
@@ -57,9 +61,9 @@ jobs:
         working-directory: site
         run: npm run lint
 
-      - name: Install Playwright browser
+      - name: Install Playwright browsers
         working-directory: site
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Web tests and builds
         working-directory: site

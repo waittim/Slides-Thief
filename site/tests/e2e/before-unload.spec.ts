@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, openApp } from "./fixtures";
 import { fileURLToPath } from "node:url";
 
 const fixture = fileURLToPath(
@@ -14,7 +14,7 @@ test("does not warn on reload when no slides are loaded", async ({ page }) => {
     }
   });
 
-  await page.goto("/");
+  await openApp(page);
   await expect(page.locator(".app")).not.toHaveAttribute("data-has-unsaved-work");
 
   await page.reload();
@@ -30,7 +30,7 @@ test("warns on reload when unexported slides exist and keeps work when cancelled
     }
   });
 
-  await page.goto("/");
+  await openApp(page);
   await page.locator('input[type="file"]').setInputFiles(fixture);
 
   await expect(
@@ -61,7 +61,7 @@ test("clearing all slides removes unsaved work flag and allows clean reload", as
     }
   });
 
-  await page.goto("/");
+  await openApp(page);
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await expect(page.locator(".app")).toHaveAttribute("data-has-unsaved-work", "true");
 
@@ -92,7 +92,7 @@ test("exporting slides removes unsaved work flag, and modifying quads afterwards
     }
   });
 
-  await page.goto("/");
+  await openApp(page);
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await expect(page.locator(".app")).toHaveAttribute("data-has-unsaved-work", "true");
 
@@ -113,4 +113,3 @@ test("exporting slides removes unsaved work flag, and modifying quads afterwards
   await page.reload();
   expect(dialogCount).toBe(0);
 });
-

@@ -22,7 +22,6 @@ export default defineConfig({
   use: {
     ...devices["Desktop Chrome"],
     trace: "on-first-retry",
-    launchOptions,
   },
   webServer: [
     {
@@ -41,11 +40,25 @@ export default defineConfig({
   projects: [
     {
       name: "server-build",
-      use: { baseURL: "http://127.0.0.1:4173" },
+      use: { baseURL: "http://127.0.0.1:4173", launchOptions },
     },
     {
       name: "github-pages-build",
-      use: { baseURL: "http://127.0.0.1:4174" },
+      use: { baseURL: "http://127.0.0.1:4174", launchOptions },
+    },
+    {
+      name: "server-webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        baseURL: "http://127.0.0.1:4173",
+      },
+    },
+    {
+      name: "github-pages-webkit",
+      use: {
+        ...devices["Desktop Safari"],
+        baseURL: "http://127.0.0.1:4174",
+      },
     },
   ],
 });

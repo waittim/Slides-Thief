@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { test, expect } from "./fixtures";
 
 test("persists theme preference across page reload", async ({ page }) => {
   await page.goto("/");
@@ -86,48 +86,63 @@ test("persists export settings, enhancement mode, and target filename across rel
   await expect(page.locator('label:has(span:text-matches("Export quality|导出质量", "i")) input').first()).toHaveValue("88");
 });
 
-test("persists telemetry opt-out across page reload and sets ga-disable flag", async ({ page }) => {
+test("enables analytics by default and persists an explicit opt-out", async ({ page }) => {
+  let tagRequests = 0;
+  await page.route(/https:\/\/www\.googletagmanager\.com\/gtag\/js\?.*/, async (route) => {
+    tagRequests += 1;
+    await route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+  });
   await page.goto("/");
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(1);
+  await expect.poll(() => tagRequests).toBe(1);
 
-  // 1. Open the About modal
   const infoButton = page.locator("button.infoButton:visible").first();
   await expect(infoButton).toBeVisible();
   await infoButton.click();
-
-  const modalCard = page.locator(".modalCard");
-  await expect(modalCard).toBeVisible();
-
-  // 2. Find telemetry switch inside modal, verify it starts enabled
-  const telemetrySwitch = page.getByRole("switch", { name: /Anonymous Usage Analytics|匿名使用统计/i });
+  const telemetrySwitch = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
   await expect(telemetrySwitch).toBeVisible();
   await expect(telemetrySwitch).toBeChecked();
 
-  // 3. Toggle off telemetry
+  // An explicit opt-out survives reload and prevents the tag from loading.
   await telemetrySwitch.click();
   await expect(telemetrySwitch).not.toBeChecked();
-
-  // 4. Verify ga-disable flag is set on window
-  const isOptedOutBeforeReload = await page.evaluate(() => {
-    return (window as unknown as Record<string, unknown>)["ga-disable-G-74RGGMV3PH"] === true;
-  });
-  expect(isOptedOutBeforeReload).toBe(true);
-
-  // 5. Reload page
   await page.reload();
-
-  // 6. Verify window ga-disable flag is set immediately on reload (from pre-load script)
-  const isOptedOutAfterReload = await page.evaluate(() => {
-    return (window as unknown as Record<string, unknown>)["ga-disable-G-74RGGMV3PH"] === true;
-  });
-  expect(isOptedOutAfterReload).toBe(true);
-
-  // 7. Open About modal again and verify switch remains unchecked
+  await expect(page.locator(".app")).toHaveAttribute("data-hydrated", "true");
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
+  expect(tagRequests).toBe(1);
   const infoButtonAfterReload = page.locator("button.infoButton:visible").first();
   await infoButtonAfterReload.click();
-  const telemetrySwitchAfterReload = page.getByRole("switch", { name: /Anonymous Usage Analytics|匿名使用统计/i });
+  const telemetrySwitchAfterReload = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
   await expect(telemetrySwitchAfterReload).toBeVisible();
   await expect(telemetrySwitchAfterReload).not.toBeChecked();
+
+  // Re-enabling loads the tag once and is itself persisted.
+  await telemetrySwitchAfterReload.click();
+  await expect(telemetrySwitchAfterReload).toBeChecked();
+  await expect.poll(() => tagRequests).toBe(2);
+  await page.reload();
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(1);
+  await expect.poll(() => tagRequests).toBe(3);
 });
+
+for (const version of [1, 2]) {
+  test(`saved version ${version} analytics opt-out prevents tag loading`, async ({ page }) => {
+    let tagRequests = 0;
+    await page.route(/https:\/\/www\.googletagmanager\.com\/gtag\/js\?.*/, async (route) => {
+      tagRequests += 1;
+      await route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+    });
+    await page.addInitScript((storedVersion) => {
+      localStorage.setItem("slides_thief_user_preferences", JSON.stringify({ version: storedVersion, telemetry: false }));
+    }, version);
+    await page.goto("/");
+    const infoButton = page.locator("button.infoButton:visible").first();
+    await infoButton.click();
+    await expect(page.getByRole("switch", { name: /Usage analytics|使用统计/i })).not.toBeChecked();
+    expect(tagRequests).toBe(0);
+    await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
+  });
+}
 
 test("desktop renders preferences in semantic nav while mobile unifies them in settings menu", async ({ page }) => {
   // 1. Desktop viewport

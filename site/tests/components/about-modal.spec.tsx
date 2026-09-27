@@ -24,9 +24,10 @@ test("renders privacy statement and interactive telemetry toggle switch", async 
 
   // Privacy text is displayed
   await expect(component.locator(".modalPrivacy")).toContainText("照片与生成的 PDF 仅在您的浏览器本地处理，绝不会上传至任何远程服务器。");
+  await expect(component.locator(".modalTelemetryDesc")).toContainText("默认开启");
 
-  // Telemetry switch is displayed and initially checked
-  const telemetrySwitch = component.getByRole("switch", { name: "匿名使用统计" });
+  // Telemetry is on by default and can be disabled.
+  const telemetrySwitch = component.getByRole("switch", { name: "使用统计" });
   await expect(telemetrySwitch).toBeVisible();
   await expect(telemetrySwitch).toBeChecked();
   await expect(telemetrySwitch.locator(".switchLabel")).toHaveText("已启用");

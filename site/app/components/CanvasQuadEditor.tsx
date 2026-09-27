@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
-import type { LocaleCopy, ReviewUiCopy } from "../i18n";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { LocaleCopy } from "../i18n";
 import { canRestoreAutoDetection } from "../lib/slide-transitions";
 import { displayFileName } from "../lib/slide-utils";
 import type { HandlePosition, SlideItem } from "../lib/types";
@@ -59,7 +59,6 @@ export function CanvasQuadEditor({
   canvasRef,
   loupeCanvasRef,
   loupeOverlayRef,
-  updateLoupePosition,
   handleRefs,
   slides,
   selectedSlide,
@@ -96,26 +95,23 @@ export function CanvasQuadEditor({
   isPanning = false,
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
-  const [showFullNamePopover, setShowFullNamePopover] = useState(false);
+  const [popoverSlideId, setPopoverSlideId] = useState<string | null>(null);
+  const showFullNamePopover = selectedSlide !== null && popoverSlideId === selectedSlide.id;
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLDivElement | null>(null);
   const localLoupeOverlayRef = useRef<HTMLDivElement | null>(null);
   const effectiveLoupeOverlayRef = loupeOverlayRef ?? localLoupeOverlayRef;
 
   useEffect(() => {
-    setShowFullNamePopover(false);
-  }, [selectedSlide?.id]);
-
-  useEffect(() => {
     if (!showFullNamePopover) return;
     const handlePointerDown = (event: MouseEvent | PointerEvent) => {
       if (titleRef.current && !titleRef.current.contains(event.target as Node)) {
-        setShowFullNamePopover(false);
+        setPopoverSlideId(null);
       }
     };
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setShowFullNamePopover(false);
+        setPopoverSlideId(null);
       }
     };
     document.addEventListener("pointerdown", handlePointerDown);
@@ -125,6 +121,34 @@ export function CanvasQuadEditor({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [showFullNamePopover]);
+
+  useLayoutEffect(() => {
+    if (dragHandle === null) return;
+    const handlePos = handlePositions[dragHandle];
+    const overlay = effectiveLoupeOverlayRef.current;
+    if (!handlePos || !overlay) return;
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    const stageRect = stage
+      ? {
+          left: stage.getBoundingClientRect().left + stage.clientLeft,
+          top: stage.getBoundingClientRect().top + stage.clientTop,
+          right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
+          bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
+          width: stage.clientWidth,
+          height: stage.clientHeight,
+        }
+      : null;
+    const result = calculateLoupePosition({
+      handlePos,
+      stageRect,
+      canvasRect: canvas?.getBoundingClientRect() ?? null,
+      canvasSize: canvas ? { width: canvas.width, height: canvas.height } : null,
+    });
+    overlay.style.left = `${result.left}px`;
+    overlay.style.top = `${result.top}px`;
+    overlay.dataset.placement = result.placement;
+  }, [canvasRef, dragHandle, effectiveLoupeOverlayRef, handlePositions, stageRef]);
 
   useEffect(() => {
     if (!isQuadMenuOpen) return;
@@ -218,11 +242,11 @@ export function CanvasQuadEditor({
                 role="button"
                 tabIndex={0}
                 aria-expanded={showFullNamePopover}
-                onClick={() => setShowFullNamePopover((prev) => !prev)}
+                onClick={() => setPopoverSlideId((current) => current === selectedSlide.id ? null : selectedSlide.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {
                     e.preventDefault();
-                    setShowFullNamePopover((prev) => !prev);
+                    setPopoverSlideId((current) => current === selectedSlide.id ? null : selectedSlide.id);
                   }
                 }}
               >
@@ -423,36 +447,10 @@ export function CanvasQuadEditor({
                       );
                     })
                   : null}
-                {dragHandle !== null && handlePositions[dragHandle] && (() => {
-                  const stage = stageRef.current;
-                  const canvas = canvasRef.current;
-                  const stageRect = stage
-                    ? {
-                        left: stage.getBoundingClientRect().left + stage.clientLeft,
-                        top: stage.getBoundingClientRect().top + stage.clientTop,
-                        right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
-                        bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
-                        width: stage.clientWidth,
-                        height: stage.clientHeight,
-                      }
-                    : null;
-                  const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
-                  const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
-                  const pos = calculateLoupePosition({
-                    handlePos: handlePositions[dragHandle],
-                    stageRect,
-                    canvasRect,
-                    canvasSize,
-                  });
-                  return (
+                {dragHandle !== null && handlePositions[dragHandle] ? (
                     <div
                       ref={effectiveLoupeOverlayRef}
                       className="loupeOverlay"
-                      data-placement={pos.placement}
-                      style={{
-                        left: `${pos.left}px`,
-                        top: `${pos.top}px`,
-                      }}
                     >
                       <canvas ref={loupeCanvasRef} className="loupeCanvas" />
                       <div className="loupeCrosshair" aria-hidden="true">
@@ -466,8 +464,7 @@ export function CanvasQuadEditor({
                         </svg>
                       </div>
                     </div>
-                  );
-                })()}
+                ) : null}
               </div>
             ) : slides.length === 0 ? (
               <CanvasEmptyState

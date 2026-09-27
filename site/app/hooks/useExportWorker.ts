@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState } from "react";
-import { copy, formatAppError, type LocaleValue } from "../i18n";
+import { copy, type LocaleValue } from "../i18n";
 import { messageFromError, triggerDownload } from "../lib/slide-utils";
 import {
   toAppErrorPayload,
@@ -91,7 +91,6 @@ export function useExportWorker(
         trackEvent("processing_error", {
           error_type: "export_worker_error",
           error_code: message.errorCode,
-          error_message: message.error || "Export error",
         });
         const payload = toAppErrorPayload(
           message.errorCode
@@ -111,7 +110,6 @@ export function useExportWorker(
       trackEvent("processing_error", {
         error_type: "export_worker_failure",
         error_code: payload.code,
-        error_message: payload.message || formatAppError(payload, "en"),
       });
       setWorkerError(payload);
       setExporting(false);

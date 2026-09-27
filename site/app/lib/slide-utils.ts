@@ -273,6 +273,7 @@ export function triggerDownload(url: string, filename: string, isIOS = false) {
   link.download = filename;
   link.rel = "noopener noreferrer";
   document.body.appendChild(link);
+  link.click();
   if (link.remove) {
     link.remove();
   } else if (link.parentNode) {

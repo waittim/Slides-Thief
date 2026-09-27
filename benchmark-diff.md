@@ -1,6 +1,9 @@
 # Detection benchmark diff
 
-This P1 detector now performs a two-pass batch analysis. Only non-fallback
+This file records the P1 detection evaluation snapshot. Its "Current" column
+describes that evaluation, not a benchmark rerun for every later commit.
+
+The P1 detector in this evaluation performs a two-pass batch analysis. Only non-fallback
 results with confidence at or above `0.78` can form normalized camera-position
 clusters, and each cluster requires at least three low-variance members.
 Low-confidence review items can then try the cluster median as a locally

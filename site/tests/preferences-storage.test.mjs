@@ -8,6 +8,7 @@ const {
   clearStoredPreferences,
   sanitizeSettings,
   sanitizeStoredPreferences,
+  shouldEnableTelemetry,
 } = await import(
   new URL("../app/lib/preferenceStorage.ts", import.meta.url).href
 );
@@ -38,6 +39,15 @@ function mockLocalStorage(store = {}) {
 function restoreWindow() {
   delete globalThis.window;
 }
+
+test("usage analytics defaults on while saved opt-outs remain off", () => {
+  assert.equal(shouldEnableTelemetry(null), true);
+  assert.equal(shouldEnableTelemetry({}), true);
+  assert.equal(shouldEnableTelemetry({ version: 1, telemetry: true }), true);
+  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: true }), true);
+  assert.equal(shouldEnableTelemetry({ version: 1, telemetry: false }), false);
+  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: false }), false);
+});
 
 test("sanitizeSettings handles empty or non-object input by returning defaultSettings", () => {
   assert.deepEqual(sanitizeSettings(null), defaultSettings);

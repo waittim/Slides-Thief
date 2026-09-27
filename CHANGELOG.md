@@ -23,11 +23,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Accidental navigation/unload warning when unsaved slides are present in the workspace.
 - Keyboard shortcuts cheatsheet accessible via `?` key and About dialog, with comprehensive button tooltips displaying shortcuts.
 - Unified web app icon set using an Apple SF-Symbols style vector icon component.
-- Privacy statement clarifying browser-local photo processing and an explicit opt-out toggle for anonymous telemetry.
+- Privacy statement clarifying browser-local photo processing and an opt-out toggle for usage analytics.
 - Canvas empty state workflow diagram, slide photography tips, and interactive sample slide loader with perspective projection.
 
 ### Changed
 
+- Usage analytics is on by default after stored preferences are checked. Saved opt-outs remain off, and app events exclude filenames and raw errors.
+- Corrected web and CLI documentation for source ratios, PDF page layouts, paper sizes, and margin colors.
 - Appended newly imported slides to the current batch instead of silently replacing existing slides.
 - Surfaced enhancement mode to top-level settings and grouped export parameters into logical collapsible sections.
 - Canvas empty state is wider and less cramped: step descriptions use the standard UI line height with reserved two-line boxes so columns stay level across locales, the tips grid reflows instead of forcing three narrow columns, and the tips block is de-emphasized so the upload action stays the focal point.
@@ -43,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Triggered the browser download after export completes on desktop instead of only creating and removing a temporary link.
 - Sample slide image was not actually in perspective. Its content was drawn axis-aligned and merely clipped to the angled outline, so the demo looked like a flat slide with its corners cut off and auto-correction appeared to change nothing. The artwork is now drawn head-on and projected onto the quad through the same homography solver the correction pipeline uses, so slide content converges with the slide's own edges and straightens visibly once corrected.
 - Canvas empty state workflow diagram referenced an undefined `--accent-teal` token, so the detected-boundary dashes, the corrected-slide outline, and part of the result illustration computed to `stroke: none` and never rendered.
 - Canvas empty state illustrations now map slide content through the step's own quad, so rows follow the converging slide edges and taper toward the far edge instead of sitting as uniform-width lines at a single fixed tilt. All three steps share one content layout so they read as a single slide moving through the pipeline, and the off-palette chart colors are gone.

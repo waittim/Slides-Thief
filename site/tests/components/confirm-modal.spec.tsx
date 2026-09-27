@@ -3,7 +3,6 @@ import { ConfirmModalHarness } from "./ConfirmModalHarness";
 
 test("renders destructive Clear All modal with danger button and descriptive labels", async ({
   mount,
-  page,
 }) => {
   const component = await mount(<ConfirmModalHarness mode="clear" initialOpen={true} />);
   const modal = component.locator(".modalCard");

@@ -12,7 +12,7 @@ Slides Thief · PPT捕手 可以批量把拍歪的演示文稿照片拉正，并
 
 [https://slidesthief.com/](https://slidesthief.com/)
 
-不需要安装软件。照片处理和 PDF 生成都在你的浏览器本地完成，网页不会把原始照片上传到服务器。
+不需要安装软件。照片处理和 PDF 生成都在你的浏览器本地完成，网页不会把原始照片上传到服务器。Google Analytics 使用统计默认开启，可在“关于”中关闭；发送的数据及统计后台设置见[隐私说明](docs/privacy.md)。
 
 ## 使用方法
 
@@ -49,14 +49,15 @@ HEIC 和 HEIF 会先转换为 JPEG 再处理：网页版在浏览器内转换，
 - 自动识别幻灯片边界。
 - 手动四角修正。
 <!-- BEGIN GENERATED: web-feature-zh -->
-- 支持 16:9、4:3、16:10、ISO A4/A3（横向与纵向）与 US Letter（横向与纵向）输出比例；纸张预设会自动以白色填充边距。
+- 原稿比例可选 16:9、4:3、16:10、A4、Letter 或自定义数值；PDF 页面可匹配原稿，选用 A4、A3、Letter 横向或纵向纸张，或设置自定义宽高。
+- 页面留白使用所选填充色；默认“自动”模式从画面内容取色，无法确定时回退为白色。
 <!-- END GENERATED: web-feature-zh -->
 - 支持自定义输出宽度、质量、可选清晰增强模式和填充色。
 - 支持浅色/深色主题，以及九种界面语言：简体中文、繁体中文、English、Español、Français、Deutsch、日本語、한국어、Português。
 - 在浏览器本地生成 PDF。
 
 <!-- BEGIN GENERATED: cli-summary-zh -->
-CLI 额外支持 A5 纸张预设和任意数字自定义比例（如 `1.777`）。
+CLI 额外支持 A5 纸张比例预设，并接受数字形式的原稿或页面比例（如 `1.777`）。CLI 中的纸张名称只指定长宽比，不指定 PDF 的实际物理尺寸。
 <!-- END GENERATED: cli-summary-zh -->
 
 ## 本地命令行
@@ -66,7 +67,8 @@ CLI 额外支持 A5 纸张预设和任意数字自定义比例（如 `1.777`）�
 ```bash
 slides-thief ~/Downloads \
   --output-dir outputs/my_deck \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
+  --output-ratio match-slide \
   --width 2400 \
   --pdf-name flattened_slides.pdf
 ```
@@ -103,7 +105,8 @@ slides-thief ~/Downloads \
 slides-thief ~/Downloads \
   --output-dir outputs/my_deck_refined \
   --manual outputs/my_deck/manual_quads.json \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
+  --output-ratio match-slide \
   --width 2400
 ```
 

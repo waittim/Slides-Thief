@@ -79,11 +79,9 @@ export function useDetectionWorker(
     }
     const handleWorkerFailure = (errorInput: WorkerErrorInput) => {
       const payload = toAppErrorPayload(errorInput, "worker-stopped-unexpectedly");
-      const fallbackMessage = payload.message || formatAppError(payload, "en");
       trackEvent("processing_error", {
         error_type: "worker_failure",
         error_code: payload.code,
-        error_message: fallbackMessage,
       });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
@@ -225,7 +223,6 @@ export function useDetectionWorker(
         trackEvent("processing_error", {
           error_type: "slide_error",
           error_code: message.error.errorCode,
-          error_message: message.error.message || "Slide processing error",
         });
         const slideError: SlideError = {
           ...message.error,
@@ -252,7 +249,6 @@ export function useDetectionWorker(
         trackEvent("processing_error", {
           error_type: "worker_error",
           error_code: message.error.errorCode,
-          error_message: message.error.message || "General worker error",
         });
         activeJobIdRef.current = null;
         setDetectionProgress(null);

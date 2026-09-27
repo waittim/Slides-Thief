@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React from "react";
 import {
   DEFAULT_PDF_BASENAME,
   PDF_BASENAME_MAX_LENGTH,
@@ -78,29 +78,21 @@ export function Header({
   runAutoWithSettings,
   setIsInfoOpen,
 }: HeaderProps) {
-  const [rawPdfBaseName, setRawPdfBaseName] = useState(pdfBaseName);
-
-  useEffect(() => {
-    setRawPdfBaseName(pdfBaseName);
-  }, [pdfBaseName]);
-
-  const validation = validatePdfBaseName(rawPdfBaseName);
+  const validation = validatePdfBaseName(pdfBaseName);
   const hasError = !validation.isValid;
   const errorMessage = hasError ? getPdfBaseNameErrorMessage(validation.reason, text) : "";
 
   const handlePdfNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const nextValue = event.target.value;
-    setRawPdfBaseName(nextValue);
     setPdfBaseName(nextValue);
   };
 
   const handlePdfNameBlur = () => {
-    let sanitized = sanitizePdfBaseName(rawPdfBaseName).trim().replace(/[. ]+$/g, "");
+    let sanitized = sanitizePdfBaseName(pdfBaseName).trim().replace(/[. ]+$/g, "");
     if (sanitized && WINDOWS_RESERVED_NAME.test(sanitized)) {
       sanitized = `_${sanitized}`;
     }
-    if (sanitized !== rawPdfBaseName) {
-      setRawPdfBaseName(sanitized);
+    if (sanitized !== pdfBaseName) {
       setPdfBaseName(sanitized);
     }
   };
@@ -168,7 +160,7 @@ export function Header({
           <span>{text.pdfName}</span>
           <input
             id="pdf-base-name-input"
-            value={rawPdfBaseName}
+            value={pdfBaseName}
             placeholder={DEFAULT_PDF_BASENAME}
             maxLength={PDF_BASENAME_MAX_LENGTH}
             onChange={handlePdfNameChange}

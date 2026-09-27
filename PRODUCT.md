@@ -13,7 +13,7 @@ Students, researchers, conference attendees, and professionals who take angled p
 Convert skewed presentation and document photos into straight, high-contrast, perspective-corrected images and compile them into a clean PDF. The application runs entirely within the browser without uploading source photos.
 
 ## Positioning
-100% browser-local processing with zero server uploads, offering instant privacy, HEIC/HEIF support, automatic and manual 4-corner perspective correction, and customizable readability filters.
+Browser-local photo processing without source-image uploads, HEIC/HEIF support, automatic and manual 4-corner perspective correction, and customizable readability filters. Usage analytics is on by default after saved preferences are read and can be disabled in the About dialog.
 
 ## Operating Context
 Used during or after lectures, conferences, or document scanning sessions on desktop or mobile web browsers. Users drag and drop multiple slide photos, adjust corner points, preview enhancements, and download a finished PDF.
@@ -22,8 +22,8 @@ Used during or after lectures, conferences, or document scanning sessions on des
 - Automatic 4-corner slide and document boundary detection.
 - Manual 4-corner adjustments with keyboard and touch support.
 <!-- BEGIN GENERATED: product-capabilities-en -->
-- Pre-set and custom aspect ratios (16:9, 4:3, 16:10, A4, A3, Letter).
-- PDF paper output includes A4, A3, Letter in landscape and portrait.
+- Source aspect-ratio choices include 16:9, 4:3, 16:10, A4, Letter and custom values.
+- PDF pages can match the source, use physical A4, A3, Letter paper in landscape or portrait, or use custom pixel dimensions.
 - Supports JPEG / JPG, PNG, WebP, HEIC / HEIF in the web app.
 <!-- END GENERATED: product-capabilities-en -->
 - Local image enhancement filters (Original, Clean, High contrast, Black & White).

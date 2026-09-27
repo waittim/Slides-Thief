@@ -58,7 +58,7 @@ export function SidebarHarness({
 } = {}) {
   const [busy, setBusy] = useState(initialBusy);
   const [errorMessage, setErrorMessage] = useState(initialErrorMessage ?? "");
-  const [errorDetails, setErrorDetails] = useState(initialErrorDetails);
+  const errorDetails = initialErrorDetails;
   const [retriedAction, setRetriedAction] = useState<string | null>(null);
   const [detecting, setDetecting] = useState(initialDetecting);
   const [progress, setProgress] = useState<{ current: number; total: number } | null>(initialProgress);

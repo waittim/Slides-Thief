@@ -6,7 +6,6 @@ import {
   isHeifImage,
   isSupported,
   makeId,
-  messageFromError,
   normalizeImageFile,
 } from "../lib/slide-utils";
 import {

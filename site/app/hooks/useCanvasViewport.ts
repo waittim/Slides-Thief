@@ -53,14 +53,9 @@ export function useCanvasViewport({
   const maxZoomRef = useRef(3);
   const redrawFrameRef = useRef<number | null>(null);
   const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
-  const zoomRef = useRef(1);
-  const zoomModeRef = useRef<"fit" | "manual">("fit");
   const isSpacePressedRef = useRef(false);
   const isPanningRef = useRef(false);
   const themeColorsRef = useRef<CanvasThemeColors>(resolveCanvasThemeColors());
-
-  zoomRef.current = zoom;
-  zoomModeRef.current = zoomMode;
 
   const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
     const loupeCanvas = loupeCanvasRef.current;
@@ -93,7 +88,9 @@ export function useCanvasViewport({
   }, []);
 
   const handlePositionsRef = useRef<HandlePosition[]>([]);
-  handlePositionsRef.current = handlePositions;
+  useEffect(() => {
+    handlePositionsRef.current = handlePositions;
+  }, [handlePositions]);
 
   const updateLoupePosition = useCallback(
     (handleIndex: number | null, handlePos?: HandlePosition) => {
@@ -438,8 +435,6 @@ export function useCanvasViewport({
       };
     }
     const clamped = Math.max(fitZoomRef.current * 0.5, Math.min(maxZoomRef.current, nextZoom));
-    zoomRef.current = clamped;
-    zoomModeRef.current = "manual";
     setZoomMode("manual");
     setZoom(clamped);
   }, []);

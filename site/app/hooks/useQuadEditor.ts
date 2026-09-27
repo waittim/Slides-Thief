@@ -48,14 +48,11 @@ type QuadEditorOptions = {
 export function useQuadEditor({
   selectedSlide,
   text,
-  settings,
   setSlides,
-  setBusyText,
   setCornerAnnouncement,
   setHandlePositions,
   markExportStale,
   pushHistory,
-  startDetection,
   refreshSlideThumbnail,
   canvasRef,
   canvasRenderRef,
@@ -94,16 +91,16 @@ export function useQuadEditor({
     activePointerRef.current = null;
     dragHandleRef.current = null;
     setDragHandle(null);
-  }, [dragHandleRef, latestDragQuadRef]);
+  }, [dragHandleRef, latestDragQuadRef, stopAutoPan]);
 
   const updateSlideQuad = useCallback(
     (id: string, nextQuad: Quad) => {
       markExportStale();
+      if (selectedSlide?.id === id && selectedSlide.method !== "manual") trackEvent("corner_adjusted");
       setSlides((current) =>
         current.map((slide) => {
           if (slide.id !== id) return slide;
           if (slide.status === "converting" || slide.status === "queued") return slide;
-          if (slide.method !== "manual") trackEvent("corner_adjusted", { slide_id: id });
           const nextMetadata = {
             quad: nextQuad,
             method: "manual" as const,
@@ -138,7 +135,7 @@ export function useQuadEditor({
         }),
       );
     },
-    [markExportStale, setSlides],
+    [markExportStale, selectedSlide, setSlides],
   );
 
   const canvasPointFromClient = useCallback((clientX: number, clientY: number) => {
@@ -150,10 +147,6 @@ export function useQuadEditor({
       ((clientY - rect.top) / rect.height) * canvas.height,
     ] as const;
   }, [canvasRef]);
-
-  const canvasPoint = useCallback((event: PointerEvent<HTMLElement>) => {
-    return canvasPointFromClient(event.clientX, event.clientY);
-  }, [canvasPointFromClient]);
 
   const updateHandleFromClient = useCallback((clientX: number, clientY: number) => {
     const handleIndex = dragHandleRef.current;
@@ -284,7 +277,7 @@ export function useQuadEditor({
     updateHandleFromClient(event.clientX, event.clientY);
     checkAutoPan();
     event.preventDefault();
-  }, [activePointerRef, checkAutoPan, dragHandleRef, latestDragQuadRef, updateHandleFromClient]);
+  }, [activePointerRef, canvasRenderRef, checkAutoPan, dragHandleRef, latestDragQuadRef, updateHandleFromClient]);
 
   const onHandlePointerUp = useCallback((event: PointerEvent<HTMLButtonElement>) => {
     if (activePointerRef.current !== event.pointerId) return;

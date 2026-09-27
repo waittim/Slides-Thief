@@ -12,7 +12,6 @@ import {
 } from "./i18n";
 import {
   confidenceSummary,
-  confidenceText,
   buildAdjustedThumbnail,
   exportManualQuads as buildManualQuads,
   isIOSUserAgent,
@@ -56,6 +55,10 @@ import { PRODUCT_METADATA } from "./product-metadata";
 const APP_VERSION = PRODUCT_METADATA.version;
 
 export function SlidesThiefApp() {
+  const appRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    appRef.current?.setAttribute("data-hydrated", "true");
+  }, []);
   const [dragActive, setDragActive] = useState(false);
   const [busyText, setBusyText] = useState("");
   const [exportArtifacts, setExportArtifacts] = useState<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>({});
@@ -148,7 +151,6 @@ export function SlidesThiefApp() {
     settingsMenuRef,
     moreSettingsRef,
     updateSettings,
-    confirmClearText,
   } = usePreferences(markExportStale);
   const text = copy[locale];
   const reviewText = reviewUiCopy[locale];
@@ -177,7 +179,7 @@ export function SlidesThiefApp() {
     moveSlide,
     moveSlideUp,
     moveSlideDown,
-  } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag, confirmClearText);
+  } = useSlideDeck(markExportStale, clearExport, cancelActiveDrag);
 
   const handleRequestClearAll = useCallback(() => {
     if (slidesRef.current.length === 0) return;
@@ -207,18 +209,10 @@ export function SlidesThiefApp() {
     setDeletedNotice(null);
   }, []);
 
-  useEffect(() => {
-    setSelectedBatchIds((current) => {
-      const validIds = new Set(slides.map((s) => s.id));
-      let changed = false;
-      const next = new Set<string>();
-      for (const id of current) {
-        if (validIds.has(id)) next.add(id);
-        else changed = true;
-      }
-      return changed ? next : current;
-    });
-  }, [slides]);
+  const validSelectedBatchIds = useMemo(() => {
+    const validIds = new Set(slides.map((slide) => slide.id));
+    return new Set([...selectedBatchIds].filter((id) => validIds.has(id)));
+  }, [selectedBatchIds, slides]);
 
   const toggleBatchSelect = useCallback((id: string) => {
     setSelectedBatchIds((current) => {
@@ -340,7 +334,6 @@ export function SlidesThiefApp() {
     resetViewport,
     zoomOut,
     zoomIn,
-    zoomTo,
     isSpacePressed,
     isPanning,
   } = canvasViewport;
@@ -377,7 +370,6 @@ export function SlidesThiefApp() {
   const {
     dragHandle,
     cancelActiveDrag: cancelQuadDrag,
-    updateSlideQuad,
     updateCornerCoordinate,
     restoreAutoDetection,
     resetSelected,
@@ -767,7 +759,7 @@ export function SlidesThiefApp() {
           };
         }),
       );
-    }, [cancelQuadDrag, markExportStale, setSlides, settings, slides, startDetection, text.stretching],
+    }, [cancelQuadDrag, markExportStale, setSlides, setWorkerError, settings, slides, startDetection, text.stretching],
   );
 
   const runAuto = useCallback(() => runAutoWithSettings(), [runAutoWithSettings]);
@@ -785,7 +777,7 @@ export function SlidesThiefApp() {
       } else if (mode === "all") {
         targetSlides = currentSlides.filter((s) => s.id !== selectedSlide.id);
       } else if (mode === "selected") {
-        targetSlides = currentSlides.filter((s) => selectedBatchIds.has(s.id) && s.id !== selectedSlide.id);
+        targetSlides = currentSlides.filter((s) => validSelectedBatchIds.has(s.id) && s.id !== selectedSlide.id);
       }
 
       targetSlides = targetSlides.filter(
@@ -834,7 +826,7 @@ export function SlidesThiefApp() {
       markExportStale,
       pushHistory,
       refreshSlideThumbnail,
-      selectedBatchIds,
+      validSelectedBatchIds,
       selectedSlide,
       setCornerAnnouncement,
       setSlides,
@@ -903,13 +895,13 @@ export function SlidesThiefApp() {
         }),
       );
     },
-    [cancelQuadDrag, markExportStale, pushHistory, setSlides, settings, slides, startDetection, text.stretching],
+    [cancelQuadDrag, markExportStale, pushHistory, setSlides, setWorkerError, settings, slides, startDetection, text.stretching],
   );
 
   const reDetectSelected = useCallback(() => {
-    if (!selectedBatchIds.size) return;
-    reDetectSlides(Array.from(selectedBatchIds));
-  }, [reDetectSlides, selectedBatchIds]);
+    if (!validSelectedBatchIds.size) return;
+    reDetectSlides(Array.from(validSelectedBatchIds));
+  }, [reDetectSlides, validSelectedBatchIds]);
 
   const reDetectCurrent = useCallback(() => {
     if (!selectedSlide) return;
@@ -932,7 +924,7 @@ export function SlidesThiefApp() {
       settings,
       filename,
     });
-  }, [ensureExportWorker, pdfBaseName, readySlides, settings, text.generating]);
+  }, [ensureExportWorker, pdfBaseName, readySlides, setWorkerError, settings, text.generating]);
 
   const performExportJpg = useCallback(() => {
     const worker = ensureExportWorker();
@@ -951,7 +943,7 @@ export function SlidesThiefApp() {
       settings,
       filename,
     });
-  }, [ensureExportWorker, pdfBaseName, readySlides, settings, text.generatingJpg]);
+  }, [ensureExportWorker, pdfBaseName, readySlides, setWorkerError, settings, text.generatingJpg]);
 
   const exportPdf = useCallback(() => {
     if (!readySlides.length) return;
@@ -1287,7 +1279,7 @@ export function SlidesThiefApp() {
       moveSlide={moveSlide}
       moveSlideUp={moveSlideUp}
       moveSlideDown={moveSlideDown}
-      selectedBatchIds={selectedBatchIds}
+      selectedBatchIds={validSelectedBatchIds}
       toggleBatchSelect={toggleBatchSelect}
       selectAllBatch={selectAllBatch}
       clearBatchSelection={clearBatchSelection}
@@ -1335,7 +1327,7 @@ export function SlidesThiefApp() {
       applyQuadToFollowing={() => void applyCurrentQuad("following")}
       applyQuadToAll={() => void applyCurrentQuad("all")}
       applyQuadToSelected={() => void applyCurrentQuad("selected")}
-      selectedBatchCount={selectedBatchIds.size}
+      selectedBatchCount={validSelectedBatchIds.size}
       reDetectCurrent={reDetectCurrent}
       busy={busy}
       isSpacePressed={isSpacePressed}
@@ -1345,6 +1337,7 @@ export function SlidesThiefApp() {
 
   return (
     <div
+      ref={appRef}
       className="app"
       aria-busy={busy || Boolean(busyText)}
       data-has-unsaved-work={hasUnsavedWork ? "true" : undefined}

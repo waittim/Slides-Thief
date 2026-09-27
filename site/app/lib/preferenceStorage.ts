@@ -16,6 +16,11 @@ export interface StoredPreferences {
   telemetry?: boolean;
 }
 
+/** A recorded opt-out wins over the default, including preferences from older releases. */
+export function shouldEnableTelemetry(stored: StoredPreferences | null): boolean {
+  return stored?.telemetry !== false;
+}
+
 const VALID_THEMES = new Set<ThemeValue>(["auto", "light", "dark"]);
 const VALID_LOCALES = new Set<LocaleValue>([
   "zh-CN",
@@ -101,6 +106,10 @@ export function sanitizeStoredPreferences(input: unknown): StoredPreferences {
 
   const record = input as Record<string, unknown>;
   const result: StoredPreferences = {};
+
+  if (record.version === 1 || record.version === 2) {
+    result.version = record.version;
+  }
 
   if (typeof record.theme === "string" && VALID_THEMES.has(record.theme as ThemeValue)) {
     result.theme = record.theme as ThemeValue;

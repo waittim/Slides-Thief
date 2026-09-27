@@ -25,19 +25,17 @@ export function CornerCoordinateInput({
   const roundedValue = Math.round(value);
   const [localText, setLocalText] = useState<string>(String(roundedValue));
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const lastCommittedRef = useRef<number>(roundedValue);
+  const lastCommittedRef = useRef(roundedValue);
+  const displayedText = isFocused ? localText : String(roundedValue);
 
   useEffect(() => {
-    lastCommittedRef.current = Math.round(value);
-    if (!isFocused) {
-      setLocalText(String(Math.round(value)));
-    }
-  }, [value]);
+    lastCommittedRef.current = roundedValue;
+  }, [roundedValue]);
 
   const commit = () => {
     const parsed = parseFloat(localText);
     if (!Number.isFinite(parsed)) {
-      setLocalText(String(lastCommittedRef.current));
+      setLocalText(String(roundedValue));
       return;
     }
     const clamped = Math.max(0, Math.min(max, Math.round(parsed)));
@@ -52,7 +50,7 @@ export function CornerCoordinateInput({
     <input
       type="number"
       className="cornerInput"
-      value={localText}
+      value={displayedText}
       min={0}
       max={max}
       step={1}
@@ -108,7 +106,6 @@ export function InspectorPanel({
   readySlides,
   metrics,
   selectedSlide,
-  workerError,
   applyQuadToFollowing,
   applyQuadToAll,
   canApplyFollowing = false,

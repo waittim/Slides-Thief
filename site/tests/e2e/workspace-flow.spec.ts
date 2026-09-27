@@ -1,13 +1,31 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, openApp } from "./fixtures";
 import { fileURLToPath } from "node:url";
 
 const fixture = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/light-slide-dark-wall.png", import.meta.url));
 const fixture2 = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/dark-slide-light-wall.png", import.meta.url));
 const fallbackFixture = fileURLToPath(new URL("../../../tests/fixtures/detection/synthetic/fallback-solid.png", import.meta.url));
+const heicFixture = fileURLToPath(new URL("../fixtures/light-slide-dark-wall.heic", import.meta.url));
+
+test("converts a real HEIC image locally and exports it as a PDF", async ({ page }) => {
+  await openApp(page);
+  await page.locator('input[type="file"]').setInputFiles(heicFixture);
+
+  await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.jpg" })).toBeVisible({ timeout: 30_000 });
+  const autoStraighten = page.getByRole("button", { name: "Auto straighten" });
+  await expect(autoStraighten).toBeEnabled({ timeout: 30_000 });
+  await autoStraighten.click();
+  await expect(page.getByRole("button", { name: /Corner 1:/ })).toBeVisible({ timeout: 30_000 });
+
+  const downloadPromise = page.waitForEvent("download", { timeout: 45_000 });
+  await page.keyboard.press("Control+Enter");
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe("flattened_slides.pdf");
+  await expect(page.getByRole("link", { name: "Download PDF" })).toHaveAttribute("href", /^blob:/, { timeout: 45_000 });
+});
 
 test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   await page.locator('input[type="file"]').setInputFiles(fixture);
   await expect(page.locator("button.slideSelectButton").filter({ hasText: "light-slide-dark-wall.png" })).toBeVisible();
@@ -53,7 +71,7 @@ test("imports, auto-detects, edits, undoes/redoes, and exports a PDF", async ({ 
 
 test("secondary file import appends new slide, supports undo, and skips duplicates", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles(fixture);
@@ -87,7 +105,7 @@ test("secondary file import appends new slide, supports undo, and skips duplicat
 
 test("deleting a slide shows toast feedback and status undo, and undo restores the slide", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles([fixture, fixture2]);
@@ -140,7 +158,7 @@ test("deleting a slide shows toast feedback and status undo, and undo restores t
 
 test("mobile settings inputs use 16px font-size to prevent mobile browser auto-zoom", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openApp(page);
 
   const settingsMenu = page.locator(".settingsMenu");
   expect(await settingsMenu.evaluate((el) => el.tagName.toLowerCase())).toBe("details");
@@ -183,7 +201,7 @@ test("mobile settings inputs use 16px font-size to prevent mobile browser auto-z
 
 test("desktop settings surfaces enhancement mode at top level and groups parameters in moreSettings", async ({ page }) => {
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/");
+  await openApp(page);
 
   // On desktop, settingsMenu is a semantic div container without fake interactive summary toggle
   await expect(page.locator(".settingsMenuToggle")).toHaveCount(0);
@@ -218,7 +236,7 @@ test("desktop settings surfaces enhancement mode at top level and groups paramet
 
 test("window-level drag and drop onto canvas displays overlay and imports image", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   // Dispatch dragenter with Files on window
   await page.evaluate(() => {
@@ -260,7 +278,7 @@ test("window-level drag and drop onto canvas displays overlay and imports image"
 
 test("window-level clipboard paste imports image as slide", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   const fs = await import("node:fs/promises");
   const buffer = await fs.readFile(fixture);
@@ -286,7 +304,7 @@ test("window-level clipboard paste imports image as slide", async ({ page }) => 
 
 test("slide reordering updates page order with buttons, Alt+Arrow keys, and supports undo/redo", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles([fixture, fixture2]);
@@ -338,7 +356,7 @@ test("slide reordering updates page order with buttons, Alt+Arrow keys, and supp
 test("clearing all slides opens styled ConfirmModal, cancel keeps slides, and confirm clears slides", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles([fixture, fixture2]);
@@ -381,7 +399,7 @@ test("clearing all slides opens styled ConfirmModal, cancel keeps slides, and co
 test("exporting slides needing review prompts ReviewModal, cancel enters Review Mode, confirming slide resumes export", async ({
   page,
 }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles(fallbackFixture);
@@ -432,7 +450,7 @@ test("exporting slides needing review prompts ReviewModal, cancel enters Review 
 });
 
 test("supports wheel zoom, space-drag pan, and middle-click pan on canvas stage", async ({ page }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles(fixture);
@@ -506,7 +524,7 @@ test("supports wheel zoom, space-drag pan, and middle-click pan on canvas stage"
 });
 
 test("auto-pans canvas viewport when dragging corner handle near stage edges", async ({ page }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles(fixture);
@@ -559,7 +577,7 @@ test("auto-pans canvas viewport when dragging corner handle near stage edges", a
 });
 
 test("dynamically flips loupe below handle and clamps within viewport when dragging top corner handle", async ({ page }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles(fixture);
@@ -606,15 +624,16 @@ test("dynamically flips loupe below handle and clamps within viewport when dragg
 
 test("canvas quad stroke aligns with Teal Precision tokens and adapts across themes", async ({ page }) => {
   await page.addInitScript(() => {
-    (window as any).__canvasStrokeStyles = [];
+    const strokeWindow = window as Window & { __canvasStrokeStyles?: string[] };
+    strokeWindow.__canvasStrokeStyles = [];
     const origStroke = CanvasRenderingContext2D.prototype.stroke;
-    CanvasRenderingContext2D.prototype.stroke = function () {
-      (window as any).__canvasStrokeStyles.push(this.strokeStyle);
-      return origStroke.apply(this, arguments as any);
+    CanvasRenderingContext2D.prototype.stroke = function (path?: Path2D) {
+      strokeWindow.__canvasStrokeStyles?.push(String(this.strokeStyle));
+      return Reflect.apply(origStroke, this, path ? [path] : []);
     };
   });
 
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"]');
   await fileInput.setInputFiles(fixture);
@@ -625,12 +644,12 @@ test("canvas quad stroke aligns with Teal Precision tokens and adapts across the
   await expect(firstCorner).toBeVisible({ timeout: 30_000 });
 
   // 1. Verify in light theme, strokeStyle matches Teal Precision light (#0f766e) and NOT terracotta (#c84535)
-  const lightStrokes: string[] = await page.evaluate(() => (window as any).__canvasStrokeStyles);
+  const lightStrokes: string[] = await page.evaluate(() => (window as Window & { __canvasStrokeStyles?: string[] }).__canvasStrokeStyles ?? []);
   expect(lightStrokes.some((s) => s === "#0f766e" || s === "rgb(15, 118, 110)")).toBe(true);
   expect(lightStrokes.some((s) => s.includes("200, 69, 53") || s.toLowerCase() === "#c84535")).toBe(false);
 
   // 2. Switch theme to Dark
-  await page.evaluate(() => ((window as any).__canvasStrokeStyles = []));
+  await page.evaluate(() => { (window as Window & { __canvasStrokeStyles?: string[] }).__canvasStrokeStyles = []; });
   const themeSelect = page.locator("label.themeSetting select").first();
   if (await themeSelect.isVisible()) {
     await themeSelect.selectOption("dark");
@@ -644,7 +663,7 @@ test("canvas quad stroke aligns with Teal Precision tokens and adapts across the
   await expect
     .poll(
       async () => {
-        const darkStrokes: string[] = await page.evaluate(() => (window as any).__canvasStrokeStyles);
+        const darkStrokes: string[] = await page.evaluate(() => (window as Window & { __canvasStrokeStyles?: string[] }).__canvasStrokeStyles ?? []);
         return darkStrokes.some((s) => s === "#32c8ba" || s === "rgb(50, 200, 186)");
       },
       { timeout: 5000 },
@@ -655,7 +674,7 @@ test("canvas quad stroke aligns with Teal Precision tokens and adapts across the
 test("preserves page indicator, filename, and mobile floating navigation controls on narrow screens", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles([fixture, fixture2]);
@@ -749,7 +768,7 @@ test("preserves page indicator, filename, and mobile floating navigation control
 
 test("mobile keeps import controls available and moves the canvas first after correction", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/");
+  await openApp(page);
 
   await expect(page.locator(".shell > :first-child")).toHaveClass(/sidebar/);
   await expect(page.locator(".sidebar").getByRole("button", { name: "Click to upload photos" })).toBeVisible();
@@ -767,7 +786,7 @@ test("mobile keeps import controls available and moves the canvas first after co
 
 test("empty desktop workspace keeps both sidebars and fills a tall viewport", async ({ page }) => {
   await page.setViewportSize({ width: 2048, height: 1174 });
-  await page.goto("/");
+  await openApp(page);
 
   await expect(page.locator(".sidebar")).toBeVisible();
   await expect(page.locator(".inspector")).toBeVisible();
@@ -780,7 +799,7 @@ test("empty desktop workspace keeps both sidebars and fills a tall viewport", as
 test("desktop review bar retains previous/next buttons and page indicator without floating controls", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
   await page.setViewportSize({ width: 1280, height: 800 });
-  await page.goto("/");
+  await openApp(page);
 
   const fileInput = page.locator('input[type="file"][accept*="image"]');
   await fileInput.setInputFiles([fixture, fixture2]);
@@ -822,7 +841,7 @@ test("desktop review bar retains previous/next buttons and page indicator withou
 
 test("displays guided empty state on initial load and loads sample slide on click", async ({ page }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   // Canvas empty state elements are visible
   const emptyState = page.locator(".canvasEmptyState");
@@ -846,7 +865,7 @@ test("opens about modal with '?' key and with navbar info button, and displays s
   page,
 }) => {
   page.on("dialog", (dialog) => void dialog.accept());
-  await page.goto("/");
+  await openApp(page);
 
   // Verify info button exists in prefsBar with shortcut annotation
   const infoNavBtn = page.locator("nav.prefsBar .infoButton");
@@ -887,7 +906,7 @@ test("opens about modal with '?' key and with navbar info button, and displays s
 });
 
 test("filename input preserves raw characters, displays inline validation hint, and normalizes on blur", async ({ page }) => {
-  await page.goto("/");
+  await openApp(page);
 
   const nameInput = page.locator("label.pdfNameSetting input");
   await expect(nameInput).toBeVisible();
@@ -921,7 +940,3 @@ test("filename input preserves raw characters, displays inline validation hint, 
   await expect(nameInput).toHaveAttribute("placeholder", "flattened_slides");
   await expect(page.locator("#pdf-name-error")).toHaveCount(0);
 });
-
-
-
-

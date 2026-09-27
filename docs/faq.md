@@ -3,6 +3,8 @@
 ## Are photos uploaded?
 
 No. The web application processes them locally in the browser.
+The website sends usage analytics by default; [Privacy](privacy.md) describes
+what those events contain and how to turn tracking off.
 
 ## Which formats are supported?
 
@@ -21,11 +23,11 @@ HEIC/HEIF conversion uses the browser on the web and macOS `sips` in the CLI.
 ## Which output ratios are available?
 
 <!-- BEGIN GENERATED: web-summary-en -->
-The web app offers 16:9, 4:3, and PDF paper presets for A4, A3, Letter in landscape and portrait. Paper presets fill margins with white.
+The web app can match the selected source ratio (including 16:10 or a custom ratio), use physical A4, A3, Letter paper in either orientation, or set custom pixel dimensions. Page margins use the selected fill color; Auto samples slide content and falls back to white.
 <!-- END GENERATED: web-summary-en -->
 
 <!-- BEGIN GENERATED: cli-summary-en -->
-The CLI adds A5 presets and arbitrary numeric custom ratios.
+The CLI adds A5 paper-ratio presets and accepts numeric custom source and output ratios. Its paper names do not set physical PDF page dimensions.
 <!-- END GENERATED: cli-summary-en -->
 
 ## Can I fix an incorrect detection?

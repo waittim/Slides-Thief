@@ -57,6 +57,7 @@ test("triggerDownload handles iOS and non-iOS branches", () => {
   let createdElement = null;
   let appendedChild = null;
   let removed = false;
+  let clicked = false;
 
   try {
     globalThis.window = {
@@ -79,6 +80,9 @@ test("triggerDownload handles iOS and non-iOS branches", () => {
           href: "",
           download: "",
           rel: "",
+          click: () => {
+            clicked = true;
+          },
           remove: () => {
             removed = true;
           },
@@ -92,13 +96,14 @@ test("triggerDownload handles iOS and non-iOS branches", () => {
     assert.equal(openedUrl, "blob:http://localhost/test.pdf");
     assert.equal(openedTarget, "_blank");
 
-    // On non-iOS: creates <a> element with download attribute and removes it
+    // On non-iOS: clicks the download link before removing it
     triggerDownload("blob:http://localhost/test.pdf", "test.pdf", false);
     assert.ok(createdElement);
     assert.equal(createdElement.download, "test.pdf");
     assert.equal(createdElement.href, "blob:http://localhost/test.pdf");
     assert.equal(createdElement.rel, "noopener noreferrer");
     assert.equal(appendedChild, createdElement);
+    assert.equal(clicked, true);
     assert.equal(removed, true);
   } finally {
     globalThis.window = originalWindow;

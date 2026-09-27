@@ -19,7 +19,9 @@ Open the web app:
 
 No installation is required. Your photos are processed locally in your browser,
 and the generated PDF is created on your device. The web app does not upload
-your source photos to a server.
+your source photos to a server. Google Analytics usage events are on by default
+and can be disabled in the About dialog; see [Privacy](docs/privacy.md) for the
+data sent and the required analytics stream settings.
 
 ## How To Use It
 
@@ -60,14 +62,15 @@ take longer to start than JPEG batches.
 - Automatic slide boundary detection.
 - Manual four-corner correction.
 <!-- BEGIN GENERATED: web-feature-en -->
-- 16:9, 4:3, 16:10, ISO A4/A3 (landscape and portrait), and US Letter (landscape and portrait) output ratios. Paper presets fill margins with white.
+- Source aspect-ratio choices include 16:9, 4:3, 16:10, A4, Letter and custom values. PDF pages can match the source, use physical A4, A3, Letter paper in either orientation, or use custom pixel dimensions.
+- Page margins use the selected fill color; Auto samples the slide content and falls back to white.
 <!-- END GENERATED: web-feature-en -->
 - Custom output width, quality, optional readability enhancement, and fill color.
 - Light/dark themes and UI in nine languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
 - Browser-local PDF generation.
 
 <!-- BEGIN GENERATED: web-summary-en -->
-The Web PDF paper presets include A4, A3, Letter in landscape and portrait. The CLI additionally supports A5 paper presets and arbitrary numeric custom ratios.
+The web app offers physical A4, A3, Letter PDF paper presets in landscape and portrait, plus source-matched or custom-size pages. The CLI additionally supports A5 aspect-ratio presets and numeric source/output ratios; its paper names do not set physical PDF page dimensions.
 <!-- END GENERATED: web-summary-en -->
 
 Product name, URLs, input capabilities, and ratio presets are maintained in
@@ -84,7 +87,8 @@ manual correction passes.
 ```bash
 slides-thief ~/Downloads \
   --output-dir outputs/my_deck \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
+  --output-ratio match-slide \
   --width 2400 \
   --pdf-name flattened_slides.pdf
 ```
@@ -124,7 +128,8 @@ Run the second pass with:
 slides-thief ~/Downloads \
   --output-dir outputs/my_deck_refined \
   --manual outputs/my_deck/manual_quads.json \
-  --ratio 16:9 \
+  --source-ratio 16:9 \
+  --output-ratio match-slide \
   --width 2400
 ```
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import type { LocaleCopy, ReviewUiCopy } from "../i18n";
 import { slideBadgeTitle } from "../i18n";
 import { displayFileName, formatBytes } from "../lib/slide-utils";
@@ -111,13 +111,10 @@ export function SlideSidebar({
   const [draggedSlideIndex, setDraggedSlideIndex] = useState<number | null>(null);
   const [dropTarget, setDropTarget] = useState<{ index: number; position: "above" | "below" } | null>(null);
   const dragSourceIndexRef = useRef<number | null>(null);
-  const [showErrorDetails, setShowErrorDetails] = useState(false);
-  const [copiedError, setCopiedError] = useState(false);
-
-  useEffect(() => {
-    setShowErrorDetails(false);
-    setCopiedError(false);
-  }, [errorMessage]);
+  const [detailsForError, setDetailsForError] = useState<string | null>(null);
+  const [copiedForError, setCopiedForError] = useState<string | null>(null);
+  const showErrorDetails = Boolean(errorMessage) && detailsForError === errorMessage;
+  const copiedError = Boolean(errorMessage) && copiedForError === errorMessage;
 
   const handleCopyError = React.useCallback(async () => {
     if (!errorMessage) return;
@@ -138,8 +135,8 @@ export function SlideSidebar({
         document.execCommand("copy");
         document.body.removeChild(textarea);
       }
-      setCopiedError(true);
-      window.setTimeout(() => setCopiedError(false), 2000);
+      setCopiedForError(errorMessage);
+      window.setTimeout(() => setCopiedForError(null), 2000);
     } catch {
       // Ignore clipboard failure
     }
@@ -311,7 +308,7 @@ export function SlideSidebar({
                   variant="ghost"
                   size="sm"
                   className="sidebarErrorDetailsButton"
-                  onClick={() => setShowErrorDetails((prev) => !prev)}
+                  onClick={() => setDetailsForError(showErrorDetails ? null : errorMessage ?? null)}
                 >
                   {showErrorDetails ? text.collapse : text.errorDetails}
                 </Button>

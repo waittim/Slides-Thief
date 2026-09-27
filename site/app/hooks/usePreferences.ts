@@ -4,9 +4,10 @@ import { copy, detectBrowserLocale } from "../i18n";
 import {
   loadStoredPreferences,
   saveStoredPreferences,
+  shouldEnableTelemetry,
   type StoredPreferences,
 } from "../lib/preferenceStorage";
-import { isTelemetryOptedOut, setTelemetryOptOut } from "../lib/telemetry";
+import { setTelemetryOptOut } from "../lib/telemetry";
 import { defaultSettings, type Settings, type ThemeValue } from "../lib/types";
 
 const MOBILE_BREAKPOINT = "(max-width: 834px)";
@@ -19,18 +20,14 @@ export function usePreferences(markExportStale: () => void) {
   const [pdfBaseName, setPdfBaseName] = useState("flattened_slides");
   const [theme, setTheme] = useState<ThemeValue>("auto");
   const [locale, setLocale] = useState<LocaleValue>("en");
-  const [telemetry, setTelemetryState] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      return !isTelemetryOptedOut();
-    }
-    return true;
-  });
+  const [telemetry, setTelemetryState] = useState(true);
 
   const localeRef = useRef<LocaleValue>("en");
   const explicitLocaleRef = useRef<LocaleValue | null>(null);
   const themeRef = useRef<ThemeValue>("auto");
   const pdfBaseNameRef = useRef("flattened_slides");
   const telemetryRef = useRef<boolean>(true);
+  const telemetryTouchedRef = useRef(false);
   const settingsRef = useRef<Settings>(defaultSettings);
   const settingsMenuRef = useRef<HTMLDetailsElement | null>(null);
   const moreSettingsRef = useRef<HTMLDetailsElement | null>(null);
@@ -54,7 +51,7 @@ export function usePreferences(markExportStale: () => void) {
 
   const savePreferences = useCallback((overrides?: Partial<StoredPreferences>) => {
     saveStoredPreferences({
-      version: 1,
+      version: 2,
       theme: overrides?.theme ?? themeRef.current,
       explicitLocale:
         overrides?.explicitLocale !== undefined
@@ -112,6 +109,7 @@ export function usePreferences(markExportStale: () => void) {
 
   const updateTelemetry = useCallback(
     (enabled: boolean) => {
+      telemetryTouchedRef.current = true;
       telemetryRef.current = enabled;
       setTelemetryState(enabled);
       setTelemetryOptOut(!enabled);
@@ -141,6 +139,12 @@ export function usePreferences(markExportStale: () => void) {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = loadStoredPreferences();
+      if (!telemetryTouchedRef.current) {
+        const enabled = shouldEnableTelemetry(stored);
+        telemetryRef.current = enabled;
+        setTelemetryState(enabled);
+        setTelemetryOptOut(!enabled);
+      }
       if (stored) {
         if (stored.theme) {
           themeRef.current = stored.theme;
@@ -153,11 +157,6 @@ export function usePreferences(markExportStale: () => void) {
         if (typeof stored.pdfBaseName === "string") {
           pdfBaseNameRef.current = stored.pdfBaseName;
           setPdfBaseName(stored.pdfBaseName);
-        }
-        if (typeof stored.telemetry === "boolean") {
-          telemetryRef.current = stored.telemetry;
-          setTelemetryState(stored.telemetry);
-          setTelemetryOptOut(!stored.telemetry);
         }
         if (stored.explicitLocale) {
           const explicit = stored.explicitLocale;

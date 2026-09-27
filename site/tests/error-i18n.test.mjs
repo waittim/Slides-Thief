@@ -2,10 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 const {
-  APP_ERROR_CODES,
   AppError,
   isAppError,
-  isAppErrorCode,
   toAppErrorPayload,
 } = await import(new URL("../app/lib/errors.ts", import.meta.url).href);
 
@@ -440,6 +438,5 @@ test("all 9 locales have complete filename validation copy", () => {
     }
   }
 });
-
 
 

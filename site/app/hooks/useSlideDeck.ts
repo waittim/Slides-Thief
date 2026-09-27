@@ -6,7 +6,6 @@ export function useSlideDeck(
   markExportStale: () => void,
   clearExport: () => void,
   cancelActiveDrag: () => void,
-  confirmClearText?: (count: number) => string,
 ) {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
