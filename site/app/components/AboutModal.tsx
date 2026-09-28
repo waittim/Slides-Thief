@@ -140,21 +140,23 @@ export function AboutModal({
               />
             )}
           </div>
-          {googlePolicyLabel && (
-            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {googlePolicyLabel}
-            </a>
-          )}
-          {privacyNoticeLabel && (
-            <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {privacyNoticeLabel}
-            </a>
-          )}
-          {privacyContactLabel && (
-            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {privacyContactLabel}
-            </a>
-          )}
+          <div className="modalTelemetryLinks">
+            {googlePolicyLabel && (
+              <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+                {googlePolicyLabel}
+              </a>
+            )}
+            {privacyNoticeLabel && (
+              <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+                {privacyNoticeLabel}
+              </a>
+            )}
+            {privacyContactLabel && (
+              <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+                {privacyContactLabel}
+              </a>
+            )}
+          </div>
         </div>
       </div>
       <div className="modalLinks">

@@ -690,6 +690,18 @@ export function SlidesThiefApp() {
     };
   }, [isInfoOpen]);
 
+  useEffect(() => {
+    if (!showAnalyticsChoice || isAnyModalOpen) return;
+    const handleConsentEnter = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, summary, [role="button"], [contenteditable="true"]')) return;
+      event.preventDefault();
+      setTelemetry(true);
+    };
+    window.addEventListener("keydown", handleConsentEnter);
+    return () => window.removeEventListener("keydown", handleConsentEnter);
+  }, [isAnyModalOpen, setTelemetry, showAnalyticsChoice]);
+
   const runAutoWithSettings = useCallback(
     (overrideSettings?: Settings) => {
       const processableSlides = slides.filter(
@@ -1500,13 +1512,19 @@ export function SlidesThiefApp() {
           <div className="analyticsConsentBody">
             <strong id="analytics-consent-title">{analyticsConsentCopy[locale].title}</strong>
             <p>{analyticsConsentCopy[locale].description}</p>
-            <button type="button" className="analyticsConsentDetails" onClick={() => setIsInfoOpen(true)}>
-              {analyticsConsentCopy[locale].details}
-            </button>
+            <details className="analyticsConsentDisclosure">
+              <summary className="analyticsConsentDetails">{analyticsConsentCopy[locale].details}</summary>
+              <p>{analyticsConsentCopy[locale].expandedDescription}</p>
+              <div className="analyticsConsentLinks">
+                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].googlePolicy}</a>
+                <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].privacyNotice}</a>
+                <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].privacyContact}</a>
+              </div>
+            </details>
           </div>
           <div className="analyticsConsentActions">
             <Button onClick={() => setTelemetry(false)}>{analyticsConsentCopy[locale].reject}</Button>
-            <Button onClick={() => setTelemetry(true)}>{analyticsConsentCopy[locale].accept}</Button>
+            <Button variant="accent" onClick={() => setTelemetry(true)}>{analyticsConsentCopy[locale].accept}</Button>
           </div>
         </section>
       )}

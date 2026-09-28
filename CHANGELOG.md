@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-09-28
+
+### Fixed
+
+- Kept the three analytics and privacy links together on one line at common desktop and mobile widths, with natural wrapping on smaller screens.
+- Restyled the standalone privacy notice to match the app's typography, colors, navigation, and saved light/dark theme.
+- Shortened the analytics consent prompt to explain its purpose, moved data details into an expandable section, and made Enter accept when focus is outside interactive controls.
+
 ## [3.0.0] - 2026-09-28
 
 ### Added
