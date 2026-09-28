@@ -37,6 +37,9 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v6
 
+      - name: Require production analytics policy
+        run: test -n "$VITE_ANALYTICS_POLICY_URL"
+
       - name: Install dependencies
         run: npm ci
 

@@ -8,9 +8,10 @@ unavailable or its response is invalid.
 
 The Worker must be deployed before the 3.0.0 web release. The included Wrangler
 configuration uses a `workers.dev` subdomain, so it does not require moving the
-existing `slidesthief.com` DNS or GitHub Pages origin. Set GitHub Actions
-repository variable `ANALYTICS_POLICY_URL` to the deployed `https://...workers.dev/v1`
-URL before building GitHub Pages. Set `VITE_ANALYTICS_POLICY_URL` to that URL
+existing `slidesthief.com` DNS or GitHub Pages origin. The deployed endpoint is
+`https://slides-thief-analytics-policy.zekun-wang.workers.dev/v1`. Set GitHub
+Actions repository variable `ANALYTICS_POLICY_URL` to this URL before building
+GitHub Pages. Set `VITE_ANALYTICS_POLICY_URL` to the same URL
 for any Sites/SSR build. The web app's fallback URL is
 `https://analytics-policy.slidesthief.com/v1`; until a service exists there,
 an unset variable safely requires consent everywhere.
@@ -32,9 +33,9 @@ npx wrangler logout
 
 OAuth scopes are not limited to an individual Worker. If automated deployments
 are added later, use a Cloudflare account-owned API token scoped to this Worker
-with the Editor role, and store it only as a CI secret. The first deployment
-needs product-level Worker creation access because this Worker does not yet
-exist; the per-Worker token can be created afterward.
+with the Editor role, and store it only as a CI secret. The initial deployment
+needed product-level Worker creation access; later deployments can use a token
+limited to this existing Worker.
 
 Verify the production response from at least one `US` and one EEA/UK/CH
 network, including its CORS and `Cache-Control: no-store` headers. Local
