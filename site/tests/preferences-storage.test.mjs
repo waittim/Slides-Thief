@@ -9,6 +9,8 @@ const {
   sanitizeSettings,
   sanitizeStoredPreferences,
   shouldEnableTelemetry,
+  hasAnalyticsChoice,
+  ANALYTICS_CONSENT_VERSION,
 } = await import(
   new URL("../app/lib/preferenceStorage.ts", import.meta.url).href
 );
@@ -40,13 +42,17 @@ function restoreWindow() {
   delete globalThis.window;
 }
 
-test("usage analytics defaults on while saved opt-outs remain off", () => {
-  assert.equal(shouldEnableTelemetry(null), true);
-  assert.equal(shouldEnableTelemetry({}), true);
-  assert.equal(shouldEnableTelemetry({ version: 1, telemetry: true }), true);
-  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: true }), true);
-  assert.equal(shouldEnableTelemetry({ version: 1, telemetry: false }), false);
-  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: false }), false);
+test("default analytics requires an edge allowance or a recorded opt-in", () => {
+  const consent = { version: ANALYTICS_CONSENT_VERSION, granted: true, decidedAt: "2026-09-27T00:00:00.000Z" };
+  assert.equal(shouldEnableTelemetry(null, false), true);
+  assert.equal(shouldEnableTelemetry(null, true), false);
+  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: true }, true), false);
+  assert.equal(shouldEnableTelemetry({ version: 2, telemetry: false }, false), false);
+  assert.equal(shouldEnableTelemetry({ version: 3, telemetry: true, analyticsConsent: consent }, true), true);
+  assert.equal(shouldEnableTelemetry({ version: 3, telemetry: false, analyticsConsent: consent }, true), false);
+  assert.equal(hasAnalyticsChoice({ version: 2, telemetry: true }), false);
+  assert.equal(hasAnalyticsChoice({ version: 2, telemetry: false }), true);
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consent }), true);
 });
 
 test("sanitizeSettings handles empty or non-object input by returning defaultSettings", () => {
@@ -133,6 +139,11 @@ test("sanitizeStoredPreferences validates theme and explicitLocale", () => {
 
   const telemetryInvalid = sanitizeStoredPreferences({ telemetry: "false" });
   assert.equal(telemetryInvalid.telemetry, undefined);
+
+  const consent = sanitizeStoredPreferences({ version: 3, analyticsConsent: { version: 1, granted: true, decidedAt: "2026-09-27T00:00:00.000Z" } });
+  assert.equal(consent.analyticsConsent.granted, true);
+  assert.equal(sanitizeStoredPreferences({ analyticsConsent: { version: 1, granted: true } }).analyticsConsent, undefined);
+  assert.equal(sanitizeStoredPreferences({ analyticsConsent: { version: 2, granted: true, decidedAt: "2026-09-27T00:00:00.000Z" } }).analyticsConsent, undefined);
 });
 
 test("loadStoredPreferences and saveStoredPreferences round-trip with localStorage", () => {

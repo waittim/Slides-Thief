@@ -6,6 +6,13 @@ import type { OutputPageRatio, SourceFormat } from "../ratio.ts";
 import { defaultSettings, type Settings, type ThemeValue } from "./types.ts";
 
 export const PREFERENCES_STORAGE_KEY = "slides_thief_user_preferences";
+export const ANALYTICS_CONSENT_VERSION = 1;
+
+export interface AnalyticsConsent {
+  version: typeof ANALYTICS_CONSENT_VERSION;
+  granted: boolean;
+  decidedAt: string;
+}
 
 export interface StoredPreferences {
   version?: number;
@@ -14,11 +21,17 @@ export interface StoredPreferences {
   settings?: Partial<Settings>;
   pdfBaseName?: string;
   telemetry?: boolean;
+  analyticsConsent?: AnalyticsConsent;
 }
 
-/** A recorded opt-out wins over the default, including preferences from older releases. */
-export function shouldEnableTelemetry(stored: StoredPreferences | null): boolean {
-  return stored?.telemetry !== false;
+/** Older telemetry:true values may have been defaults, so they are not proof of consent. */
+export function shouldEnableTelemetry(stored: StoredPreferences | null, consentRequired: boolean): boolean {
+  if (stored?.telemetry === false || stored?.analyticsConsent?.granted === false) return false;
+  return !consentRequired || stored?.analyticsConsent?.granted === true;
+}
+
+export function hasAnalyticsChoice(stored: StoredPreferences | null): boolean {
+  return stored?.telemetry === false || stored?.analyticsConsent !== undefined;
 }
 
 const VALID_THEMES = new Set<ThemeValue>(["auto", "light", "dark"]);
@@ -107,7 +120,7 @@ export function sanitizeStoredPreferences(input: unknown): StoredPreferences {
   const record = input as Record<string, unknown>;
   const result: StoredPreferences = {};
 
-  if (record.version === 1 || record.version === 2) {
+  if (record.version === 1 || record.version === 2 || record.version === 3) {
     result.version = record.version;
   }
 
@@ -133,6 +146,22 @@ export function sanitizeStoredPreferences(input: unknown): StoredPreferences {
 
   if (typeof record.telemetry === "boolean") {
     result.telemetry = record.telemetry;
+  }
+
+  if (typeof record.analyticsConsent === "object" && record.analyticsConsent !== null) {
+    const consent = record.analyticsConsent as Record<string, unknown>;
+    if (
+      consent.version === ANALYTICS_CONSENT_VERSION &&
+      typeof consent.granted === "boolean" &&
+      typeof consent.decidedAt === "string" &&
+      Number.isFinite(Date.parse(consent.decidedAt))
+    ) {
+      result.analyticsConsent = {
+        version: ANALYTICS_CONSENT_VERSION,
+        granted: consent.granted,
+        decidedAt: consent.decidedAt,
+      };
+    }
   }
 
   return result;

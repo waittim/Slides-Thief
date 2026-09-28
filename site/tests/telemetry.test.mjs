@@ -80,8 +80,40 @@ test("setTelemetryOptOut(false) triggers gtag config when enabled", () => {
         page_location: "https://slidesthief.com/",
         page_title: "Slides Thief",
         page_referrer: "",
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false,
       },
     });
+    assert.deepEqual(events[0], {
+      command: "consent",
+      action: "default",
+      params: {
+        analytics_storage: "granted",
+        ad_storage: "denied",
+        ad_user_data: "denied",
+        ad_personalization: "denied",
+      },
+    });
+  } finally {
+    globalThis.window = originalWindow;
+    globalThis.document = originalDocument;
+  }
+});
+
+test("opting out clears accessible GA cookies without deleting other cookies", () => {
+  const originalWindow = globalThis.window;
+  const originalDocument = globalThis.document;
+  const assignments = [];
+  globalThis.window = { [`ga-disable-${GA_MEASUREMENT_ID}`]: false };
+  globalThis.document = {
+    get cookie() { return "_ga=one; _ga_ABCD=two; session=three"; },
+    set cookie(value) { assignments.push(value); },
+  };
+  try {
+    setTelemetryOptOut(true);
+    assert.equal(globalThis.window[`ga-disable-${GA_MEASUREMENT_ID}`], true);
+    assert.equal(assignments.length, 4);
+    assert.ok(assignments.every((value) => value.startsWith("_ga")));
   } finally {
     globalThis.window = originalWindow;
     globalThis.document = originalDocument;

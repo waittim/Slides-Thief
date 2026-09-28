@@ -31,6 +31,26 @@ export {
 
 export type LocaleValue = "zh-CN" | "zh-TW" | "en" | "es" | "fr" | "de" | "ja" | "ko" | "pt-BR";
 
+export const analyticsConsentCopy: Record<LocaleValue, {
+  title: string;
+  description: string;
+  accept: string;
+  reject: string;
+  details: string;
+  checking: string;
+  googlePolicy: string;
+}> = {
+  "zh-CN": { title: "使用统计", description: "我们希望使用 Google Analytics 统计页面访问、导入与导出数量、下载次数、角点调整及固定错误码。不会发送文件名、照片或 PDF。您可以拒绝，之后也可在“关于”中更改。", accept: "接受统计", reject: "拒绝统计", details: "查看详情", checking: "正在检查统计设置", googlePolicy: "Google 隐私政策" },
+  "zh-TW": { title: "使用統計", description: "我們希望使用 Google Analytics 統計頁面瀏覽、匯入與匯出數量、下載次數、角點調整及固定錯誤碼。不會傳送檔名、相片或 PDF。您可以拒絕，之後也可在「關於」中變更。", accept: "接受統計", reject: "拒絕統計", details: "查看詳情", checking: "正在檢查統計設定", googlePolicy: "Google 隱私權政策" },
+  en: { title: "Usage analytics", description: "We would like to use Google Analytics for page views, import and export counts, download starts, corner adjustments, and fixed error codes. We do not send file names, photos, or PDFs. You can decline and change your choice later in About.", accept: "Accept analytics", reject: "Reject analytics", details: "View details", checking: "Checking analytics settings", googlePolicy: "Google Privacy Policy" },
+  es: { title: "Estadísticas de uso", description: "Nos gustaría usar Google Analytics para visitas, cantidades importadas y exportadas, descargas iniciadas, ajustes de esquinas y códigos de error fijos. No enviamos nombres de archivo, fotos ni PDF. Puede rechazarlo y cambiar su elección en Acerca de.", accept: "Aceptar estadísticas", reject: "Rechazar estadísticas", details: "Ver detalles", checking: "Comprobando la configuración de estadísticas", googlePolicy: "Política de privacidad de Google" },
+  fr: { title: "Statistiques d’utilisation", description: "Nous souhaitons utiliser Google Analytics pour les pages vues, les nombres d’imports et d’exports, les téléchargements lancés, les ajustements de coins et les codes d’erreur fixes. Aucun nom de fichier, photo ou PDF n’est envoyé. Vous pouvez refuser et modifier votre choix dans À propos.", accept: "Accepter les statistiques", reject: "Refuser les statistiques", details: "Voir les détails", checking: "Vérification des paramètres statistiques", googlePolicy: "Règles de confidentialité de Google" },
+  de: { title: "Nutzungsstatistik", description: "Wir möchten Google Analytics für Seitenaufrufe, Import- und Exportzahlen, gestartete Downloads, Eckpunktanpassungen und feste Fehlercodes verwenden. Dateinamen, Fotos und PDFs werden nicht gesendet. Sie können ablehnen und Ihre Wahl später unter Info ändern.", accept: "Statistik akzeptieren", reject: "Statistik ablehnen", details: "Details anzeigen", checking: "Statistikeinstellungen werden geprüft", googlePolicy: "Datenschutzerklärung von Google" },
+  ja: { title: "利用統計", description: "ページ閲覧、読み込み・書き出し件数、ダウンロード開始、角の調整、固定エラーコードの集計に Google Analytics を使用したいと考えています。ファイル名、写真、PDF は送信しません。拒否でき、後で「情報」から変更できます。", accept: "統計を許可", reject: "統計を拒否", details: "詳細を見る", checking: "統計設定を確認中", googlePolicy: "Google のプライバシー ポリシー" },
+  ko: { title: "사용 통계", description: "페이지 조회, 가져오기 및 내보내기 수, 다운로드 시작, 모서리 조정, 고정 오류 코드를 집계하기 위해 Google Analytics를 사용하려 합니다. 파일 이름, 사진 또는 PDF는 전송하지 않습니다. 거부할 수 있으며 나중에 정보에서 변경할 수 있습니다.", accept: "통계 허용", reject: "통계 거부", details: "자세히 보기", checking: "통계 설정 확인 중", googlePolicy: "Google 개인정보처리방침" },
+  "pt-BR": { title: "Estatísticas de uso", description: "Gostaríamos de usar o Google Analytics para visualizações, quantidades importadas e exportadas, downloads iniciados, ajustes de cantos e códigos de erro fixos. Não enviamos nomes de arquivos, fotos nem PDFs. Você pode recusar e alterar sua escolha depois em Sobre.", accept: "Aceitar estatísticas", reject: "Recusar estatísticas", details: "Ver detalhes", checking: "Verificando configurações de estatísticas", googlePolicy: "Política de Privacidade do Google" },
+};
+
 export const localeOptions: { value: LocaleValue; label: string }[] = [
   { value: "zh-CN", label: "简体中文" },
   { value: "zh-TW", label: "繁體中文" },
@@ -953,7 +973,7 @@ export const copy = {
     infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片或文档快速矫正并整理成清晰的 PDF。",
     infoPrivacy: "照片与生成的 PDF 仅在您的浏览器本地处理，绝不会上传至任何远程服务器。",
     telemetryTitle: "使用统计",
-    telemetryDesc: "使用统计默认开启。Google Analytics 会接收页面访问、导入数量、导出页数、下载次数、角点调整次数及固定错误码。应用事件不含文件名、文件大小、原始错误文本、照片像素或 PDF；可随时关闭。",
+    telemetryDesc: "在适用地区，使用统计默认开启；其他地区需您同意。Google Analytics 会接收页面访问、导入数量、导出页数、下载次数、角点调整次数及固定错误码。应用事件不含文件名、文件大小、原始错误文本、照片像素或 PDF；可随时更改选择。",
     telemetryEnabled: "已启用",
     telemetryDisabled: "已禁用",
     infoRepo: "开源仓库",
@@ -1141,7 +1161,7 @@ export const copy = {
     infoDesc: "Slides Thief 是一款本地運行的瀏覽器工具，可以將拍攝的傾斜投影片或文件快速矯正並整理成清晰的 PDF。",
     infoPrivacy: "相片與產生的 PDF 僅在您的瀏覽器本機處理，絕不會上傳至任何遠端伺服器。",
     telemetryTitle: "使用統計",
-    telemetryDesc: "使用統計預設開啟。Google Analytics 會接收頁面瀏覽、匯入數量、匯出頁數、下載次數、角點調整次數及固定錯誤碼。應用程式事件不含檔案名稱、檔案大小、原始錯誤文字、相片像素或 PDF；可隨時關閉。",
+    telemetryDesc: "在適用地區，使用統計預設開啟；其他地區需您同意。Google Analytics 會接收頁面瀏覽、匯入數量、匯出頁數、下載次數、角點調整次數及固定錯誤碼。應用程式事件不含檔案名稱、檔案大小、原始錯誤文字、相片像素或 PDF；可隨時變更選擇。",
     telemetryEnabled: "已啟用",
     telemetryDisabled: "已停用",
     infoRepo: "開源倉庫",
@@ -1330,7 +1350,7 @@ export const copy = {
     infoDesc: "Slides Thief is a browser-local tool that straightens skewed slide or document photos and organizes them into a clear PDF.",
     infoPrivacy: "Your photos and generated PDFs are processed entirely locally in your browser and are never uploaded to any remote server.",
     telemetryTitle: "Usage analytics",
-    telemetryDesc: "Usage analytics is on by default. Google Analytics receives page views, import counts, export page counts, download-start counts, corner-adjustment events, and fixed error codes. App events exclude file names, file sizes, raw error text, photo pixels, and PDFs. You can turn it off here anytime.",
+    telemetryDesc: "Usage analytics is on by default in eligible regions; elsewhere it requires your consent. Google Analytics receives page views, import counts, export page counts, download-start counts, corner-adjustment events, and fixed error codes. App events exclude file names, file sizes, raw error text, photo pixels, and PDFs. You can change your choice here anytime.",
     telemetryEnabled: "Enabled",
     telemetryDisabled: "Disabled",
     infoRepo: "Open Source Repo",
@@ -1520,7 +1540,7 @@ export const copy = {
     infoDesc: "Slides Thief corrige localmente fotos inclinadas de diapositivas o documentos y las organiza en un PDF claro.",
     infoPrivacy: "Sus fotos y los PDF generados se procesan completamente en su navegador local y nunca se suben a ningún servidor remoto.",
     telemetryTitle: "Estadísticas de uso",
-    telemetryDesc: "Las estadísticas de uso están activadas por defecto. Google Analytics recibe visitas, cantidades importadas, páginas exportadas, intentos de descarga, ajustes de esquinas y códigos de error fijos. Los eventos de la aplicación no incluyen nombres ni tamaños de archivo, errores sin filtrar, píxeles ni PDF. Puede desactivarlas aquí.",
+    telemetryDesc: "Las estadísticas de uso están activadas por defecto en regiones elegibles; en otras requieren su consentimiento. Google Analytics recibe visitas, cantidades importadas, páginas exportadas, intentos de descarga, ajustes de esquinas y códigos de error fijos. Los eventos de la aplicación no incluyen nombres ni tamaños de archivo, errores sin filtrar, píxeles ni PDF. Puede cambiar su elección aquí.",
     telemetryEnabled: "Habilitado",
     telemetryDisabled: "Deshabilitado",
     infoRepo: "Repositorio de Código",
@@ -1716,7 +1736,7 @@ export const copy = {
     infoDesc: "Slides Thief redresse localement les photos inclinées de diapositives ou de documents et les organise dans un PDF propre.",
     infoPrivacy: "Vos photos et les fichiers PDF générés sont traités exclusivement en local dans votre navigateur et ne sont jamais téléversés vers un serveur distant.",
     telemetryTitle: "Statistiques d'utilisation",
-    telemetryDesc: "Les statistiques d’utilisation sont activées par défaut. Google Analytics reçoit les pages consultées, les nombres d’imports, les nombres de pages exportées, les tentatives de téléchargement, les ajustements de coins et des codes d’erreur fixes. Les événements de l’application excluent les noms et tailles de fichiers, les erreurs brutes, les pixels et les PDF. Vous pouvez les désactiver ici.",
+    telemetryDesc: "Les statistiques d’utilisation sont activées par défaut dans certaines régions ; ailleurs, votre consentement est requis. Google Analytics reçoit les pages consultées, les nombres d’imports, les nombres de pages exportées, les tentatives de téléchargement, les ajustements de coins et des codes d’erreur fixes. Les événements de l’application excluent les noms et tailles de fichiers, les erreurs brutes, les pixels et les PDF. Vous pouvez modifier votre choix ici.",
     telemetryEnabled: "Activé",
     telemetryDisabled: "Désactivé",
     infoRepo: "Dépôt de Code",
@@ -1912,7 +1932,7 @@ export const copy = {
     infoDesc: "Slides Thief begradigt Folien- oder Dokumentfotos lokal im Browser und organisiert sie in einer übersichtlichen PDF-Datei.",
     infoPrivacy: "Ihre Fotos und die erzeugten PDFs werden ausschließlich lokal in Ihrem Browser verarbeitet und niemals auf einen Remote-Server hochgeladen.",
     telemetryTitle: "Nutzungsstatistik",
-    telemetryDesc: "Nutzungsstatistiken sind standardmäßig aktiviert. Google Analytics erfasst Seitenaufrufe, Importzahlen, exportierte Seiten, Downloadversuche, Eckpunktanpassungen und feste Fehlercodes. App-Ereignisse enthalten keine Dateinamen oder Dateigrößen, rohen Fehlermeldungen, Fotopixel oder PDFs. Hier können Sie die Erfassung jederzeit ausschalten.",
+    telemetryDesc: "Nutzungsstatistiken sind in geeigneten Regionen standardmäßig aktiviert; andernorts ist Ihre Einwilligung erforderlich. Google Analytics erfasst Seitenaufrufe, Importzahlen, exportierte Seiten, Downloadversuche, Eckpunktanpassungen und feste Fehlercodes. App-Ereignisse enthalten keine Dateinamen oder Dateigrößen, rohen Fehlermeldungen, Fotopixel oder PDFs. Hier können Sie Ihre Wahl jederzeit ändern.",
     telemetryEnabled: "Aktiviert",
     telemetryDisabled: "Deaktiviert",
     infoRepo: "Code-Repository",
@@ -2107,7 +2127,7 @@ export const copy = {
     infoDesc: "Slides Thiefは、斜めに撮影されたスライドや文書をブラウザ内で補正し、綺麗なPDFとして整理します。",
     infoPrivacy: "写真および生成されたPDFはすべてブラウザ内でローカルに処理され、リモートサーバーにアップロードされることはありません。",
     telemetryTitle: "利用統計",
-    telemetryDesc: "利用統計は初期設定でオンです。Google Analytics にはページ閲覧、読み込み件数、書き出したページ数、ダウンロード開始回数、角の調整回数、固定のエラーコードが送信されます。アプリのイベントにファイル名やファイルサイズ、生のエラー文、写真の画素、PDF は含まれません。ここでいつでも無効にできます。",
+    telemetryDesc: "対象地域では利用統計が初期設定でオンになり、それ以外では同意が必要です。Google Analytics にはページ閲覧、読み込み件数、書き出したページ数、ダウンロード開始回数、角の調整回数、固定のエラーコードが送信されます。アプリのイベントにファイル名やファイルサイズ、生のエラー文、写真の画素、PDF は含まれません。ここでいつでも変更できます。",
     telemetryEnabled: "有効",
     telemetryDisabled: "無効",
     infoRepo: "オープンソースリポジトリ",
@@ -2295,7 +2315,7 @@ export const copy = {
     infoDesc: "Slides Thief는 비스듬하게 촬영된 슬라이드나 문서를 브라우저에서 교정하고 깔끔한 PDF로 정리합니다.",
     infoPrivacy: "사진과 생성된 PDF는 모두 브라우저 로컬에서만 처리되며 원격 서버로 절대 업로드되지 않습니다.",
     telemetryTitle: "사용 통계",
-    telemetryDesc: "사용 통계는 기본적으로 켜져 있습니다. Google Analytics로 페이지 조회, 가져오기 수, 내보낸 페이지 수, 다운로드 시작 횟수, 모서리 조정 횟수와 고정 오류 코드가 전송됩니다. 앱 이벤트에는 파일 이름이나 크기, 원본 오류 문구, 사진 픽셀 또는 PDF가 포함되지 않습니다. 언제든 여기에서 끌 수 있습니다.",
+    telemetryDesc: "일부 지역에서는 사용 통계가 기본적으로 켜지며, 그 외 지역에서는 동의가 필요합니다. Google Analytics로 페이지 조회, 가져오기 수, 내보낸 페이지 수, 다운로드 시작 횟수, 모서리 조정 횟수와 고정 오류 코드가 전송됩니다. 앱 이벤트에는 파일 이름이나 크기, 원본 오류 문구, 사진 픽셀 또는 PDF가 포함되지 않습니다. 언제든 여기에서 선택을 변경할 수 있습니다.",
     telemetryEnabled: "사용 중",
     telemetryDisabled: "사용 안 함",
     infoRepo: "오픈 소스 저장소",
@@ -2487,7 +2507,7 @@ export const copy = {
     infoDesc: "O Slides Thief corrige localmente fotos inclinadas de slides ou documentos e as organiza em um PDF limpo.",
     infoPrivacy: "Suas fotos e os PDFs gerados são processados exclusivamente de forma local no seu navegador e nunca são enviados para servidores remotos.",
     telemetryTitle: "Estatísticas de uso",
-    telemetryDesc: "As estatísticas de uso ficam ativadas por padrão. O Google Analytics recebe visualizações, quantidades importadas, páginas exportadas, tentativas de download, ajustes dos cantos e códigos de erro fixos. Os eventos do aplicativo não incluem nomes nem tamanhos de arquivos, erros brutos, pixels ou PDFs. Você pode desativar aqui a qualquer momento.",
+    telemetryDesc: "As estatísticas de uso ficam ativadas por padrão em regiões elegíveis; nas demais, exigem seu consentimento. O Google Analytics recebe visualizações, quantidades importadas, páginas exportadas, tentativas de download, ajustes dos cantos e códigos de erro fixos. Os eventos do aplicativo não incluem nomes nem tamanhos de arquivos, erros brutos, pixels ou PDFs. Você pode alterar sua escolha aqui a qualquer momento.",
     telemetryEnabled: "Ativado",
     telemetryDisabled: "Desativado",
     infoRepo: "Repositório de Código",

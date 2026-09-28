@@ -11,6 +11,9 @@ interface AboutModalProps {
   text: LocaleCopy;
   appVersion: string;
   telemetryEnabled?: boolean;
+  telemetryReady?: boolean;
+  telemetryCheckingLabel?: string;
+  googlePolicyLabel?: string;
   setTelemetryEnabled?: (enabled: boolean) => void;
 }
 
@@ -32,6 +35,9 @@ export function AboutModal({
   text,
   appVersion,
   telemetryEnabled = true,
+  telemetryReady = true,
+  telemetryCheckingLabel,
+  googlePolicyLabel,
   setTelemetryEnabled,
 }: AboutModalProps) {
   return (
@@ -124,11 +130,17 @@ export function AboutModal({
               <Switch
                 aria-label={text.telemetryTitle}
                 checked={telemetryEnabled}
-                label={telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled}
+                disabled={!telemetryReady}
+                label={telemetryReady ? (telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled) : (telemetryCheckingLabel ?? text.telemetryDisabled)}
                 onChange={setTelemetryEnabled}
               />
             )}
           </div>
+          {googlePolicyLabel && (
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {googlePolicyLabel}
+            </a>
+          )}
         </div>
       </div>
       <div className="modalLinks">

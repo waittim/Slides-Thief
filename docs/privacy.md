@@ -5,9 +5,17 @@ It does not upload source photos or generated PDFs to a server. The Python CLI
 also processes local files. Integrations should preserve this source-image
 boundary.
 
-Usage analytics is on by default. After checking saved preferences, the website
-loads Google Analytics unless you have turned it off in the web app's **About**
-dialog. The app sends page views and app events: image import counts and whether
+The website asks a dedicated edge service whether usage analytics may be on by
+default in the visitor's country. The service returns only a yes/no policy
+decision and does not store the visitor's country or IP address in application
+storage. Default-on analytics is currently limited to the United States,
+Australia, and New Zealand. In other or unknown locations, and whenever the
+service is unavailable, Google Analytics stays unloaded until the visitor
+explicitly accepts. An existing opt-out always wins. Previous releases' saved
+`telemetry: true` value is not treated as consent because it may have been the
+default.
+
+When enabled, the app sends page views and app events: image import counts and whether
 an import includes HEIC/HEIF, export page counts, download-start counts,
 corner-adjustment events, and fixed processing error codes. The app's event
 parameters are restricted to these values; they do not include file names,
@@ -16,11 +24,16 @@ event records an attempted browser download or open action, not confirmation
 that the file was saved. It has no event parameters, so Google Analytics counts
 these actions by the number of events received.
 
-The choice is saved in browser local storage and can be changed at any time.
-Turning analytics off suppresses subsequent Google Analytics events. The script
-already loaded during an enabled session remains in that page until reload; it
-is not requested on a subsequent visit while analytics is disabled. Saved opt-outs
-from older versions remain disabled.
+Google Analytics may process browser, device, and network information and may
+set analytics cookies when enabled. Its separate processing is described in
+the [Google Privacy Policy](https://policies.google.com/privacy).
+
+An explicit choice and its timestamp are saved only in browser local storage
+and can be changed at any time in **About**. Turning analytics off suppresses
+subsequent Google Analytics events and deletes accessible Google Analytics
+cookies on this site. The script already loaded during an enabled session
+remains in that page until reload; it is not requested on a subsequent visit
+while analytics is disabled. Saved opt-outs from older versions remain disabled.
 
 Google Analytics can also generate events outside the app's event whitelist.
 For the `slidesthief.com` data stream (`G-74RGGMV3PH`), **Enhanced measurement**

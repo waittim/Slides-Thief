@@ -16,7 +16,7 @@
     "typecheck": "tsc --noEmit",
     "test:components": "playwright test --config=playwright-ct.config.ts",
     "test:e2e": "playwright test --config=playwright.config.ts",
-    "test": "npm run typecheck && npm run build && GITHUB_PAGES_BASE=/ npm run build:pages && node --test tests/*.test.mjs && npm run test:components && npm run test:e2e",
+    "test": "npm run typecheck && npm run build && GITHUB_PAGES_BASE=/ npm run build:pages && node --test tests/*.test.mjs ../analytics-policy/worker.test.mjs && npm run test:components && npm run test:e2e",
     "test:pages": "GITHUB_PAGES_BASE=/ npm run build:pages && node --test tests/static-pages.test.mjs",
     "benchmark:detection": "node scripts/evaluate-detection.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern dist-pages --ignore-pattern .next --max-warnings=0"

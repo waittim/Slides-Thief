@@ -26,17 +26,34 @@ export function setTelemetryOptOut(optOut: boolean): void {
   const gtagWindow = window as unknown as GtagWindow;
   const wasOptedOut = isTelemetryOptedOut();
   gtagWindow[`ga-disable-${GA_MEASUREMENT_ID}`] = optOut;
-  if (optOut || !wasOptedOut) return;
+  if (optOut) {
+    for (const cookie of (document.cookie ?? "").split(";")) {
+      const name = cookie.trim().split("=", 1)[0];
+      if (name !== "_ga" && !name.startsWith("_ga_")) continue;
+      document.cookie = `${name}=; Max-Age=0; Path=/`;
+      document.cookie = `${name}=; Max-Age=0; Path=/; Domain=.slidesthief.com`;
+    }
+    return;
+  }
+  if (!wasOptedOut) return;
 
   // Read saved preferences before calling this, so a previous opt-out never loads the script.
   gtagWindow.dataLayer ??= [];
   gtagWindow.gtag ??= (...args) => { gtagWindow.dataLayer?.push(args); };
+  gtagWindow.gtag("consent", "default", {
+    analytics_storage: "granted",
+    ad_storage: "denied",
+    ad_user_data: "denied",
+    ad_personalization: "denied",
+  });
   gtagWindow.gtag("js", new Date());
   // Keep URL query strings and referrers out of automatic page views.
   gtagWindow.gtag("config", GA_MEASUREMENT_ID, {
     page_location: "https://slidesthief.com/",
     page_title: "Slides Thief",
     page_referrer: "",
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
   });
   if (!document.querySelector(`script[data-analytics-id="${GA_MEASUREMENT_ID}"]`)) {
     const script = document.createElement("script");

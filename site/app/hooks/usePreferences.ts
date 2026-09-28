@@ -2,11 +2,15 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import type { LocaleValue } from "../i18n";
 import { copy, detectBrowserLocale } from "../i18n";
 import {
+  ANALYTICS_CONSENT_VERSION,
+  hasAnalyticsChoice,
   loadStoredPreferences,
   saveStoredPreferences,
   shouldEnableTelemetry,
+  type AnalyticsConsent,
   type StoredPreferences,
 } from "../lib/preferenceStorage";
+import { requiresAnalyticsConsent } from "../lib/analyticsPolicy";
 import { setTelemetryOptOut } from "../lib/telemetry";
 import { defaultSettings, type Settings, type ThemeValue } from "../lib/types";
 
@@ -20,13 +24,19 @@ export function usePreferences(markExportStale: () => void) {
   const [pdfBaseName, setPdfBaseName] = useState("flattened_slides");
   const [theme, setTheme] = useState<ThemeValue>("auto");
   const [locale, setLocale] = useState<LocaleValue>("en");
-  const [telemetry, setTelemetryState] = useState(true);
+  const [telemetry, setTelemetryState] = useState(false);
+  const [showAnalyticsChoice, setShowAnalyticsChoice] = useState(false);
+  const [analyticsPolicyReady, setAnalyticsPolicyReady] = useState(false);
 
   const localeRef = useRef<LocaleValue>("en");
   const explicitLocaleRef = useRef<LocaleValue | null>(null);
   const themeRef = useRef<ThemeValue>("auto");
   const pdfBaseNameRef = useRef("flattened_slides");
-  const telemetryRef = useRef<boolean>(true);
+  const telemetryRef = useRef<boolean>(false);
+  const analyticsConsentRef = useRef<AnalyticsConsent | null>(null);
+  const storedPreferencesRef = useRef<StoredPreferences | null>(null);
+  const preferencesLoadedRef = useRef(false);
+  const consentRequiredRef = useRef<boolean | null>(null);
   const telemetryTouchedRef = useRef(false);
   const settingsRef = useRef<Settings>(defaultSettings);
   const settingsMenuRef = useRef<HTMLDetailsElement | null>(null);
@@ -51,7 +61,7 @@ export function usePreferences(markExportStale: () => void) {
 
   const savePreferences = useCallback((overrides?: Partial<StoredPreferences>) => {
     saveStoredPreferences({
-      version: 2,
+      version: 3,
       theme: overrides?.theme ?? themeRef.current,
       explicitLocale:
         overrides?.explicitLocale !== undefined
@@ -59,10 +69,8 @@ export function usePreferences(markExportStale: () => void) {
           : explicitLocaleRef.current,
       settings: overrides?.settings ?? settingsRef.current,
       pdfBaseName: overrides?.pdfBaseName ?? pdfBaseNameRef.current,
-      telemetry:
-        overrides?.telemetry !== undefined
-          ? overrides.telemetry
-          : telemetryRef.current,
+      telemetry: overrides?.telemetry ?? storedPreferencesRef.current?.telemetry,
+      analyticsConsent: overrides?.analyticsConsent ?? analyticsConsentRef.current ?? undefined,
     });
   }, []);
 
@@ -110,13 +118,33 @@ export function usePreferences(markExportStale: () => void) {
   const updateTelemetry = useCallback(
     (enabled: boolean) => {
       telemetryTouchedRef.current = true;
+      const consent: AnalyticsConsent = {
+        version: ANALYTICS_CONSENT_VERSION,
+        granted: enabled,
+        decidedAt: new Date().toISOString(),
+      };
+      analyticsConsentRef.current = consent;
+      storedPreferencesRef.current = { ...storedPreferencesRef.current, telemetry: enabled, analyticsConsent: consent };
       telemetryRef.current = enabled;
       setTelemetryState(enabled);
+      setShowAnalyticsChoice(false);
       setTelemetryOptOut(!enabled);
-      savePreferences({ telemetry: enabled });
+      savePreferences({ telemetry: enabled, analyticsConsent: consent });
     },
     [savePreferences],
   );
+
+  const syncTelemetry = useCallback(() => {
+    if (!preferencesLoadedRef.current || consentRequiredRef.current === null) return;
+    setAnalyticsPolicyReady(true);
+    if (telemetryTouchedRef.current) return;
+    const stored = storedPreferencesRef.current;
+    const enabled = shouldEnableTelemetry(stored, consentRequiredRef.current);
+    telemetryRef.current = enabled;
+    setTelemetryState(enabled);
+    setShowAnalyticsChoice(consentRequiredRef.current && !hasAnalyticsChoice(stored));
+    setTelemetryOptOut(!enabled);
+  }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -139,12 +167,10 @@ export function usePreferences(markExportStale: () => void) {
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       const stored = loadStoredPreferences();
-      if (!telemetryTouchedRef.current) {
-        const enabled = shouldEnableTelemetry(stored);
-        telemetryRef.current = enabled;
-        setTelemetryState(enabled);
-        setTelemetryOptOut(!enabled);
-      }
+      storedPreferencesRef.current = stored;
+      analyticsConsentRef.current = stored?.analyticsConsent ?? null;
+      preferencesLoadedRef.current = true;
+      syncTelemetry();
       if (stored) {
         if (stored.theme) {
           themeRef.current = stored.theme;
@@ -189,7 +215,17 @@ export function usePreferences(markExportStale: () => void) {
     }, 0);
 
     return () => window.clearTimeout(timeoutId);
-  }, []);
+  }, [syncTelemetry]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void requiresAnalyticsConsent(controller.signal).then((required) => {
+      if (controller.signal.aborted) return;
+      consentRequiredRef.current = required;
+      syncTelemetry();
+    });
+    return () => controller.abort();
+  }, [syncTelemetry]);
 
   useEffect(() => {
     const handleLanguageChange = () => {
@@ -270,6 +306,8 @@ export function usePreferences(markExportStale: () => void) {
     setLocale: setUserLocale,
     telemetry,
     setTelemetry: updateTelemetry,
+    showAnalyticsChoice,
+    analyticsPolicyReady,
     localeRef,
     settingsMenuRef,
     moreSettingsRef,

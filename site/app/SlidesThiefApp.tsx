@@ -5,6 +5,7 @@ import type { Quad } from "./detection/types";
 import { normalizeJpgZipName, normalizePdfName, normalizeSingleJpgName } from "./filename";
 import {
   copy,
+  analyticsConsentCopy,
   detectionMethodText,
   formatAppError,
   ratioUiCopy,
@@ -147,6 +148,8 @@ export function SlidesThiefApp() {
     setLocale,
     telemetry,
     setTelemetry,
+    showAnalyticsChoice,
+    analyticsPolicyReady,
     localeRef,
     settingsRef,
     settingsMenuRef,
@@ -1479,8 +1482,32 @@ export function SlidesThiefApp() {
         text={text}
         appVersion={APP_VERSION}
         telemetryEnabled={telemetry}
+        telemetryReady={analyticsPolicyReady}
+        telemetryCheckingLabel={analyticsConsentCopy[locale].checking}
+        googlePolicyLabel={analyticsConsentCopy[locale].googlePolicy}
         setTelemetryEnabled={setTelemetry}
       />
+
+      {showAnalyticsChoice && (
+        <section
+          className="analyticsConsentBanner"
+          aria-labelledby="analytics-consent-title"
+          aria-hidden={isAnyModalOpen || undefined}
+          inert={isAnyModalOpen ? true : undefined}
+        >
+          <div className="analyticsConsentBody">
+            <strong id="analytics-consent-title">{analyticsConsentCopy[locale].title}</strong>
+            <p>{analyticsConsentCopy[locale].description}</p>
+            <button type="button" className="analyticsConsentDetails" onClick={() => setIsInfoOpen(true)}>
+              {analyticsConsentCopy[locale].details}
+            </button>
+          </div>
+          <div className="analyticsConsentActions">
+            <Button onClick={() => setTelemetry(false)}>{analyticsConsentCopy[locale].reject}</Button>
+            <Button onClick={() => setTelemetry(true)}>{analyticsConsentCopy[locale].accept}</Button>
+          </div>
+        </section>
+      )}
 
       <ConfirmModal
         isOpen={isConfirmClearOpen}

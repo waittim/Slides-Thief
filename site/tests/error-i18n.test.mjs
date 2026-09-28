@@ -17,9 +17,18 @@ const {
   reviewUiCopy,
   ratioUiCopy,
   detectAcceptLanguageLocale,
+  analyticsConsentCopy,
 } = await import(new URL("../app/i18n.ts", import.meta.url).href);
 
 const ALL_LOCALES = localeOptions.map((opt) => opt.value);
+
+test("all 9 locales provide complete analytics consent copy", () => {
+  for (const locale of ALL_LOCALES) {
+    for (const key of ["title", "description", "accept", "reject", "details", "checking", "googlePolicy"]) {
+      assert.ok(analyticsConsentCopy[locale][key]?.trim(), `${locale}.${key}`);
+    }
+  }
+});
 
 test("all 9 locales have complete errorUiCopy definitions", () => {
   assert.equal(ALL_LOCALES.length, 9);
@@ -438,5 +447,4 @@ test("all 9 locales have complete filename validation copy", () => {
     }
   }
 });
-
 

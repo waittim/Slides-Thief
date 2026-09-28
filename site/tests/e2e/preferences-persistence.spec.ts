@@ -125,6 +125,69 @@ test("enables analytics by default and persists an explicit opt-out", async ({ p
   await expect.poll(() => tagRequests).toBe(3);
 });
 
+test("consent region blocks Google until acceptance and remembers rejection", async ({ page }) => {
+  await page.route("**/v1", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ version: 1, defaultAllowed: false }) }),
+  );
+  let tagRequests = 0;
+  await page.route(/https:\/\/www\.googletagmanager\.com\/gtag\/js\?.*/, async (route) => {
+    tagRequests += 1;
+    await route.fulfill({ status: 200, contentType: "application/javascript", body: "" });
+  });
+  await page.goto("/");
+  const banner = page.getByRole("region", { name: /Usage analytics|使用统计/i });
+  await expect(banner).toBeVisible();
+  expect(tagRequests).toBe(0);
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
+  await page.locator("label.themeSetting select:visible").first().selectOption("dark");
+  await page.reload();
+  await expect(banner).toBeVisible();
+  expect(tagRequests).toBe(0);
+  await banner.getByRole("button", { name: /View details|查看详情/i }).click();
+  await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await banner.getByRole("button", { name: /Reject analytics|拒绝统计/i }).click();
+  await expect(banner).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".app")).toHaveAttribute("data-hydrated", "true");
+  await expect(banner).toHaveCount(0);
+  expect(tagRequests).toBe(0);
+
+  await page.locator("button.infoButton:visible").first().click();
+  await page.getByRole("switch", { name: /Usage analytics|使用统计/i }).click();
+  await expect.poll(() => tagRequests).toBe(1);
+  await page.reload();
+  await expect.poll(() => tagRequests).toBe(2);
+});
+
+test("analytics waits for the edge decision before default-on loading", async ({ page }) => {
+  let releasePolicy: (() => void) | undefined;
+  const pending = new Promise<void>((resolve) => { releasePolicy = resolve; });
+  await page.route("**/v1", async (route) => {
+    await pending;
+    await route.fulfill({ status: 200, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ version: 1, defaultAllowed: true }) });
+  });
+  await page.goto("/");
+  await expect(page.locator(".app")).toHaveAttribute("data-hydrated", "true");
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
+  await page.locator("button.infoButton:visible").first().click();
+  const pendingSwitch = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
+  await expect(pendingSwitch).toBeDisabled();
+  releasePolicy?.();
+  await expect(pendingSwitch).toBeEnabled();
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(1);
+});
+
+test("legacy enabled preference is not treated as consent, and policy failure fails closed", async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem("slides_thief_user_preferences", JSON.stringify({ version: 2, telemetry: true }));
+  });
+  await page.route("**/v1", (route) => route.fulfill({ status: 503 }));
+  await page.goto("/");
+  await expect(page.getByRole("region", { name: /Usage analytics|使用统计/i })).toBeVisible();
+  await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
+});
+
 for (const version of [1, 2]) {
   test(`saved version ${version} analytics opt-out prevents tag loading`, async ({ page }) => {
     let tagRequests = 0;

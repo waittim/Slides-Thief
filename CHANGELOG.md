@@ -28,7 +28,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Usage analytics is on by default after stored preferences are checked. Saved opt-outs remain off, and app events exclude filenames and raw errors.
+- Usage analytics is on by default only where the edge policy allows it; elsewhere it requires a recorded choice, and policy failures keep Google Analytics unloaded. Saved opt-outs remain off, and app events exclude filenames and raw errors.
+- Added an equally weighted analytics accept/reject prompt, versioned local consent records, and a first-party edge country policy service.
 - Limited the Google Analytics data stream's automatic enhanced measurement to page views; disabled file downloads, site search, form interactions, outbound clicks, scrolls, and video engagement.
 - Counted browser download starts through a parameter-free app event, including automatic exports, repeat downloads, and manual corner JSON exports; removed export file sizes from analytics.
 - Corrected web and CLI documentation for source ratios, PDF page layouts, paper sizes, and margin colors.

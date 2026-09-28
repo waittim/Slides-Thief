@@ -22,6 +22,7 @@ jobs:
         working-directory: site
     env:
       GITHUB_PAGES_BASE: /
+      VITE_ANALYTICS_POLICY_URL: ${{ vars.ANALYTICS_POLICY_URL }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
