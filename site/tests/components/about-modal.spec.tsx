@@ -24,10 +24,20 @@ test("renders privacy statement and interactive telemetry toggle switch", async 
 
   // Privacy text is displayed
   await expect(component.locator(".modalPrivacy")).toContainText("照片与生成的 PDF 仅在您的浏览器本地处理，绝不会上传至任何远程服务器。");
-  await expect(component.locator(".modalTelemetryDesc")).toContainText("默认开启");
+  const disclosure = component.getByRole("button", { name: "使用统计" });
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(component.locator(".modalTelemetryDesc")).toBeHidden();
+  const telemetrySwitch = component.getByRole("switch", { name: "使用统计" });
+  await expect(telemetrySwitch).toBeVisible();
+  const disclosureBox = await disclosure.boundingBox();
+  const switchBox = await telemetrySwitch.boundingBox();
+  expect(disclosureBox && switchBox).toBeTruthy();
+  expect(Math.abs((disclosureBox!.y + disclosureBox!.height / 2) - (switchBox!.y + switchBox!.height / 2))).toBeLessThan(8);
+  await disclosure.click();
+  await expect(disclosure).toHaveAttribute("aria-expanded", "true");
+  await expect(component.locator(".modalTelemetryDesc")).toContainText("改进产品");
 
   // Telemetry is on by default and can be disabled.
-  const telemetrySwitch = component.getByRole("switch", { name: "使用统计" });
   await expect(telemetrySwitch).toBeVisible();
   await expect(telemetrySwitch).toBeChecked();
   await expect(telemetrySwitch.locator(".switchLabel")).toHaveText("已启用");
@@ -41,4 +51,8 @@ test("renders privacy statement and interactive telemetry toggle switch", async 
   await telemetrySwitch.click();
   await expect(telemetrySwitch).toBeChecked();
   await expect(telemetrySwitch.locator(".switchLabel")).toHaveText("已启用");
+
+  await disclosure.click();
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(telemetrySwitch).toBeVisible();
 });

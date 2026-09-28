@@ -3637,17 +3637,56 @@ canvas {
   border-top: 1px solid color-mix(in srgb, var(--accent-2), transparent 75%);
 }
 
-.modalTelemetryHeader {
+.modalTelemetryDisclosure {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
-.modalTelemetryHeaderContent {
-  flex: 1;
-  min-width: 200px;
+.modalTelemetryDisclosure:hover .modalTelemetryTitle,
+.modalTelemetryDisclosure .sfIcon {
+  color: var(--accent-2);
+}
+
+.modalTelemetryDisclosure .sfIcon {
+  flex: none;
+}
+
+.modalTelemetryContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modalTelemetryContent[hidden] {
+  display: none;
+}
+
+.modalTelemetryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: nowrap;
+}
+
+.modalTelemetryHeader .switchToggle,
+.modalTelemetryHeader .switchLabel {
+  min-width: 0;
+}
+
+.modalTelemetryHeader .switchLabel {
+  overflow-wrap: anywhere;
 }
 
 .modalTelemetryTitle {
@@ -3655,7 +3694,6 @@ canvas {
   font-weight: var(--font-weight-bold);
   color: var(--text);
   display: block;
-  margin-bottom: var(--space-1);
 }
 
 .modalTelemetryDesc {

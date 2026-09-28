@@ -100,6 +100,11 @@ test("enables analytics by default and persists an explicit opt-out", async ({ p
   await expect(infoButton).toBeVisible();
   await infoButton.click();
   const telemetrySwitch = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
+  const disclosure = page.getByRole("button", { name: /Usage analytics|使用统计/i });
+  await expect(disclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(telemetrySwitch).toBeVisible();
+  await expect(page.locator(".modalTelemetryDesc")).toBeHidden();
+  await disclosure.click();
   await expect(telemetrySwitch).toBeVisible();
   await expect(telemetrySwitch).toBeChecked();
 
@@ -112,6 +117,7 @@ test("enables analytics by default and persists an explicit opt-out", async ({ p
   expect(tagRequests).toBe(1);
   const infoButtonAfterReload = page.locator("button.infoButton:visible").first();
   await infoButtonAfterReload.click();
+  await page.getByRole("button", { name: /Usage analytics|使用统计/i }).click();
   const telemetrySwitchAfterReload = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
   await expect(telemetrySwitchAfterReload).toBeVisible();
   await expect(telemetrySwitchAfterReload).not.toBeChecked();
@@ -145,6 +151,7 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   expect(tagRequests).toBe(0);
   await expect(banner.getByText(/improve Slides Thief|改进 Slides Thief/i)).toBeVisible();
   await banner.getByRole("button", { name: /View details|查看详情/i }).click();
+  await expect(page.getByRole("button", { name: /Usage analytics|使用统计/i })).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
   await expect(page.getByRole("link", { name: /Site privacy notice|本站隐私说明/i })).toHaveAttribute("href", "https://slidesthief.com/privacy.html");
   await expect(page.getByRole("link", { name: /Privacy request contact|隐私请求联系方式/i })).toHaveAttribute("href", "https://www.zekun.blog/about/");
@@ -157,6 +164,7 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   expect(tagRequests).toBe(0);
 
   await page.locator("button.infoButton:visible").first().click();
+  await page.getByRole("button", { name: /Usage analytics|使用统计/i }).click();
   await page.getByRole("switch", { name: /Usage analytics|使用统计/i }).click();
   await expect.poll(() => tagRequests).toBe(1);
   await page.reload();
@@ -178,6 +186,7 @@ test("Enter accepts analytics from the page, while Enter on details opens About"
   const detailsButton = banner.getByRole("button", { name: /View details|查看详情/i });
   await detailsButton.focus();
   await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: /Usage analytics|使用统计/i })).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
   expect(tagRequests).toBe(0);
   await page.keyboard.press("Escape");
@@ -202,6 +211,7 @@ test("analytics waits for the edge decision before default-on loading", async ({
   await expect(page.locator(".app")).toHaveAttribute("data-hydrated", "true");
   await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
   await page.locator("button.infoButton:visible").first().click();
+  await page.getByRole("button", { name: /Usage analytics|使用统计/i }).click();
   const pendingSwitch = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
   await expect(pendingSwitch).toBeDisabled();
   releasePolicy?.();
@@ -232,6 +242,7 @@ for (const version of [1, 2]) {
     await page.goto("/");
     const infoButton = page.locator("button.infoButton:visible").first();
     await infoButton.click();
+    await page.getByRole("button", { name: /Usage analytics|使用统计/i }).click();
     await expect(page.getByRole("switch", { name: /Usage analytics|使用统计/i })).not.toBeChecked();
     expect(tagRequests).toBe(0);
     await expect(page.locator('script[data-analytics-id]')).toHaveCount(0);
@@ -289,4 +300,16 @@ test("desktop renders preferences in semantic nav while mobile unifies them in s
   await mobileInfoButton.click();
   await expect(page.locator(".modalCard")).toBeVisible();
   await expect(page.getByRole("button", { name: /Close|关闭/i })).toBeVisible();
+  const telemetryDisclosure = page.getByRole("button", { name: /Usage analytics|使用统计/i });
+  const telemetrySwitch = page.getByRole("switch", { name: /Usage analytics|使用统计/i });
+  await expect(telemetryDisclosure).toHaveAttribute("aria-expanded", "false");
+  await expect(telemetrySwitch).toBeVisible();
+  await expect(page.locator(".modalTelemetryDesc")).toBeHidden();
+  const disclosureBox = await telemetryDisclosure.boundingBox();
+  const switchBox = await telemetrySwitch.boundingBox();
+  expect(disclosureBox && switchBox).toBeTruthy();
+  expect(Math.abs((disclosureBox!.y + disclosureBox!.height / 2) - (switchBox!.y + switchBox!.height / 2))).toBeLessThan(8);
+  await telemetryDisclosure.click();
+  await expect(page.locator(".modalTelemetryDesc")).toBeVisible();
+  await expect(telemetrySwitch).toBeVisible();
 });

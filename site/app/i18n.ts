@@ -975,7 +975,7 @@ export const copy = {
     infoDesc: "Slides Thief 是一款本地运行的浏览器工具，可以将拍摄的倾斜幻灯片或文档快速矫正并整理成清晰的 PDF。",
     infoPrivacy: "照片与生成的 PDF 仅在您的浏览器本地处理，绝不会上传至任何远程服务器。",
     telemetryTitle: "使用统计",
-    telemetryDesc: "在适用地区，使用统计默认开启；其他地区需您同意。Google Analytics 会接收页面访问、导入数量、导出页数、下载次数、角点调整次数及固定错误码。应用事件不含文件名、文件大小、原始错误文本、照片像素或 PDF；可随时更改选择。",
+    telemetryDesc: "Google Analytics 会接收页面访问、导入数量、导出页数、下载次数、角点调整次数及固定错误码等通用信息以改进产品。应用事件不含文件名、文件大小、原始错误文本、照片像素或 PDF；可随时更改选择。",
     telemetryEnabled: "已启用",
     telemetryDisabled: "已禁用",
     infoRepo: "开源仓库",
