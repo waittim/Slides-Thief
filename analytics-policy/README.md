@@ -18,12 +18,23 @@ The Worker allows the production Sites origin at
 `https://slides-thief.waittim.chatgpt.site` as well as the public domain and
 GitHub Pages origin.
 
-From this directory, after authenticating Wrangler to the owning account:
+For this one-time release deployment, authenticate Wrangler with only the
+needed OAuth scopes and store its credentials in the OS keychain. Run these
+commands from this directory, then revoke the local authorization after the
+production checks are complete:
 
 ```bash
+npx wrangler login --scopes account:read user:read workers_scripts:write --use-keyring
 npx wrangler deploy
 node --test worker.test.mjs
+npx wrangler logout
 ```
+
+OAuth scopes are not limited to an individual Worker. If automated deployments
+are added later, use a Cloudflare account-owned API token scoped to this Worker
+with the Editor role, and store it only as a CI secret. The first deployment
+needs product-level Worker creation access because this Worker does not yet
+exist; the per-Worker token can be created afterward.
 
 Verify the production response from at least one `US` and one EEA/UK/CH
 network, including its CORS and `Cache-Control: no-store` headers. Local
