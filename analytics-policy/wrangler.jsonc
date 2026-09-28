@@ -1,5 +1,6 @@
 {
   "name": "slides-thief-analytics-policy",
+  "account_id": "f0352a6858647d16a52017552db5a0be",
   "main": "worker.mjs",
   "compatibility_date": "2026-09-27",
   "workers_dev": true,
