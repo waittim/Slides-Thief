@@ -33,6 +33,9 @@ these actions by the number of events received.
 Google Analytics may process browser, device, and network information and may
 set analytics cookies when enabled. Its separate processing is described in
 the [Google Privacy Policy](https://policies.google.com/privacy).
+The current GA4 property retains event data for 2 months and user data for 14
+months, with user-data retention reset by new activity. These settings do not
+affect most aggregate reports.
 
 An explicit choice and its timestamp are saved only in browser local storage
 and can be changed at any time in **About**. Turning analytics off suppresses
