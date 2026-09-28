@@ -4,6 +4,7 @@ const ALLOWED_ORIGINS = new Set([
   "https://slidesthief.com",
   "https://www.slidesthief.com",
   "https://waittim.github.io",
+  "https://slides-thief.waittim.chatgpt.site",
 ]);
 
 export function defaultAnalyticsAllowed(country) {

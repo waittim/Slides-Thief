@@ -14,6 +14,9 @@ URL before building GitHub Pages. Set `VITE_ANALYTICS_POLICY_URL` to that URL
 for any Sites/SSR build. The web app's fallback URL is
 `https://analytics-policy.slidesthief.com/v1`; until a service exists there,
 an unset variable safely requires consent everywhere.
+The Worker allows the production Sites origin at
+`https://slides-thief.waittim.chatgpt.site` as well as the public domain and
+GitHub Pages origin.
 
 From this directory, after authenticating Wrangler to the owning account:
 

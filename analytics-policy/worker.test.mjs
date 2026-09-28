@@ -24,6 +24,8 @@ test("response is a non-cacheable decision without location details", async () =
   assert.equal(allowed.headers.get("Access-Control-Allow-Origin"), "https://slidesthief.com");
   const blocked = await policy("FR");
   assert.deepEqual(await blocked.json(), { version: 1, defaultAllowed: false });
+  const sites = await policy("US", "https://slides-thief.waittim.chatgpt.site");
+  assert.equal(sites.headers.get("Access-Control-Allow-Origin"), "https://slides-thief.waittim.chatgpt.site");
 });
 
 test("unknown location, unapproved origin, and other paths never allow default analytics", async () => {
