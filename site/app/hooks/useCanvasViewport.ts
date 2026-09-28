@@ -1,8 +1,18 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Dispatch, MutableRefObject, SetStateAction } from "react";
 import type { Quad } from "../detection/types";
+import { CanvasThemeColors, resolveCanvasThemeColors } from "../lib/canvas-utils";
 import { maxQuadOutside, quadHandlePositions } from "../lib/slide-utils";
-import type { CanvasRenderState, HandlePosition, SlideItem } from "../lib/types";
+import type { CanvasRenderState, HandlePosition, SlideItem, ThemeValue } from "../lib/types";
+import {
+  calculateNewZoom,
+  calculateScrollAdjustment,
+  calculateZoomFactor,
+  calculateLoupePosition,
+  isEditableTarget,
+  isMouseWheelEvent,
+  type ZoomAnchor,
+} from "../lib/viewport-math";
 
 type DragQuadRef = MutableRefObject<{ id: string; quad: Quad } | null>;
 type DragHandleRef = MutableRefObject<number | null>;
@@ -12,6 +22,7 @@ type CanvasViewportOptions = {
   setSlides: Dispatch<SetStateAction<SlideItem[]>>;
   latestDragQuadRef: DragQuadRef;
   dragHandleRef: DragHandleRef;
+  theme?: ThemeValue;
 };
 
 export function useCanvasViewport({
@@ -19,15 +30,19 @@ export function useCanvasViewport({
   setSlides,
   latestDragQuadRef,
   dragHandleRef,
+  theme,
 }: CanvasViewportOptions) {
   const [zoomMode, setZoomMode] = useState<"fit" | "manual">("fit");
   const [zoom, setZoom] = useState(1);
   const [displayZoom, setDisplayZoom] = useState(1);
   const [handlePositions, setHandlePositions] = useState<HandlePosition[]>([]);
   const [previewErrorSlideId, setPreviewErrorSlideId] = useState<string | null>(null);
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loupeCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const loupeOverlayRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const handleRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const canvasRenderRef = useRef<CanvasRenderState | null>(null);
@@ -37,6 +52,10 @@ export function useCanvasViewport({
   const fitZoomRef = useRef(1);
   const maxZoomRef = useRef(3);
   const redrawFrameRef = useRef<number | null>(null);
+  const zoomAnchorRef = useRef<ZoomAnchor | null>(null);
+  const isSpacePressedRef = useRef(false);
+  const isPanningRef = useRef(false);
+  const themeColorsRef = useRef<CanvasThemeColors>(resolveCanvasThemeColors());
 
   const updateLoupeCanvas = useCallback((quad: Quad | null, handleIndex: number | null) => {
     const loupeCanvas = loupeCanvasRef.current;
@@ -68,6 +87,48 @@ export function useCanvasViewport({
     );
   }, []);
 
+  const handlePositionsRef = useRef<HandlePosition[]>([]);
+  useEffect(() => {
+    handlePositionsRef.current = handlePositions;
+  }, [handlePositions]);
+
+  const updateLoupePosition = useCallback(
+    (handleIndex: number | null, handlePos?: HandlePosition) => {
+      const loupeOverlay = loupeOverlayRef.current;
+      const stage = stageRef.current;
+      const canvas = canvasRef.current;
+      if (!loupeOverlay || handleIndex === null) return;
+
+      const pos = handlePos ?? handlePositionsRef.current[handleIndex];
+      if (!pos) return;
+
+      const stageRect = stage
+        ? {
+            left: stage.getBoundingClientRect().left + stage.clientLeft,
+            top: stage.getBoundingClientRect().top + stage.clientTop,
+            right: stage.getBoundingClientRect().left + stage.clientLeft + stage.clientWidth,
+            bottom: stage.getBoundingClientRect().top + stage.clientTop + stage.clientHeight,
+            width: stage.clientWidth,
+            height: stage.clientHeight,
+          }
+        : null;
+      const canvasRect = canvas ? canvas.getBoundingClientRect() : null;
+      const canvasSize = canvas ? { width: canvas.width, height: canvas.height } : null;
+
+      const result = calculateLoupePosition({
+        handlePos: pos,
+        stageRect,
+        canvasRect,
+        canvasSize,
+      });
+
+      loupeOverlay.style.left = `${result.left}px`;
+      loupeOverlay.style.top = `${result.top}px`;
+      loupeOverlay.dataset.placement = result.placement;
+    },
+    [],
+  );
+
   const paintCanvas = useCallback((quad: Quad | null) => {
     const canvas = canvasRef.current;
     const render = canvasRenderRef.current;
@@ -77,13 +138,15 @@ export function useCanvasViewport({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    const colors = themeColorsRef.current;
+
     ctx.clearRect(0, 0, width, height);
     const imageX = padX * scale;
     const imageY = padY * scale;
     const imageWidth = image.naturalWidth * scale;
     const imageHeight = image.naturalHeight * scale;
     ctx.drawImage(image, imageX, imageY, imageWidth, imageHeight);
-    ctx.strokeStyle = "rgba(255, 255, 255, .36)";
+    ctx.strokeStyle = colors.imageStroke;
     ctx.lineWidth = 1.5;
     ctx.strokeRect(imageX, imageY, imageWidth, imageHeight);
 
@@ -96,34 +159,58 @@ export function useCanvasViewport({
       handle.style.top = `${position.top}px`;
     });
 
-    ctx.lineWidth = Math.max(3, Math.min(7, width / 420));
-    ctx.strokeStyle = "rgba(200, 69, 53, .98)";
+    ctx.save();
     ctx.beginPath();
     positions.forEach(({ left, top }, index) => {
       if (index === 0) ctx.moveTo(left, top);
       else ctx.lineTo(left, top);
     });
     ctx.closePath();
+    ctx.fillStyle = colors.quadStroke.startsWith("#")
+      ? `${colors.quadStroke}14`
+      : "rgba(15, 118, 110, 0.08)";
+    ctx.fill();
+    ctx.lineWidth = Math.max(2, Math.min(4, width / 450));
+    ctx.strokeStyle = colors.quadStroke;
     ctx.stroke();
+    ctx.restore();
 
-    positions.forEach(({ left, top }, index) => {
-      const radius = compact ? 12 : Math.max(9, Math.min(18, width / 150));
-      ctx.fillStyle = "rgba(255, 216, 74, .96)";
-      ctx.strokeStyle = "rgba(16, 20, 22, .92)";
-      ctx.lineWidth = Math.max(2, Math.min(4, width / 700));
+    positions.forEach(({ left, top }) => {
+      const outerRadius = compact ? 10 : Math.max(8, Math.min(14, width / 180));
+      const innerRadius = Math.max(3.5, outerRadius * 0.42);
+
+      ctx.save();
+      ctx.shadowColor = "rgba(0, 0, 0, 0.28)";
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 0;
+      ctx.shadowOffsetY = 1.5;
+
       ctx.beginPath();
-      ctx.arc(left, top, radius, 0, Math.PI * 2);
+      ctx.arc(left, top, outerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
       ctx.fill();
+
+      ctx.shadowColor = "transparent";
+      ctx.strokeStyle = colors.quadStroke;
+      ctx.lineWidth = 1.5;
       ctx.stroke();
-      ctx.fillStyle = "#172026";
-      ctx.font = `700 ${Math.max(13, Math.min(18, width / 80))}px -apple-system, BlinkMacSystemFont, sans-serif`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(String(index + 1), left, top + 1);
+
+      ctx.beginPath();
+      ctx.arc(left, top, innerRadius, 0, Math.PI * 2);
+      ctx.fillStyle = colors.handleFill;
+      ctx.fill();
+      ctx.strokeStyle = colors.handleStroke;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.restore();
     });
 
-    if (dragHandleRef.current !== null) updateLoupeCanvas(quad, dragHandleRef.current);
-  }, [dragHandleRef, updateLoupeCanvas]);
+    if (dragHandleRef.current !== null) {
+      updateLoupeCanvas(quad, dragHandleRef.current);
+      updateLoupePosition(dragHandleRef.current, positions[dragHandleRef.current]);
+    }
+  }, [dragHandleRef, updateLoupeCanvas, updateLoupePosition]);
 
   const redrawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -213,7 +300,24 @@ export function useCanvasViewport({
       canvasRenderRef.current = { slideId: slide.id, image, width, height, padX, padY, scale, compact };
       setDisplayZoom((current) => (Math.abs(current - scale) < 0.0001 ? current : scale));
       setHandlePositions(previewQuad ? quadHandlePositions(previewQuad, padX, padY, scale) : []);
+      themeColorsRef.current = resolveCanvasThemeColors(stage);
       paintCanvas(previewQuad);
+
+      if (zoomMode === "fit") {
+        if (stage) {
+          stage.scrollLeft = 0;
+          stage.scrollTop = 0;
+        }
+        zoomAnchorRef.current = null;
+      } else if (zoomAnchorRef.current && stage) {
+        const anchor = zoomAnchorRef.current;
+        zoomAnchorRef.current = null;
+        const newCanvasRect = canvas.getBoundingClientRect();
+        const newStageRect = stage.getBoundingClientRect();
+        const adj = calculateScrollAdjustment(anchor, newCanvasRect, newStageRect);
+        stage.scrollLeft += adj.deltaX;
+        stage.scrollTop += adj.deltaY;
+      }
     };
 
     const cached = imageCacheRef.current;
@@ -261,6 +365,50 @@ export function useCanvasViewport({
     };
   }, [scheduleRedraw]);
 
+  const updateColorsAndRepaint = useCallback(() => {
+    themeColorsRef.current = resolveCanvasThemeColors(stageRef.current);
+    const render = canvasRenderRef.current;
+    if (render && selectedSlide) {
+      const previewQuad = latestDragQuadRef.current?.id === selectedSlide.id
+        ? latestDragQuadRef.current.quad
+        : selectedSlide.quad;
+      paintCanvas(previewQuad);
+    }
+  }, [latestDragQuadRef, paintCanvas, selectedSlide]);
+
+  useEffect(() => {
+    updateColorsAndRepaint();
+  }, [theme, updateColorsAndRepaint]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.attributeName === "data-theme") {
+          updateColorsAndRepaint();
+          break;
+        }
+      }
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-theme"],
+    });
+
+    const mediaQuery = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const handleMediaChange = () => {
+      updateColorsAndRepaint();
+    };
+    mediaQuery?.addEventListener?.("change", handleMediaChange);
+
+    return () => {
+      observer.disconnect();
+      mediaQuery?.removeEventListener?.("change", handleMediaChange);
+    };
+  }, [updateColorsAndRepaint]);
+
   const resetViewport = useCallback(() => {
     imageCacheRef.current = null;
     canvasRenderRef.current = null;
@@ -271,20 +419,245 @@ export function useCanvasViewport({
     }
   }, []);
 
-  const zoomOut = useCallback(() => {
+  const zoomTo = useCallback((nextZoom: number, anchor?: { clientX: number; clientY: number }) => {
+    const stage = stageRef.current;
+    const canvas = canvasRef.current;
+    if (stage && canvas) {
+      const stageRect = stage.getBoundingClientRect();
+      const canvasRect = canvas.getBoundingClientRect();
+      const clientX = anchor?.clientX ?? (stageRect.left + stageRect.width / 2);
+      const clientY = anchor?.clientY ?? (stageRect.top + stageRect.height / 2);
+      zoomAnchorRef.current = {
+        viewportX: clientX - stageRect.left,
+        viewportY: clientY - stageRect.top,
+        targetX: canvasRect.width ? (clientX - canvasRect.left) / canvasRect.width : 0.5,
+        targetY: canvasRect.height ? (clientY - canvasRect.top) / canvasRect.height : 0.5,
+      };
+    }
+    const clamped = Math.max(fitZoomRef.current * 0.5, Math.min(maxZoomRef.current, nextZoom));
     setZoomMode("manual");
-    setZoom(Math.max(fitZoomRef.current * 0.5, Math.min(maxZoomRef.current, displayZoom / 1.18)));
-  }, [displayZoom]);
+    setZoom(clamped);
+  }, []);
 
-  const zoomIn = useCallback(() => {
-    setZoomMode("manual");
-    setZoom(Math.min(maxZoomRef.current, Math.max(fitZoomRef.current * 0.5, displayZoom * 1.18)));
-  }, [displayZoom]);
+  const zoomOut = useCallback((anchor?: { clientX: number; clientY: number }) => {
+    zoomTo(displayZoom / 1.18, anchor);
+  }, [displayZoom, zoomTo]);
+
+  const zoomIn = useCallback((anchor?: { clientX: number; clientY: number }) => {
+    zoomTo(displayZoom * 1.18, anchor);
+  }, [displayZoom, zoomTo]);
+
+  // Wheel and trackpad zoom / pan listener
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      if (!selectedSlide?.url || previewErrorSlideId === selectedSlide.id) return;
+
+      const isPinch = event.ctrlKey || event.metaKey;
+      const isMouse = isMouseWheelEvent(event);
+
+      if (isPinch || isMouse) {
+        event.preventDefault();
+        const factor = calculateZoomFactor(event.deltaY);
+        const currentScale = scaleRef.current || fitZoomRef.current || 1;
+        const targetScale = calculateNewZoom(
+          currentScale,
+          factor,
+          fitZoomRef.current * 0.5,
+          maxZoomRef.current,
+        );
+        zoomTo(targetScale, { clientX: event.clientX, clientY: event.clientY });
+      }
+    };
+
+    stage.addEventListener("wheel", handleWheel, { passive: false });
+    return () => {
+      stage.removeEventListener("wheel", handleWheel);
+    };
+  }, [previewErrorSlideId, selectedSlide, zoomTo]);
+
+  // Touch pinch-to-zoom & two-finger pan listener
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const activeTouches = new Map<number, { clientX: number; clientY: number }>();
+    let initialPinch: {
+      distance: number;
+      initialScale: number;
+      midpoint: { clientX: number; clientY: number };
+    } | null = null;
+
+    const onPointerDown = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      activeTouches.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+      if (activeTouches.size === 2) {
+        const [p1, p2] = Array.from(activeTouches.values());
+        const dist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        initialPinch = {
+          distance: Math.max(1, dist),
+          initialScale: scaleRef.current || fitZoomRef.current || 1,
+          midpoint: {
+            clientX: (p1.clientX + p2.clientX) / 2,
+            clientY: (p1.clientY + p2.clientY) / 2,
+          },
+        };
+      }
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      if (event.pointerType !== "touch" || !activeTouches.has(event.pointerId)) return;
+      activeTouches.set(event.pointerId, { clientX: event.clientX, clientY: event.clientY });
+
+      if (activeTouches.size === 2 && initialPinch) {
+        event.preventDefault();
+        const [p1, p2] = Array.from(activeTouches.values());
+        const dist = Math.hypot(p1.clientX - p2.clientX, p1.clientY - p2.clientY);
+        const midX = (p1.clientX + p2.clientX) / 2;
+        const midY = (p1.clientY + p2.clientY) / 2;
+
+        const dx = midX - initialPinch.midpoint.clientX;
+        const dy = midY - initialPinch.midpoint.clientY;
+        initialPinch.midpoint = { clientX: midX, clientY: midY };
+        stage.scrollLeft -= dx;
+        stage.scrollTop -= dy;
+
+        const scaleRatio = dist / initialPinch.distance;
+        const targetScale = calculateNewZoom(
+          initialPinch.initialScale,
+          scaleRatio,
+          fitZoomRef.current * 0.5,
+          maxZoomRef.current,
+        );
+        zoomTo(targetScale, { clientX: midX, clientY: midY });
+      }
+    };
+
+    const onPointerEnd = (event: PointerEvent) => {
+      if (event.pointerType !== "touch") return;
+      activeTouches.delete(event.pointerId);
+      if (activeTouches.size < 2) {
+        initialPinch = null;
+      }
+    };
+
+    stage.addEventListener("pointerdown", onPointerDown, { passive: true });
+    window.addEventListener("pointermove", onPointerMove, { passive: false });
+    window.addEventListener("pointerup", onPointerEnd, { passive: true });
+    window.addEventListener("pointercancel", onPointerEnd, { passive: true });
+
+    return () => {
+      stage.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerEnd);
+      window.removeEventListener("pointercancel", onPointerEnd);
+    };
+  }, [zoomTo]);
+
+  // Space key handling for pan mode
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code === "Space" || event.key === " ") {
+        if (isEditableTarget(event.target)) return;
+        if (document.querySelector(".modalBackdrop, .dialogBackdrop, [role='dialog']")) return;
+
+        if (!isSpacePressedRef.current) {
+          isSpacePressedRef.current = true;
+          setIsSpacePressed(true);
+        }
+        event.preventDefault();
+      }
+    };
+
+    const handleKeyUp = (event: KeyboardEvent) => {
+      if (event.code === "Space" || event.key === " ") {
+        isSpacePressedRef.current = false;
+        setIsSpacePressed(false);
+      }
+    };
+
+    const handleBlur = () => {
+      isSpacePressedRef.current = false;
+      setIsSpacePressed(false);
+      isPanningRef.current = false;
+      setIsPanning(false);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    window.addEventListener("blur", handleBlur);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+      window.removeEventListener("blur", handleBlur);
+    };
+  }, []);
+
+  // Pan interaction: Middle-click or Space + Left-click drag
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!stage) return;
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const isMiddle = event.button === 1;
+      const isSpaceDrag = isSpacePressedRef.current && event.button === 0;
+
+      if (!isMiddle && !isSpaceDrag) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      isPanningRef.current = true;
+      setIsPanning(true);
+
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const initialScrollLeft = stage.scrollLeft;
+      const initialScrollTop = stage.scrollTop;
+
+      const handlePointerMove = (moveEvent: PointerEvent) => {
+        if (!isPanningRef.current) return;
+        moveEvent.preventDefault();
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        stage.scrollLeft = initialScrollLeft - dx;
+        stage.scrollTop = initialScrollTop - dy;
+      };
+
+      const handlePointerUp = (upEvent: PointerEvent) => {
+        if (isMiddle && upEvent.button !== 1) return;
+        if (isSpaceDrag && upEvent.button !== 0) return;
+
+        isPanningRef.current = false;
+        setIsPanning(false);
+        window.removeEventListener("pointermove", handlePointerMove);
+        window.removeEventListener("pointerup", handlePointerUp);
+        window.removeEventListener("pointercancel", handlePointerUp);
+      };
+
+      window.addEventListener("pointermove", handlePointerMove);
+      window.addEventListener("pointerup", handlePointerUp);
+      window.addEventListener("pointercancel", handlePointerUp);
+    };
+
+    const handleAuxClick = (event: MouseEvent) => {
+      if (event.button === 1) event.preventDefault();
+    };
+
+    stage.addEventListener("pointerdown", handlePointerDown);
+    stage.addEventListener("auxclick", handleAuxClick);
+    return () => {
+      stage.removeEventListener("pointerdown", handlePointerDown);
+      stage.removeEventListener("auxclick", handleAuxClick);
+    };
+  }, []);
 
   return {
     stageRef,
     canvasRef,
     loupeCanvasRef,
+    loupeOverlayRef,
     handleRefs,
     canvasRenderRef,
     viewportRef,
@@ -299,8 +672,12 @@ export function useCanvasViewport({
     paintCanvas,
     redrawCanvas,
     updateLoupeCanvas,
+    updateLoupePosition,
     resetViewport,
     zoomOut,
     zoomIn,
+    zoomTo,
+    isSpacePressed,
+    isPanning,
   };
 }

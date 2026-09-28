@@ -96,36 +96,33 @@ def paper_families(metadata: dict, predicate) -> list[str]:
     return families
 
 
-def presentation_labels(metadata: dict) -> list[str]:
-    source_ids = {item["id"] for item in metadata["ratios"]["web_source_base_formats"]}
-    return [item.get("label", item["id"]) for item in metadata["ratios"]["presentation"] if item["id"] in source_ids]
-
-
-def unique_labels(values: list[str]) -> list[str]:
-    return list(dict.fromkeys(values))
-
-
 def paper_orientation_labels(metadata: dict, predicate) -> list[str]:
     return [f"{family} landscape/portrait" for family in paper_families(metadata, predicate)]
 
 
 def web_feature_line(metadata: dict, chinese: bool = False) -> str:
-    presentations = presentation_labels(metadata)
-    iso_families = [family for family in paper_families(metadata, lambda item: item["web"]) if family != "Letter"]
-    letter_families = [family for family in paper_families(metadata, lambda item: item["web"]) if family == "Letter"]
+    sources = web_source_labels(metadata)
+    papers = paper_families(metadata, lambda item: item["web"])
     if chinese:
-        iso = "/".join(iso_families)
-        letter = "/".join(letter_families)
-        return f"- 支持 {'、'.join(presentations)}、ISO {iso}（横向与纵向）与 US {letter}（横向与纵向）输出比例；纸张预设会自动以白色填充边距。"
+        return "\n".join(
+            [
+                f"- 原稿比例可选 {'、'.join(sources)} 或自定义数值；PDF 页面可匹配原稿，选用 {'、'.join(papers)} 横向或纵向纸张，或设置自定义宽高。",
+                "- 页面留白使用所选填充色；默认“自动”模式从画面内容取色，无法确定时回退为白色。",
+            ]
+        )
     return (
-        f"- {', '.join(presentations)}, ISO {'/'.join(iso_families)} (landscape and portrait), "
-        f"and US {', '.join(letter_families)} (landscape and portrait) output ratios. Paper presets fill margins with white."
+        f"- Source aspect-ratio choices include {', '.join(sources)} and custom values. PDF pages can match the source, "
+        f"use physical {', '.join(papers)} paper in either orientation, or use custom pixel dimensions.\n"
+        "- Page margins use the selected fill color; Auto samples the slide content and falls back to white."
     )
 
 
 def cli_summary_chinese(metadata: dict) -> str:
     cli_only_papers = "、".join(paper_families(metadata, lambda item: item["cli"] and not item["web"]))
-    return f"CLI 额外支持 {cli_only_papers} 纸张预设和任意数字自定义比例（如 `1.777`）。"
+    return (
+        f"CLI 额外支持 {cli_only_papers} 纸张比例预设，并接受数字形式的原稿或页面比例（如 `1.777`）。"
+        "CLI 中的纸张名称只指定长宽比，不指定 PDF 的实际物理尺寸。"
+    )
 
 
 def web_summary(metadata: dict, prefix: str) -> str:
@@ -135,17 +132,24 @@ def web_summary(metadata: dict, prefix: str) -> str:
     )
     if prefix == "README":
         return (
-            f"The Web PDF paper presets include {papers} in landscape and portrait. "
-            f"The CLI additionally supports {cli_only_papers} paper presets and arbitrary numeric custom ratios."
+            f"The web app offers physical {papers} PDF paper presets in landscape and portrait, "
+            "plus source-matched or custom-size pages. "
+            f"The CLI additionally supports {cli_only_papers} aspect-ratio presets and numeric source/output ratios; "
+            "its paper names do not set physical PDF page dimensions."
         )
     if prefix == "FAQ":
-        return f"The web app offers {', '.join(web_source_labels(metadata)[:2])}, and PDF paper presets for {papers} in landscape and portrait. Paper presets fill margins with white."
+        return (
+            "The web app can match the selected source ratio (including 16:10 or a custom ratio), "
+            f"use physical {papers} paper in either orientation, or set custom pixel dimensions. "
+            "Page margins use the selected fill color; Auto samples slide content and falls back to white."
+        )
     if prefix == "SITE":
-        return f"The Web PDF paper presets include {papers} in landscape and portrait."
+        return f"Web PDF pages can match the source, use physical {papers} paper in either orientation, or use custom pixel dimensions."
     source = web_source_labels(metadata)
     return (
-        f"The web app exposes {', '.join(source[:2])}, and PDF paper presets for {papers} in landscape and portrait. "
-        f"{cli_only_papers} paper presets and arbitrary custom ratios are CLI-only."
+        f"The web app accepts {', '.join(source)} and custom source ratios. Its PDF can match the source, "
+        f"use physical {papers} paper in either orientation, or use custom pixel dimensions. "
+        f"{cli_only_papers} is available only as a CLI paper-ratio preset."
     )
 
 
@@ -194,9 +198,9 @@ def cli_ratio_bullets(metadata: dict) -> str:
                 f"- Output presentation ratios: `match-slide` (default), "
                 f"{', '.join(f'`{value}`' for value in output_presentation_ids)}"
             ),
-            f"- ISO paper sizes: {iso_lines}",
-            f"- US Letter paper sizes: {letter_line}",
-            f"- Custom ratios: e.g. `{source_ids[-1]}` or a numeric decimal ratio (e.g. `1.777`)",
+            f"- ISO paper ratio presets: {iso_lines}",
+            f"- US Letter paper ratio presets: {letter_line}",
+            f"- Custom source or output ratios: e.g. `{source_ids[-1]}` or a numeric decimal ratio (e.g. `1.777`)",
         ]
     )
 
@@ -207,7 +211,11 @@ def cli_ratio_sentence(metadata: dict) -> str:
     presentation = f"{source_ids[0]} (default)"
     if len(source_ids) > 1:
         presentation += f", {', '.join(source_ids[1:])}"
-    return f"Presentation: {presentation}. Paper: {families} in landscape and portrait. Numeric custom ratios such as 1.777 are also accepted. Paper presets fill margins with white."
+    return (
+        f"Presentation source ratios: {presentation}. Paper ratio presets: {families} in landscape and portrait. "
+        "Numeric custom ratios such as 1.777 work for source or output. "
+        "CLI paper names set aspect ratio, not physical PDF page size; CLI paper margins are white."
+    )
 
 
 def generated_document_outputs(metadata: dict) -> dict[Path, str]:
@@ -228,7 +236,7 @@ def generated_document_outputs(metadata: dict) -> dict[Path, str]:
         ROOT / "docs" / "faq.md": {
             "formats-en": format_en,
             "web-summary-en": web_summary(metadata, "FAQ"),
-            "cli-summary-en": f"The CLI adds {', '.join(paper_families(metadata, lambda item: item['cli'] and not item['web']))} presets and arbitrary numeric custom ratios.",
+            "cli-summary-en": f"The CLI adds {', '.join(paper_families(metadata, lambda item: item['cli'] and not item['web']))} paper-ratio presets and accepts numeric custom source and output ratios. Its paper names do not set physical PDF page dimensions.",
         },
         ROOT / "site" / "README.md": {
             "formats-en": format_en,
@@ -252,7 +260,7 @@ def generated_document_outputs(metadata: dict) -> dict[Path, str]:
             "llms-web-en": "\n".join(
                 [
                     f"- Source formats: {web_source_labels(metadata)[0]} by default, with explicit {', '.join(web_source_labels(metadata)[1:])}, and custom ratios.",
-                    f"- PDF layouts: match the selected source format, physical {', '.join(paper_orientation_labels(metadata, lambda item: item['web']))} paper, or custom pixel dimensions. Paper presets fill margins with white.",
+                    f"- PDF layouts: match the selected source format, physical {', '.join(paper_orientation_labels(metadata, lambda item: item['web']))} paper, or custom pixel dimensions. Page margins use the selected fill color; Auto samples slide content and falls back to white.",
                 ]
             ),
             "cli-input-en": cli_input_sentence(metadata),
@@ -261,8 +269,8 @@ def generated_document_outputs(metadata: dict) -> dict[Path, str]:
         ROOT / "PRODUCT.md": {
             "product-capabilities-en": "\n".join(
                 [
-                    f"- Pre-set and custom aspect ratios ({', '.join(unique_labels(presentation_labels(metadata) + paper_families(metadata, lambda item: item['web'])))}).",
-                    f"- PDF paper output includes {', '.join(paper_families(metadata, lambda item: item['web']))} in landscape and portrait.",
+                    f"- Source aspect-ratio choices include {', '.join(web_source_labels(metadata))} and custom values.",
+                    f"- PDF pages can match the source, use physical {', '.join(paper_families(metadata, lambda item: item['web']))} paper in landscape or portrait, or use custom pixel dimensions.",
                     f"- Supports {', '.join(item['label'] for item in metadata['input_formats'] if item['web'])} in the web app.",
                 ]
             )

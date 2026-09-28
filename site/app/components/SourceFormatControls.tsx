@@ -90,6 +90,7 @@ export interface SourceOrientationControlProps {
   ratioUi: RatioUiCopy;
   runAutoWithSettings: (settings: Settings) => void;
   settings: Settings;
+  text?: LocaleCopy;
   updateSettings: (updater: (current: Settings) => Settings) => void;
 }
 
@@ -98,6 +99,7 @@ export function SourceOrientationControl({
   ratioUi,
   runAutoWithSettings,
   settings,
+  text,
   updateSettings,
 }: SourceOrientationControlProps) {
   const { orientation } = splitSourceFormat(settings.sourceFormat, settings.sourceOrientation);
@@ -107,12 +109,17 @@ export function SourceOrientationControl({
     if (hasRun) runAutoWithSettings(nextSettings);
   };
 
+  const orientationName = text?.orientation ?? ratioUi.orientation;
+  const isPortrait = orientation === "portrait";
+  const currentStatus = isPortrait ? ratioUi.portrait : ratioUi.landscape;
+
   return (
     <div className="orientationSetting">
-      <span>{ratioUi.orientation}</span>
+      <span>{orientationName}</span>
       <Switch
-        checked={orientation === "portrait"}
-        label={orientation === "portrait" ? ratioUi.portrait : ratioUi.landscape}
+        aria-label={orientationName}
+        checked={isPortrait}
+        label={currentStatus}
         onChange={applyOrientationChange}
       />
     </div>

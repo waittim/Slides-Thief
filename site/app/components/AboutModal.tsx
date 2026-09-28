@@ -1,7 +1,7 @@
 import React from "react";
 import type { LocaleCopy } from "../i18n";
 import { PRODUCT_METADATA } from "../product-metadata";
-import { ModalShell } from "./ui";
+import { ModalShell, Switch } from "./ui";
 
 interface AboutModalProps {
   isInfoOpen: boolean;
@@ -10,6 +10,13 @@ interface AboutModalProps {
   closeInfoButtonRef: React.RefObject<HTMLButtonElement | null>;
   text: LocaleCopy;
   appVersion: string;
+  telemetryEnabled?: boolean;
+  telemetryReady?: boolean;
+  telemetryCheckingLabel?: string;
+  googlePolicyLabel?: string;
+  privacyNoticeLabel?: string;
+  privacyContactLabel?: string;
+  setTelemetryEnabled?: (enabled: boolean) => void;
 }
 
 function ShortcutChord({ keys }: { keys: readonly string[] }) {
@@ -29,6 +36,13 @@ export function AboutModal({
   closeInfoButtonRef,
   text,
   appVersion,
+  telemetryEnabled = true,
+  telemetryReady = true,
+  telemetryCheckingLabel,
+  googlePolicyLabel,
+  privacyNoticeLabel,
+  privacyContactLabel,
+  setTelemetryEnabled,
 }: AboutModalProps) {
   return (
     <ModalShell
@@ -41,9 +55,6 @@ export function AboutModal({
       closeLabel={text.close}
     >
       <p className="modalDesc">{text.infoDesc}</p>
-      <p className="modalPrivacy">
-        <strong>{text.infoPrivacy}</strong>
-      </p>
       <div className="modalShortcuts">
         <h4>{text.shortcutsTitle}</h4>
         <div className="shortcutGrid">
@@ -56,7 +67,19 @@ export function AboutModal({
             <span>{text.shortcutNav}</span>
           </div>
           <div className="shortcutItem">
+            <ShortcutChord keys={["Alt", "↑"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Alt", "↓"]} />
+            <span>{text.shortcutReorder}</span>
+          </div>
+          <div className="shortcutItem">
             <ShortcutChord keys={["Delete"]} />
+            <span className="shortcutSep" aria-hidden="true">
+              /
+            </span>
+            <ShortcutChord keys={["Backspace"]} />
             <span>{text.shortcutDelete}</span>
           </div>
           <div className="shortcutItem">
@@ -87,6 +110,51 @@ export function AboutModal({
             <ShortcutChord keys={["↑", "↓", "←", "→"]} />
             <span>{text.shortcutNudge}</span>
           </div>
+          <div className="shortcutItem">
+            <ShortcutChord keys={["Esc"]} />
+            <span>{text.shortcutCloseOrExit}</span>
+          </div>
+          <div className="shortcutItem">
+            <ShortcutChord keys={["?"]} />
+            <span>{text.shortcutHelp}</span>
+          </div>
+        </div>
+      </div>
+      <div className="modalPrivacy modalPrivacyCard">
+        <p className="modalPrivacyText">
+          <strong>{text.infoPrivacy}</strong>
+        </p>
+        <div className="modalTelemetry">
+          <div className="modalTelemetryHeader">
+            <div className="modalTelemetryHeaderContent">
+              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
+              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
+            </div>
+            {setTelemetryEnabled && (
+              <Switch
+                aria-label={text.telemetryTitle}
+                checked={telemetryEnabled}
+                disabled={!telemetryReady}
+                label={telemetryReady ? (telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled) : (telemetryCheckingLabel ?? text.telemetryDisabled)}
+                onChange={setTelemetryEnabled}
+              />
+            )}
+          </div>
+          {googlePolicyLabel && (
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {googlePolicyLabel}
+            </a>
+          )}
+          {privacyNoticeLabel && (
+            <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyNoticeLabel}
+            </a>
+          )}
+          {privacyContactLabel && (
+            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyContactLabel}
+            </a>
+          )}
         </div>
       </div>
       <div className="modalLinks">

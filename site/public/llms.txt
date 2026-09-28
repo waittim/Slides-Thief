@@ -28,6 +28,7 @@ Homepage HTML `<link>` tags advertise:
 ## Core facts
 
 - Browser processing is local; source photos are not uploaded.
+- Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. App events contain counts, file sizes, corner-adjustment events, and fixed error codes, never filenames or raw errors. Disable automatic file-download measurement in the Google Analytics data stream.
 <!-- BEGIN GENERATED: llms-core-en -->
 - Web formats: JPEG / JPG, PNG, WebP, HEIC / HEIF. CLI formats: JPEG / JPG, PNG, TIFF, HEIC / HEIF.
 - Web source formats: 16:9, 4:3, 16:10, A4, Letter, and custom ratios.

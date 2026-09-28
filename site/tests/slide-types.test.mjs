@@ -41,6 +41,14 @@ test("worker protocol accepts structured detection results and errors", () => {
       error: { code: "decode-failed", message: "bad image" },
     },
   );
+  assert.deepEqual(
+    parseDetectionWorkerMessage({ type: "detect-start", jobId: 1, id: "slide-1", current: 2, total: 5 }),
+    { type: "detect-start", jobId: 1, id: "slide-1", current: 2, total: 5 },
+  );
+  assert.deepEqual(
+    parseDetectionWorkerMessage({ type: "detect-complete", jobId: 1 }),
+    { type: "detect-complete", jobId: 1 },
+  );
 });
 
 test("worker protocol rejects polluted status strings and malformed payloads", () => {

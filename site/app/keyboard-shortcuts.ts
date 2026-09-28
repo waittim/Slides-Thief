@@ -13,6 +13,11 @@ export type GlobalKeyboardShortcutActions = {
   selectPrevSlide: () => void;
   deleteSlide: (id: string) => void;
   exportPdf: () => void;
+  moveSlideUp?: (id: string) => void;
+  moveSlideDown?: (id: string) => void;
+  isReviewMode?: boolean;
+  exitReviewMode?: () => void;
+  openShortcuts?: () => void;
 };
 
 function isEditableTarget(target: EventTarget | null) {
@@ -30,10 +35,26 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
   return (event: KeyboardEvent) => {
     if (actions.isInfoOpen || isEditableTarget(event.target)) return;
 
+    // Escape exits review mode if active
+    if (actions.isReviewMode && event.key === "Escape") {
+      event.preventDefault();
+      actions.exitReviewMode?.();
+      return;
+    }
+
+    // Open keyboard shortcuts modal: ?
+    if (event.key === "?" && !event.metaKey && !event.ctrlKey && !event.altKey) {
+      event.preventDefault();
+      actions.openShortcuts?.();
+      return;
+    }
+
     // Undo: Cmd+Z or Ctrl+Z
     if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z" && !event.shiftKey) {
       event.preventDefault();
-      actions.handleUndo();
+      if (!actions.busy) {
+        actions.handleUndo();
+      }
       return;
     }
 
@@ -43,12 +64,27 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
       (event.ctrlKey && event.key.toLowerCase() === "y")
     ) {
       event.preventDefault();
-      actions.handleRedo();
+      if (!actions.busy) {
+        actions.handleRedo();
+      }
       return;
     }
 
-    // Slide Navigation & Deletion
+    // Slide Navigation, Reordering & Deletion
     if (actions.slidesRef.current.length > 0) {
+      if (event.altKey && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+        if (actions.selectedIdRef.current) {
+          event.preventDefault();
+          if (!actions.busy) {
+            if (event.key === "ArrowUp") {
+              actions.moveSlideUp?.(actions.selectedIdRef.current);
+            } else {
+              actions.moveSlideDown?.(actions.selectedIdRef.current);
+            }
+          }
+        }
+        return;
+      }
       if (event.key.toLowerCase() === "j" || event.key === "PageDown") {
         event.preventDefault();
         actions.selectNextSlide();
@@ -62,7 +98,9 @@ export function createGlobalKeyDownHandler(actions: GlobalKeyboardShortcutAction
       if (event.key === "Delete" || event.key === "Backspace") {
         if (actions.selectedIdRef.current) {
           event.preventDefault();
-          actions.deleteSlide(actions.selectedIdRef.current);
+          if (!actions.busy) {
+            actions.deleteSlide(actions.selectedIdRef.current);
+          }
         }
         return;
       }

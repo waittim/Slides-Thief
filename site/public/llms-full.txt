@@ -6,11 +6,13 @@ Slides Thief corrects perspective distortion in photographs of projected slides 
 
 Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
 
+Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. Google Analytics receives page views and app events with import/export counts and sizes, corner-adjustment events, and fixed error codes. App events never include filenames, raw errors, source-image pixels, or generated PDFs. The choice is saved locally and can be changed at any time. The Google Analytics data stream must disable automatic file-download measurement to prevent its separate file_name parameter.
+
 ### Web features
 
 <!-- BEGIN GENERATED: llms-web-en -->
 - Source formats: 16:9 by default, with explicit 4:3, 16:10, A4, Letter, and custom ratios.
-- PDF layouts: match the selected source format, physical A4 landscape/portrait, A3 landscape/portrait, Letter landscape/portrait paper, or custom pixel dimensions. Paper presets fill margins with white.
+- PDF layouts: match the selected source format, physical A4 landscape/portrait, A3 landscape/portrait, Letter landscape/portrait paper, or custom pixel dimensions. Page margins use the selected fill color; Auto samples slide content and falls back to white.
 <!-- END GENERATED: llms-web-en -->
 - Settings: output width, quality, fill color, and enhancement modes (`original`, `clean`, `high-contrast`, `bw`).
 - UI languages: Simplified Chinese, Traditional Chinese, English, Spanish, French, German, Japanese, Korean, and Brazilian Portuguese.
@@ -20,7 +22,7 @@ Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run
 
 Install the package and run:
 
-    slides-thief INPUT_DIRECTORY --output-dir OUTPUT_DIRECTORY --ratio 16:9 --width 2400 --pdf-name flattened_slides.pdf
+    slides-thief INPUT_DIRECTORY --output-dir OUTPUT_DIRECTORY --source-ratio 16:9 --output-ratio match-slide --width 2400 --pdf-name flattened_slides.pdf
 
 ### CLI input formats
 
@@ -35,7 +37,7 @@ The requested PDF, `corrected_images/`, `detection_overlays/`, contact sheets, `
 ### CLI ratios
 
 <!-- BEGIN GENERATED: cli-ratios-en -->
-Presentation: 16:9 (default), 4:3, 16:10. Paper: A4, A3, A5, Letter in landscape and portrait. Numeric custom ratios such as 1.777 are also accepted. Paper presets fill margins with white.
+Presentation source ratios: 16:9 (default), 4:3, 16:10. Paper ratio presets: A4, A3, A5, Letter in landscape and portrait. Numeric custom ratios such as 1.777 work for source or output. CLI paper names set aspect ratio, not physical PDF page size; CLI paper margins are white.
 <!-- END GENERATED: cli-ratios-en -->
 
 ### Common CLI options

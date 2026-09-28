@@ -3,9 +3,9 @@ import { cloneSlides } from "../lib/slide-utils";
 import type { SlideItem } from "../lib/types";
 
 export function useSlideDeck(
+  markExportStale: () => void,
   clearExport: () => void,
   cancelActiveDrag: () => void,
-  confirmClearText: (count: number) => string,
 ) {
   const [slides, setSlides] = useState<SlideItem[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -14,6 +14,8 @@ export function useSlideDeck(
   const selectedIdRef = useRef<string | null>(null);
   const historyPastRef = useRef<SlideItem[][]>([]);
   const historyFutureRef = useRef<SlideItem[][]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     slidesRef.current = slides;
@@ -27,6 +29,8 @@ export function useSlideDeck(
     if (slidesRef.current.length === 0) return;
     historyPastRef.current = [...historyPastRef.current.slice(-29), cloneSlides(slidesRef.current)];
     historyFutureRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
   }, []);
 
   const handleUndo = useCallback(() => {
@@ -35,9 +39,18 @@ export function useSlideDeck(
     const previous = past[past.length - 1];
     historyPastRef.current = past.slice(0, -1);
     historyFutureRef.current = [cloneSlides(slidesRef.current), ...historyFutureRef.current];
-    clearExport();
+    setCanUndo(historyPastRef.current.length > 0);
+    setCanRedo(true);
+    if (previous.length === 0) {
+      clearExport();
+    } else {
+      markExportStale();
+    }
     setSlides(previous);
-  }, [clearExport]);
+    if (selectedIdRef.current && !previous.some((s) => s.id === selectedIdRef.current)) {
+      setSelectedId(previous[previous.length - 1]?.id ?? null);
+    }
+  }, [clearExport, markExportStale]);
 
   const handleRedo = useCallback(() => {
     const future = historyFutureRef.current;
@@ -45,38 +58,48 @@ export function useSlideDeck(
     const next = future[0];
     historyFutureRef.current = future.slice(1);
     historyPastRef.current = [...historyPastRef.current, cloneSlides(slidesRef.current)];
-    clearExport();
+    setCanUndo(true);
+    setCanRedo(historyFutureRef.current.length > 0);
+    if (next.length === 0) {
+      clearExport();
+    } else {
+      markExportStale();
+    }
     setSlides(next);
-  }, [clearExport]);
+    if (selectedIdRef.current && !next.some((s) => s.id === selectedIdRef.current)) {
+      setSelectedId(next[0]?.id ?? null);
+    }
+  }, [clearExport, markExportStale]);
 
   const deleteSlide = useCallback(
     (id: string) => {
       pushHistory();
-      clearExport();
-      setSlides((current) => {
-        const next = current.filter((slide) => slide.id !== id);
-        if (selectedIdRef.current === id) {
-          const index = current.findIndex((slide) => slide.id === id);
-          const nextSelected = next[Math.min(index, next.length - 1)];
-          setSelectedId(nextSelected?.id ?? null);
-        }
-        return next;
-      });
+      const current = slidesRef.current;
+      const next = current.filter((slide) => slide.id !== id);
+      if (next.length === 0) {
+        clearExport();
+      } else {
+        markExportStale();
+      }
+      if (selectedIdRef.current === id) {
+        const index = current.findIndex((slide) => slide.id === id);
+        const nextSelected = next[Math.min(index, next.length - 1)];
+        setSelectedId(nextSelected?.id ?? null);
+      }
+      setSlides(next);
     },
-    [clearExport, pushHistory],
+    [clearExport, markExportStale, pushHistory],
   );
 
   const clearAllSlides = useCallback(() => {
     const count = slidesRef.current.length;
     if (!count) return;
-    const shouldClear = window.confirm(confirmClearText(count));
-    if (!shouldClear) return;
     pushHistory();
     clearExport();
     cancelActiveDrag();
     setSlides([]);
     setSelectedId(null);
-  }, [cancelActiveDrag, clearExport, confirmClearText, pushHistory]);
+  }, [cancelActiveDrag, clearExport, pushHistory]);
 
   const selectNextSlide = useCallback(
     (onSelect?: () => void) => {
@@ -110,6 +133,50 @@ export function useSlideDeck(
     [cancelActiveDrag],
   );
 
+  const moveSlide = useCallback(
+    (fromIndex: number, toIndex: number) => {
+      const current = slidesRef.current;
+      if (
+        fromIndex < 0 ||
+        fromIndex >= current.length ||
+        toIndex < 0 ||
+        toIndex >= current.length ||
+        fromIndex === toIndex
+      ) {
+        return;
+      }
+      pushHistory();
+      markExportStale();
+      const next = [...current];
+      const [moved] = next.splice(fromIndex, 1);
+      next.splice(toIndex, 0, moved);
+      setSlides(next);
+    },
+    [markExportStale, pushHistory],
+  );
+
+  const moveSlideUp = useCallback(
+    (id: string) => {
+      const current = slidesRef.current;
+      const index = current.findIndex((s) => s.id === id);
+      if (index > 0) {
+        moveSlide(index, index - 1);
+      }
+    },
+    [moveSlide],
+  );
+
+  const moveSlideDown = useCallback(
+    (id: string) => {
+      const current = slidesRef.current;
+      const index = current.findIndex((s) => s.id === id);
+      if (index >= 0 && index < current.length - 1) {
+        moveSlide(index, index + 1);
+      }
+    },
+    [moveSlide],
+  );
+
   return {
     slides,
     setSlides,
@@ -120,9 +187,14 @@ export function useSlideDeck(
     pushHistory,
     handleUndo,
     handleRedo,
+    canUndo,
+    canRedo,
     deleteSlide,
     clearAllSlides,
     selectNextSlide,
     selectPrevSlide,
+    moveSlide,
+    moveSlideUp,
+    moveSlideDown,
   };
 }

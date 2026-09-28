@@ -46,17 +46,22 @@ does not change detected corners.
 <!-- BEGIN GENERATED: cli-ratios-en -->
 - Source presentation ratios: `16:9` (default), `4:3`, `16:10`, or a numeric custom ratio
 - Output presentation ratios: `match-slide` (default), `16:9`, `4:3`
-- ISO paper sizes: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5` / `A5-landscape`, `A5-portrait`
-- US Letter paper sizes: `Letter` / `letter-landscape`, `letter-portrait`
-- Custom ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
+- ISO paper ratio presets: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5` / `A5-landscape`, `A5-portrait`
+- US Letter paper ratio presets: `Letter` / `letter-landscape`, `letter-portrait`
+- Custom source or output ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
 <!-- END GENERATED: cli-ratios-en -->
 
 The corrected slide keeps its source ratio and is contained on the output page.
-Standard paper sizes use white margins. `--ratio` remains as a deprecated
-compatibility option that sets both ratios.
+CLI paper names set an aspect ratio, not the physical PDF page size. The PDF
+page dimensions in points are `--width` by the ratio-derived height, or
+`--width` by `--height` when both are supplied. For example,
+`--output-ratio A4-landscape --width 2200` creates a page 2200 points wide with the A4
+landscape aspect ratio, rather than a physical A4 page. CLI paper presets use
+white margins. `--ratio` remains as a deprecated compatibility option that
+sets both ratios.
 
 <!-- BEGIN GENERATED: web-summary-en -->
-The web app exposes 16:9, 4:3, and PDF paper presets for A4, A3, Letter in landscape and portrait. A5 paper presets and arbitrary custom ratios are CLI-only.
+The web app accepts 16:9, 4:3, 16:10, A4, Letter and custom source ratios. Its PDF can match the source, use physical A4, A3, Letter paper in either orientation, or use custom pixel dimensions. A5 is available only as a CLI paper-ratio preset.
 <!-- END GENERATED: web-summary-en -->
 
 ## Options

@@ -1,18 +1,27 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useRef, useState } from "react";
 import { copy, type LocaleValue } from "../i18n";
-import { messageFromError } from "../lib/slide-utils";
-import { trackEvent, type ExportArtifact, type ExportWorkerMessage, type SlideItem } from "../lib/types";
+import { messageFromError, triggerDownload } from "../lib/slide-utils";
+import {
+  toAppErrorPayload,
+  trackEvent,
+  type ExportArtifact,
+  type ExportWorkerMessage,
+  type SlideItem,
+  type WorkerErrorInput,
+} from "../lib/types";
 
 export function useExportWorker(
   slidesRef: React.MutableRefObject<SlideItem[]>,
   exportArtifactsRef: React.MutableRefObject<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>,
   setExportArtifacts: React.Dispatch<React.SetStateAction<{ pdf?: ExportArtifact; jpg?: ExportArtifact }>>,
   setExporting: (exporting: boolean) => void,
-  setWorkerError: (error: string) => void,
+  setWorkerError: (error: WorkerErrorInput) => void,
   setBusyText: (text: string) => void,
   localeRef: React.MutableRefObject<LocaleValue>,
+  isIOSRef?: React.MutableRefObject<boolean>,
 ) {
   const exportWorkerRef = useRef<Worker | null>(null);
+  const [exportProgress, setExportProgress] = useState<{ current: number; total: number } | null>(null);
 
   const ensureExportWorker = useCallback(() => {
     if (exportWorkerRef.current) return exportWorkerRef.current;
@@ -25,6 +34,7 @@ export function useExportWorker(
       setWorkerError(messageFromError(error));
       setExporting(false);
       setBusyText("");
+      setExportProgress(null);
       return null;
     }
     const releaseWorker = () => {
@@ -34,6 +44,7 @@ export function useExportWorker(
     worker.onmessage = (event: MessageEvent<ExportWorkerMessage>) => {
       const message = event.data;
       if (message.type === "export-progress") {
+        setExportProgress({ current: message.current, total: message.total });
         const actionText =
           message.format === "jpg"
             ? copy[localeRef.current].generatingJpg
@@ -45,7 +56,6 @@ export function useExportWorker(
         const buffer = message.pdf ?? message.buffer;
         trackEvent(format === "jpg" ? "jpg_export_success" : "pdf_export_success", {
           page_count: slidesRef.current.length,
-          file_size_bytes: buffer.byteLength,
         });
         const prevUrl = exportArtifactsRef.current[format]?.url;
         if (prevUrl) {
@@ -60,6 +70,7 @@ export function useExportWorker(
           url,
           filename: message.filename,
           byteLength: buffer.byteLength,
+          isStale: false,
         };
         exportArtifactsRef.current = {
           ...exportArtifactsRef.current,
@@ -71,34 +82,54 @@ export function useExportWorker(
         }));
         setExporting(false);
         setBusyText("");
+        setExportProgress(null);
         releaseWorker();
+        triggerDownload(url, message.filename, isIOSRef?.current);
+        trackEvent("download_started");
       }
       if (message.type === "error") {
         trackEvent("processing_error", {
           error_type: "export_worker_error",
-          error_message: message.error || "Export error",
+          error_code: message.errorCode,
         });
-        setWorkerError(message.error);
+        const payload = toAppErrorPayload(
+          message.errorCode
+            ? { code: message.errorCode, params: message.errorParams, message: message.error }
+            : message.error,
+          "export-worker-failed",
+        );
+        setWorkerError(payload);
         setExporting(false);
         setBusyText("");
+        setExportProgress(null);
         releaseWorker();
       }
     };
-    const handleWorkerFailure = (message: string) => {
+    const handleWorkerFailure = (errorInput: WorkerErrorInput) => {
+      const payload = toAppErrorPayload(errorInput, "export-worker-stopped-unexpectedly");
       trackEvent("processing_error", {
         error_type: "export_worker_failure",
-        error_message: message || "Export worker terminated unexpectedly",
+        error_code: payload.code,
       });
-      setWorkerError(message);
+      setWorkerError(payload);
       setExporting(false);
       setBusyText("");
+      setExportProgress(null);
       releaseWorker();
     };
-    worker.onerror = (event) => handleWorkerFailure(event.message || "The export worker stopped unexpectedly.");
-    worker.onmessageerror = () => handleWorkerFailure("The browser could not read a response from the export worker.");
+    worker.onerror = (event) =>
+      handleWorkerFailure({
+        code: "export-worker-stopped-unexpectedly",
+        message: event.message || "The export worker stopped unexpectedly.",
+      });
+    worker.onmessageerror = () =>
+      handleWorkerFailure({
+        code: "export-worker-response-read-failed",
+        message: "The browser could not read a response from the export worker.",
+      });
     exportWorkerRef.current = worker;
     return worker;
-  }, [exportArtifactsRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
+  }, [exportArtifactsRef, isIOSRef, localeRef, setBusyText, setExportArtifacts, setExporting, setWorkerError, slidesRef]);
 
   const cancelExport = useCallback(() => {
     if (exportWorkerRef.current) {
@@ -107,7 +138,8 @@ export function useExportWorker(
     }
     setExporting(false);
     setBusyText("");
+    setExportProgress(null);
   }, [setBusyText, setExporting]);
 
-  return { exportWorkerRef, ensureExportWorker, cancelExport };
+  return { exportWorkerRef, ensureExportWorker, cancelExport, exportProgress };
 }

@@ -1,6 +1,6 @@
-# Slide Thief Detection Algorithm Specification Standard
+# Slides Thief Detection Algorithm Specification Standard
 
-This document defines the canonical specification for the Slide Thief border detection pipeline across both the Python CLI (`src/slides_thief/detection/`) and the TypeScript Web App (`site/app/detection/`). Both implementations MUST strictly conform to these rules, scoring formulas, sampling limits, and threshold values.
+This document defines the canonical specification for the Slides Thief border detection pipeline across both the Python CLI (`src/slides_thief/detection/`) and the TypeScript Web App (`site/app/detection/`). Both implementations MUST strictly conform to these rules, scoring formulas, sampling limits, and threshold values.
 
 ---
 

@@ -20,8 +20,10 @@ test("slide rows expose sibling selection and deletion controls", async () => {
 
   assert.match(slideSidebar, /<ul className="files">/);
   assert.match(slideSidebar, /<li[\s\S]*className=\{className\}[\s\S]*<Button[\s\S]*className="slideSelectButton"/);
-  assert.match(slideSidebar, /className="slideDeleteButton iconOnlyButton"/);
+  assert.match(slideSidebar, /variant="icon"[\s\S]*className="slideDeleteButton"/);
   assert.doesNotMatch(slideSidebar, /role="button"/);
+  assert.doesNotMatch(slideSidebar, /aria-pressed=\{active\}/);
+  assert.match(slideSidebar, /aria-current=\{active \? "true" : undefined\}/);
 });
 
 test("other UI primitives namespace their generated classes", async () => {
@@ -55,3 +57,21 @@ test("Button variant and size rules allow page-purpose classes to win the cascad
   assert.match(css, /--space-control-touch:\s*13px/);
   assert.match(css, /\.uiButton--touch\s*\{[^}]*min-height:\s*var\(--control-height-touch\)[^}]*padding:\s*0 var\(--component-touch-padding-inline\)/s);
 });
+
+test("Switch supports stable accessible name and links status text via aria-describedby", async () => {
+  const switchComponent = await readAppFile("app/components/ui/Switch.tsx");
+
+  assert.match(switchComponent, /role="switch"/);
+  assert.match(switchComponent, /aria-checked=\{checked\}/);
+  assert.match(switchComponent, /aria-label=\{ariaLabel\}/);
+  assert.match(switchComponent, /aria-describedby=\{ariaLabel \|\| ariaLabelledBy \? effectiveDescribedBy : ariaDescribedBy\}/);
+  assert.match(switchComponent, /className=\{`switchToggle \$\{checked \? "checked" : ""\} \$\{className\}`\.trim\(\)\}/);
+});
+
+test("SourceOrientationControl uses stable orientation accessible name for Switch", async () => {
+  const sourceFormatControls = await readAppFile("app/components/SourceFormatControls.tsx");
+
+  assert.match(sourceFormatControls, /const orientationName = text\?\.orientation \?\? ratioUi\.orientation;/);
+  assert.match(sourceFormatControls, /<Switch[\s\S]*aria-label=\{orientationName\}[\s\S]*label=\{currentStatus\}/);
+});
+

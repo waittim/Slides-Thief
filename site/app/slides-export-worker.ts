@@ -7,7 +7,7 @@ import type { Quad } from "./detection/types";
 import { formatZipSlideEntryName } from "./filename";
 import { constrainedImageSize } from "./image-sizing";
 import { renderPerspectivePage } from "./lib/perspective-render";
-import type { ExportFormat } from "./lib/types";
+import { AppError, isAppError, type ExportFormat } from "./lib/types";
 import {
   outputPageRatioValue,
   pdfPageDimensions,
@@ -61,16 +61,19 @@ scope.onmessage = async (event) => {
       );
     }
   } catch (error) {
+    const isApp = isAppError(error);
     scope.postMessage({
       type: "error",
       error: error instanceof Error ? error.message : "The browser export worker stopped unexpectedly.",
+      errorCode: isApp ? error.code : "export-worker-failed",
+      errorParams: isApp ? error.params : undefined,
     });
   }
 };
 
 async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
   if (slides.length === 0) {
-    throw new Error("No slides to export.");
+    throw new AppError("no-slides-to-export", "No slides to export.");
   }
   const fileById = new Map(files.map((item) => [item.id, item]));
   const pdf = await PDFDocument.create();
@@ -80,7 +83,7 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
   for (let index = 0; index < slides.length; index += 1) {
     const slide = slides[index];
     const item = fileById.get(slide.id);
-    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
+    if (!item) throw new AppError("slide-image-not-found", `Slide image not found: ${slide.name}`, { name: slide.name });
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({ type: "export-progress", format: "pdf", current: index + 1, total: slides.length, name: item.name });
@@ -122,7 +125,7 @@ async function exportPdf(files: JobFile[], slides: ExportSlide[], settings: Sett
 
 async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], settings: Settings, filename: string) {
   if (slides.length === 0) {
-    throw new Error("No slides to export.");
+    throw new AppError("no-slides-to-export", "No slides to export.");
   }
   const fileById = new Map(files.map((item) => [item.id, item]));
   const outputWidth = settings.width;
@@ -131,7 +134,7 @@ async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], setting
   if (slides.length === 1) {
     const slide = slides[0];
     const item = fileById.get(slide.id);
-    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
+    if (!item) throw new AppError("slide-image-not-found", `Slide image not found: ${slide.name}`, { name: slide.name });
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({
@@ -180,7 +183,7 @@ async function exportJpgArchive(files: JobFile[], slides: ExportSlide[], setting
   for (let index = 0; index < slides.length; index += 1) {
     const slide = slides[index];
     const item = fileById.get(slide.id);
-    if (!item) throw new Error(`Slide image not found: ${slide.name}`);
+    if (!item) throw new AppError("slide-image-not-found", `Slide image not found: ${slide.name}`, { name: slide.name });
     const ratio = outputPageRatioValue(settings.outputPageRatio, sourceRatio);
     const outputHeight = settings.height ? settings.height : Math.round(outputWidth / ratio);
     scope.postMessage({
@@ -253,7 +256,7 @@ async function renderWarpedJpeg(
   const sourceCtx = sourceCanvas.getContext("2d", { willReadFrequently: true });
   if (!sourceCtx) {
     bitmap.close();
-    throw new Error("This browser cannot read canvas pixels.");
+    throw new AppError("canvas-read-failed", "This browser cannot read canvas pixels.");
   }
   try {
     sourceCtx.drawImage(bitmap, 0, 0, sourceWidth, sourceHeight);
@@ -276,7 +279,7 @@ async function renderWarpedJpeg(
 
   const outputCanvas = new OffscreenCanvas(outWidth, outHeight);
   const outputCtx = outputCanvas.getContext("2d");
-  if (!outputCtx) throw new Error("This browser cannot render the corrected slide.");
+  if (!outputCtx) throw new AppError("canvas-render-failed", "This browser cannot render the corrected slide.");
   // ImageData(data, width, height) wraps the renderer's existing buffer;
   // createImageData + set would briefly duplicate the complete RGBA frame.
   const canvasImage = new ImageData(output.data as ImageDataArray, output.width, output.height);

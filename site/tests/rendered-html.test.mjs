@@ -2,15 +2,15 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
-async function render() {
+async function render(customHeaders = {}) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
-  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
+  workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}-${Math.random()}`);
   const { default: worker } = await import(workerUrl.href);
 
   const fetchFn = typeof worker.fetch === "function" ? worker.fetch.bind(worker) : worker;
   return fetchFn(
     new Request("http://localhost/", {
-      headers: { accept: "text/html" },
+      headers: { accept: "text/html", ...customHeaders },
     }),
     {
       ASSETS: {
@@ -54,8 +54,11 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /<section class="productInfo" aria-hidden="true" inert/);
   assert.doesNotMatch(html, /导出角点/);
   assert.match(html, /class="settings"/);
-  assert.match(html, /class="settingsMenu"/);
+  assert.match(html, /<div class="settingsMenu" role="region"/);
+  assert.doesNotMatch(html, /class="settingsMenuToggle"/);
   assert.match(html, /class="prefsBar"/);
+  assert.match(html, /<nav class="prefsBar"[^>]*aria-label="Preferences"/);
+  assert.doesNotMatch(html, /<footer\b/);
   assert.match(html, /class="reviewBar"/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
 });
@@ -76,3 +79,31 @@ test("keeps source-photo processing browser-local", async () => {
   assert.match(exportHook, /new Worker\(new URL\("\.\.\/slides-export-worker\.ts"/);
   assert.match(importPipeline, /URL\.createObjectURL\(file\)/);
 });
+
+test("server-renders html lang attribute based on Accept-Language header", async () => {
+  const zhResponse = await render({ "accept-language": "zh-CN,zh;q=0.9,en;q=0.8" });
+  assert.equal(zhResponse.status, 200);
+  const zhHtml = await zhResponse.text();
+  assert.match(zhHtml, /<html lang="zh-CN"/i);
+
+  const jaResponse = await render({ "accept-language": "ja,en-US;q=0.8" });
+  assert.equal(jaResponse.status, 200);
+  const jaHtml = await jaResponse.text();
+  assert.match(jaHtml, /<html lang="ja"/i);
+
+  const twResponse = await render({ "accept-language": "zh-TW,zh;q=0.9" });
+  assert.equal(twResponse.status, 200);
+  const twHtml = await twResponse.text();
+  assert.match(twHtml, /<html lang="zh-TW"/i);
+
+  const frResponse = await render({ "accept-language": "fr-FR,fr;q=0.8" });
+  assert.equal(frResponse.status, 200);
+  const frHtml = await frResponse.text();
+  assert.match(frHtml, /<html lang="fr"/i);
+
+  const unsupportedResponse = await render({ "accept-language": "ru-RU,ru;q=0.9" });
+  assert.equal(unsupportedResponse.status, 200);
+  const unsupportedHtml = await unsupportedResponse.text();
+  assert.match(unsupportedHtml, /<html lang="en"/i);
+});
+

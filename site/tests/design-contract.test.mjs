@@ -142,6 +142,11 @@ test("design artifacts stay aligned with the CSS contract", () => {
 
   assert.doesNotMatch(semanticTokens, /#[0-9a-f]{3,8}\b/i);
   assert.doesNotMatch(semanticTokens, /\brgba?\(/i);
+  assert.match(semanticTokens, /--canvas-quad-stroke:\s*var\(--accent-2\);/);
+  assert.match(semanticTokens, /--canvas-image-stroke:\s*light-dark\(var\(--color-canvas-image-stroke-light\),\s*var\(--color-canvas-image-stroke-dark\)\);/);
+  assert.match(semanticTokens, /--canvas-handle-fill:\s*var\(--handle\);/);
+  assert.match(semanticTokens, /--canvas-handle-stroke:\s*var\(--color-ink-950\);/);
+  assert.match(semanticTokens, /--canvas-handle-text:\s*var\(--color-ink-900\);/);
   assert.doesNotMatch(componentTokens, /--component-[^:]+:\s*(?:9|11|13)px\b/);
 
   const layout = {
@@ -175,3 +180,20 @@ test("design artifacts stay aligned with the CSS contract", () => {
   assert.match(design, /`--layout-sidebar-width`/);
   assert.match(design, /`--component-handle-hit`/);
 });
+
+test("mobile inputs and selects enforce 16px font-size to prevent mobile browser zoom", () => {
+  assert.match(design, /Inputs remain at least `44px` high and use `16px` text to avoid mobile browser zoom/);
+  assert.doesNotMatch(
+    css,
+    /@media[^{]*\b834px[^{]*\{[^}]*\.(?:settings|morePanel|prefsBar)\s+(?:select|input)[^}]*font-size:\s*var\(--font-size-md\)/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 834px\) \{[\s\S]*?\.settings label:not\(\.checks\) > input\[type="text"\][\s\S]*?font-size:\s*var\(--font-size-lg\);/s,
+  );
+  assert.match(
+    css,
+    /@media \(max-width: 834px\), \(pointer: coarse\) \{[\s\S]*?\.settings label:not\(\.checks\) > input\[type="text"\][\s\S]*?font-size:\s*var\(--font-size-lg\);/s,
+  );
+});
+

@@ -1,0 +1,51 @@
+# Analytics region policy
+
+This Cloudflare Worker gives the browser a binary decision before any Google
+Analytics tag loads. It returns `{"version":1,"defaultAllowed":boolean}`
+without a country code. Only `US`, `AU`, and `NZ` currently return `true`;
+unknown locations return `false`. The web app fails closed if this service is
+unavailable or its response is invalid.
+
+The Worker must be deployed before the 3.0.0 web release. The included Wrangler
+configuration uses a `workers.dev` subdomain, so it does not require moving the
+existing `slidesthief.com` DNS or GitHub Pages origin. The deployed endpoint is
+`https://slides-thief-analytics-policy.zekun-wang.workers.dev/v1`. Set GitHub
+Actions repository variable `ANALYTICS_POLICY_URL` to this URL before building
+GitHub Pages. Set `VITE_ANALYTICS_POLICY_URL` to the same URL
+for any Sites/SSR build. The web app's fallback URL is
+`https://analytics-policy.slidesthief.com/v1`; until a service exists there,
+an unset variable safely requires consent everywhere.
+The Worker allows the production Sites origin at
+`https://slides-thief.waittim.chatgpt.site` as well as the public domain and
+GitHub Pages origin.
+
+For this one-time release deployment, authenticate Wrangler with only the
+needed OAuth scopes and store its credentials in the OS keychain. Run these
+commands from this directory, then revoke the local authorization after the
+production checks are complete:
+
+```bash
+npx wrangler login --scopes account:read user:read workers_scripts:write --use-keyring
+npx wrangler deploy
+node --test worker.test.mjs
+npx wrangler logout
+```
+
+OAuth scopes are not limited to an individual Worker. If automated deployments
+are added later, use a Cloudflare account-owned API token scoped to this Worker
+with the Editor role, and store it only as a CI secret. The initial deployment
+needed product-level Worker creation access; later deployments can use a token
+limited to this existing Worker.
+
+Verify the production response from at least one `US` and one EEA/UK/CH
+network, including its CORS and `Cache-Control: no-store` headers. Local
+`wrangler dev` and the Cloudflare dashboard preview do not provide a real
+`request.cf.country` value. Check the browser network panel for zero Google
+requests before acceptance in a consent-required region and no Google tag after
+rejection or a policy outage. The consent banner's **View details** button
+opens the app's About dialog; the choice can be changed there later.
+
+If any origin or country is added to the allowlists, review the privacy
+implications first and update this file, the worker tests, and
+`docs/privacy.md` together. The country decision is based on the network
+location reported by Cloudflare and may differ from a visitor's residence.

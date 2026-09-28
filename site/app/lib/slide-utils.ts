@@ -1,10 +1,12 @@
-import type { Quad } from "../detection/types";
-import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio";
+import type { Quad } from "../detection/types.ts";
+import type { LocaleCopy, ReviewUiCopy } from "../i18n.ts";
+import { outputPageRatioValue, sourceFormatRatioValue } from "../ratio.ts";
 import {
   loadImage,
-} from "./canvas-utils";
-import { renderPerspectivePage } from "./perspective-render";
+} from "./canvas-utils.ts";
+import { renderPerspectivePage } from "./perspective-render.ts";
 import {
+  AppError,
   heifExtensions,
   heifMimeTypes,
   supportedExtensions,
@@ -12,7 +14,7 @@ import {
   type HandlePosition,
   type Settings,
   type SlideItem,
-} from "./types";
+} from "./types.ts";
 
 export function makeId(file: File, index: number) {
   return `${index}-${file.name}-${file.lastModified}-${file.size}`;
@@ -23,15 +25,15 @@ export function hasExtension(file: File, extensions: ReadonlyArray<string>) {
   return extensions.some((ext) => lower.endsWith(ext));
 }
 
-export function stripFileExtension(name: string) {
-  const lastDot = name.lastIndexOf(".");
-  if (lastDot <= 0) return name;
-  return name.slice(0, lastDot);
-}
-
-export function displayFileName(name: string, hideExtension: boolean) {
-  return hideExtension ? stripFileExtension(name) : name;
-}
+export {
+  stripFileExtension,
+  truncateMiddle,
+  displayFileName,
+  type MiddleTruncateOptions,
+  type DisplayFileNameOptions,
+  DISPLAY_FILENAME_MAX_LENGTH_DESKTOP,
+  DISPLAY_FILENAME_MAX_LENGTH_MOBILE,
+} from "../filename.ts";
 
 export function isHeifImage(file: File) {
   return hasExtension(file, heifExtensions) || heifMimeTypes.has(file.type.toLowerCase());
@@ -65,7 +67,7 @@ export function canvasToJpegBlob(canvas: HTMLCanvasElement, quality: number) {
     canvas.toBlob(
       (blob) => {
         if (blob) resolve(blob);
-        else reject(new Error("Canvas could not encode the image as JPEG."));
+        else reject(new AppError("canvas-encode-failed", "Canvas could not encode the image as JPEG."));
       },
       "image/jpeg",
       quality,
@@ -80,7 +82,7 @@ export async function nativeDecodeToJpeg(file: File, quality: number) {
     canvas.width = bitmap.width;
     canvas.height = bitmap.height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("Canvas is not available in this browser.");
+    if (!ctx) throw new AppError("canvas-not-available", "Canvas is not available in this browser.");
     ctx.drawImage(bitmap, 0, 0);
     return canvasToJpegBlob(canvas, quality);
   } finally {
@@ -99,7 +101,11 @@ export async function normalizeImageFile(file: File) {
       const { heicTo } = await import("heic-to/csp");
       jpeg = await heicTo({ blob: file, type: "image/jpeg", quality: 0.92 });
     } catch (error) {
-      throw new Error(`Could not convert ${file.name} from HEIC/HEIF: ${messageFromError(error)}`);
+      throw new AppError(
+        "heif-conversion-failed",
+        `Could not convert ${file.name} from HEIC/HEIF: ${messageFromError(error)}`,
+        { name: file.name, error: messageFromError(error) },
+      );
     }
   }
 
@@ -117,6 +123,23 @@ export function formatBytes(size: number) {
 
 export function confidenceText(value: number) {
   return value ? value.toFixed(2) : "-";
+}
+
+export function confidenceSummary(
+  slide: SlideItem,
+  text: LocaleCopy,
+  reviewText: ReviewUiCopy,
+): { label: string; tooltip?: string } {
+  if (slide.status !== "ready" && !slide.confidence) {
+    return { label: "-", tooltip: undefined };
+  }
+  const score = slide.confidence ? slide.confidence.toFixed(2) : "0.00";
+  const tooltip = `${text.confidence}: ${score}`;
+  const status = slide.needsReview ? reviewText.reviewSuggested : reviewText.confidenceGood;
+  return {
+    label: `${score} (${status})`,
+    tooltip,
+  };
 }
 
 export function cloneQuad(quad: Quad): Quad {
@@ -138,6 +161,23 @@ export function maxQuadOutside(size: number) {
 
 export function clampQuadCoordinate(value: number, size: number, maxOutside: number) {
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
+}
+
+export { adaptQuadToDimensions, applyQuadToSlide } from "./slide-transitions.ts";
+
+export async function resolveSlideDimensions(slide: SlideItem): Promise<{ width: number; height: number }> {
+  if (slide.width > 0 && slide.height > 0) {
+    return { width: slide.width, height: slide.height };
+  }
+  if (slide.url) {
+    try {
+      const img = await loadImage(slide.url);
+      return { width: img.naturalWidth, height: img.naturalHeight };
+    } catch {
+      // Fallback
+    }
+  }
+  return { width: 0, height: 0 };
 }
 
 export function outputRatio(settings: Settings, sourceRatio: number) {
@@ -201,4 +241,44 @@ export function cloneSlides(items: SlideItem[]): SlideItem[] {
   } as SlideItem));
 }
 
-export { exportManualQuads } from "./export-utils";
+export function isIOSUserAgent(
+  userAgent?: string,
+  platform?: string,
+  maxTouchPoints?: number,
+): boolean {
+  if (typeof window === "undefined" && !userAgent) return false;
+  const ua = userAgent ?? (typeof window !== "undefined" ? window.navigator.userAgent : "");
+  const plat = platform ?? (typeof window !== "undefined" ? window.navigator.platform : "");
+  const touchPoints =
+    maxTouchPoints !== undefined
+      ? maxTouchPoints
+      : typeof window !== "undefined"
+        ? window.navigator.maxTouchPoints
+        : 0;
+  return /iPad|iPhone|iPod/.test(ua) || (plat === "MacIntel" && touchPoints > 1);
+}
+
+export function triggerDownload(url: string, filename: string, isIOS = false) {
+  if (typeof window === "undefined" || typeof document === "undefined") return;
+  if (isIOS) {
+    try {
+      window.open(url, "_blank");
+    } catch {
+      // ignore popup blocking errors
+    }
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  if (link.remove) {
+    link.remove();
+  } else if (link.parentNode) {
+    link.parentNode.removeChild(link);
+  }
+}
+
+export { exportManualQuads } from "./export-utils.ts";

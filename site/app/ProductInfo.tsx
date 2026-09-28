@@ -34,7 +34,7 @@ export function ProductInfo() {
         </article>
         <article>
           <h3>Keyboard shortcuts</h3>
-          <p>Navigate with J/K, delete with Delete/Backspace, undo/redo with Cmd+Z/Cmd+Shift+Z, export PDF with Cmd+Enter, and fine-tune corners with Arrow keys (+Shift).</p>
+          <p>Navigate with J/K, reorder with Alt+Arrow keys, delete with Delete/Backspace, undo/redo with Cmd+Z/Cmd+Shift+Z, export PDF with Cmd+Enter, fine-tune corners with Arrow keys (+Shift), and press ? for shortcuts.</p>
         </article>
         <article>
           <h3>Optional readability enhancement</h3>

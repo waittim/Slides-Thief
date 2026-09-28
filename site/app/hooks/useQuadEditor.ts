@@ -10,6 +10,7 @@ import {
 } from "../lib/slide-utils";
 import { restoreAutoDetection } from "../lib/slide-transitions";
 import { trackEvent, type CanvasRenderState, type HandlePosition, type Settings, type SlideItem } from "../lib/types";
+import { calculateAutoPanVelocity } from "../lib/viewport-math";
 
 type DragQuadRef = MutableRefObject<{ id: string; quad: Quad } | null>;
 type DragHandleRef = MutableRefObject<number | null>;
@@ -17,14 +18,15 @@ type DragHandleRef = MutableRefObject<number | null>;
 type QuadEditorOptions = {
   selectedSlide: SlideItem | null;
   text: LocaleCopy;
-  settings: Settings;
+  settings?: Pick<Settings, "sourceFormat" | "sourceOrientation" | "sourceCustomRatio">;
   setSlides: Dispatch<SetStateAction<SlideItem[]>>;
-  setBusyText: (text: string) => void;
+  setBusyText?: (text: string) => void;
   setCornerAnnouncement: (announcement: string) => void;
   setHandlePositions: Dispatch<SetStateAction<HandlePosition[]>>;
-  clearExport: () => void;
+  markExportStale: () => void;
+  clearExport?: () => void;
   pushHistory: () => void;
-  startDetection: (
+  startDetection?: (
     files: Array<{ id: string; name: string; file: File }>,
     settings: Pick<Settings, "sourceFormat" | "sourceOrientation" | "sourceCustomRatio">,
   ) => number | null;
@@ -38,19 +40,19 @@ type QuadEditorOptions = {
   paintCanvas: (quad: Quad | null) => void;
   redrawCanvas: () => void;
   updateLoupeCanvas: (quad: Quad | null, handleIndex: number | null) => void;
+  updateLoupePosition?: (handleIndex: number | null, handlePos?: HandlePosition) => void;
+  stageRef?: MutableRefObject<HTMLDivElement | null>;
+  isSpacePressed?: boolean;
 };
 
 export function useQuadEditor({
   selectedSlide,
   text,
-  settings,
   setSlides,
-  setBusyText,
   setCornerAnnouncement,
   setHandlePositions,
-  clearExport,
+  markExportStale,
   pushHistory,
-  startDetection,
   refreshSlideThumbnail,
   canvasRef,
   canvasRenderRef,
@@ -61,12 +63,26 @@ export function useQuadEditor({
   paintCanvas,
   redrawCanvas,
   updateLoupeCanvas,
+  updateLoupePosition,
+  stageRef,
+  isSpacePressed = false,
 }: QuadEditorOptions) {
   const [dragHandle, setDragHandle] = useState<number | null>(null);
   const activePointerRef = useRef<number | null>(null);
   const dragFrameRef = useRef<number | null>(null);
+  const autoPanFrameRef = useRef<number | null>(null);
+  const lastHandlePointerClientRef = useRef<{ clientX: number; clientY: number } | null>(null);
+
+  const stopAutoPan = useCallback(() => {
+    if (autoPanFrameRef.current !== null) {
+      window.cancelAnimationFrame(autoPanFrameRef.current);
+      autoPanFrameRef.current = null;
+    }
+    lastHandlePointerClientRef.current = null;
+  }, []);
 
   const cancelActiveDrag = useCallback(() => {
+    stopAutoPan();
     if (dragFrameRef.current !== null) {
       window.cancelAnimationFrame(dragFrameRef.current);
       dragFrameRef.current = null;
@@ -75,16 +91,16 @@ export function useQuadEditor({
     activePointerRef.current = null;
     dragHandleRef.current = null;
     setDragHandle(null);
-  }, [dragHandleRef, latestDragQuadRef]);
+  }, [dragHandleRef, latestDragQuadRef, stopAutoPan]);
 
   const updateSlideQuad = useCallback(
     (id: string, nextQuad: Quad) => {
-      clearExport();
+      markExportStale();
+      if (selectedSlide?.id === id && selectedSlide.method !== "manual") trackEvent("corner_adjusted");
       setSlides((current) =>
         current.map((slide) => {
           if (slide.id !== id) return slide;
           if (slide.status === "converting" || slide.status === "queued") return slide;
-          if (slide.method !== "manual") trackEvent("corner_adjusted", { slide_id: id });
           const nextMetadata = {
             quad: nextQuad,
             method: "manual" as const,
@@ -119,50 +135,26 @@ export function useQuadEditor({
         }),
       );
     },
-    [clearExport, setSlides],
+    [markExportStale, selectedSlide, setSlides],
   );
 
-  const canvasPoint = useCallback((event: PointerEvent<HTMLElement>) => {
+  const canvasPointFromClient = useCallback((clientX: number, clientY: number) => {
     const canvas = canvasRef.current;
     if (!canvas) return [0, 0] as const;
     const rect = canvas.getBoundingClientRect();
     return [
-      ((event.clientX - rect.left) / rect.width) * canvas.width,
-      ((event.clientY - rect.top) / rect.height) * canvas.height,
+      ((clientX - rect.left) / rect.width) * canvas.width,
+      ((clientY - rect.top) / rect.height) * canvas.height,
     ] as const;
   }, [canvasRef]);
 
-  const onHandlePointerDown = useCallback((index: number, event: PointerEvent<HTMLButtonElement>) => {
-    if (
-      !event.isPrimary ||
-      activePointerRef.current !== null ||
-      !selectedSlide?.quad ||
-      canvasRenderRef.current?.slideId !== selectedSlide.id
-    ) return;
-
-    pushHistory();
-    latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
-    activePointerRef.current = event.pointerId;
-    dragHandleRef.current = index;
-    setDragHandle(index);
-    updateLoupeCanvas(selectedSlide.quad, index);
-    event.currentTarget.setPointerCapture(event.pointerId);
-    event.preventDefault();
-  }, [canvasRenderRef, dragHandleRef, latestDragQuadRef, pushHistory, selectedSlide, updateLoupeCanvas]);
-
-  const onHandlePointerMove = useCallback((event: PointerEvent<HTMLButtonElement>) => {
+  const updateHandleFromClient = useCallback((clientX: number, clientY: number) => {
     const handleIndex = dragHandleRef.current;
     const render = canvasRenderRef.current;
     const latest = latestDragQuadRef.current;
-    if (
-      handleIndex === null ||
-      activePointerRef.current !== event.pointerId ||
-      !render ||
-      !latest ||
-      render.slideId !== latest.id
-    ) return;
+    if (handleIndex === null || !render || !latest || render.slideId !== latest.id) return;
 
-    const [x, y] = canvasPoint(event);
+    const [x, y] = canvasPointFromClient(clientX, clientY);
     const scale = scaleRef.current || 1;
     const { padX, padY } = viewportRef.current;
     const next = cloneQuad(latest.quad);
@@ -191,11 +183,105 @@ export function useQuadEditor({
         else paintCanvas(pending.quad);
       });
     }
+  }, [canvasPointFromClient, canvasRenderRef, dragHandleRef, latestDragQuadRef, paintCanvas, redrawCanvas, scaleRef, viewportRef]);
+
+  const checkAutoPan = useCallback(() => {
+    const stage = stageRef?.current;
+    const coords = lastHandlePointerClientRef.current;
+    if (!stage || !coords || dragHandleRef.current === null) {
+      stopAutoPan();
+      return;
+    }
+
+    const rect = stage.getBoundingClientRect();
+    const { vx, vy } = calculateAutoPanVelocity(coords, rect, 40, 24);
+
+    if (vx === 0 && vy === 0) {
+      if (autoPanFrameRef.current !== null) {
+        window.cancelAnimationFrame(autoPanFrameRef.current);
+        autoPanFrameRef.current = null;
+      }
+      return;
+    }
+
+    if (autoPanFrameRef.current === null) {
+      const step = () => {
+        if (dragHandleRef.current === null) {
+          autoPanFrameRef.current = null;
+          return;
+        }
+        const st = stageRef?.current;
+        const pt = lastHandlePointerClientRef.current;
+        if (!st || !pt) {
+          autoPanFrameRef.current = null;
+          return;
+        }
+
+        const r = st.getBoundingClientRect();
+        const vel = calculateAutoPanVelocity(pt, r, 40, 24);
+        if (vel.vx === 0 && vel.vy === 0) {
+          autoPanFrameRef.current = null;
+          return;
+        }
+
+        const prevX = st.scrollLeft;
+        const prevY = st.scrollTop;
+        st.scrollLeft += vel.vx;
+        st.scrollTop += vel.vy;
+
+        if (st.scrollLeft !== prevX || st.scrollTop !== prevY) {
+          updateHandleFromClient(pt.clientX, pt.clientY);
+        }
+
+        autoPanFrameRef.current = window.requestAnimationFrame(step);
+      };
+      autoPanFrameRef.current = window.requestAnimationFrame(step);
+    }
+  }, [dragHandleRef, stageRef, stopAutoPan, updateHandleFromClient]);
+
+  const onHandlePointerDown = useCallback((index: number, event: PointerEvent<HTMLButtonElement>) => {
+    if (
+      !event.isPrimary ||
+      event.button !== 0 ||
+      isSpacePressed ||
+      activePointerRef.current !== null ||
+      !selectedSlide?.quad ||
+      canvasRenderRef.current?.slideId !== selectedSlide.id
+    ) return;
+
+    pushHistory();
+    latestDragQuadRef.current = { id: selectedSlide.id, quad: cloneQuad(selectedSlide.quad) };
+    activePointerRef.current = event.pointerId;
+    dragHandleRef.current = index;
+    setDragHandle(index);
+    updateLoupeCanvas(selectedSlide.quad, index);
+    updateLoupePosition?.(index);
+    lastHandlePointerClientRef.current = { clientX: event.clientX, clientY: event.clientY };
+    event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
-  }, [canvasPoint, canvasRenderRef, dragHandleRef, latestDragQuadRef, paintCanvas, redrawCanvas, scaleRef, viewportRef]);
+  }, [canvasRenderRef, dragHandleRef, isSpacePressed, latestDragQuadRef, pushHistory, selectedSlide, updateLoupeCanvas, updateLoupePosition]);
+
+  const onHandlePointerMove = useCallback((event: PointerEvent<HTMLButtonElement>) => {
+    const handleIndex = dragHandleRef.current;
+    const render = canvasRenderRef.current;
+    const latest = latestDragQuadRef.current;
+    if (
+      handleIndex === null ||
+      activePointerRef.current !== event.pointerId ||
+      !render ||
+      !latest ||
+      render.slideId !== latest.id
+    ) return;
+
+    lastHandlePointerClientRef.current = { clientX: event.clientX, clientY: event.clientY };
+    updateHandleFromClient(event.clientX, event.clientY);
+    checkAutoPan();
+    event.preventDefault();
+  }, [activePointerRef, canvasRenderRef, checkAutoPan, dragHandleRef, latestDragQuadRef, updateHandleFromClient]);
 
   const onHandlePointerUp = useCallback((event: PointerEvent<HTMLButtonElement>) => {
     if (activePointerRef.current !== event.pointerId) return;
+    stopAutoPan();
     if (dragFrameRef.current !== null) {
       window.cancelAnimationFrame(dragFrameRef.current);
       dragFrameRef.current = null;
@@ -224,7 +310,7 @@ export function useQuadEditor({
     } catch {
       // The pointer may already be released by the browser.
     }
-  }, [canvasRenderRef, dragHandleRef, latestDragQuadRef, paintCanvas, refreshSlideThumbnail, setCornerAnnouncement, setHandlePositions, text.cornerHandle, updateSlideQuad]);
+  }, [canvasRenderRef, dragHandleRef, latestDragQuadRef, paintCanvas, refreshSlideThumbnail, setCornerAnnouncement, setHandlePositions, stopAutoPan, text.cornerHandle, updateSlideQuad]);
 
   const onHandleKeyDown = useCallback((index: number, event: KeyboardEvent<HTMLButtonElement>) => {
     const render = canvasRenderRef.current;
@@ -265,35 +351,86 @@ export function useQuadEditor({
     setCornerAnnouncement(`${text.cornerHandle} ${index + 1}: X ${Math.round(next[index][0])}, Y ${Math.round(next[index][1])}`);
   }, [canvasRenderRef, latestDragQuadRef, paintCanvas, pushHistory, redrawCanvas, refreshSlideThumbnail, scaleRef, selectedSlide, setCornerAnnouncement, setHandlePositions, text.cornerHandle, updateSlideQuad]);
 
-  const resetSelected = useCallback(() => {
-    if (!selectedSlide) return;
-    clearExport();
+  const restoreSelectedAutoDetection = useCallback(() => {
+    if (!selectedSlide || !selectedSlide.autoDetection || selectedSlide.status !== "ready") return;
     cancelActiveDrag();
-    if (selectedSlide.autoDetection) {
-      const snapshot = selectedSlide.autoDetection;
-      const next = cloneQuad(snapshot.quad);
-      setSlides((current) =>
-        current.map((slide) => {
-          if (slide.id !== selectedSlide.id) return slide;
-          return restoreAutoDetection(slide);
-        }),
-      );
-      void refreshSlideThumbnail(selectedSlide.id, next);
-      return;
+    pushHistory();
+    markExportStale();
+    const snapshot = selectedSlide.autoDetection;
+    const next = cloneQuad(snapshot.quad);
+    const render = canvasRenderRef.current;
+    if (render && render.slideId === selectedSlide.id) {
+      paintCanvas(next);
+      setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
     }
-
-    const jobId = startDetection(
-      [{ id: selectedSlide.id, name: selectedSlide.name, file: selectedSlide.file }],
-      settings,
+    setSlides((current) =>
+      current.map((slide) => {
+        if (slide.id !== selectedSlide.id) return slide;
+        return restoreAutoDetection(slide);
+      }),
     );
-    if (jobId !== null) setBusyText(`${text.stretching}: ${selectedSlide.name}`);
-  }, [cancelActiveDrag, clearExport, refreshSlideThumbnail, selectedSlide, setBusyText, setSlides, settings, startDetection, text.stretching]);
+    void refreshSlideThumbnail(selectedSlide.id, next);
+  }, [
+    cancelActiveDrag,
+    canvasRenderRef,
+    markExportStale,
+    paintCanvas,
+    pushHistory,
+    refreshSlideThumbnail,
+    selectedSlide,
+    setHandlePositions,
+    setSlides,
+  ]);
+
+  const updateCornerCoordinate = useCallback(
+    (cornerIndex: number, coordIndex: 0 | 1, value: number) => {
+      if (!selectedSlide?.quad) return;
+      const width = selectedSlide.width;
+      const height = selectedSlide.height;
+      if (width <= 0 || height <= 0) return;
+
+      const max = coordIndex === 0 ? width : height;
+      const clamped = Math.max(0, Math.min(max, Number.isFinite(value) ? Math.round(value) : 0));
+      const currentVal = selectedSlide.quad[cornerIndex][coordIndex];
+      if (Math.abs(clamped - currentVal) < 0.5) return;
+
+      cancelActiveDrag();
+      pushHistory();
+      const next = cloneQuad(selectedSlide.quad);
+      next[cornerIndex][coordIndex] = clamped;
+
+      const render = canvasRenderRef.current;
+      if (render && render.slideId === selectedSlide.id) {
+        paintCanvas(next);
+        setHandlePositions(quadHandlePositions(next, render.padX, render.padY, render.scale));
+      }
+      updateSlideQuad(selectedSlide.id, next);
+      void refreshSlideThumbnail(selectedSlide.id, next);
+      setCornerAnnouncement(
+        `${text.cornerHandle} ${cornerIndex + 1}: X ${Math.round(next[cornerIndex][0])}, Y ${Math.round(next[cornerIndex][1])}`,
+      );
+    },
+    [
+      cancelActiveDrag,
+      canvasRenderRef,
+      paintCanvas,
+      pushHistory,
+      refreshSlideThumbnail,
+      selectedSlide,
+      setCornerAnnouncement,
+      setHandlePositions,
+      text.cornerHandle,
+      updateSlideQuad,
+    ],
+  );
 
   return {
     dragHandle,
     cancelActiveDrag,
     updateSlideQuad,
-    resetSelected,
+    updateCornerCoordinate,
+    restoreAutoDetection: restoreSelectedAutoDetection,
+    resetSelected: restoreSelectedAutoDetection,
     onHandlePointerDown,
     onHandlePointerMove,
     onHandlePointerUp,

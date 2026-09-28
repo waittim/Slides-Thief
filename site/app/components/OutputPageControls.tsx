@@ -11,19 +11,52 @@ import { settingsReducer, type SettingsAction } from "../lib/settingsTransitions
 import type { Settings } from "../lib/types";
 import { Button, Select } from "./ui";
 
-export interface OutputPageControlsProps {
+export interface EnhancementControlProps {
+  settings: Settings;
+  text: LocaleCopy;
+  updateSettings: (updater: (current: Settings) => Settings) => void;
+}
+
+export function EnhancementControl({
+  settings,
+  text,
+  updateSettings,
+}: EnhancementControlProps) {
+  const applyAction = (action: SettingsAction) => {
+    updateSettings((current) => settingsReducer(current, action));
+  };
+
+  return (
+    <label className="enhancementSetting">
+      <span>{text.enhancement}</span>
+      <Select
+        value={settings.enhancement}
+        onChange={(event) =>
+          applyAction({ type: "enhancement", value: event.target.value as EnhancementMode })
+        }
+      >
+        <option value="original">{text.enhancementOriginal}</option>
+        <option value="clean">{text.enhancementClean}</option>
+        <option value="high-contrast">{text.enhancementHighContrast}</option>
+        <option value="bw">{text.enhancementBw}</option>
+      </Select>
+    </label>
+  );
+}
+
+export interface PageLayoutControlsProps {
   ratioUi: RatioUiCopy;
   settings: Settings;
   text: LocaleCopy;
   updateSettings: (updater: (current: Settings) => Settings) => void;
 }
 
-export function OutputPageControls({
+export function PageLayoutControls({
   ratioUi,
   settings,
   text,
   updateSettings,
-}: OutputPageControlsProps) {
+}: PageLayoutControlsProps) {
   const currentPageLayout = pageLayoutMode(settings.outputPageRatio, settings.height);
   const applyAction = (action: SettingsAction) => {
     updateSettings((current) => settingsReducer(current, action));
@@ -83,6 +116,27 @@ export function OutputPageControls({
           />
         </label>
       )}
+    </>
+  );
+}
+
+export interface OutputQualityControlsProps {
+  settings: Settings;
+  text: LocaleCopy;
+  updateSettings: (updater: (current: Settings) => Settings) => void;
+}
+
+export function OutputQualityControls({
+  settings,
+  text,
+  updateSettings,
+}: OutputQualityControlsProps) {
+  const applyAction = (action: SettingsAction) => {
+    updateSettings((current) => settingsReducer(current, action));
+  };
+
+  return (
+    <>
       <label>
         <span>{text.quality}</span>
         <input
@@ -94,20 +148,6 @@ export function OutputPageControls({
             applyAction({ type: "quality-percent", value: Number(event.target.value) })
           }
         />
-      </label>
-      <label>
-        <span>{text.enhancement}</span>
-        <Select
-          value={settings.enhancement}
-          onChange={(event) =>
-            applyAction({ type: "enhancement", value: event.target.value as EnhancementMode })
-          }
-        >
-          <option value="original">{text.enhancementOriginal}</option>
-          <option value="clean">{text.enhancementClean}</option>
-          <option value="high-contrast">{text.enhancementHighContrast}</option>
-          <option value="bw">{text.enhancementBw}</option>
-        </Select>
       </label>
       <div className="colorSetting" role="group" aria-labelledby="fill-color-label">
         <span id="fill-color-label">{text.fillColor}</span>
@@ -131,3 +171,6 @@ export function OutputPageControls({
     </>
   );
 }
+
+export type OutputPageControlsProps = PageLayoutControlsProps;
+export const OutputPageControls = PageLayoutControls;

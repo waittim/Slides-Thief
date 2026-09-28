@@ -1,10 +1,39 @@
 import React from "react";
-import { PDF_BASENAME_MAX_LENGTH, sanitizePdfBaseName } from "../filename";
+import {
+  DEFAULT_PDF_BASENAME,
+  PDF_BASENAME_MAX_LENGTH,
+  sanitizePdfBaseName,
+  validatePdfBaseName,
+  WINDOWS_RESERVED_NAME,
+  type PdfBaseNameValidationReason,
+} from "../filename";
 import type { LocaleCopy, LocaleValue, RatioUiCopy } from "../i18n";
 import type { Settings, ThemeValue } from "../lib/types";
-import { OutputPageControls } from "./OutputPageControls";
+import {
+  EnhancementControl,
+  OutputPageControls,
+  OutputQualityControls,
+} from "./OutputPageControls";
 import { PreferencesControls } from "./PreferencesControls";
 import { SourceFormatControls, SourceOrientationControl } from "./SourceFormatControls";
+
+export function getPdfBaseNameErrorMessage(
+  reason: PdfBaseNameValidationReason | undefined,
+  text: LocaleCopy,
+): string {
+  switch (reason) {
+    case "invalid_characters":
+      return text.pdfNameInvalidChars;
+    case "invalid_extension":
+      return text.pdfNameInvalidExtension;
+    case "trailing_dot_or_space":
+      return text.pdfNameTrailingPeriodOrSpace;
+    case "reserved_name":
+      return text.pdfNameReserved;
+    default:
+      return "";
+  }
+}
 
 interface HeaderProps {
   isInfoOpen: boolean;
@@ -49,6 +78,118 @@ export function Header({
   runAutoWithSettings,
   setIsInfoOpen,
 }: HeaderProps) {
+  const validation = validatePdfBaseName(pdfBaseName);
+  const hasError = !validation.isValid;
+  const errorMessage = hasError ? getPdfBaseNameErrorMessage(validation.reason, text) : "";
+
+  const handlePdfNameChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = event.target.value;
+    setPdfBaseName(nextValue);
+  };
+
+  const handlePdfNameBlur = () => {
+    let sanitized = sanitizePdfBaseName(pdfBaseName).trim().replace(/[. ]+$/g, "");
+    if (sanitized && WINDOWS_RESERVED_NAME.test(sanitized)) {
+      sanitized = `_${sanitized}`;
+    }
+    if (sanitized !== pdfBaseName) {
+      setPdfBaseName(sanitized);
+    }
+  };
+
+  const settingsMenuBody = (
+    <div className="settingsMenuBody">
+      <SourceFormatControls
+        hasRun={hasRun}
+        runAutoWithSettings={runAutoWithSettings}
+        settings={settings}
+        text={text}
+        ratioUi={ratioUi}
+        updateSettings={updateSettings}
+      />
+      <EnhancementControl
+        settings={settings}
+        text={text}
+        updateSettings={updateSettings}
+      />
+      <details
+        className="moreSettings"
+        ref={moreSettingsRef}
+        open={isMobile ? true : undefined}
+        onToggle={(event) => {
+          if (window.matchMedia("(max-width: 834px)").matches) {
+            event.currentTarget.open = true;
+          }
+        }}
+      >
+        <summary>{text.more}</summary>
+        <div className="morePanel">
+          <section className="settingsSection" aria-label={text.pageSection}>
+            <h3 className="settingsSectionTitle">{text.pageSection}</h3>
+            <div className="settingsSectionBody">
+              <SourceOrientationControl
+                hasRun={hasRun}
+                ratioUi={ratioUi}
+                runAutoWithSettings={runAutoWithSettings}
+                settings={settings}
+                text={text}
+                updateSettings={updateSettings}
+              />
+              <OutputPageControls
+                ratioUi={ratioUi}
+                settings={settings}
+                text={text}
+                updateSettings={updateSettings}
+              />
+            </div>
+          </section>
+          <section className="settingsSection" aria-label={text.qualitySection}>
+            <h3 className="settingsSectionTitle">{text.qualitySection}</h3>
+            <div className="settingsSectionBody">
+              <OutputQualityControls
+                settings={settings}
+                text={text}
+                updateSettings={updateSettings}
+              />
+            </div>
+          </section>
+        </div>
+      </details>
+      <div className="pdfNameControl">
+        <label className="pdfNameSetting">
+          <span>{text.pdfName}</span>
+          <input
+            id="pdf-base-name-input"
+            value={pdfBaseName}
+            placeholder={DEFAULT_PDF_BASENAME}
+            maxLength={PDF_BASENAME_MAX_LENGTH}
+            onChange={handlePdfNameChange}
+            onBlur={handlePdfNameBlur}
+            type="text"
+            aria-invalid={hasError ? "true" : undefined}
+            aria-describedby={hasError ? "pdf-name-error" : undefined}
+          />
+          <span className="fileSuffix">.pdf</span>
+        </label>
+        {hasError && (
+          <div id="pdf-name-error" className="pdfNameError" role="alert">
+            {errorMessage}
+          </div>
+        )}
+      </div>
+      <hr className="settingsMenuDivider" />
+      <PreferencesControls
+        placement="menu"
+        text={text}
+        theme={theme}
+        setTheme={setTheme}
+        locale={locale}
+        setLocale={setLocale}
+        setIsInfoOpen={setIsInfoOpen}
+      />
+    </div>
+  );
+
   return (
     <header className="topbar" aria-hidden={isInfoOpen || undefined} inert={isInfoOpen ? true : undefined}>
       <div className="brand">
@@ -63,80 +204,23 @@ export function Header({
         <h1 className="brandText">{text.brandName}</h1>
       </div>
       <div className="settings">
-        <details
-          className="settingsMenu"
-          ref={settingsMenuRef}
-          onToggle={(event) => {
-            const isOpen = event.currentTarget.open;
-            if (window.matchMedia("(max-width: 834px)").matches) {
-              setSettingsOpen(isOpen);
-            } else {
-              event.currentTarget.open = true;
-              setSettingsOpen(true);
-            }
-          }}
-        >
-          <summary className="settingsMenuToggle">{text.settings}</summary>
-          {settingsOpen && (
-            <div className="settingsMenuBody">
-              <SourceFormatControls
-                hasRun={hasRun}
-                runAutoWithSettings={runAutoWithSettings}
-                settings={settings}
-                text={text}
-                ratioUi={ratioUi}
-                updateSettings={updateSettings}
-              />
-              <details
-                className="moreSettings"
-                ref={moreSettingsRef}
-                open={isMobile ? true : undefined}
-                onToggle={(event) => {
-                  if (window.matchMedia("(max-width: 834px)").matches) {
-                    event.currentTarget.open = true;
-                  }
-                }}
-              >
-                <summary>{text.more}</summary>
-                <div className="morePanel">
-                  <SourceOrientationControl
-                    hasRun={hasRun}
-                    ratioUi={ratioUi}
-                    runAutoWithSettings={runAutoWithSettings}
-                    settings={settings}
-                    updateSettings={updateSettings}
-                  />
-                  <OutputPageControls
-                    ratioUi={ratioUi}
-                    settings={settings}
-                    text={text}
-                    updateSettings={updateSettings}
-                  />
-                </div>
-              </details>
-              <label className="pdfNameSetting">
-                <span>{text.pdfName}</span>
-                <input
-                  value={pdfBaseName}
-                  maxLength={PDF_BASENAME_MAX_LENGTH}
-                  onChange={(event) => setPdfBaseName(sanitizePdfBaseName(event.target.value))}
-                  type="text"
-                />
-                <span className="fileSuffix">.pdf</span>
-              </label>
-              <hr className="settingsMenuDivider" />
-              <PreferencesControls
-                placement="menu"
-                text={text}
-                theme={theme}
-                setTheme={setTheme}
-                locale={locale}
-                setLocale={setLocale}
-                setIsInfoOpen={setIsInfoOpen}
-              />
-            </div>
-          )}
-        </details>
+        {isMobile ? (
+          <details
+            className="settingsMenu"
+            ref={settingsMenuRef}
+            open={settingsOpen}
+            onToggle={(event) => {
+              setSettingsOpen(event.currentTarget.open);
+            }}
+          >
+            <summary className="settingsMenuToggle">{text.settings}</summary>
+            {settingsOpen && settingsMenuBody}
+          </details>
+        ) : (
+          <div className="settingsMenu" role="region" aria-label={text.settings}>
+            {settingsMenuBody}
+          </div>
+        )}
       </div>
     </header>
   );

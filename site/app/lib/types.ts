@@ -1,20 +1,18 @@
 import type { BatchPrior, DetectionMethod, Quad, ReviewReason } from "../detection/types";
+export type { ReviewReason };
 import type { EnhancementMode } from "../enhance";
 import { PRODUCT_METADATA } from "../product-metadata.ts";
 import type { OutputPageRatio, SourceFormatSettings } from "../ratio";
+export * from "./errors.ts";
+import type { AppErrorCode } from "./errors.ts";
 
-export interface GtagWindow extends Window {
-  gtag?: (command: string, action: string, params?: Record<string, unknown>) => void;
-}
-
-export function trackEvent(name: string, params?: Record<string, unknown>) {
-  if (typeof window !== "undefined") {
-    const gtagWindow = window as unknown as GtagWindow;
-    if (gtagWindow.gtag) {
-      gtagWindow.gtag("event", name, params);
-    }
-  }
-}
+export {
+  GA_MEASUREMENT_ID,
+  type GtagWindow,
+  isTelemetryOptedOut,
+  setTelemetryOptOut,
+  trackEvent,
+} from "./telemetry.ts";
 
 export type ThemeValue = "auto" | "light" | "dark";
 
@@ -49,6 +47,8 @@ export type SlideErrorCode = "conversion-failed" | "decode-failed" | "worker-fai
 export type SlideError = {
   code: SlideErrorCode;
   message: string;
+  errorCode?: AppErrorCode;
+  errorParams?: Record<string, string | number>;
 };
 
 export type AutoDetectionSnapshot = {
@@ -165,7 +165,7 @@ export type CanvasRenderState = {
 };
 
 export type DetectionWorkerMessage =
-  | { type: "detect-start"; jobId: DetectionJobId; id: string }
+  | { type: "detect-start"; jobId: DetectionJobId; id: string; current?: number; total?: number }
   | { type: "detect-result"; jobId: DetectionJobId; phase: "preliminary" | "final"; result: DetectResult }
   | {
       type: "detect-batch-summary";
@@ -177,6 +177,7 @@ export type DetectionWorkerMessage =
         priors: BatchPrior[];
       };
     }
+  | { type: "detect-complete"; jobId: DetectionJobId }
   | { type: "slide-error"; jobId: DetectionJobId; id: string; error: SlideError }
   | { type: "error"; jobId: DetectionJobId; error: SlideError };
 
@@ -187,6 +188,7 @@ export type ExportArtifact = {
   url: string;
   filename: string;
   byteLength: number;
+  isStale?: boolean;
 };
 
 export type ExportWorkerRequest = {
@@ -201,7 +203,7 @@ export type ExportWorkerRequest = {
 export type ExportWorkerMessage =
   | { type: "export-progress"; format?: ExportFormat; current: number; total: number; name: string }
   | { type: "export-complete"; format?: ExportFormat; buffer: ArrayBuffer; pdf?: ArrayBuffer; filename: string; mimeType?: string }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string; errorCode?: AppErrorCode; errorParams?: Record<string, string | number> };
 
 export type WorkerMessage = DetectionWorkerMessage | ExportWorkerMessage;
 
@@ -318,7 +320,25 @@ function isDetectResult(value: unknown): value is DetectResult {
 export function parseDetectionWorkerMessage(value: unknown): DetectionWorkerMessage | null {
   if (!isRecord(value) || !isJobId(value.jobId) || typeof value.type !== "string") return null;
   if (value.type === "detect-start") {
-    return typeof value.id === "string" ? { type: value.type, jobId: value.jobId, id: value.id } : null;
+    if (typeof value.id !== "string") return null;
+    const current =
+      typeof value.current === "number" && Number.isInteger(value.current) && value.current >= 1
+        ? value.current
+        : undefined;
+    const total =
+      typeof value.total === "number" && Number.isInteger(value.total) && value.total >= 1
+        ? value.total
+        : undefined;
+    return {
+      type: value.type,
+      jobId: value.jobId,
+      id: value.id,
+      ...(current !== undefined && { current }),
+      ...(total !== undefined && { total }),
+    };
+  }
+  if (value.type === "detect-complete") {
+    return { type: value.type, jobId: value.jobId };
   }
   if (value.type === "detect-result") {
     return (value.phase === "preliminary" || value.phase === "final") && isDetectResult(value.result)

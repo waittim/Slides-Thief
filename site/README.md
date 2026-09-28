@@ -7,7 +7,8 @@ directly at:
 
 The app processes photos, adjusts slide corners, and generates a PDF locally in
 the browser. It does not require installation and does not upload source photos
-to a server.
+to a server. Google Analytics usage events are enabled by default; the About
+dialog provides an opt-out. See [Privacy](../docs/privacy.md) for details.
 
 ## User Features
 
@@ -27,7 +28,7 @@ to a server.
 - Manual four-corner correction on a canvas.
 - Browser-local PDF generation with `pdf-lib`.
 <!-- BEGIN GENERATED: web-summary-en -->
-The Web PDF paper presets include A4, A3, Letter in landscape and portrait.
+Web PDF pages can match the source, use physical A4, A3, Letter paper in either orientation, or use custom pixel dimensions.
 <!-- END GENERATED: web-summary-en -->
 - Source and output ratio presets are defined in [`metadata/product.json`](../metadata/product.json) and generated into the web and CLI runtimes.
 - No server persistence and no upload endpoint.

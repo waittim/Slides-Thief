@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
+import { detectAcceptLanguageLocale } from "./i18n";
 import "./globals.css";
 import { PRODUCT_METADATA } from "./product-metadata";
 
@@ -7,6 +9,7 @@ const title = PRODUCT_METADATA.title;
 const description = PRODUCT_METADATA.description;
 const viewportContent = "width=device-width, initial-scale=1, viewport-fit=cover";
 const viewportScript = `document.querySelector('meta[name="viewport"]')?.setAttribute("content", ${JSON.stringify(viewportContent)});`;
+const themeScript = `try{var p=JSON.parse(localStorage.getItem("slides_thief_user_preferences")||"{}");if(p.theme==="dark"||p.theme==="light"||p.theme==="auto"){document.documentElement.dataset.theme=p.theme;}}catch(e){}`;
  
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -14,9 +17,6 @@ export const metadata: Metadata = {
   description,
   applicationName: PRODUCT_METADATA.name,
   creator: "Zekun",
-  alternates: {
-    canonical: siteUrl,
-  },
   openGraph: {
     title,
     description,
@@ -46,14 +46,23 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let lang = "en";
+  try {
+    const requestHeaders = await headers();
+    lang = detectAcceptLanguageLocale(requestHeaders.get("accept-language"));
+  } catch {
+    lang = "en";
+  }
+
   return (
-    <html lang="en">
+    <html lang={lang}>
       <head>
+        <link rel="canonical" href={siteUrl} />
         {/* Keep icon/manifest relative so local/dev origins stay same-origin with start_url. */}
         <link rel="icon" href="/favicon.svg" />
         <link rel="shortcut icon" href="/favicon.svg" />
@@ -69,21 +78,8 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content={PRODUCT_METADATA.name} />
-        {/* Google tag (gtag.js) */}
-        {/* eslint-disable-next-line @next/next/next-script-for-ga */}
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-74RGGMV3PH" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-
-              gtag('config', 'G-74RGGMV3PH');
-            `,
-          }}
-        />
         <script dangerouslySetInnerHTML={{ __html: viewportScript }} />
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body suppressHydrationWarning>{children}</body>
     </html>
