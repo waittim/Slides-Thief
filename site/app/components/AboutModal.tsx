@@ -14,6 +14,8 @@ interface AboutModalProps {
   telemetryReady?: boolean;
   telemetryCheckingLabel?: string;
   googlePolicyLabel?: string;
+  privacyNoticeLabel?: string;
+  privacyContactLabel?: string;
   setTelemetryEnabled?: (enabled: boolean) => void;
 }
 
@@ -38,6 +40,8 @@ export function AboutModal({
   telemetryReady = true,
   telemetryCheckingLabel,
   googlePolicyLabel,
+  privacyNoticeLabel,
+  privacyContactLabel,
   setTelemetryEnabled,
 }: AboutModalProps) {
   return (
@@ -139,6 +143,16 @@ export function AboutModal({
           {googlePolicyLabel && (
             <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
               {googlePolicyLabel}
+            </a>
+          )}
+          {privacyNoticeLabel && (
+            <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyNoticeLabel}
+            </a>
+          )}
+          {privacyContactLabel && (
+            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyContactLabel}
             </a>
           )}
         </div>

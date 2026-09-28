@@ -1485,6 +1485,8 @@ export function SlidesThiefApp() {
         telemetryReady={analyticsPolicyReady}
         telemetryCheckingLabel={analyticsConsentCopy[locale].checking}
         googlePolicyLabel={analyticsConsentCopy[locale].googlePolicy}
+        privacyNoticeLabel={analyticsConsentCopy[locale].privacyNotice}
+        privacyContactLabel={analyticsConsentCopy[locale].privacyContact}
         setTelemetryEnabled={setTelemetry}
       />
 

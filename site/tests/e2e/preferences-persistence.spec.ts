@@ -145,6 +145,8 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   expect(tagRequests).toBe(0);
   await banner.getByRole("button", { name: /View details|查看详情/i }).click();
   await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Site privacy notice|本站隐私说明/i })).toHaveAttribute("href", "https://slidesthief.com/privacy.html");
+  await expect(page.getByRole("link", { name: /Privacy request contact|隐私请求联系方式/i })).toHaveAttribute("href", "https://www.zekun.blog/about/");
   await page.keyboard.press("Escape");
   await banner.getByRole("button", { name: /Reject analytics|拒绝统计/i }).click();
   await expect(banner).toHaveCount(0);

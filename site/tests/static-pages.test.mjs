@@ -7,6 +7,7 @@ test("emits a GitHub Pages compatible static app", async () => {
   const assets = await readdir(new URL("../dist-pages/assets/", import.meta.url));
   const robots = await readFile(new URL("../dist-pages/robots.txt", import.meta.url), "utf8");
   const sitemap = await readFile(new URL("../dist-pages/sitemap.xml", import.meta.url), "utf8");
+  const privacy = await readFile(new URL("../dist-pages/privacy.html", import.meta.url), "utf8");
   const mainScriptName = assets.find((name) => /^index-.*\.js$/.test(name));
   assert.ok(mainScriptName, "expected the main static JavaScript bundle");
   const mainScript = await readFile(new URL(`../dist-pages/assets/${mainScriptName}`, import.meta.url), "utf8");
@@ -27,6 +28,9 @@ test("emits a GitHub Pages compatible static app", async () => {
   assert.match(robots, /Sitemap: https:\/\/slidesthief\.com\/sitemap\.xml/);
   assert.match(sitemap, /<loc>https:\/\/slidesthief\.com\/<\/loc>/);
   assert.match(sitemap, /llms\.txt/);
+  assert.match(sitemap, /https:\/\/slidesthief\.com\/privacy\.html/);
+  assert.match(privacy, /Zekun Wang/);
+  assert.match(privacy, /https:\/\/www\.zekun\.blog\/about\//);
 
   assert.ok(assets.some((name) => name.endsWith(".js")), "expected static JavaScript output");
   assert.ok(assets.some((name) => name.endsWith(".css")), "expected static CSS output");
