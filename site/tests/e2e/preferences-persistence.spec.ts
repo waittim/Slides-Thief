@@ -143,12 +143,12 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   await page.reload();
   await expect(banner).toBeVisible();
   expect(tagRequests).toBe(0);
-  await expect(banner.getByText(/This includes page views|统计包括页面访问/i)).toBeHidden();
-  await banner.locator("summary.analyticsConsentDetails").click();
-  await expect(banner.getByText(/This includes page views|统计包括页面访问/i)).toBeVisible();
-  await expect(banner.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
-  await expect(banner.getByRole("link", { name: /Site privacy notice|本站隐私说明/i })).toHaveAttribute("href", "https://slidesthief.com/privacy.html");
-  await expect(banner.getByRole("link", { name: /Privacy request contact|隐私请求联系方式/i })).toHaveAttribute("href", "https://www.zekun.blog/about/");
+  await expect(banner.getByText(/improve Slides Thief|改进 Slides Thief/i)).toBeVisible();
+  await banner.getByRole("button", { name: /View details|查看详情/i }).click();
+  await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
+  await expect(page.getByRole("link", { name: /Site privacy notice|本站隐私说明/i })).toHaveAttribute("href", "https://slidesthief.com/privacy.html");
+  await expect(page.getByRole("link", { name: /Privacy request contact|隐私请求联系方式/i })).toHaveAttribute("href", "https://www.zekun.blog/about/");
+  await page.keyboard.press("Escape");
   await banner.getByRole("button", { name: /Reject|拒绝/i }).click();
   await expect(banner).toHaveCount(0);
   await page.reload();
@@ -163,7 +163,7 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   await expect.poll(() => tagRequests).toBe(2);
 });
 
-test("Enter accepts analytics from the page, while Enter on details only expands them", async ({ page }) => {
+test("Enter accepts analytics from the page, while Enter on details opens About", async ({ page }) => {
   await page.route("**/v1", (route) =>
     route.fulfill({ status: 200, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*" }, body: JSON.stringify({ version: 1, defaultAllowed: false }) }),
   );
@@ -175,11 +175,14 @@ test("Enter accepts analytics from the page, while Enter on details only expands
   await page.goto("/");
   const banner = page.getByRole("region", { name: /Usage analytics|使用统计/i });
   await expect(banner).toBeVisible();
-  await banner.locator("summary.analyticsConsentDetails").focus();
+  const detailsButton = banner.getByRole("button", { name: /View details|查看详情/i });
+  await detailsButton.focus();
   await page.keyboard.press("Enter");
-  await expect(banner.locator("details.analyticsConsentDisclosure")).toHaveAttribute("open", "");
+  await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
   expect(tagRequests).toBe(0);
-  await banner.locator("summary.analyticsConsentDetails").evaluate((element) => (element as HTMLElement).blur());
+  await page.keyboard.press("Escape");
+  await expect(banner).toBeVisible();
+  await detailsButton.evaluate((element) => (element as HTMLElement).blur());
   await page.keyboard.press("Enter");
   await expect(banner).toHaveCount(0);
   await expect.poll(() => tagRequests).toBe(1);

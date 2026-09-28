@@ -24,7 +24,7 @@ const ALL_LOCALES = localeOptions.map((opt) => opt.value);
 
 test("all 9 locales provide complete analytics consent copy", () => {
   for (const locale of ALL_LOCALES) {
-    for (const key of ["title", "description", "expandedDescription", "accept", "reject", "details", "checking", "googlePolicy"]) {
+    for (const key of ["title", "description", "accept", "reject", "details", "checking", "googlePolicy"]) {
       assert.ok(analyticsConsentCopy[locale][key]?.trim(), `${locale}.${key}`);
     }
   }

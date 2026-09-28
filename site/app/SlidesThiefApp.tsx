@@ -1512,15 +1512,9 @@ export function SlidesThiefApp() {
           <div className="analyticsConsentBody">
             <strong id="analytics-consent-title">{analyticsConsentCopy[locale].title}</strong>
             <p>{analyticsConsentCopy[locale].description}</p>
-            <details className="analyticsConsentDisclosure">
-              <summary className="analyticsConsentDetails">{analyticsConsentCopy[locale].details}</summary>
-              <p>{analyticsConsentCopy[locale].expandedDescription}</p>
-              <div className="analyticsConsentLinks">
-                <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].googlePolicy}</a>
-                <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].privacyNotice}</a>
-                <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer">{analyticsConsentCopy[locale].privacyContact}</a>
-              </div>
-            </details>
+            <button type="button" className="analyticsConsentDetails" onClick={() => setIsInfoOpen(true)}>
+              {analyticsConsentCopy[locale].details}
+            </button>
           </div>
           <div className="analyticsConsentActions">
             <Button onClick={() => setTelemetry(false)}>{analyticsConsentCopy[locale].reject}</Button>
