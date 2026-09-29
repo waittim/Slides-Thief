@@ -769,7 +769,11 @@ test("preserves page indicator, filename, and mobile floating navigation control
   // Mobile review bar shows compact more actions menu and hides desktop zoom buttons
   const moreButton = page.locator(".reviewMoreButton");
   await expect(moreButton).toBeVisible();
-  await expect(page.locator(".reviewFitButton")).toBeVisible();
+  const fitButton = page.locator(".reviewFitButton");
+  await expect(fitButton).toBeVisible();
+  const moreBox = await moreButton.boundingBox();
+  const fitBox = await fitButton.boundingBox();
+  expect(Math.round(moreBox?.height ?? 0)).toBe(Math.round(fitBox?.height ?? 0));
   await expect(page.locator(".reviewZoomStep").first()).toBeHidden();
   await expect(page.locator(".zoomValue")).toBeHidden();
   await expect(page.locator(".reviewResetButton")).toBeHidden();

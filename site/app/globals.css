@@ -2184,7 +2184,10 @@ button.clearAction:disabled {
 .reviewBar .quadBatchMenu,
 .reviewBar .quadBatchMenu .uiButton,
 .reviewBar .historyControls .uiButton,
-.reviewBar .zoomControls .uiButton {
+.reviewBar .zoomControls .uiButton,
+.reviewBar .reviewMoreMenu,
+.reviewBar .reviewMoreMenu .uiButton,
+.reviewBar .reviewMoreButton {
   flex-shrink: 0;
   white-space: nowrap;
   height: var(--control-height-sm);
@@ -3391,6 +3394,14 @@ canvas {
 
   .reviewBar .reviewMoreMenu {
     flex: 0 0 auto;
+    height: var(--control-height-sm);
+    min-height: var(--control-height-sm);
+  }
+
+  .reviewBar .reviewMoreMenu .uiButton,
+  .reviewBar .reviewMoreButton {
+    height: var(--control-height-sm);
+    min-height: var(--control-height-sm);
   }
 
   select,
