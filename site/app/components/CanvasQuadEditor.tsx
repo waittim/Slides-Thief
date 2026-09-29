@@ -95,9 +95,11 @@ export function CanvasQuadEditor({
   isPanning = false,
 }: CanvasQuadEditorProps) {
   const [isQuadMenuOpen, setIsQuadMenuOpen] = useState(false);
+  const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false);
   const [popoverSlideId, setPopoverSlideId] = useState<string | null>(null);
   const showFullNamePopover = selectedSlide !== null && popoverSlideId === selectedSlide.id;
   const quadMenuRef = useRef<HTMLDivElement | null>(null);
+  const moreMenuRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLDivElement | null>(null);
   const localLoupeOverlayRef = useRef<HTMLDivElement | null>(null);
   const effectiveLoupeOverlayRef = loupeOverlayRef ?? localLoupeOverlayRef;
@@ -169,6 +171,26 @@ export function CanvasQuadEditor({
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isQuadMenuOpen]);
+
+  useEffect(() => {
+    if (!isMoreMenuOpen) return;
+    const handlePointerDown = (event: MouseEvent | PointerEvent) => {
+      if (moreMenuRef.current && !moreMenuRef.current.contains(event.target as Node)) {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMoreMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", handlePointerDown);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMoreMenuOpen]);
 
   const handleRestore = restoreAutoDetection ?? resetSelected;
   const canRestore = Boolean(handleRestore && canRestoreAutoDetection(selectedSlide));
@@ -292,11 +314,11 @@ export function CanvasQuadEditor({
           </Button>
         </div>
         <div className="zoomControls">
-          <Button variant="icon" size="sm" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
+          <Button variant="icon" size="sm" className="reviewZoomStep reviewBarDesktopOnly" disabled={!selectedSlide} title={text.zoomOut} aria-label={text.zoomOut} onClick={zoomOut}>
             <Icon name="minus" size={13} />
           </Button>
-          <span className="zoomValue">{Math.round(displayZoom * 100)}%</span>
-          <Button variant="icon" size="sm" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
+          <span className="zoomValue reviewBarDesktopOnly">{Math.round(displayZoom * 100)}%</span>
+          <Button variant="icon" size="sm" className="reviewZoomStep reviewBarDesktopOnly" disabled={!selectedSlide} title={text.zoomIn} aria-label={text.zoomIn} onClick={zoomIn}>
             <Icon name="plus" size={13} />
           </Button>
           <Button
@@ -314,7 +336,7 @@ export function CanvasQuadEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="reviewResetButton"
+            className="reviewResetButton reviewBarDesktopOnly"
             disabled={!canRestore}
             title={restoreTooltip}
             aria-label={restoreTooltip}
@@ -327,7 +349,7 @@ export function CanvasQuadEditor({
           <Button
             variant="ghost"
             size="sm"
-            className="reviewRedetectButton"
+            className="reviewRedetectButton reviewBarDesktopOnly"
             disabled={isRedetectDisabled}
             title={redetectTooltip}
             aria-label={redetectTooltip}
@@ -336,7 +358,7 @@ export function CanvasQuadEditor({
             {text.reDetectSlide}
           </Button>
         ) : null}
-        <div className="quadBatchMenu" ref={quadMenuRef}>
+        <div className="quadBatchMenu reviewBarDesktopOnly" ref={quadMenuRef}>
           <Button
             variant="secondary"
             size="sm"
@@ -400,6 +422,118 @@ export function CanvasQuadEditor({
                   <span className="quadBatchMenuTitle">{text.applyToSelected}</span>
                   <span className="quadBatchMenuDesc">{text.applyToSelectedDesc(selectedBatchCount)}</span>
                 </button>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+        <div className="reviewMoreMenu reviewBarMobileOnly" ref={moreMenuRef}>
+          <Button
+            variant="icon"
+            size="sm"
+            className="reviewMoreButton"
+            disabled={!selectedSlide}
+            aria-haspopup="menu"
+            aria-expanded={isMoreMenuOpen}
+            title={text.moreActions}
+            aria-label={text.moreActions}
+            onClick={() => setIsMoreMenuOpen((open) => !open)}
+          >
+            <Icon name="ellipsis" size={13} />
+          </Button>
+          {isMoreMenuOpen ? (
+            <div className="reviewMoreDropdown" role="menu">
+              {handleRestore ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="reviewMoreMenuItem"
+                  disabled={!canRestore}
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    handleRestore();
+                  }}
+                >
+                  <span className="reviewMoreMenuTitle">{text.restoreAuto || text.resetSlide}</span>
+                </button>
+              ) : null}
+              {reDetectCurrent ? (
+                <button
+                  type="button"
+                  role="menuitem"
+                  className="reviewMoreMenuItem"
+                  disabled={isRedetectDisabled}
+                  onClick={() => {
+                    setIsMoreMenuOpen(false);
+                    reDetectCurrent();
+                  }}
+                >
+                  <span className="reviewMoreMenuTitle">{text.reDetectSlide}</span>
+                </button>
+              ) : null}
+              {slides.length > 1 ? (
+                <>
+                  <div className="reviewMoreDivider" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="reviewMoreMenuItem"
+                    disabled={
+                      !selectedSlide ||
+                      selectedSlide.status !== "ready" ||
+                      !selectedSlide.quad ||
+                      selectedIndex >= slides.length - 1 ||
+                      busy
+                    }
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      applyQuadToFollowing?.();
+                    }}
+                  >
+                    <span className="reviewMoreMenuTitle">{text.applyToFollowing}</span>
+                    <span className="reviewMoreMenuDesc">
+                      {text.applyToFollowingDesc(Math.max(0, slides.length - 1 - selectedIndex))}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="reviewMoreMenuItem"
+                    disabled={
+                      !selectedSlide ||
+                      selectedSlide.status !== "ready" ||
+                      !selectedSlide.quad ||
+                      slides.length <= 1 ||
+                      busy
+                    }
+                    onClick={() => {
+                      setIsMoreMenuOpen(false);
+                      applyQuadToAll?.();
+                    }}
+                  >
+                    <span className="reviewMoreMenuTitle">{text.applyToAll}</span>
+                    <span className="reviewMoreMenuDesc">{text.applyToAllDesc(Math.max(0, slides.length - 1))}</span>
+                  </button>
+                  {selectedBatchCount && selectedBatchCount > 0 ? (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="reviewMoreMenuItem"
+                      disabled={
+                        !selectedSlide ||
+                        selectedSlide.status !== "ready" ||
+                        !selectedSlide.quad ||
+                        busy
+                      }
+                      onClick={() => {
+                        setIsMoreMenuOpen(false);
+                        applyQuadToSelected?.();
+                      }}
+                    >
+                      <span className="reviewMoreMenuTitle">{text.applyToSelected}</span>
+                      <span className="reviewMoreMenuDesc">{text.applyToSelectedDesc(selectedBatchCount)}</span>
+                    </button>
+                  ) : null}
+                </>
               ) : null}
             </div>
           ) : null}

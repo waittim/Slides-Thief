@@ -1525,10 +1525,12 @@ export function SlidesThiefApp() {
         >
           <div className="analyticsConsentBody">
             <strong id="analytics-consent-title">{analyticsConsentCopy[locale].title}</strong>
-            <p>{analyticsConsentCopy[locale].description}</p>
-            <button type="button" className="analyticsConsentDetails" onClick={openTelemetryInfo}>
-              {analyticsConsentCopy[locale].details}
-            </button>
+            <p>
+              {analyticsConsentCopy[locale].description}{" "}
+              <button type="button" className="analyticsConsentDetails" onClick={openTelemetryInfo}>
+                {analyticsConsentCopy[locale].details}
+              </button>
+            </p>
           </div>
           <div className="analyticsConsentActions">
             <Button onClick={() => setTelemetry(false)}>{analyticsConsentCopy[locale].reject}</Button>

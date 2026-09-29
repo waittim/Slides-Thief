@@ -181,8 +181,9 @@ export function CanvasEmptyState({
         )}
       </div>
 
-      {/* 3-Step Workflow: Outcome-Driven Visual Strip */}
-      <div className="emptyWorkflow" aria-label="Workflow overview">
+      {/* 3-Step Workflow: Outcome-Driven Visual Strip (hidden on mobile to save screen space) */}
+      {!isMobile && (
+        <div className="emptyWorkflow" aria-label="Workflow overview">
         {/* Step 1: the slide as photographed, off-axis and low contrast */}
         <div className="workflowStep" data-step="1">
           <div className="workflowStepVisual" aria-hidden="true">
@@ -351,6 +352,7 @@ export function CanvasEmptyState({
           </div>
         </div>
       </div>
+    )}
 
       {/* Photography Tips Card */}
       <details className="emptyTipsCard">

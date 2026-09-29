@@ -13,7 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Kept the three analytics and privacy links together on one line at common desktop and mobile widths, with natural wrapping on smaller screens.
 - Restyled the standalone privacy notice to match the app's typography, colors, navigation, and saved light/dark theme.
-- Shortened the analytics consent prompt; About now keeps analytics details collapsed while the toggle and status stay visible on one row, and View details opens the section. Enter accepts when focus is outside interactive controls.
+- Shortened the analytics consent prompt with "View details" formatted inline within the description; About now keeps analytics details collapsed while the toggle and status stay visible on one row, and View details opens the section. Enter accepts when focus is outside interactive controls.
+- Optimized mobile workspace layout to reclaim vertical screen space: omitted the 3-step workflow diagram in mobile empty state, and consolidated the mobile canvas review bar into a single 44px row with a compact overflow menu for restore, re-detect, and batch corner actions.
 
 ## [3.0.0] - 2026-09-28
 

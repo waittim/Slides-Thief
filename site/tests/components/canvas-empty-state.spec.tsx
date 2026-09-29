@@ -82,3 +82,14 @@ test("renders localized copy correctly in Japanese", async ({ mount }) => {
   await expect(component.getByRole("button", { name: "サンプル画像を試す" })).toBeVisible();
   await expect(component.getByText("きれいに補正するための撮影のコツ")).toBeVisible();
 });
+
+test("hides 3-step workflow on mobile to save screen space", async ({ mount, page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  const component = await mount(<CanvasEmptyStateHarness initialLocale="zh-CN" isMobile={true} />);
+
+  await expect(component.getByText("1. 偏角抓拍")).toBeHidden();
+  await expect(component.getByText("2. 智能贴边")).toBeHidden();
+  await expect(component.getByText("3. 展平生成")).toBeHidden();
+  await expect(component.locator(".emptyWorkflow")).toBeHidden();
+});
+
