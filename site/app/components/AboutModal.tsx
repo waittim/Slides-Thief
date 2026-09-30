@@ -1,7 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import type { LocaleCopy } from "../i18n";
 import { PRODUCT_METADATA } from "../product-metadata";
-import { ModalShell, Switch } from "./ui";
+import { Icon, ModalShell, Switch } from "./ui";
 
 interface AboutModalProps {
   isInfoOpen: boolean;
@@ -17,6 +17,8 @@ interface AboutModalProps {
   privacyNoticeLabel?: string;
   privacyContactLabel?: string;
   setTelemetryEnabled?: (enabled: boolean) => void;
+  expandTelemetryOnOpen?: boolean;
+  telemetryDisclosureButtonRef?: React.RefObject<HTMLButtonElement | null>;
 }
 
 function ShortcutChord({ keys }: { keys: readonly string[] }) {
@@ -26,6 +28,71 @@ function ShortcutChord({ keys }: { keys: readonly string[] }) {
         <kbd key={`${key}-${index}`}>{key}</kbd>
       ))}
     </span>
+  );
+}
+
+function TelemetryDisclosure({
+  text,
+  telemetryEnabled = true,
+  telemetryReady = true,
+  telemetryCheckingLabel,
+  googlePolicyLabel,
+  privacyNoticeLabel,
+  privacyContactLabel,
+  setTelemetryEnabled,
+  initiallyOpen,
+  buttonRef,
+}: Pick<AboutModalProps, "text" | "telemetryEnabled" | "telemetryReady" | "telemetryCheckingLabel" | "googlePolicyLabel" | "privacyNoticeLabel" | "privacyContactLabel" | "setTelemetryEnabled"> & {
+  initiallyOpen: boolean;
+  buttonRef?: React.RefObject<HTMLButtonElement | null>;
+}) {
+  const [expanded, setExpanded] = useState(initiallyOpen);
+
+  return (
+    <div className="modalTelemetry">
+      <div className="modalTelemetryHeader">
+        <button
+          ref={buttonRef}
+          type="button"
+          className="modalTelemetryDisclosure"
+          aria-expanded={expanded}
+          aria-controls="about-telemetry-content"
+          onClick={() => setExpanded((current) => !current)}
+        >
+          <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
+          <Icon name={expanded ? "chevron.up" : "chevron.down"} size={15} aria-hidden="true" />
+        </button>
+        {setTelemetryEnabled && (
+          <Switch
+            aria-label={text.telemetryTitle}
+            checked={telemetryEnabled}
+            disabled={!telemetryReady}
+            label={telemetryReady ? (telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled) : (telemetryCheckingLabel ?? text.telemetryDisabled)}
+            onChange={setTelemetryEnabled}
+          />
+        )}
+      </div>
+      <div id="about-telemetry-content" className="modalTelemetryContent" hidden={!expanded}>
+        <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
+        <div className="modalTelemetryLinks">
+          {googlePolicyLabel && (
+            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {googlePolicyLabel}
+            </a>
+          )}
+          {privacyNoticeLabel && (
+            <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyNoticeLabel}
+            </a>
+          )}
+          {privacyContactLabel && (
+            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+              {privacyContactLabel}
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -43,6 +110,8 @@ export function AboutModal({
   privacyNoticeLabel,
   privacyContactLabel,
   setTelemetryEnabled,
+  expandTelemetryOnOpen = false,
+  telemetryDisclosureButtonRef,
 }: AboutModalProps) {
   return (
     <ModalShell
@@ -124,38 +193,18 @@ export function AboutModal({
         <p className="modalPrivacyText">
           <strong>{text.infoPrivacy}</strong>
         </p>
-        <div className="modalTelemetry">
-          <div className="modalTelemetryHeader">
-            <div className="modalTelemetryHeaderContent">
-              <span className="modalTelemetryTitle">{text.telemetryTitle}</span>
-              <p className="modalTelemetryDesc">{text.telemetryDesc}</p>
-            </div>
-            {setTelemetryEnabled && (
-              <Switch
-                aria-label={text.telemetryTitle}
-                checked={telemetryEnabled}
-                disabled={!telemetryReady}
-                label={telemetryReady ? (telemetryEnabled ? text.telemetryEnabled : text.telemetryDisabled) : (telemetryCheckingLabel ?? text.telemetryDisabled)}
-                onChange={setTelemetryEnabled}
-              />
-            )}
-          </div>
-          {googlePolicyLabel && (
-            <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {googlePolicyLabel}
-            </a>
-          )}
-          {privacyNoticeLabel && (
-            <a href="https://slidesthief.com/privacy.html" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {privacyNoticeLabel}
-            </a>
-          )}
-          {privacyContactLabel && (
-            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
-              {privacyContactLabel}
-            </a>
-          )}
-        </div>
+        <TelemetryDisclosure
+          text={text}
+          telemetryEnabled={telemetryEnabled}
+          telemetryReady={telemetryReady}
+          telemetryCheckingLabel={telemetryCheckingLabel}
+          googlePolicyLabel={googlePolicyLabel}
+          privacyNoticeLabel={privacyNoticeLabel}
+          privacyContactLabel={privacyContactLabel}
+          setTelemetryEnabled={setTelemetryEnabled}
+          initiallyOpen={expandTelemetryOnOpen}
+          buttonRef={telemetryDisclosureButtonRef}
+        />
       </div>
       <div className="modalLinks">
         <a href={PRODUCT_METADATA.repository} target="_blank" rel="noopener noreferrer" className="modalLink">

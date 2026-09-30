@@ -766,6 +766,27 @@ test("preserves page indicator, filename, and mobile floating navigation control
   await expect(pageIndicator).toHaveText("01 / 02");
   await expect(fileName).toHaveText("dark-slid...ght-wall.png");
 
+  // Mobile review bar shows compact more actions menu and hides desktop zoom buttons
+  const moreButton = page.locator(".reviewMoreButton");
+  await expect(moreButton).toBeVisible();
+  const fitButton = page.locator(".reviewFitButton");
+  await expect(fitButton).toBeVisible();
+  const moreBox = await moreButton.boundingBox();
+  const fitBox = await fitButton.boundingBox();
+  expect(Math.round(moreBox?.height ?? 0)).toBe(Math.round(fitBox?.height ?? 0));
+  await expect(page.locator(".reviewZoomStep").first()).toBeHidden();
+  await expect(page.locator(".zoomValue")).toBeHidden();
+  await expect(page.locator(".reviewResetButton")).toBeHidden();
+  await expect(page.locator(".reviewRedetectButton")).toBeHidden();
+  await expect(page.locator(".quadBatchMenu")).toBeHidden();
+
+  // Tapping more button opens more dropdown
+  await moreButton.click();
+  const moreDropdown = page.locator(".reviewMoreDropdown");
+  await expect(moreDropdown).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(moreDropdown).toHaveCount(0);
+
   // Auto straighten and test pointer-events during corner drag
   await page.getByRole("button", { name: "Auto straighten" }).click();
   const firstCorner = page.getByRole("button", { name: /Corner 1:/ });

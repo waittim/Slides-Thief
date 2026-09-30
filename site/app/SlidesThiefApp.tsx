@@ -84,6 +84,15 @@ export function SlidesThiefApp() {
   }, []);
   const [cornerAnnouncement, setCornerAnnouncement] = useState("");
   const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [expandTelemetryOnOpen, setExpandTelemetryOnOpen] = useState(false);
+  const setInfoOpen = useCallback((open: boolean) => {
+    if (open) setExpandTelemetryOnOpen(false);
+    setIsInfoOpen(open);
+  }, []);
+  const openTelemetryInfo = useCallback(() => {
+    setExpandTelemetryOnOpen(true);
+    setIsInfoOpen(true);
+  }, []);
   const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
   const [isConfirmReviewOpen, setIsConfirmReviewOpen] = useState(false);
   const [pendingExportFormat, setPendingExportFormat] = useState<"pdf" | "jpg" | null>(null);
@@ -105,6 +114,7 @@ export function SlidesThiefApp() {
   const infoButtonRef = useRef<HTMLButtonElement | null>(null);
   const infoModalRef = useRef<HTMLDivElement | null>(null);
   const closeInfoButtonRef = useRef<HTMLButtonElement | null>(null);
+  const telemetryDisclosureButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const setExportName = useCallback(() => undefined, []);
 
@@ -656,7 +666,9 @@ export function SlidesThiefApp() {
     if (!isInfoOpen) return;
     const fallbackFocus = infoButtonRef.current;
     const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : fallbackFocus;
-    const focusFrame = window.requestAnimationFrame(() => closeInfoButtonRef.current?.focus());
+    const focusFrame = window.requestAnimationFrame(() => {
+      (expandTelemetryOnOpen ? telemetryDisclosureButtonRef.current : closeInfoButtonRef.current)?.focus();
+    });
     const handleModalKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -688,7 +700,19 @@ export function SlidesThiefApp() {
       document.removeEventListener("keydown", handleModalKeyDown);
       (previousFocus?.isConnected ? previousFocus : fallbackFocus)?.focus();
     };
-  }, [isInfoOpen]);
+  }, [expandTelemetryOnOpen, isInfoOpen]);
+
+  useEffect(() => {
+    if (!showAnalyticsChoice || isAnyModalOpen) return;
+    const handleConsentEnter = (event: KeyboardEvent) => {
+      if (event.key !== "Enter" || event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.target instanceof Element && event.target.closest('button, a, input, select, textarea, summary, [role="button"], [contenteditable="true"]')) return;
+      event.preventDefault();
+      setTelemetry(true);
+    };
+    window.addEventListener("keydown", handleConsentEnter);
+    return () => window.removeEventListener("keydown", handleConsentEnter);
+  }, [isAnyModalOpen, setTelemetry, showAnalyticsChoice]);
 
   const runAutoWithSettings = useCallback(
     (overrideSettings?: Settings) => {
@@ -1189,7 +1213,7 @@ export function SlidesThiefApp() {
     handleRedo,
     handleUndo,
     isInfoOpen: isAnyModalOpen,
-    openShortcuts: () => setIsInfoOpen(true),
+    openShortcuts: () => setInfoOpen(true),
     selectedIdRef,
     selectNextSlide: isReviewMode ? handleNextReviewSlide : selectNextSlide,
     selectPrevSlide: isReviewMode ? handlePrevReviewSlide : selectPrevSlide,
@@ -1390,7 +1414,7 @@ export function SlidesThiefApp() {
         setLocale={setLocale}
         updateSettings={updateSettings}
         runAutoWithSettings={runAutoWithSettings}
-        setIsInfoOpen={setIsInfoOpen}
+        setIsInfoOpen={setInfoOpen}
       />
 
       <main
@@ -1470,13 +1494,13 @@ export function SlidesThiefApp() {
           setTheme={setTheme}
           locale={locale}
           setLocale={setLocale}
-          setIsInfoOpen={setIsInfoOpen}
+          setIsInfoOpen={setInfoOpen}
         />
       </nav>
 
       <AboutModal
         isInfoOpen={isInfoOpen}
-        setIsInfoOpen={setIsInfoOpen}
+        setIsInfoOpen={setInfoOpen}
         infoModalRef={infoModalRef}
         closeInfoButtonRef={closeInfoButtonRef}
         text={text}
@@ -1488,6 +1512,8 @@ export function SlidesThiefApp() {
         privacyNoticeLabel={analyticsConsentCopy[locale].privacyNotice}
         privacyContactLabel={analyticsConsentCopy[locale].privacyContact}
         setTelemetryEnabled={setTelemetry}
+        expandTelemetryOnOpen={expandTelemetryOnOpen}
+        telemetryDisclosureButtonRef={telemetryDisclosureButtonRef}
       />
 
       {showAnalyticsChoice && (
@@ -1499,14 +1525,16 @@ export function SlidesThiefApp() {
         >
           <div className="analyticsConsentBody">
             <strong id="analytics-consent-title">{analyticsConsentCopy[locale].title}</strong>
-            <p>{analyticsConsentCopy[locale].description}</p>
-            <button type="button" className="analyticsConsentDetails" onClick={() => setIsInfoOpen(true)}>
-              {analyticsConsentCopy[locale].details}
-            </button>
+            <p>
+              {analyticsConsentCopy[locale].description}{" "}
+              <button type="button" className="analyticsConsentDetails" onClick={openTelemetryInfo}>
+                {analyticsConsentCopy[locale].details}
+              </button>
+            </p>
           </div>
           <div className="analyticsConsentActions">
             <Button onClick={() => setTelemetry(false)}>{analyticsConsentCopy[locale].reject}</Button>
-            <Button onClick={() => setTelemetry(true)}>{analyticsConsentCopy[locale].accept}</Button>
+            <Button variant="accent" onClick={() => setTelemetry(true)}>{analyticsConsentCopy[locale].accept}</Button>
           </div>
         </section>
       )}

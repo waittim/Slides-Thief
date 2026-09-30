@@ -24,7 +24,8 @@ export type IconName =
   | "info.circle"
   | "questionmark.circle"
   | "slider.horizontal.3"
-  | "play.fill";
+  | "play.fill"
+  | "ellipsis";
 
 export interface IconProps extends React.SVGAttributes<SVGElement> {
   name: IconName;
@@ -217,6 +218,15 @@ export function Icon({
       break;
     case "play.fill":
       content = <polygon points="6 4 20 12 6 20" fill="currentColor" stroke="none" />;
+      break;
+    case "ellipsis":
+      content = (
+        <>
+          <circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="19" cy="12" r="1.5" fill="currentColor" stroke="none" />
+          <circle cx="5" cy="12" r="1.5" fill="currentColor" stroke="none" />
+        </>
+      );
       break;
     default:
       return null;

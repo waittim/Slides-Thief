@@ -2184,7 +2184,10 @@ button.clearAction:disabled {
 .reviewBar .quadBatchMenu,
 .reviewBar .quadBatchMenu .uiButton,
 .reviewBar .historyControls .uiButton,
-.reviewBar .zoomControls .uiButton {
+.reviewBar .zoomControls .uiButton,
+.reviewBar .reviewMoreMenu,
+.reviewBar .reviewMoreMenu .uiButton,
+.reviewBar .reviewMoreButton {
   flex-shrink: 0;
   white-space: nowrap;
   height: var(--control-height-sm);
@@ -2373,6 +2376,85 @@ button.clearAction:disabled {
   font-weight: var(--font-weight-medium);
   color: var(--text);
   line-height: var(--line-height-tight);
+}
+
+.reviewBarMobileOnly {
+  display: none !important;
+}
+
+.reviewMoreMenu {
+  position: relative;
+  display: inline-flex;
+}
+
+.reviewMoreDropdown {
+  position: absolute;
+  top: calc(100% + var(--space-1));
+  right: 0;
+  width: max-content;
+  min-width: 200px;
+  max-width: min(280px, calc(100vw - var(--space-4)));
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--component-surface-radius);
+  box-shadow: var(--shadow);
+  padding: var(--space-2);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.reviewMoreMenuItem {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid transparent;
+  border-radius: var(--component-control-radius);
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  height: auto;
+  min-height: 0;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+}
+
+.reviewMoreMenuItem:hover:not(:disabled) {
+  background: var(--control-bg);
+  border-color: var(--line);
+}
+
+.reviewMoreMenuItem:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.reviewMoreMenuItem:focus-visible {
+  outline: var(--component-focus-ring) solid color-mix(in srgb, var(--accent-2), transparent 35%);
+  outline-offset: 1px;
+}
+
+.reviewMoreMenuTitle {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--text);
+  line-height: var(--line-height-tight);
+}
+
+.reviewMoreMenuDesc {
+  font-size: var(--font-size-2xs);
+  color: var(--muted);
+  line-height: var(--line-height-tight);
+}
+
+.reviewMoreDivider {
+  height: 1px;
+  background: var(--line);
+  margin: var(--space-1) 0;
 }
 
 .stageArea {
@@ -3185,12 +3267,23 @@ canvas {
     text-align: center;
   }
 
+  .reviewBarMobileOnly {
+    display: inline-flex !important;
+  }
+
+  .reviewBarDesktopOnly {
+    display: none !important;
+  }
+
   .reviewBar {
-    min-height: 0;
+    min-height: 44px;
+    height: 44px;
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
-    gap: var(--space-2) var(--space-3);
+    justify-content: space-between;
+    gap: var(--space-2);
+    padding: 0 var(--space-3);
   }
 
   .reviewBar .reviewPrevious,
@@ -3203,10 +3296,22 @@ canvas {
     align-items: center;
     gap: var(--space-2);
     min-width: 0;
-    width: 100%;
-    flex: 1 0 100%;
+    flex: 1 1 auto;
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-semibold);
+    overflow: hidden;
+    white-space: nowrap;
+  }
+
+  .reviewBar .reviewPageIndicator {
+    flex-shrink: 0;
+  }
+
+  .reviewBar .reviewFileName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    min-width: 0;
   }
 
   .stageFloatingNav {
@@ -3263,42 +3368,40 @@ canvas {
     opacity: 0.15;
   }
 
+  .reviewBar .historyControls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    flex: 0 0 auto;
+    margin-left: 0;
+  }
+
   .reviewBar .zoomControls {
     display: flex;
-    flex: 1 1 auto;
+    align-items: center;
+    gap: var(--space-1);
+    flex: 0 0 auto;
     min-width: 0;
     width: auto;
-    align-items: center;
-    gap: var(--space-2);
   }
 
   .reviewBar .reviewFitButton {
     flex: 0 0 auto;
     width: auto;
     min-width: 0;
-    padding: 0 var(--space-4);
+    padding: 0 var(--space-3);
   }
 
-  .reviewBar .historyControls {
-    display: flex;
-    align-items: center;
-    gap: var(--space-1);
+  .reviewBar .reviewMoreMenu {
     flex: 0 0 auto;
-    margin-left: auto;
+    height: var(--control-height-sm);
+    min-height: var(--control-height-sm);
   }
 
-  .reviewBar .reviewResetButton {
-    flex: 0 0 auto;
-    margin-left: 0;
-    max-width: none;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .reviewBar .reviewRedetectButton,
-  .reviewBar .quadBatchMenu {
-    flex: 0 0 auto;
+  .reviewBar .reviewMoreMenu .uiButton,
+  .reviewBar .reviewMoreButton {
+    height: var(--control-height-sm);
+    min-height: var(--control-height-sm);
   }
 
   select,
@@ -3637,17 +3740,56 @@ canvas {
   border-top: 1px solid color-mix(in srgb, var(--accent-2), transparent 75%);
 }
 
-.modalTelemetryHeader {
+.modalTelemetryDisclosure {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-3);
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+  min-height: 32px;
+  padding: 0;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
 }
 
-.modalTelemetryHeaderContent {
-  flex: 1;
-  min-width: 200px;
+.modalTelemetryDisclosure:hover .modalTelemetryTitle,
+.modalTelemetryDisclosure .sfIcon {
+  color: var(--accent-2);
+}
+
+.modalTelemetryDisclosure .sfIcon {
+  flex: none;
+}
+
+.modalTelemetryContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modalTelemetryContent[hidden] {
+  display: none;
+}
+
+.modalTelemetryHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: nowrap;
+}
+
+.modalTelemetryHeader .switchToggle,
+.modalTelemetryHeader .switchLabel {
+  min-width: 0;
+}
+
+.modalTelemetryHeader .switchLabel {
+  overflow-wrap: anywhere;
 }
 
 .modalTelemetryTitle {
@@ -3655,7 +3797,6 @@ canvas {
   font-weight: var(--font-weight-bold);
   color: var(--text);
   display: block;
-  margin-bottom: var(--space-1);
 }
 
 .modalTelemetryDesc {
@@ -3665,12 +3806,29 @@ canvas {
   color: var(--muted);
 }
 
+.modalTelemetryLinks {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-4);
+}
+
 .modalTelemetryPolicyLink {
-  align-self: flex-start;
+  flex: none;
   color: var(--accent-2);
   font-size: var(--font-size-xs);
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+@media (max-width: 834px) {
+  .modalTelemetryLinks {
+    column-gap: var(--space-3);
+  }
+
+  .modalTelemetryPolicyLink {
+    font-size: var(--font-size-2xs);
+  }
 }
 
 .analyticsConsentBanner {
@@ -3702,12 +3860,15 @@ canvas {
 }
 
 .analyticsConsentDetails {
-  margin-top: var(--space-2);
+  display: inline;
+  margin: 0;
   padding: 0;
+  font: inherit;
   color: var(--accent-2);
   background: none;
   border: 0;
   text-decoration: underline;
+  text-underline-offset: 2px;
   cursor: pointer;
 }
 
@@ -4337,12 +4498,19 @@ kbd {
 .emptyTipsCard {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
   padding: var(--space-4) var(--space-5);
   background: light-dark(rgba(0, 0, 0, 0.02), rgba(255, 255, 255, 0.035));
   border: 1px solid light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.07));
   border-radius: 16px;
   text-align: left;
+}
+
+.emptyTipsCard:not([open]) {
+  gap: 0;
+}
+
+.emptyTipsCard[open] {
+  gap: var(--space-3);
 }
 
 .emptyTipsCard:not([open]) .emptyTipsGrid {
@@ -4450,7 +4618,7 @@ kbd {
 @media (max-width: 834px) {
   .canvasEmptyState {
     margin: var(--space-2) auto;
-    padding: var(--space-4);
+    padding: var(--space-5) var(--space-4);
     gap: var(--space-4);
     border-radius: 18px;
   }
@@ -4460,27 +4628,14 @@ kbd {
   }
 
   .emptyWorkflow {
-    gap: var(--space-2);
-    padding: var(--space-3);
-  }
-
-  .workflowStepVisual,
-  .workflowStepDetails,
-  .workflowConnector {
     display: none;
-  }
-
-  .workflowStep {
-    flex: 1 1 0;
-  }
-
-  .workflowStepHeading {
-    font-size: var(--font-size-sm);
   }
 
   .emptyActions {
     flex-direction: column;
     width: 100%;
+    margin-top: var(--space-2);
+    margin-bottom: 0;
   }
 
   .emptyActionBtn {
