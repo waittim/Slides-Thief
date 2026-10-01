@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Expire usage analytics consent and opt-out decisions after 180 days (6 months) in accordance with regulatory best practices, prompting returning visitors for a renewed choice.
 
+### Fixed
+
+- Standardized font size across privacy and analytics disclosure links in the About dialog, and removed the duplicate external window link from the in-app privacy notice viewer.
+
 ## [3.0.1] - 2026-09-28
 
 ### Fixed
