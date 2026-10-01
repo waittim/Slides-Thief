@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.3] - 2026-10-01
+
+### Changed
+
+- Upgraded the in-browser sample presentation slide to 2400×1600 high definition (2× resolution) with crisp 2240×1260 vector artwork rasterization, 0.95 JPEG quality, and zero-allocation bilinear sampling for instant rendering and crystal-clear presentation slide demonstration.
+
 ## [3.0.2] - 2026-09-30
 
 ### Added
@@ -192,7 +198,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...HEAD
+[3.0.3]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/waittim/Slides-Thief/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/waittim/Slides-Thief/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/waittim/Slides-Thief/compare/v2.3.0...v3.0.0

@@ -18,7 +18,7 @@ export function AboutModalHarness() {
         closeInfoButtonRef={closeInfoButtonRef}
         text={copy["zh-CN"]}
         locale="zh-CN"
-        appVersion="3.0.2"
+        appVersion="3.0.3"
         telemetryEnabled={telemetry}
         setTelemetryEnabled={setTelemetry}
         googlePolicyLabel={zhConsent.googlePolicy}
