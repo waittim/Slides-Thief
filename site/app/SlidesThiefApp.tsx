@@ -1505,12 +1505,16 @@ export function SlidesThiefApp() {
         closeInfoButtonRef={closeInfoButtonRef}
         text={text}
         appVersion={APP_VERSION}
+        locale={locale}
         telemetryEnabled={telemetry}
         telemetryReady={analyticsPolicyReady}
         telemetryCheckingLabel={analyticsConsentCopy[locale].checking}
         googlePolicyLabel={analyticsConsentCopy[locale].googlePolicy}
         privacyNoticeLabel={analyticsConsentCopy[locale].privacyNotice}
         privacyContactLabel={analyticsConsentCopy[locale].privacyContact}
+        backToAboutLabel={analyticsConsentCopy[locale].backToAbout}
+        openExternalLabel={analyticsConsentCopy[locale].openExternal}
+        privacyNoticeUpdatedLabel={analyticsConsentCopy[locale].privacyNoticeUpdated}
         setTelemetryEnabled={setTelemetry}
         expandTelemetryOnOpen={expandTelemetryOnOpen}
         telemetryDisclosureButtonRef={telemetryDisclosureButtonRef}

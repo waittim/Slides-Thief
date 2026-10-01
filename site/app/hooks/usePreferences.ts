@@ -4,6 +4,7 @@ import { copy, detectBrowserLocale } from "../i18n";
 import {
   ANALYTICS_CONSENT_VERSION,
   hasAnalyticsChoice,
+  isAnalyticsConsentExpired,
   loadStoredPreferences,
   saveStoredPreferences,
   shouldEnableTelemetry,
@@ -142,7 +143,10 @@ export function usePreferences(markExportStale: () => void) {
     const enabled = shouldEnableTelemetry(stored, consentRequiredRef.current);
     telemetryRef.current = enabled;
     setTelemetryState(enabled);
-    setShowAnalyticsChoice(consentRequiredRef.current && !hasAnalyticsChoice(stored));
+    const shouldPrompt = consentRequiredRef.current
+      ? !hasAnalyticsChoice(stored)
+      : Boolean(stored?.analyticsConsent && isAnalyticsConsentExpired(stored.analyticsConsent));
+    setShowAnalyticsChoice(shouldPrompt);
     setTelemetryOptOut(!enabled);
   }, []);
 

@@ -6,7 +6,7 @@ Slides Thief corrects perspective distortion in photographs of projected slides 
 
 Open https://slidesthief.com/. Select JPEG, PNG, WebP, HEIC, or HEIF photos; run automatic straightening; inspect the result; drag any incorrect corner handles; generate and download the PDF. Processing and PDF generation happen locally in the browser. Source photos are not uploaded.
 
-Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. Google Analytics receives page views and app events with import/export counts and sizes, corner-adjustment events, and fixed error codes. App events never include filenames, raw errors, source-image pixels, or generated PDFs. The choice is saved locally and can be changed at any time. The Google Analytics data stream must disable automatic file-download measurement to prevent its separate file_name parameter.
+Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. Google Analytics receives page views and app events with import/export counts, corner-adjustment events, and fixed error codes. App events never include filenames, file sizes, raw errors, source-image pixels, or generated PDFs. The choice is saved locally and can be changed at any time. The Google Analytics data stream must disable automatic file-download measurement to prevent its separate file_name parameter.
 
 ### Web features
 

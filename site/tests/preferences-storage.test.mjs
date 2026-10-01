@@ -11,6 +11,9 @@ const {
   shouldEnableTelemetry,
   hasAnalyticsChoice,
   ANALYTICS_CONSENT_VERSION,
+  ANALYTICS_CONSENT_EXPIRATION_DAYS,
+  ANALYTICS_CONSENT_EXPIRATION_MS,
+  isAnalyticsConsentExpired,
 } = await import(
   new URL("../app/lib/preferenceStorage.ts", import.meta.url).href
 );
@@ -53,6 +56,57 @@ test("default analytics requires an edge allowance or a recorded opt-in", () => 
   assert.equal(hasAnalyticsChoice({ version: 2, telemetry: true }), false);
   assert.equal(hasAnalyticsChoice({ version: 2, telemetry: false }), true);
   assert.equal(hasAnalyticsChoice({ analyticsConsent: consent }), true);
+});
+
+test("consent and opt-out expire after 180 days", () => {
+  const baseTime = Date.parse("2026-09-27T00:00:00.000Z");
+  const consentGranted = {
+    version: ANALYTICS_CONSENT_VERSION,
+    granted: true,
+    decidedAt: "2026-09-27T00:00:00.000Z",
+  };
+  const consentDenied = {
+    version: ANALYTICS_CONSENT_VERSION,
+    granted: false,
+    decidedAt: "2026-09-27T00:00:00.000Z",
+  };
+
+  assert.equal(ANALYTICS_CONSENT_EXPIRATION_DAYS, 180);
+  assert.equal(ANALYTICS_CONSENT_EXPIRATION_MS, 180 * 24 * 60 * 60 * 1000);
+
+  // Invalid or missing decidedAt is considered expired
+  assert.equal(isAnalyticsConsentExpired(undefined, baseTime), true);
+  assert.equal(isAnalyticsConsentExpired({}, baseTime), true);
+  assert.equal(isAnalyticsConsentExpired({ decidedAt: "invalid" }, baseTime), true);
+
+  // Exactly within 180 days (e.g. 179 days later)
+  const day179 = baseTime + 179 * 24 * 60 * 60 * 1000;
+  assert.equal(isAnalyticsConsentExpired(consentGranted, day179), false);
+  assert.equal(isAnalyticsConsentExpired(consentDenied, day179), false);
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consentGranted }, day179), true);
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consentDenied }, day179), true);
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentGranted }, true, day179), true);
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentDenied }, true, day179), false);
+
+  // Exactly 180 days
+  const day180 = baseTime + 180 * 24 * 60 * 60 * 1000;
+  assert.equal(isAnalyticsConsentExpired(consentGranted, day180), false);
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consentGranted }, day180), true);
+
+  // Expired: 181 days later
+  const day181 = baseTime + 181 * 24 * 60 * 60 * 1000;
+  assert.equal(isAnalyticsConsentExpired(consentGranted, day181), true);
+  assert.equal(isAnalyticsConsentExpired(consentDenied, day181), true);
+
+  // Expired choice means hasAnalyticsChoice is false -> prompts again
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consentGranted }, day181), false);
+  assert.equal(hasAnalyticsChoice({ analyticsConsent: consentDenied }, day181), false);
+
+  // When expired, telemetry cannot be enabled until user re-consents
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentGranted }, true, day181), false);
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentDenied }, true, day181), false);
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentGranted }, false, day181), false);
+  assert.equal(shouldEnableTelemetry({ analyticsConsent: consentDenied }, false, day181), false);
 });
 
 test("sanitizeSettings handles empty or non-object input by returning defaultSettings", () => {

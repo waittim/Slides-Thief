@@ -15,6 +15,9 @@ export interface ModalShellProps {
   describedById?: string;
   className?: string;
   children: React.ReactNode;
+  onBack?: () => void;
+  backLabel?: string;
+  headerAction?: React.ReactNode;
 }
 
 export function ModalShell({
@@ -30,6 +33,9 @@ export function ModalShell({
   describedById,
   className = "",
   children,
+  onBack,
+  backLabel,
+  headerAction,
 }: ModalShellProps) {
   const fallbackModalRef = useRef<HTMLDivElement | null>(null);
   const fallbackCloseBtnRef = useRef<HTMLButtonElement | null>(null);
@@ -105,19 +111,33 @@ export function ModalShell({
       >
         <div className="modalHeader">
           <div className="modalTitle">
+            {onBack && (
+              <Button
+                variant="icon"
+                size="sm"
+                className="modalBackButton"
+                onClick={onBack}
+                aria-label={backLabel ?? "Back"}
+              >
+                <Icon name="chevron.backward" size={14} strokeWidth={2.2} />
+              </Button>
+            )}
             <h3 id={titleId}>{title}</h3>
             {appVersion && <span className="modalVersion">v{appVersion}</span>}
           </div>
-          <Button
-            ref={effectiveCloseBtnRef}
-            variant="icon"
-            size="sm"
-            className="modalCloseButton"
-            onClick={onClose}
-            aria-label={closeLabel}
-          >
-            <Icon name="xmark" size={13} strokeWidth={2.2} />
-          </Button>
+          <div className="modalHeaderActions">
+            {headerAction}
+            <Button
+              ref={effectiveCloseBtnRef}
+              variant="icon"
+              size="sm"
+              className="modalCloseButton"
+              onClick={onClose}
+              aria-label={closeLabel}
+            >
+              <Icon name="xmark" size={13} strokeWidth={2.2} />
+            </Button>
+          </div>
         </div>
         <div className="modalBody">{children}</div>
       </div>
