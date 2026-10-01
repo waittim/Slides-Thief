@@ -65,27 +65,39 @@ test("navigates into in-app privacy notice and back to about view without naviga
   const disclosure = component.getByRole("button", { name: "使用统计" });
   await disclosure.click();
 
-  // Find and click the privacy notice trigger button
+  // Find policy links and privacy notice trigger button
+  const googlePolicyLink = component.locator(".modalTelemetryLinks a").first();
   const privacyNoticeBtn = component.getByRole("button", { name: "本站隐私说明" });
+  const privacyContactLink = component.locator(".modalTelemetryLinks a").last();
+  await expect(googlePolicyLink).toBeVisible();
   await expect(privacyNoticeBtn).toBeVisible();
+  await expect(privacyContactLink).toBeVisible();
+
+  // Verify font size consistency across links and action button
+  const googleFontSize = await googlePolicyLink.evaluate((el) => window.getComputedStyle(el).fontSize);
+  const btnFontSize = await privacyNoticeBtn.evaluate((el) => window.getComputedStyle(el).fontSize);
+  const contactFontSize = await privacyContactLink.evaluate((el) => window.getComputedStyle(el).fontSize);
+  expect(btnFontSize).toBe(googleFontSize);
+  expect(contactFontSize).toBe(googleFontSize);
+
   await privacyNoticeBtn.click();
 
-  // Verify privacy view is active inside the modal
+  // Verify privacy view is active inside the modal with English content
   await expect(component.locator(".modalPrivacyArticle")).toBeVisible();
-  await expect(component.locator(".modalTitle h3")).toHaveText("本站隐私说明");
+  await expect(component.locator(".modalTitle h3")).toHaveText("Privacy notice");
   await expect(component.locator(".modalPrivacySectionTitle")).toHaveText([
-    "运营方与联系方式",
-    "照片与 PDF 处理",
-    "使用统计",
-    "您的选择与保存期限",
-    "您的权利",
+    "Who operates this site and how to contact us",
+    "Photos and PDFs",
+    "Usage analytics",
+    "Your choice and retention",
+    "Your rights",
   ]);
 
-  // Verify external escape hatch link
-  const externalLink = component.locator(".modalPrivacyOpenExternal");
-  await expect(externalLink).toBeVisible();
-  await expect(externalLink).toHaveAttribute("href", "./privacy.html");
-  await expect(externalLink).toHaveAttribute("target", "_blank");
+  // Verify there is only one standalone escape hatch link (no duplicates)
+  const externalLinks = component.locator('a[href="./privacy.html"]');
+  await expect(externalLinks).toHaveCount(1);
+  await expect(externalLinks).toBeVisible();
+  await expect(externalLinks).toHaveAttribute("target", "_blank");
 
   // Verify header back button returns to About view
   const backBtn = component.locator(".modalBackButton");

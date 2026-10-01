@@ -3703,22 +3703,6 @@ canvas {
   flex-shrink: 0;
 }
 
-.modalHeaderExternalLink {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  font-size: var(--font-size-xs);
-  color: var(--muted);
-  text-decoration: none;
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  transition: color 0.15s ease, background-color 0.15s ease;
-}
-
-.modalHeaderExternalLink:hover {
-  color: var(--text);
-  background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.08));
-}
 
 .modalBody {
   padding: var(--component-modal-padding);
@@ -3843,6 +3827,7 @@ canvas {
   align-items: center;
   flex-wrap: wrap;
   gap: var(--space-1) var(--space-4);
+  font-size: var(--font-size-xs);
 }
 
 .modalTelemetryPolicyLink {
@@ -3856,6 +3841,7 @@ canvas {
 @media (max-width: 834px) {
   .modalTelemetryLinks {
     column-gap: var(--space-3);
+    font-size: var(--font-size-2xs);
   }
 
   .modalTelemetryPolicyLink {
@@ -3867,7 +3853,9 @@ canvas {
   background: none;
   border: none;
   padding: 0;
-  font: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
   cursor: pointer;
   text-align: left;
 }

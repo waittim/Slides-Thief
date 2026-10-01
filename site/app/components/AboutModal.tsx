@@ -124,7 +124,6 @@ export function AboutModal({
   closeInfoButtonRef,
   text,
   appVersion,
-  locale,
   telemetryEnabled = true,
   telemetryReady = true,
   telemetryCheckingLabel,
@@ -132,8 +131,6 @@ export function AboutModal({
   privacyNoticeLabel,
   privacyContactLabel,
   backToAboutLabel,
-  openExternalLabel,
-  privacyNoticeUpdatedLabel,
   setTelemetryEnabled,
   expandTelemetryOnOpen = false,
   telemetryDisclosureButtonRef,
@@ -159,7 +156,7 @@ export function AboutModal({
     <ModalShell
       isOpen={isInfoOpen}
       onClose={handleClose}
-      title={isPrivacyView ? (privacyNoticeLabel ?? "Privacy notice") : text.infoTitle}
+      title={isPrivacyView ? "Privacy notice" : text.infoTitle}
       appVersion={isPrivacyView ? undefined : appVersion}
       modalRef={infoModalRef}
       closeButtonRef={closeInfoButtonRef}
@@ -167,26 +164,9 @@ export function AboutModal({
       className={isPrivacyView ? "modalCard--privacy" : undefined}
       onBack={isPrivacyView ? () => setActiveView("about") : undefined}
       backLabel={backToAboutLabel ?? "Back to About"}
-      headerAction={
-        isPrivacyView ? (
-          <a
-            href="./privacy.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="modalHeaderExternalLink"
-            title={openExternalLabel ?? "Open in new window"}
-          >
-            <span>{openExternalLabel ?? "Open in new window"}</span>
-            <span aria-hidden="true"> ↗</span>
-          </a>
-        ) : undefined
-      }
     >
       {isPrivacyView ? (
         <PrivacyNoticeContent
-          locale={locale}
-          updatedLabel={privacyNoticeUpdatedLabel}
-          openExternalLabel={openExternalLabel}
           standaloneUrl="./privacy.html"
           googlePolicyUrl="https://policies.google.com/privacy"
           authorAboutUrl="https://www.zekun.blog/about/"
