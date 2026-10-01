@@ -38,7 +38,9 @@ months, with user-data retention reset by new activity. These settings do not
 affect most aggregate reports.
 
 An explicit choice and its timestamp are saved only in browser local storage
-and can be changed at any time in **About**. Turning analytics off suppresses
+and can be changed at any time in **About**. A recorded choice (consent or opt-out)
+expires after 180 days (6 months), after which the app prompts for a renewed decision.
+Turning analytics off suppresses
 subsequent Google Analytics events and deletes accessible Google Analytics
 cookies on this site. The script already loaded during an enabled session
 remains in that page until reload; it is not requested on a subsequent visit

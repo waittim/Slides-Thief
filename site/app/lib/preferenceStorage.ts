@@ -7,6 +7,8 @@ import { defaultSettings, type Settings, type ThemeValue } from "./types.ts";
 
 export const PREFERENCES_STORAGE_KEY = "slides_thief_user_preferences";
 export const ANALYTICS_CONSENT_VERSION = 1;
+export const ANALYTICS_CONSENT_EXPIRATION_DAYS = 180;
+export const ANALYTICS_CONSENT_EXPIRATION_MS = ANALYTICS_CONSENT_EXPIRATION_DAYS * 24 * 60 * 60 * 1000;
 
 export interface AnalyticsConsent {
   version: typeof ANALYTICS_CONSENT_VERSION;
@@ -24,14 +26,40 @@ export interface StoredPreferences {
   analyticsConsent?: AnalyticsConsent;
 }
 
-/** Older telemetry:true values may have been defaults, so they are not proof of consent. */
-export function shouldEnableTelemetry(stored: StoredPreferences | null, consentRequired: boolean): boolean {
-  if (stored?.telemetry === false || stored?.analyticsConsent?.granted === false) return false;
-  return !consentRequired || stored?.analyticsConsent?.granted === true;
+export function isAnalyticsConsentExpired(
+  consent?: AnalyticsConsent,
+  now = Date.now(),
+): boolean {
+  if (!consent?.decidedAt) return true;
+  const decidedTime = Date.parse(consent.decidedAt);
+  if (!Number.isFinite(decidedTime)) return true;
+  return now - decidedTime > ANALYTICS_CONSENT_EXPIRATION_MS;
 }
 
-export function hasAnalyticsChoice(stored: StoredPreferences | null): boolean {
-  return stored?.telemetry === false || stored?.analyticsConsent !== undefined;
+/** Older telemetry:true values may have been defaults, so they are not proof of consent. */
+export function shouldEnableTelemetry(
+  stored: StoredPreferences | null,
+  consentRequired: boolean,
+  now = Date.now(),
+): boolean {
+  if (stored?.telemetry === false) return false;
+  if (stored?.analyticsConsent) {
+    if (isAnalyticsConsentExpired(stored.analyticsConsent, now)) {
+      return false;
+    }
+    return stored.analyticsConsent.granted;
+  }
+  return !consentRequired;
+}
+
+export function hasAnalyticsChoice(
+  stored: StoredPreferences | null,
+  now = Date.now(),
+): boolean {
+  if (stored?.analyticsConsent) {
+    return !isAnalyticsConsentExpired(stored.analyticsConsent, now);
+  }
+  return stored?.telemetry === false;
 }
 
 const VALID_THEMES = new Set<ThemeValue>(["auto", "light", "dark"]);

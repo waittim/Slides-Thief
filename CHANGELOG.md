@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Expire usage analytics consent and opt-out decisions after 180 days (6 months) in accordance with regulatory best practices, prompting returning visitors for a renewed choice.
+
 ## [3.0.1] - 2026-09-28
 
 ### Fixed
@@ -182,7 +186,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.0...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.1...HEAD
+[3.0.1]: https://github.com/waittim/Slides-Thief/compare/v3.0.0...v3.0.1
 [3.0.0]: https://github.com/waittim/Slides-Thief/compare/v2.3.0...v3.0.0
 [2.3.0]: https://github.com/waittim/Slides-Thief/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/waittim/Slides-Thief/compare/v2.2.0...v2.2.1
