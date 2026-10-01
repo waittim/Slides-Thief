@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- In-app Privacy Notice viewing: clicking the privacy notice in About now opens a dedicated subview with back navigation without navigating away or spawning an external browser window, while retaining an escape hatch link to the standalone page.
+
 ### Changed
 
 - Expire usage analytics consent and opt-out decisions after 180 days (6 months) in accordance with regulatory best practices, prompting returning visitors for a renewed choice.

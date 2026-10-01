@@ -3632,6 +3632,10 @@ canvas {
   flex-direction: column;
 }
 
+.modalCard--privacy {
+  max-width: 580px;
+}
+
 .modalHeader {
   display: flex;
   align-items: center;
@@ -3642,7 +3646,7 @@ canvas {
 
 .modalTitle {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: var(--space-3);
   min-width: 0;
 }
@@ -3662,6 +3666,7 @@ canvas {
   letter-spacing: 0.02em;
 }
 
+.modalHeader .modalBackButton,
 .modalHeader .modalCloseButton {
   border: none;
   background: light-dark(rgba(0, 0, 0, 0.06), rgba(255, 255, 255, 0.12));
@@ -3676,16 +3681,43 @@ canvas {
   border-radius: var(--radius-circle);
   transition: background-color 0.15s cubic-bezier(0.16, 1, 0.3, 1), color 0.15s ease, transform 0.12s ease;
   padding: 0;
+  flex-shrink: 0;
 }
 
+.modalHeader .modalBackButton:hover,
 .modalHeader .modalCloseButton:hover {
   background: light-dark(rgba(0, 0, 0, 0.12), rgba(255, 255, 255, 0.2));
   color: var(--text);
   border-color: transparent;
 }
 
+.modalHeader .modalBackButton:active,
 .modalHeader .modalCloseButton:active {
   transform: scale(0.92);
+}
+
+.modalHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+
+.modalHeaderExternalLink {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+  text-decoration: none;
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.modalHeaderExternalLink:hover {
+  color: var(--text);
+  background: light-dark(rgba(0, 0, 0, 0.05), rgba(255, 255, 255, 0.08));
 }
 
 .modalBody {
@@ -3829,6 +3861,89 @@ canvas {
   .modalTelemetryPolicyLink {
     font-size: var(--font-size-2xs);
   }
+}
+
+.modalTelemetryActionBtn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+/* In-App Privacy Notice Content */
+.modalPrivacyArticle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modalPrivacyArticleHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.modalPrivacyUpdated {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--muted);
+}
+
+.modalPrivacyOpenExternal {
+  font-size: var(--font-size-xs);
+  color: var(--accent-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.modalPrivacyOpenExternal:hover {
+  color: var(--accent);
+}
+
+.modalPrivacySections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.modalPrivacySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.modalPrivacySectionTitle {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  line-height: var(--line-height-tight);
+}
+
+.modalPrivacySectionText {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-relaxed);
+  color: var(--text);
+}
+
+.modalPrivacySectionText a {
+  color: var(--accent-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.modalPrivacySectionText a:hover {
+  color: var(--accent);
 }
 
 .analyticsConsentBanner {
@@ -4004,6 +4119,7 @@ canvas {
 
   .infoButton,
   .shortcutsButton,
+  .modalHeader .modalBackButton,
   .modalHeader .modalCloseButton,
   .modalLink,
   .modalLink::after {

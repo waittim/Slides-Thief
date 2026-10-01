@@ -56,3 +56,45 @@ test("renders privacy statement and interactive telemetry toggle switch", async 
   await expect(disclosure).toHaveAttribute("aria-expanded", "false");
   await expect(telemetrySwitch).toBeVisible();
 });
+
+test("navigates into in-app privacy notice and back to about view without navigation", async ({ mount }) => {
+  const component = await mount(<AboutModalHarness />);
+  await component.locator(".modalCard").waitFor();
+
+  // Expand telemetry disclosure
+  const disclosure = component.getByRole("button", { name: "使用统计" });
+  await disclosure.click();
+
+  // Find and click the privacy notice trigger button
+  const privacyNoticeBtn = component.getByRole("button", { name: "本站隐私说明" });
+  await expect(privacyNoticeBtn).toBeVisible();
+  await privacyNoticeBtn.click();
+
+  // Verify privacy view is active inside the modal
+  await expect(component.locator(".modalPrivacyArticle")).toBeVisible();
+  await expect(component.locator(".modalTitle h3")).toHaveText("本站隐私说明");
+  await expect(component.locator(".modalPrivacySectionTitle")).toHaveText([
+    "运营方与联系方式",
+    "照片与 PDF 处理",
+    "使用统计",
+    "您的选择与保存期限",
+    "您的权利",
+  ]);
+
+  // Verify external escape hatch link
+  const externalLink = component.locator(".modalPrivacyOpenExternal");
+  await expect(externalLink).toBeVisible();
+  await expect(externalLink).toHaveAttribute("href", "./privacy.html");
+  await expect(externalLink).toHaveAttribute("target", "_blank");
+
+  // Verify header back button returns to About view
+  const backBtn = component.locator(".modalBackButton");
+  await expect(backBtn).toBeVisible();
+  await expect(backBtn).toHaveAttribute("aria-label", "返回关于");
+  await backBtn.click();
+
+  // Back in About view
+  await expect(component.locator(".modalPrivacyArticle")).toBeHidden();
+  await expect(component.locator(".modalTitle h3")).toContainText("关于 Slides Thief");
+  await expect(component.locator(".shortcutGrid")).toBeVisible();
+});

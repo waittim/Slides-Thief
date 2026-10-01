@@ -153,7 +153,13 @@ test("consent region blocks Google until acceptance and remembers rejection", as
   await banner.getByRole("button", { name: /View details|查看详情/i }).click();
   await expect(page.getByRole("button", { name: /Usage analytics|使用统计/i })).toHaveAttribute("aria-expanded", "true");
   await expect(page.getByRole("link", { name: /Google Privacy Policy|Google 隐私政策/i })).toBeVisible();
-  await expect(page.getByRole("link", { name: /Site privacy notice|本站隐私说明/i })).toHaveAttribute("href", "https://slidesthief.com/privacy.html");
+  const privacyNoticeBtn = page.getByRole("button", { name: /Site privacy notice|本站隐私说明/i });
+  await expect(privacyNoticeBtn).toBeVisible();
+  await privacyNoticeBtn.click();
+  await expect(page.locator(".modalPrivacyArticle")).toBeVisible();
+  await expect(page.locator(".modalPrivacyOpenExternal")).toHaveAttribute("href", "./privacy.html");
+  await page.locator(".modalBackButton").click();
+  await expect(page.locator(".modalPrivacyArticle")).toBeHidden();
   await expect(page.getByRole("link", { name: /Privacy request contact|隐私请求联系方式/i })).toHaveAttribute("href", "https://www.zekun.blog/about/");
   await page.keyboard.press("Escape");
   await banner.getByRole("button", { name: /Reject|拒绝/i }).click();
