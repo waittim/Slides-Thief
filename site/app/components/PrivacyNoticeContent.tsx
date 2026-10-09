@@ -2,7 +2,7 @@ import React from "react";
 
 export interface PrivacyNoticeContentProps {
   standaloneUrl?: string;
-  authorAboutUrl?: string;
+  supportEmail?: string;
   googlePolicyUrl?: string;
 }
 
@@ -13,7 +13,7 @@ interface PrivacySection {
 
 export function PrivacyNoticeContent({
   standaloneUrl = "./privacy.html",
-  authorAboutUrl = "https://www.zekun.blog/about/",
+  supportEmail = "support@slidesthief.com",
   googlePolicyUrl = "https://policies.google.com/privacy",
 }: PrivacyNoticeContentProps) {
   const sections: PrivacySection[] = [
@@ -21,9 +21,9 @@ export function PrivacyNoticeContent({
       title: "Who operates this site and how to contact us",
       paragraphs: [
         <>
-          Slides Thief is an independent project by Zekun Wang. For privacy questions or requests, use the private contact method on the{" "}
-          <a href={authorAboutUrl} target="_blank" rel="noopener noreferrer">
-            author&apos;s About page
+          Slides Thief is an independent project by Zekun Wang. For privacy questions or requests, email{" "}
+          <a href={`mailto:${supportEmail}`}>
+            {supportEmail}
           </a>
           . Please do not post personal information in public GitHub issues.
         </>,
@@ -62,7 +62,7 @@ export function PrivacyNoticeContent({
           You can change the analytics setting at any time in the app&apos;s <strong>About</strong> dialog. Your choice and its timestamp are saved in this browser&apos;s local storage for 180 days (6 months), after which the app prompts for a renewed decision, or until you change the choice or clear site data. Turning analytics off stops subsequent app events and deletes accessible Google Analytics cookies on this site. A script already loaded on the current page stays present until reload; it is not requested on a later visit while analytics is off.
         </>,
         <>
-          Our Google Analytics property currently retains event data for 2 months and user data for 14 months; new user activity resets the user-data retention period. These settings do not affect most aggregate reports. Google&apos;s separate processing is described in its privacy policy above. Contact us through the About page above to ask about retention or request access or deletion where applicable.
+          Our Google Analytics property currently retains event data for 2 months and user data for 14 months; new user activity resets the user-data retention period. These settings do not affect most aggregate reports. Google&apos;s separate processing is described in its privacy policy above. Contact us through the email address above to ask about retention or request access or deletion where applicable.
         </>,
       ],
     },
@@ -70,7 +70,7 @@ export function PrivacyNoticeContent({
       title: "Your rights",
       paragraphs: [
         <>
-          Depending on your location, you may have rights to access, correct, delete, or restrict processing of personal data, to object to processing, and to withdraw consent where consent applies. Contact us privately using the link above to make a request. Where applicable, you may also complain to your local data protection authority.
+          Depending on your location, you may have rights to access, correct, delete, or restrict processing of personal data, to object to processing, and to withdraw consent where consent applies. Contact us privately using the email address above to make a request. Where applicable, you may also complain to your local data protection authority.
         </>,
       ],
     },

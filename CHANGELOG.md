@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Upgraded the in-browser sample presentation slide to 2400×1600 high definition (2× resolution) with crisp 2240×1260 vector artwork rasterization, 0.95 JPEG quality, and zero-allocation bilinear sampling for instant rendering and crystal-clear presentation slide demonstration.
+- Updated support and privacy contact link to support@slidesthief.com across documentation and in-app privacy notices.
 
 ## [3.0.2] - 2026-09-30
 

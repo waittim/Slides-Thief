@@ -30,7 +30,7 @@ test("emits a GitHub Pages compatible static app", async () => {
   assert.match(sitemap, /llms\.txt/);
   assert.match(sitemap, /https:\/\/slidesthief\.com\/privacy\.html/);
   assert.match(privacy, /Zekun Wang/);
-  assert.match(privacy, /https:\/\/www\.zekun\.blog\/about\//);
+  assert.match(privacy, /mailto:support@slidesthief\.com/);
 
   assert.ok(assets.some((name) => name.endsWith(".js")), "expected static JavaScript output");
   assert.ok(assets.some((name) => name.endsWith(".css")), "expected static CSS output");

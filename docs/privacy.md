@@ -3,7 +3,7 @@
 The public privacy notice is available at
 [slidesthief.com/privacy.html](https://slidesthief.com/privacy.html). Slides Thief
 is an independent project by Zekun Wang. For privacy questions or requests,
-use the private contact method on the [author's About page](https://www.zekun.blog/about/).
+email [support@slidesthief.com](mailto:support@slidesthief.com).
 Do not post personal information in public GitHub issues.
 
 The web app processes selected photos and creates PDFs locally in the browser.

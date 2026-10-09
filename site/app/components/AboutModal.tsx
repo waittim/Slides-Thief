@@ -107,7 +107,7 @@ function TelemetryDisclosure({
             </button>
           )}
           {privacyContactLabel && (
-            <a href="https://www.zekun.blog/about/" target="_blank" rel="noopener noreferrer" className="modalTelemetryPolicyLink">
+            <a href="mailto:support@slidesthief.com" className="modalTelemetryPolicyLink">
               {privacyContactLabel}
             </a>
           )}
@@ -169,7 +169,7 @@ export function AboutModal({
         <PrivacyNoticeContent
           standaloneUrl="./privacy.html"
           googlePolicyUrl="https://policies.google.com/privacy"
-          authorAboutUrl="https://www.zekun.blog/about/"
+          supportEmail="support@slidesthief.com"
         />
       ) : (
         <>

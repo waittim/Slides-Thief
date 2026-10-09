@@ -72,6 +72,7 @@ test("navigates into in-app privacy notice and back to about view without naviga
   await expect(googlePolicyLink).toBeVisible();
   await expect(privacyNoticeBtn).toBeVisible();
   await expect(privacyContactLink).toBeVisible();
+  await expect(privacyContactLink).toHaveAttribute("href", "mailto:support@slidesthief.com");
 
   // Verify font size consistency across links and action button
   const googleFontSize = await googlePolicyLink.evaluate((el) => window.getComputedStyle(el).fontSize);
