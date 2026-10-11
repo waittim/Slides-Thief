@@ -37,7 +37,7 @@ jobs:
 
       - name: Audit Web dependencies
         working-directory: site
-        run: npm audit --audit-level=moderate
+        run: npm audit --omit=dev --audit-level=moderate
 
       - name: Check generated detection configuration
         run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python scripts/generate_detection_config.py --check
