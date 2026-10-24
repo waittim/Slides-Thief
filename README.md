@@ -106,7 +106,7 @@ Important outputs:
 
 Common CLI options beyond the example above:
 
-- `--enhancement {original,clean,high-contrast,bw}`: optional readability pass after correction.
+- `--enhancement {original,clean,high-contrast,bw}`: optional readability pass after correction (`bw` normalizes local background illumination to eliminate cast shadows and uneven lighting on documents).
 - `--height`: optional output height in pixels (overrides ratio-derived height).
 - `--jpeg-quality`: JPEG quality for corrected images (default `92`).
 - `--image-cache-pixels`: maximum decoded RGB pixels retained across processing passes (default `32000000`; use `0` to disable full-image caching).

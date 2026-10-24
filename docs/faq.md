@@ -49,6 +49,6 @@ It applies an optional readability pass after perspective correction:
 - `original`: no extra processing
 - `clean`: mild sharpening and contrast cleanup
 - `high-contrast`: stronger contrast for low-light photos
-- `bw`: black-and-white scan style (`--grayscale` is a deprecated alias)
+- `bw`: black-and-white document scan style with local background illumination normalization to remove cast shadows and uneven lighting while preserving sharp, dark text strokes (`--grayscale` is a deprecated alias)
 
 The web app exposes the same enhancement modes in its settings panel.

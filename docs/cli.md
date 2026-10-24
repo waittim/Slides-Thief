@@ -80,7 +80,7 @@ The web app accepts 16:9, 4:3, 16:10, A4, Letter and custom source ratios. Its P
 | `--manual` | — | JSON mapping filenames to four source points |
 | `--image-cache-pixels` | `32000000` | Maximum decoded RGB pixels retained across processing passes; `0` disables full-image caching |
 | `--jpeg-quality` | `92` | JPEG quality for corrected images |
-| `--enhancement` | `original` | Readability pass: `original`, `clean`, `high-contrast`, or `bw` |
+| `--enhancement` | `original` | Readability pass: `original`, `clean`, `high-contrast`, or `bw` (document scan with illumination normalization and shadow removal) |
 | `--grayscale` | — | Deprecated alias for `--enhancement bw` |
 | `--clean-converted` | off | Remove intermediate converted JPEGs after the run |
 

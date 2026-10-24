@@ -213,7 +213,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/waittim/Slides-Thief/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/waittim/Slides-Thief/compare/v3.0.0...v3.0.1
