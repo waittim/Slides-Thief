@@ -146,15 +146,6 @@ function documentScanBw(data: Uint8ClampedArray, width: number, height: number) 
   }
 }
 
-function toGrayscale(data: Uint8ClampedArray) {
-  for (let i = 0; i < data.length; i += 4) {
-    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
-  }
-}
-
 function stretchLuminance(
   data: Uint8ClampedArray,
   width: number,
