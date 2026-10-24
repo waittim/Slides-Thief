@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Resolved the default orientation for the US Letter ratio preset in the CLI (`--ratio letter`, `--source-ratio letter`, `--output-ratio letter`) to standard portrait orientation (8.5:11, ~0.773) instead of landscape (11:8.5, ~1.294), matching document conventions and the web application default. Landscape Letter remains accessible via `letter-landscape`.
+- Bumped `next` and `eslint-config-next` to `16.4.3` to resolve newly disclosed security vulnerabilities (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr).
 
 ## [3.0.3] - 2026-10-09
 
