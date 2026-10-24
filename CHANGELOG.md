@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [3.0.4] - 2026-10-24
 
+### Changed
+
+- Upgraded the "Black & white" (`bw` / 黑白扫描) enhancement mode in both the Python CLI and web application to use local background illumination normalization with tone-preserving power-law mapping. The enhanced pass removes uneven ambient lighting and device cast shadows while keeping text strokes solid and crisp on a pure white background.
+
 ### Fixed
 
 - Resolved the default orientation for the US Letter ratio preset in the CLI (`--ratio letter`, `--source-ratio letter`, `--output-ratio letter`) to standard portrait orientation (8.5:11, ~0.773) instead of landscape (11:8.5, ~1.294), matching document conventions and the web application default. Landscape Letter remains accessible via `letter-landscape`.

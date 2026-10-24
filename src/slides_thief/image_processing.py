@@ -9,7 +9,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import numpy as np
-from PIL import Image, ImageEnhance, ImageOps
+from PIL import Image, ImageEnhance, ImageFilter, ImageOps
 
 from .geometry import perspective_coefficients
 from .product_metadata import PRODUCT_METADATA
@@ -149,13 +149,32 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
 
     if mode == "bw":
         gray = (arr[..., 0] * 0.299 + arr[..., 1] * 0.587 + arr[..., 2] * 0.114).astype(np.float32)
-        sample_gray = _center_stats_region(gray)
-        low, high = np.percentile(sample_gray, [2, 98])
-        span = max(float(high - low), 8.0)
-        gray = np.clip((gray - low) / span * 255.0, 0, 255)
-        rgb = Image.fromarray(np.stack([gray, gray, gray], axis=-1).astype(np.uint8))
-        rgb = ImageEnhance.Contrast(rgb).enhance(1.28)
-        return ImageEnhance.Sharpness(rgb).enhance(1.45)
+        h, w = gray.shape
+        block_size = max(16, min(w, h) // 64)
+        grid_h = int(np.ceil(h / block_size))
+        grid_w = int(np.ceil(w / block_size))
+        pad_h = grid_h * block_size - h
+        pad_w = grid_w * block_size - w
+        padded = np.pad(gray, ((0, pad_h), (0, pad_w)), mode="edge")
+
+        blocks = padded.reshape(grid_h, block_size, grid_w, block_size).swapaxes(1, 2)
+        bg_grid = np.percentile(blocks, 88, axis=(2, 3)).astype(np.float32)
+
+        bg_img = Image.fromarray(np.clip(bg_grid, 0, 255).astype(np.uint8)).resize(
+            (w, h), Image.Resampling.BICUBIC
+        )
+        bg = np.maximum(np.asarray(bg_img, dtype=np.float32), 1.0)
+
+        r = gray / bg
+        knee = 0.86
+        gamma = 2.05
+        mapped = np.where(r >= knee, 1.0, (r / knee) ** gamma) * 255.0
+        normalized_gray = np.clip(mapped, 0, 255).astype(np.uint8)
+
+        rgb = Image.fromarray(np.stack([normalized_gray, normalized_gray, normalized_gray], axis=-1))
+        if min(w, h) >= 3:
+            return rgb.filter(ImageFilter.UnsharpMask(radius=0.8, percent=45, threshold=2))
+        return rgb
 
     if mode == "high-contrast":
         luma = arr[..., 0] * 0.299 + arr[..., 1] * 0.587 + arr[..., 2] * 0.114

@@ -406,6 +406,19 @@ def test_enhance_slide_bw_is_grayscale() -> None:
     assert np.allclose(enhanced[..., 1], enhanced[..., 2])
 
 
+def test_enhance_slide_bw_removes_shadow_and_preserves_text() -> None:
+    arr = np.full((128, 128, 3), 220, dtype=np.uint8)
+    arr[64:, :] = 150
+    arr[20:25, 40:88] = 40
+    arr[84:89, 40:88] = 40
+    enhanced = np.asarray(enhance_slide(Image.fromarray(arr), mode="bw"))
+
+    assert enhanced[10, 10, 0] > 250
+    assert enhanced[110, 10, 0] > 250
+    assert enhanced[22, 50, 0] < 80
+    assert enhanced[86, 50, 0] < 80
+
+
 def test_enhance_slide_stats_ignore_edge_fill() -> None:
     # Center is neutral gray; a saturated red border would skew full-frame gray-world.
     arr = np.full((100, 100, 3), 140, dtype=np.uint8)
