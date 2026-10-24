@@ -47,7 +47,7 @@ does not change detected corners.
 - Source presentation ratios: `16:9` (default), `4:3`, `16:10`, or a numeric custom ratio
 - Output presentation ratios: `match-slide` (default), `16:9`, `4:3`
 - ISO paper ratio presets: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5` / `A5-landscape`, `A5-portrait`
-- US Letter paper ratio presets: `Letter` / `letter-landscape`, `letter-portrait`
+- US Letter paper ratio presets: `letter-landscape`, `Letter` / `letter-portrait`
 - Custom source or output ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
 <!-- END GENERATED: cli-ratios-en -->
 

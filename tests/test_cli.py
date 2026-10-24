@@ -322,18 +322,23 @@ def test_manual_review_html_escapes_untrusted_data_and_uses_accessible_controls(
 def test_parse_ratio_accepts_named_paper_aliases() -> None:
     assert abs(parse_ratio("A4") - (841.89 / 595.28)) < 1e-12
     assert abs(parse_ratio("A4-portrait") - (595.28 / 841.89)) < 1e-12
-    assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
+    assert abs(parse_ratio("Letter") - (8.5 / 11)) < 1e-5
     assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
+    assert abs(parse_ratio("letter-landscape") - (11 / 8.5)) < 1e-5
     assert abs(parse_ratio("A3") - (1190.55 / 841.89)) < 1e-12
     assert abs(parse_ratio("A5") - (595.28 / 419.53)) < 1e-12
 
 
 def test_paper_ratio_aliases_are_derived_from_physical_dimensions() -> None:
     for paper_id, (width_points, height_points) in PAPER_PAGE_DIMENSIONS.items():
-        family = paper_id.split("-", 1)[0]
-        alias = family if paper_id.endswith("-landscape") else paper_id
         expected = width_points / height_points
-        assert abs(parse_ratio(alias) - expected) < 1e-12
+        assert abs(parse_ratio(paper_id) - expected) < 1e-12
+    assert abs(parse_ratio("letter") - (612 / 792)) < 1e-12
+    assert abs(parse_ratio("letter-portrait") - (612 / 792)) < 1e-12
+    assert abs(parse_ratio("letter-landscape") - (792 / 612)) < 1e-12
+    assert abs(parse_ratio("a4") - (841.89 / 595.28)) < 1e-12
+    assert abs(parse_ratio("a3") - (1190.55 / 841.89)) < 1e-12
+    assert abs(parse_ratio("a5") - (595.28 / 419.53)) < 1e-12
 
 
 def test_is_paper_ratio_recognizes_paper_presets() -> None:

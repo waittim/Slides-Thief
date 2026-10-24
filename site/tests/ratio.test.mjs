@@ -35,6 +35,8 @@ test("parseRatio parses preset ratios correctly", () => {
   assert.equal(parseRatio("LETTER-LANDSCAPE"), 11 / 8.5);
   assert.equal(parseRatio("letter-portrait"), 8.5 / 11);
   assert.equal(parseRatio("Letter-Portrait"), 8.5 / 11);
+  assert.equal(parseRatio("letter"), 8.5 / 11);
+  assert.equal(parseRatio("Letter"), 8.5 / 11);
 });
 
 test("defaultOrientationForBaseFormat assigns reasonable defaults", () => {
