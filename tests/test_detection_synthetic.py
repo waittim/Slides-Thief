@@ -86,3 +86,20 @@ def _occluded_scene() -> Image.Image:
     image = _base_scene()
     ImageDraw.Draw(image).rectangle((80, 135, 245, 239), fill=(35, 45, 58))
     return image
+
+
+def test_geometry_opposite_edge_divergence_rejected() -> None:
+    from slides_thief.detection.geometry import geometry_is_valid
+
+    # Normal rectangular slide: opposite edges parallel -> valid
+    valid_quad = np.array([[10, 10], [90, 10], [90, 70], [10, 70]], dtype=np.float64)
+    assert geometry_is_valid(valid_quad, 100, 80)
+
+    # Deformed quad with bottom edge sloping by 26.5 degrees (> 20 deg limit) -> invalid
+    diverging_bottom = np.array([[10, 10], [90, 10], [90, 70], [10, 30]], dtype=np.float64)
+    assert not geometry_is_valid(diverging_bottom, 100, 80)
+
+    # Deformed quad with right edge sloping by 26.5 degrees (> 20 deg limit) -> invalid
+    diverging_right = np.array([[10, 10], [90, 10], [50, 70], [10, 70]], dtype=np.float64)
+    assert not geometry_is_valid(diverging_right, 100, 80)
+

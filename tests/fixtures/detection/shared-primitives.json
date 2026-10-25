@@ -4,6 +4,7 @@
     "height": 80,
     "validQuad": [[10, 8], [90, 12], [86, 72], [14, 68]],
     "invalidConcaveQuad": [[10, 10], [90, 10], [50, 40], [10, 70]],
+    "invalidDivergingQuad": [[10, 10], [90, 10], [90, 70], [10, 30]],
     "outOfBoundsQuad": [[-25, 10], [90, 10], [90, 70], [-25, 70]],
     "intersectionLines": [[1, 0, -5], [0, 1, -7]]
   },
@@ -24,6 +25,7 @@
   "expected": {
     "validGeometry": true,
     "invalidConcaveGeometry": false,
+    "invalidDivergingGeometry": false,
     "outOfBoundsGeometry": false,
     "intersection": [5, 7],
     "iou": 0.3333333333333333,

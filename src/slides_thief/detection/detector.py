@@ -16,7 +16,7 @@ from .confidence import (
     is_ambiguous_candidate,
 )
 from .config import DETECTION_CONFIG
-from .geometry import normalized_corner_distance, polygon_area, quad_iou
+from .geometry import geometry_is_valid, normalized_corner_distance, polygon_area, quad_iou
 from .gradient import build_gradient_pyramid
 from .hough_lines import hough_quad_candidates
 from .image_sizing import DETECTION_MAX_SIDE, constrained_image_size
@@ -468,7 +468,7 @@ def detect_quad(
                 },
             )
         )
-    if method == "mask-lines":
+    if method == "mask-lines" and geometry_is_valid(quad, w, h):
         center = quad.mean(axis=0)
         for variant_config in _MASK_CONFIG["variants"]:
             factor = float(variant_config["scale"])

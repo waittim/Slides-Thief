@@ -11,7 +11,8 @@ export const DETECTION_CONFIG = {
     "boundsRatio": 0.2,
     "minimumEdgeRatio": 0.1,
     "minimumAngleDegrees": 12,
-    "maximumAngleDegrees": 168
+    "maximumAngleDegrees": 168,
+    "maximumOppositeAngleDegrees": 20
   },
   "contrastLines": {
     "horizontalSampleCount": 180,

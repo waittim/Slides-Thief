@@ -335,3 +335,27 @@ test("batch priors require three consistent high-confidence results", () => {
   assert.equal(candidates[0].method, "batch-prior");
   assert.ok(candidates[0].features.batchConsistency > 0.8);
 });
+
+test("geometryIsValid rejects quads with opposite-edge angle divergence exceeding maximum threshold", async () => {
+  const { geometryIsValid } = await import(
+    new URL("../app/detection/geometry.ts", import.meta.url).href
+  );
+
+  // Normal rectangular quad
+  assert.equal(
+    geometryIsValid([[10, 10], [90, 10], [90, 70], [10, 70]], 100, 80),
+    true,
+  );
+
+  // Deformed quad where bottom edge slopes by 26.5 deg (> 20 deg limit)
+  assert.equal(
+    geometryIsValid([[10, 10], [90, 10], [90, 70], [10, 30]], 100, 80),
+    false,
+  );
+
+  // Deformed quad where right edge slopes by 26.5 deg (> 20 deg limit)
+  assert.equal(
+    geometryIsValid([[10, 10], [90, 10], [50, 70], [10, 70]], 100, 80),
+    false,
+  );
+});

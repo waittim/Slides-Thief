@@ -54,6 +54,29 @@ def geometry_is_valid(quad: np.ndarray, width: int, height: int) -> bool:
             _GEOMETRY_CONFIG["maximumAngleDegrees"]
         ):
             return False
+
+    if "maximumOppositeAngleDegrees" in _GEOMETRY_CONFIG:
+        max_opp_angle = float(_GEOMETRY_CONFIG["maximumOppositeAngleDegrees"])
+        top_vec = quad[1] - quad[0]
+        bottom_vec = quad[2] - quad[3]
+        top_norm = float(np.linalg.norm(top_vec))
+        bottom_norm = float(np.linalg.norm(bottom_vec))
+        if top_norm > 1e-9 and bottom_norm > 1e-9:
+            cos_tb = float(np.dot(top_vec, bottom_vec) / (top_norm * bottom_norm))
+            angle_tb = math.degrees(math.acos(max(-1.0, min(1.0, cos_tb))))
+            if angle_tb > max_opp_angle:
+                return False
+
+        left_vec = quad[3] - quad[0]
+        right_vec = quad[2] - quad[1]
+        left_norm = float(np.linalg.norm(left_vec))
+        right_norm = float(np.linalg.norm(right_vec))
+        if left_norm > 1e-9 and right_norm > 1e-9:
+            cos_lr = float(np.dot(left_vec, right_vec) / (left_norm * right_norm))
+            angle_lr = math.degrees(math.acos(max(-1.0, min(1.0, cos_lr))))
+            if angle_lr > max_opp_angle:
+                return False
+
     return True
 
 
