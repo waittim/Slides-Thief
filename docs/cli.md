@@ -47,7 +47,7 @@ does not change detected corners.
 - Source presentation ratios: `16:9` (default), `4:3`, `16:10`, or a numeric custom ratio
 - Output presentation ratios: `match-slide` (default), `16:9`, `4:3`
 - ISO paper ratio presets: `A4` / `A4-landscape`, `A4-portrait`, `A3` / `A3-landscape`, `A3-portrait`, `A5` / `A5-landscape`, `A5-portrait`
-- US Letter paper ratio presets: `Letter` / `letter-landscape`, `letter-portrait`
+- US Letter paper ratio presets: `letter-landscape`, `Letter` / `letter-portrait`
 - Custom source or output ratios: e.g. `16:10` or a numeric decimal ratio (e.g. `1.777`)
 <!-- END GENERATED: cli-ratios-en -->
 
@@ -80,7 +80,7 @@ The web app accepts 16:9, 4:3, 16:10, A4, Letter and custom source ratios. Its P
 | `--manual` | — | JSON mapping filenames to four source points |
 | `--image-cache-pixels` | `32000000` | Maximum decoded RGB pixels retained across processing passes; `0` disables full-image caching |
 | `--jpeg-quality` | `92` | JPEG quality for corrected images |
-| `--enhancement` | `original` | Readability pass: `original`, `clean`, `high-contrast`, or `bw` |
+| `--enhancement` | `original` | Readability pass: `original`, `clean`, `high-contrast`, or `bw` (document scan with illumination normalization and shadow removal) |
 | `--grayscale` | — | Deprecated alias for `--enhancement bw` |
 | `--clean-converted` | off | Remove intermediate converted JPEGs after the run |
 

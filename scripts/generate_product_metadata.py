@@ -184,8 +184,9 @@ def cli_ratio_bullets(metadata: dict) -> str:
         items = [item for item in ratios["paper"] if item["family"] == family and item["cli"]]
         landscape = next(item for item in items if item["orientation"] == "landscape")
         portrait = next(item for item in items if item["orientation"] == "portrait")
-        family_token = f"`{family}` / " if family.lower() in landscape["aliases"] else ""
-        paper_lines.append(f"{family_token}`{landscape['id']}`, `{portrait['id']}`")
+        landscape_alias = f"`{family}` / " if family.lower() in landscape["aliases"] else ""
+        portrait_alias = f"`{family}` / " if family.lower() in portrait["aliases"] else ""
+        paper_lines.append(f"{landscape_alias}`{landscape['id']}`, {portrait_alias}`{portrait['id']}`")
     iso_lines = ", ".join(paper_lines[:-1])
     letter_line = paper_lines[-1]
     return "\n".join(

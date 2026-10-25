@@ -4,6 +4,9 @@ import test from "node:test";
 const { renderPerspectivePage } = await import(
   new URL("../app/lib/perspective-render.ts", import.meta.url).href,
 );
+const { applyEnhancement } = await import(
+  new URL("../app/enhance.ts", import.meta.url).href,
+);
 
 function gradientSource() {
   const width = 4;
@@ -148,4 +151,41 @@ test("auto fill is resolved from enhanced content before the page is re-filled",
     const channel = index % 4;
     return channel === 3 ? value : 52;
   }));
+});
+
+test("applyEnhancement in bw mode flattens shadow and preserves text", () => {
+  const width = 64;
+  const height = 64;
+  const data = new Uint8ClampedArray(width * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    const bg = y < 32 ? 220 : 150;
+    for (let x = 0; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      data[idx] = bg;
+      data[idx + 1] = bg;
+      data[idx + 2] = bg;
+      data[idx + 3] = 255;
+    }
+  }
+  for (let x = 20; x < 44; x += 1) {
+    const iTop = (10 * width + x) * 4;
+    data[iTop] = 40;
+    data[iTop + 1] = 40;
+    data[iTop + 2] = 40;
+    const iBot = (42 * width + x) * 4;
+    data[iBot] = 40;
+    data[iBot + 1] = 40;
+    data[iBot + 2] = 40;
+  }
+
+  applyEnhancement(data, width, height, "bw");
+
+  assert.ok(data[0] > 245);
+  assert.ok(data[(50 * width + 5) * 4] > 245);
+
+  assert.ok(data[(10 * width + 30) * 4] < 80);
+  assert.ok(data[(42 * width + 30) * 4] < 80);
+
+  assert.equal(data[0], data[1]);
+  assert.equal(data[1], data[2]);
 });

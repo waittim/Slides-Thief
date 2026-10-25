@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.4] - 2026-10-24
+
+### Changed
+
+- Upgraded the "Black & white" (`bw` / 黑白扫描) enhancement mode in both the Python CLI and web application to use local background illumination normalization with tone-preserving power-law mapping. The enhanced pass removes uneven ambient lighting and device cast shadows while keeping text strokes solid and crisp on a pure white background.
+
+### Fixed
+
+- Resolved the default orientation for the US Letter ratio preset in the CLI (`--ratio letter`, `--source-ratio letter`, `--output-ratio letter`) to standard portrait orientation (8.5:11, ~0.773) instead of landscape (11:8.5, ~1.294), matching document conventions and the web application default. Landscape Letter remains accessible via `letter-landscape`.
+- Bumped `next` and `eslint-config-next` to `16.4.3` to resolve newly disclosed security vulnerabilities (GHSA-2464-fhr4-w9xw, GHSA-p3m5-59mp-jv5r, GHSA-673q-mjm6-r5xr).
+
 ## [3.0.3] - 2026-10-09
 
 ### Changed
@@ -203,7 +214,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...HEAD
+[3.0.4]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/waittim/Slides-Thief/compare/v3.0.1...v3.0.2
 [3.0.1]: https://github.com/waittim/Slides-Thief/compare/v3.0.0...v3.0.1

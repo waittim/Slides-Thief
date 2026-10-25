@@ -322,18 +322,23 @@ def test_manual_review_html_escapes_untrusted_data_and_uses_accessible_controls(
 def test_parse_ratio_accepts_named_paper_aliases() -> None:
     assert abs(parse_ratio("A4") - (841.89 / 595.28)) < 1e-12
     assert abs(parse_ratio("A4-portrait") - (595.28 / 841.89)) < 1e-12
-    assert abs(parse_ratio("Letter") - (11 / 8.5)) < 1e-5
+    assert abs(parse_ratio("Letter") - (8.5 / 11)) < 1e-5
     assert abs(parse_ratio("letter-portrait") - (8.5 / 11)) < 1e-5
+    assert abs(parse_ratio("letter-landscape") - (11 / 8.5)) < 1e-5
     assert abs(parse_ratio("A3") - (1190.55 / 841.89)) < 1e-12
     assert abs(parse_ratio("A5") - (595.28 / 419.53)) < 1e-12
 
 
 def test_paper_ratio_aliases_are_derived_from_physical_dimensions() -> None:
     for paper_id, (width_points, height_points) in PAPER_PAGE_DIMENSIONS.items():
-        family = paper_id.split("-", 1)[0]
-        alias = family if paper_id.endswith("-landscape") else paper_id
         expected = width_points / height_points
-        assert abs(parse_ratio(alias) - expected) < 1e-12
+        assert abs(parse_ratio(paper_id) - expected) < 1e-12
+    assert abs(parse_ratio("letter") - (612 / 792)) < 1e-12
+    assert abs(parse_ratio("letter-portrait") - (612 / 792)) < 1e-12
+    assert abs(parse_ratio("letter-landscape") - (792 / 612)) < 1e-12
+    assert abs(parse_ratio("a4") - (841.89 / 595.28)) < 1e-12
+    assert abs(parse_ratio("a3") - (1190.55 / 841.89)) < 1e-12
+    assert abs(parse_ratio("a5") - (595.28 / 419.53)) < 1e-12
 
 
 def test_is_paper_ratio_recognizes_paper_presets() -> None:
@@ -399,6 +404,19 @@ def test_enhance_slide_bw_is_grayscale() -> None:
     enhanced = np.asarray(enhance_slide(image, mode="bw"))
     assert np.allclose(enhanced[..., 0], enhanced[..., 1])
     assert np.allclose(enhanced[..., 1], enhanced[..., 2])
+
+
+def test_enhance_slide_bw_removes_shadow_and_preserves_text() -> None:
+    arr = np.full((128, 128, 3), 220, dtype=np.uint8)
+    arr[64:, :] = 150
+    arr[20:25, 40:88] = 40
+    arr[84:89, 40:88] = 40
+    enhanced = np.asarray(enhance_slide(Image.fromarray(arr), mode="bw"))
+
+    assert enhanced[10, 10, 0] > 250
+    assert enhanced[110, 10, 0] > 250
+    assert enhanced[22, 50, 0] < 80
+    assert enhanced[86, 50, 0] < 80
 
 
 def test_enhance_slide_stats_ignore_edge_fill() -> None:

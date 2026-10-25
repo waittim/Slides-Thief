@@ -16,9 +16,7 @@ export function applyEnhancement(
   grayWorldBalance(data, width, height);
 
   if (mode === "bw") {
-    toGrayscale(data);
-    stretchLuminance(data, width, height, 0.02, 0.98);
-    adjustContrastAroundMid(data, 1.28);
+    documentScanBw(data, width, height);
     unsharpMask(data, width, height, 0.45);
     return;
   }
@@ -74,12 +72,77 @@ function grayWorldBalance(data: Uint8ClampedArray, width: number, height: number
   }
 }
 
-function toGrayscale(data: Uint8ClampedArray) {
-  for (let i = 0; i < data.length; i += 4) {
-    const gray = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    data[i] = gray;
-    data[i + 1] = gray;
-    data[i + 2] = gray;
+function documentScanBw(data: Uint8ClampedArray, width: number, height: number) {
+  const blockSize = Math.max(16, Math.floor(Math.min(width, height) / 64));
+  const gridW = Math.ceil(width / blockSize);
+  const gridH = Math.ceil(height / blockSize);
+
+  const hist = new Int32Array(gridH * gridW * 256);
+  const blockCounts = new Int32Array(gridH * gridW);
+
+  for (let y = 0; y < height; y += 1) {
+    const gy = Math.floor(y / blockSize);
+    const rowOffset = gy * gridW * 256;
+    const countRowOffset = gy * gridW;
+    const yWidth = y * width;
+    for (let x = 0; x < width; x += 1) {
+      const gx = Math.floor(x / blockSize);
+      const i = (yWidth + x) * 4;
+      const luma = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
+      hist[rowOffset + gx * 256 + luma] += 1;
+      blockCounts[countRowOffset + gx] += 1;
+    }
+  }
+
+  const bgGrid = new Float32Array(gridH * gridW);
+  for (let b = 0; b < gridH * gridW; b += 1) {
+    const target = Math.floor(blockCounts[b] * 0.88);
+    let acc = 0;
+    let p = 255;
+    const bOffset = b * 256;
+    for (let val = 0; val < 256; val += 1) {
+      acc += hist[bOffset + val];
+      if (acc >= target) {
+        p = val;
+        break;
+      }
+    }
+    bgGrid[b] = Math.max(1, p);
+  }
+
+  const knee = 0.86;
+  const gamma = 2.05;
+
+  for (let y = 0; y < height; y += 1) {
+    const v = Math.max(0, Math.min(gridH - 1, (y + 0.5) / blockSize - 0.5));
+    const y0 = Math.floor(v);
+    const y1 = Math.min(gridH - 1, y0 + 1);
+    const dy = v - y0;
+    const row0 = y0 * gridW;
+    const row1 = y1 * gridW;
+    const yWidth = y * width;
+
+    for (let x = 0; x < width; x += 1) {
+      const u = Math.max(0, Math.min(gridW - 1, (x + 0.5) / blockSize - 0.5));
+      const x0 = Math.floor(u);
+      const x1 = Math.min(gridW - 1, x0 + 1);
+      const dx = u - x0;
+
+      const b0 = bgGrid[row0 + x0] * (1 - dx) + bgGrid[row0 + x1] * dx;
+      const b1 = bgGrid[row1 + x0] * (1 - dx) + bgGrid[row1 + x1] * dx;
+      const bg = Math.max(1, b0 * (1 - dy) + b1 * dy);
+
+      const i = (yWidth + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      const r = luma / bg;
+      let out = 255;
+      if (r < knee) {
+        out = Math.min(255, Math.max(0, Math.round(Math.pow(r / knee, gamma) * 255)));
+      }
+      data[i] = out;
+      data[i + 1] = out;
+      data[i + 2] = out;
+    }
   }
 }
 

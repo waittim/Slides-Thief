@@ -43,7 +43,7 @@ Presentation source ratios: 16:9 (default), 4:3, 16:10. Paper ratio presets: A4,
 ### Common CLI options
 
 - `--width` (default 2200), `--height`, `--jpeg-quality` (default 92)
-- `--enhancement {original,clean,high-contrast,bw}`
+- `--enhancement {original,clean,high-contrast,bw}`: optional readability pass (`bw` normalizes local background illumination to eliminate cast shadows on document scans)
 - `--manual PATH` for a second pass with exported corner JSON
 - `--work-dir`, `--clean-converted`
 
