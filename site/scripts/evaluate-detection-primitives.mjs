@@ -20,6 +20,7 @@ const intersection = lineIntersection(...intersectionLines);
 process.stdout.write(JSON.stringify({
   validGeometry: geometryIsValid(geometry.validQuad, geometry.width, geometry.height),
   invalidConcaveGeometry: geometryIsValid(geometry.invalidConcaveQuad, geometry.width, geometry.height),
+  invalidDivergingGeometry: geometryIsValid(geometry.invalidDivergingQuad, geometry.width, geometry.height),
   outOfBoundsGeometry: geometryIsValid(geometry.outOfBoundsQuad, geometry.width, geometry.height),
   intersection: Array.from(intersection),
   iou: quadIoU(fixture.iou.first, fixture.iou.second),

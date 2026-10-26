@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.5] - 2026-10-25
+
+### Fixed
+
+- Enforced a maximum opposite-edge angle divergence constraint (`maximumOppositeAngleDegrees: 20`) in geometric quad validation across Python and TypeScript pipelines. Disqualifies deformed perspective quadrilaterals produced when shadow boundaries or uneven ambient gradients truncate document and presentation slide edges.
+- Guarded `mask-lines` candidate generation to require valid quadrilateral geometry before emitting scaled variants, preventing distorted trapezoidal edge fits from competing in candidate ranking.
+
 ## [3.0.4] - 2026-10-24
 
 ### Changed
@@ -214,7 +221,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.5...HEAD
+[3.0.5]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...v3.0.3
 [3.0.2]: https://github.com/waittim/Slides-Thief/compare/v3.0.1...v3.0.2

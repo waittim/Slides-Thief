@@ -37,6 +37,9 @@ def python_result(fixture: dict) -> dict:
         "invalidConcaveGeometry": geometry_is_valid(
             np.asarray(geometry["invalidConcaveQuad"], dtype=np.float64), geometry["width"], geometry["height"]
         ),
+        "invalidDivergingGeometry": geometry_is_valid(
+            np.asarray(geometry["invalidDivergingQuad"], dtype=np.float64), geometry["width"], geometry["height"]
+        ),
         "outOfBoundsGeometry": geometry_is_valid(
             np.asarray(geometry["outOfBoundsQuad"], dtype=np.float64), geometry["width"], geometry["height"]
         ),

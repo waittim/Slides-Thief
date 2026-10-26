@@ -1,4 +1,4 @@
-import { lineIntersection, orderQuad, scaleQuad, type Line } from "./geometry.ts";
+import { geometryIsValid, lineIntersection, orderQuad, scaleQuad, type Line } from "./geometry.ts";
 import { DETECTION_CONFIG } from "./config.ts";
 import { createCandidate } from "./candidate-factory.ts";
 import { boxBlur } from "./image-features.ts";
@@ -98,6 +98,7 @@ export const maskLineDetector: CandidateDetector = {
       lineIntersection(bottom, right),
       lineIntersection(bottom, left),
     ]);
+    if (!geometryIsValid(baseQuad, width, height)) return [];
     const diagnostics = {
       threshold: round(threshold, 2),
       saturationThreshold: round(saturationThreshold, 2),

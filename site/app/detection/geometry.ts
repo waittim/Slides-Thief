@@ -90,6 +90,28 @@ export function geometryIsValid(quad: Quad, width: number, height: number): bool
     const angle = Math.acos(Math.max(-1, Math.min(1, cosine))) * 180 / Math.PI;
     if (angle < GEOMETRY_CONFIG.minimumAngleDegrees || angle > GEOMETRY_CONFIG.maximumAngleDegrees) return false;
   }
+  const maxOppositeAngle = GEOMETRY_CONFIG.maximumOppositeAngleDegrees;
+  if (maxOppositeAngle !== undefined) {
+    const topVec = [quad[1][0] - quad[0][0], quad[1][1] - quad[0][1]];
+    const bottomVec = [quad[2][0] - quad[3][0], quad[2][1] - quad[3][1]];
+    const topNorm = Math.hypot(topVec[0], topVec[1]);
+    const bottomNorm = Math.hypot(bottomVec[0], bottomVec[1]);
+    if (topNorm > 1e-9 && bottomNorm > 1e-9) {
+      const cosTB = (topVec[0] * bottomVec[0] + topVec[1] * bottomVec[1]) / (topNorm * bottomNorm);
+      const angleTB = Math.acos(Math.max(-1, Math.min(1, cosTB))) * 180 / Math.PI;
+      if (angleTB > maxOppositeAngle) return false;
+    }
+
+    const leftVec = [quad[3][0] - quad[0][0], quad[3][1] - quad[0][1]];
+    const rightVec = [quad[2][0] - quad[1][0], quad[2][1] - quad[1][1]];
+    const leftNorm = Math.hypot(leftVec[0], leftVec[1]);
+    const rightNorm = Math.hypot(rightVec[0], rightVec[1]);
+    if (leftNorm > 1e-9 && rightNorm > 1e-9) {
+      const cosLR = (leftVec[0] * rightVec[0] + leftVec[1] * rightVec[1]) / (leftNorm * rightNorm);
+      const angleLR = Math.acos(Math.max(-1, Math.min(1, cosLR))) * 180 / Math.PI;
+      if (angleLR > maxOppositeAngle) return false;
+    }
+  }
   return true;
 }
 
