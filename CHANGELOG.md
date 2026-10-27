@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.6] - 2026-10-26
+
+### Fixed
+
+- Fixed edge point collection in browser Hough line detection (`hough-lines.ts`). Previously, when edge points exceeded `maximumEdgePointsBeforeStride`, a 2D coordinate stride (`x += stride`, `y += stride`) was applied, causing thin lines on even coordinates to be completely missed due to grid parity decimation. Now uses a 1D sequence stride matching the Python reference implementation.
+- Aligned browser web worker image preparation with Python CLI detection bounds: increased worker `maxDetectionWidth` from 900 to 1200 (matching `DETECTION_MAX_PIXELS = 1_200_000`) and enabled `imageSmoothingQuality = "high"` on canvas draw passes, preventing edge blurring near outer image margins on high-resolution portrait photos.
+
 ## [3.0.5] - 2026-10-25
 
 ### Fixed
@@ -221,7 +228,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.5...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.6...HEAD
+[3.0.6]: https://github.com/waittim/Slides-Thief/compare/v3.0.5...v3.0.6
 [3.0.5]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...v3.0.4
 [3.0.3]: https://github.com/waittim/Slides-Thief/compare/v3.0.2...v3.0.3

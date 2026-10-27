@@ -86,7 +86,7 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
       bitmap = await createImageBitmap(item.file);
       if (isCancelled()) return;
       const detectionSettings: DetectionSettings = {
-        maxDetectionWidth: 900,
+        maxDetectionWidth: 1200,
         sourceRatioHint,
         enableBatchPrior: false,
       };
@@ -171,7 +171,7 @@ async function detectFiles(task: DetectionTask, isCancelled: () => boolean) {
         bitmap = await createImageBitmap(entry.item.file);
         if (isCancelled()) return;
         const detectionSettings: DetectionSettings = {
-          maxDetectionWidth: 900,
+          maxDetectionWidth: 1200,
           sourceRatioHint,
           enableBatchPrior: true,
         };
@@ -275,6 +275,8 @@ function imageDataFromBitmap(bitmap: ImageBitmap, maxWidth: number) {
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new AppError("canvas-read-failed", "This browser cannot process canvas image data.");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
   ctx.drawImage(bitmap, 0, 0, width, height);
   const data = ctx.getImageData(0, 0, width, height);
   canvas.width = 0;
