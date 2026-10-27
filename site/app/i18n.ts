@@ -232,7 +232,7 @@ export type ReviewUiCopy = {
   automaticRecognized: string;
   privacy: string;
   reviewSummary: (count: number) => string;
-  reviewConfirmation: (count: number) => string;
+  reviewConfirmation: (count: number, format?: "pdf" | "jpg") => string;
   reviewModalTitle: string;
   reviewModalConfirm: string;
   reviewModalCancel: string;
@@ -263,8 +263,8 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: createPluralMessage("zh-CN", {
       other: (count) => `${count} 张照片建议复查`,
     }),
-    reviewConfirmation: createPluralMessage("zh-CN", {
-      other: (count) => `有 ${count} 张照片建议复查。仍要生成 PDF 吗？`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("zh-CN", {
+      other: (count, format = "pdf") => `有 ${count} 张照片建议复查。仍要生成 ${format.toUpperCase()} 吗？`,
     }),
     reviewModalTitle: "导出前复查",
     reviewModalConfirm: "仍然生成",
@@ -301,8 +301,8 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: createPluralMessage("zh-TW", {
       other: (count) => `${count} 張相片建議檢查`,
     }),
-    reviewConfirmation: createPluralMessage("zh-TW", {
-      other: (count) => `有 ${count} 張相片建議檢查。仍要產生 PDF 嗎？`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("zh-TW", {
+      other: (count, format = "pdf") => `有 ${count} 張相片建議檢查。仍要產生 ${format.toUpperCase()} 嗎？`,
     }),
     reviewModalTitle: "匯出前檢查",
     reviewModalConfirm: "仍然產生",
@@ -340,9 +340,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       one: (count) => `${count} photo may need review`,
       other: (count) => `${count} photos may need review`,
     }),
-    reviewConfirmation: createPluralMessage("en", {
-      one: (count) => `${count} photo may need review. Generate the PDF anyway?`,
-      other: (count) => `${count} photos may need review. Generate the PDF anyway?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("en", {
+      one: (count, format = "pdf") => `${count} photo may need review. Generate the ${format.toUpperCase()} anyway?`,
+      other: (count, format = "pdf") => `${count} photos may need review. Generate the ${format.toUpperCase()} anyway?`,
     }),
     reviewModalTitle: "Review before export",
     reviewModalConfirm: "Export anyway",
@@ -380,9 +380,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       one: (count) => `${count} foto puede necesitar revisión`,
       other: (count) => `${count} fotos pueden necesitar revisión`,
     }),
-    reviewConfirmation: createPluralMessage("es", {
-      one: (count) => `${count} foto puede necesitar revisión. ¿Generar el PDF de todos modos?`,
-      other: (count) => `${count} fotos pueden necesitar revisión. ¿Generar el PDF de todos modos?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("es", {
+      one: (count, format = "pdf") => `${count} foto puede necesitar revisión. ¿Generar el ${format.toUpperCase()} de todos modos?`,
+      other: (count, format = "pdf") => `${count} fotos pueden necesitar revisión. ¿Generar el ${format.toUpperCase()} de todos modos?`,
     }),
     reviewModalTitle: "Revisar antes de exportar",
     reviewModalConfirm: "Exportar de todos modos",
@@ -420,9 +420,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       one: (count) => `${count} photo à vérifier`,
       other: (count) => `${count} photos à vérifier`,
     }),
-    reviewConfirmation: createPluralMessage("fr", {
-      one: (count) => `${count} photo à vérifier. Générer quand même le PDF ?`,
-      other: (count) => `${count} photos à vérifier. Générer quand même le PDF ?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("fr", {
+      one: (count, format = "pdf") => `${count} photo à vérifier. Générer quand même le ${format.toUpperCase()} ?`,
+      other: (count, format = "pdf") => `${count} photos à vérifier. Générer quand même le ${format.toUpperCase()} ?`,
     }),
     reviewModalTitle: "Vérifier avant d’exporter",
     reviewModalConfirm: "Exporter quand même",
@@ -460,9 +460,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       one: (count) => `${count} Foto sollte geprüft werden`,
       other: (count) => `${count} Fotos sollten geprüft werden`,
     }),
-    reviewConfirmation: createPluralMessage("de", {
-      one: (count) => `${count} Foto sollte geprüft werden. PDF trotzdem erstellen?`,
-      other: (count) => `${count} Fotos sollten geprüft werden. PDF trotzdem erstellen?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("de", {
+      one: (count, format = "pdf") => `${count} Foto sollte geprüft werden. ${format.toUpperCase()} trotzdem erstellen?`,
+      other: (count, format = "pdf") => `${count} Fotos sollten geprüft werden. ${format.toUpperCase()} trotzdem erstellen?`,
     }),
     reviewModalTitle: "Vor dem Export prüfen",
     reviewModalConfirm: "Trotzdem exportieren",
@@ -499,8 +499,8 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: createPluralMessage("ja", {
       other: (count) => `${count}枚の写真を確認してください`,
     }),
-    reviewConfirmation: createPluralMessage("ja", {
-      other: (count) => `${count}枚の写真を確認する必要があります。このままPDFを生成しますか？`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("ja", {
+      other: (count, format = "pdf") => `${count}枚の写真を確認する必要があります。このまま${format.toUpperCase()}を生成しますか？`,
     }),
     reviewModalTitle: "エクスポート前の確認",
     reviewModalConfirm: "このまま生成",
@@ -537,8 +537,8 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
     reviewSummary: createPluralMessage("ko", {
       other: (count) => `${count}장의 사진을 검토하는 것이 좋습니다`,
     }),
-    reviewConfirmation: createPluralMessage("ko", {
-      other: (count) => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 PDF를 생성할까요?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("ko", {
+      other: (count, format = "pdf") => `${count}장의 사진을 검토하는 것이 좋습니다. 그래도 ${format.toUpperCase()}를 생성할까요?`,
     }),
     reviewModalTitle: "내보내기 전 검토",
     reviewModalConfirm: "그래도 생성",
@@ -576,9 +576,9 @@ export const reviewUiCopy: Record<LocaleValue, ReviewUiCopy> = {
       one: (count) => `${count} foto pode precisar de revisão`,
       other: (count) => `${count} fotos podem precisar de revisão`,
     }),
-    reviewConfirmation: createPluralMessage("pt-BR", {
-      one: (count) => `${count} foto pode precisar de revisão. Gerar o PDF mesmo assim?`,
-      other: (count) => `${count} fotos podem precisar de revisão. Gerar o PDF mesmo assim?`,
+    reviewConfirmation: createPluralMessage<[format?: "pdf" | "jpg"]>("pt-BR", {
+      one: (count, format = "pdf") => `${count} foto pode precisar de revisão. Gerar o ${format.toUpperCase()} mesmo assim?`,
+      other: (count, format = "pdf") => `${count} fotos podem precisar de revisão. Gerar o ${format.toUpperCase()} mesmo assim?`,
     }),
     reviewModalTitle: "Revisar antes de exportar",
     reviewModalConfirm: "Exportar mesmo assim",

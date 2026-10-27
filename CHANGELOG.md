@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.7] - 2026-10-27
+
+### Fixed
+
+- Fixed the export review confirmation modal (`reviewConfirmation`) in the web interface to dynamically reflect the selected export format (`JPG` or `PDF`) instead of hardcoding `PDF`. When choosing to export JPG with slides needing review, the prompt now correctly inquires whether to proceed with generating JPG across all 9 supported locales (`zh-CN`, `zh-TW`, `en`, `es`, `fr`, `de`, `ja`, `ko`, `pt-BR`).
+- Enhanced `createPluralMessage` with generic extra-arguments support (`TArgs`), allowing plural formatters to accept additional dynamic parameters while maintaining backward-compatible string coercion.
+- Stabilized `detection-performance` test under parallel test execution by measuring actual process CPU consumption (`process.cpuUsage()`) against the performance budget, avoiding false positives caused by multi-worker OS thread scheduling contention.
+
 ## [3.0.6] - 2026-10-26
 
 ### Fixed
@@ -228,7 +236,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.6...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.7...HEAD
+[3.0.7]: https://github.com/waittim/Slides-Thief/compare/v3.0.6...v3.0.7
 [3.0.6]: https://github.com/waittim/Slides-Thief/compare/v3.0.5...v3.0.6
 [3.0.5]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...v3.0.5
 [3.0.4]: https://github.com/waittim/Slides-Thief/compare/v3.0.3...v3.0.4

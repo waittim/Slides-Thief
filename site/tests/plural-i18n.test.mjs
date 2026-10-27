@@ -188,14 +188,32 @@ test("reviewUiCopy.reviewSummary and reviewConfirmation work across all locales"
     const summary2 = review.reviewSummary(2);
     const confirm1 = review.reviewConfirmation(1);
     const confirm2 = review.reviewConfirmation(2);
+    const confirmJpg1 = review.reviewConfirmation(1, "jpg");
+    const confirmJpg2 = review.reviewConfirmation(2, "jpg");
 
     assert.ok(summary1.includes("1"), `${locale} summary1 should include 1`);
     assert.ok(summary2.includes("2"), `${locale} summary2 should include 2`);
     assert.ok(confirm1.includes("1"), `${locale} confirm1 should include 1`);
     assert.ok(confirm2.includes("2"), `${locale} confirm2 should include 2`);
+
+    // Verify format parameter defaults to PDF
+    assert.ok(confirm1.includes("PDF"), `${locale} default confirm1 should mention PDF`);
+    assert.ok(confirm2.includes("PDF"), `${locale} default confirm2 should mention PDF`);
+
+    // Verify format parameter handles JPG dynamically
+    assert.ok(confirmJpg1.includes("JPG"), `${locale} JPG confirm1 should mention JPG`);
+    assert.ok(confirmJpg2.includes("JPG"), `${locale} JPG confirm2 should mention JPG`);
+    assert.ok(!confirmJpg1.includes("PDF"), `${locale} JPG confirm1 must not mention PDF`);
+    assert.ok(!confirmJpg2.includes("PDF"), `${locale} JPG confirm2 must not mention PDF`);
   }
 
-  // Check specific singular forms
+  // Check specific singular and format forms
+  assert.equal(reviewUiCopy["zh-CN"].reviewConfirmation(1, "jpg"), "有 1 张照片建议复查。仍要生成 JPG 吗？");
+  assert.equal(reviewUiCopy["zh-CN"].reviewConfirmation(1, "pdf"), "有 1 张照片建议复查。仍要生成 PDF 吗？");
+  assert.equal(reviewUiCopy.en.reviewConfirmation(1, "jpg"), "1 photo may need review. Generate the JPG anyway?");
+  assert.equal(reviewUiCopy.en.reviewConfirmation(2, "jpg"), "2 photos may need review. Generate the JPG anyway?");
+  assert.equal(reviewUiCopy.en.reviewConfirmation(1, "pdf"), "1 photo may need review. Generate the PDF anyway?");
+  assert.equal(reviewUiCopy.en.reviewConfirmation(2, "pdf"), "2 photos may need review. Generate the PDF anyway?");
   assert.equal(reviewUiCopy.en.reviewSummary(1), "1 photo may need review");
   assert.equal(reviewUiCopy.en.reviewSummary(2), "2 photos may need review");
   assert.equal(reviewUiCopy.es.reviewSummary(1), "1 foto puede necesitar revisión");
