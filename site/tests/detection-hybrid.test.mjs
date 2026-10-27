@@ -359,3 +359,12 @@ test("geometryIsValid rejects quads with opposite-edge angle divergence exceedin
     false,
   );
 });
+
+test("Hough detector preserves thin boundary on even coordinates during dense subsampling", () => {
+  const expected = [[20, 20], [180, 20], [180, 240], [20, 240]];
+  const image = rectangleImage(200, 260, 20, 230, [20, 20, 180, 240]);
+  const features = buildImageFeatures(image);
+  const candidates = houghLineDetector.detect(features, settings);
+  assert.ok(candidates.length > 0);
+  assert.ok(Math.max(...candidates.map((candidate) => quadIoU(candidate.quad, expected))) > 0.85);
+});

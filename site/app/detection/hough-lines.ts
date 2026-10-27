@@ -109,14 +109,18 @@ export const houghLineDetector: CandidateDetector = {
 function collectEdgePoints(features: ImageFeatures): EdgePoint[] {
   const { magnitude, orientation, threshold } = features.gradient;
   const rawCount = magnitude.reduce((count, value) => count + (value >= threshold ? 1 : 0), 0);
-  const stride = rawCount > HOUGH_CONFIG.maximumEdgePointsBeforeStride
-    ? HOUGH_CONFIG.strideWhenDense
-    : 1;
+  const dense = rawCount > HOUGH_CONFIG.maximumEdgePointsBeforeStride;
   const points: EdgePoint[] = [];
-  for (let y = 1; y < features.height - 1; y += stride) {
-    for (let x = 1; x < features.width - 1; x += stride) {
+  let edgeIndex = 0;
+  for (let y = 1; y < features.height - 1; y += 1) {
+    for (let x = 1; x < features.width - 1; x += 1) {
       const index = y * features.width + x;
       if (magnitude[index] < threshold) continue;
+      if (dense && (edgeIndex % HOUGH_CONFIG.strideWhenDense !== 0)) {
+        edgeIndex += 1;
+        continue;
+      }
+      edgeIndex += 1;
       points.push({ x, y, magnitude: magnitude[index], orientation: normalizeAngle(orientation[index]) });
     }
   }
