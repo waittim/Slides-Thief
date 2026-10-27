@@ -1,13 +1,13 @@
 export type PluralCategory = Intl.LDMLPluralRule;
 
-export type PluralRuleHandler = (count: number) => string;
+export type PluralRuleHandler<TArgs extends unknown[] = []> = (count: number, ...args: TArgs) => string;
 
-export type PluralForms = Partial<Record<Intl.LDMLPluralRule, PluralRuleHandler>> & {
-  other: PluralRuleHandler;
+export type PluralForms<TArgs extends unknown[] = []> = Partial<Record<Intl.LDMLPluralRule, PluralRuleHandler<TArgs>>> & {
+  other: PluralRuleHandler<TArgs>;
 };
 
-export interface PluralFormatter {
-  (count?: number): string;
+export interface PluralFormatter<TArgs extends unknown[] = []> {
+  (count?: number, ...args: TArgs): string;
   toString(): string;
   category(count: number): Intl.LDMLPluralRule;
 }
@@ -45,19 +45,19 @@ export function selectPluralCategory(
  * Provides backward compatibility by exposing .toString() so template literals or
  * legacy property reads return the fallback string smoothly.
  */
-export function createPluralMessage(
+export function createPluralMessage<TArgs extends unknown[] = []>(
   locale: string,
-  forms: PluralForms,
+  forms: PluralForms<TArgs>,
   legacyFallback?: string,
-): PluralFormatter {
-  const formatter = ((count: number = 1): string => {
+): PluralFormatter<TArgs> {
+  const formatter = ((count: number = 1, ...args: TArgs): string => {
     const category = selectPluralCategory(locale, count);
     const handler = forms[category] ?? forms.other;
-    return handler(count);
-  }) as PluralFormatter;
+    return handler(count, ...args);
+  }) as PluralFormatter<TArgs>;
 
   formatter.category = (count: number) => selectPluralCategory(locale, count);
-  formatter.toString = () => legacyFallback ?? formatter(1);
+  formatter.toString = () => legacyFallback ?? (formatter as unknown as (count: number) => string)(1);
 
   return formatter;
 }

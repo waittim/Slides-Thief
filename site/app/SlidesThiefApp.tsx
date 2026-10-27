@@ -1561,7 +1561,7 @@ export function SlidesThiefApp() {
         onCancel={handleCancelReviewExport}
         onConfirm={handleConfirmReviewExport}
         title={reviewText.reviewModalTitle}
-        message={reviewText.reviewConfirmation(reviewSlideCount)}
+        message={reviewText.reviewConfirmation(reviewSlideCount, pendingExportFormat ?? "pdf")}
         confirmLabel={reviewText.reviewModalConfirm}
         cancelLabel={reviewText.reviewModalCancel}
         confirmVariant="primary"
