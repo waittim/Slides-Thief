@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.8] - 2026-10-27
+
+### Added
+
+- Added automatic safety inset calculation (`computeSafetyInsetQuad` in TypeScript, `compute_safety_inset_quad` in Python) during perspective warping (defaulting to 0.6% centroid contraction for standard page outputs). Shifting sampling slightly inward prevents sampling outer desk surfaces, shadows, and background bleed without cutting into document or presentation margins.
+- Added adaptive dark border suppression (`cleanDarkPerimeter` in TypeScript and Python). Detects anomalous dark perimeter pixels along the outer 1-4 pixels caused by desk bleed or framing overshoots against the interior document brightness, cleanly inpainting them using the adjacent interior paper tone while leaving dark-background slides untouched.
+
 ## [3.0.7] - 2026-10-27
 
 ### Fixed
