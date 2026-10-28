@@ -234,3 +234,25 @@ test("cleanDarkPerimeter preserves inverted dark-background slides", () => {
   assert.equal(data[0], 20);
   assert.equal(data[((height - 1) * width + 50) * 4], 20);
 });
+
+test("cleanDarkPerimeter directionally inpaints triangular corner bleed wedges", () => {
+  const width = 120;
+  const height = 120;
+  const data = new Uint8ClampedArray(width * height * 4);
+  data.fill(225); // paper background
+  // simulate a triangular corner wedge in the top-right corner
+  for (let y = 0; y < 10; y += 1) {
+    for (let x = 115 - y; x < width; x += 1) {
+      const idx = (y * width + x) * 4;
+      data[idx] = 25;
+      data[idx + 1] = 25;
+      data[idx + 2] = 25;
+      data[idx + 3] = 255;
+    }
+  }
+
+  assert.equal(data[(0 * width + 119) * 4], 25);
+  cleanDarkPerimeter(data, width, height, 12);
+  assert.ok(data[(0 * width + 119) * 4] >= 200);
+  assert.ok(data[(5 * width + 119) * 4] >= 200);
+});

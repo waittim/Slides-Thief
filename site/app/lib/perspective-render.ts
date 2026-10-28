@@ -29,7 +29,7 @@ export type RenderPerspectivePageOptions = {
  * Shifting the sampling rays 0.5% - 0.8% inward prevents sampling outer desk surfaces,
  * shadows, and background bleed without cutting into document or presentation margins.
  */
-export function computeSafetyInsetQuad(quad: Quad, factor: number = 0.006): Quad {
+export function computeSafetyInsetQuad(quad: Quad, factor: number = 0.007): Quad {
   if (factor <= 0) return quad;
   const cx = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) / 4;
   const cy = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) / 4;
@@ -41,9 +41,8 @@ export function computeSafetyInsetQuad(quad: Quad, factor: number = 0.006): Quad
 }
 
 /**
- * Suppresses residual dark perimeter lines (e.g. tabletop bleed or camera frame shadows)
- * by inpainting anomalous dark pixels on the outermost 1-4 perimeter pixels using adjacent
- * clean paper tone.
+ * Suppresses residual dark perimeter lines and corner overshoots (e.g. tabletop bleed or camera frame shadows)
+ * by directionally inpainting anomalous dark pixels on the outer perimeter using adjacent clean paper tone.
  */
 export function cleanDarkPerimeter(
   data: Uint8ClampedArray,
@@ -52,7 +51,10 @@ export function cleanDarkPerimeter(
   depth: number = 4,
 ): void {
   if (width < 64 || height < 64 || depth < 1) return;
-  const d = Math.min(depth, Math.max(1, Math.floor(Math.min(width, height) * 0.01)));
+  const maxScan = Math.min(
+    Math.max(depth, Math.floor(Math.min(width, height) * 0.025)),
+    32,
+  );
 
   // Sample interior background luma from the central 80% stats region
   const x0 = Math.floor(width * 0.1);
@@ -73,64 +75,106 @@ export function cleanDarkPerimeter(
   if (count === 0) return;
   const interiorLuma = lumaSum / count;
   if (interiorLuma < 50) return; // inverted or dark-background slide
-  const darkThreshold = interiorLuma * 0.65;
+  const darkThreshold = interiorLuma * 0.78;
 
-  // Clean top edge
-  for (let y = 0; y < d; y += 1) {
-    const yWidth = y * width;
-    const refWidth = d * width;
-    for (let x = 0; x < width; x += 1) {
-      const i = (yWidth + x) * 4;
-      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
-        const ref = (refWidth + x) * 4;
-        data[i] = data[ref];
-        data[i + 1] = data[ref + 1];
-        data[i + 2] = data[ref + 2];
-      }
-    }
-  }
-
-  // Clean bottom edge
-  for (let y = height - 1; y >= height - d; y -= 1) {
-    const yWidth = y * width;
-    const refWidth = (height - 1 - d) * width;
-    for (let x = 0; x < width; x += 1) {
-      const i = (yWidth + x) * 4;
-      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
-        const ref = (refWidth + x) * 4;
-        data[i] = data[ref];
-        data[i + 1] = data[ref + 1];
-        data[i + 2] = data[ref + 2];
-      }
-    }
-  }
-
-  // Clean left edge
-  for (let x = 0; x < d; x += 1) {
-    for (let y = 0; y < height; y += 1) {
+  // 1. Clean top edge (downward ray search)
+  for (let x = 0; x < width; x += 1) {
+    for (let y = 0; y < maxScan && y < height; y += 1) {
       const i = (y * width + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
       if (luma < darkThreshold) {
-        const ref = (y * width + d) * 4;
-        data[i] = data[ref];
-        data[i + 1] = data[ref + 1];
-        data[i + 2] = data[ref + 2];
+        let cleanY = -1;
+        for (let sy = y + 1; sy <= maxScan && sy < height; sy += 1) {
+          const sIdx = (sy * width + x) * 4;
+          const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+          if (sLuma >= darkThreshold) {
+            cleanY = sy;
+            break;
+          }
+        }
+        if (cleanY !== -1) {
+          const refIdx = (cleanY * width + x) * 4;
+          data[i] = data[refIdx];
+          data[i + 1] = data[refIdx + 1];
+          data[i + 2] = data[refIdx + 2];
+        }
       }
     }
   }
 
-  // Clean right edge
-  for (let x = width - 1; x >= width - d; x -= 1) {
-    for (let y = 0; y < height; y += 1) {
+  // 2. Clean bottom edge (upward ray search)
+  for (let x = 0; x < width; x += 1) {
+    for (let y = height - 1; y >= height - maxScan && y >= 0; y -= 1) {
       const i = (y * width + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
       if (luma < darkThreshold) {
-        const ref = (y * width + (width - 1 - d)) * 4;
-        data[i] = data[ref];
-        data[i + 1] = data[ref + 1];
-        data[i + 2] = data[ref + 2];
+        let cleanY = -1;
+        for (let sy = y - 1; sy >= height - maxScan - 1 && sy >= 0; sy -= 1) {
+          const sIdx = (sy * width + x) * 4;
+          const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+          if (sLuma >= darkThreshold) {
+            cleanY = sy;
+            break;
+          }
+        }
+        if (cleanY !== -1) {
+          const refIdx = (cleanY * width + x) * 4;
+          data[i] = data[refIdx];
+          data[i + 1] = data[refIdx + 1];
+          data[i + 2] = data[refIdx + 2];
+        }
+      }
+    }
+  }
+
+  // 3. Clean left edge (rightward ray search)
+  for (let y = 0; y < height; y += 1) {
+    const yWidth = y * width;
+    for (let x = 0; x < maxScan && x < width; x += 1) {
+      const i = (yWidth + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        let cleanX = -1;
+        for (let sx = x + 1; sx <= maxScan && sx < width; sx += 1) {
+          const sIdx = (yWidth + sx) * 4;
+          const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+          if (sLuma >= darkThreshold) {
+            cleanX = sx;
+            break;
+          }
+        }
+        if (cleanX !== -1) {
+          const refIdx = (yWidth + cleanX) * 4;
+          data[i] = data[refIdx];
+          data[i + 1] = data[refIdx + 1];
+          data[i + 2] = data[refIdx + 2];
+        }
+      }
+    }
+  }
+
+  // 4. Clean right edge (leftward ray search)
+  for (let y = 0; y < height; y += 1) {
+    const yWidth = y * width;
+    for (let x = width - 1; x >= width - maxScan && x >= 0; x -= 1) {
+      const i = (yWidth + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        let cleanX = -1;
+        for (let sx = x - 1; sx >= width - maxScan - 1 && sx >= 0; sx -= 1) {
+          const sIdx = (yWidth + sx) * 4;
+          const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+          if (sLuma >= darkThreshold) {
+            cleanX = sx;
+            break;
+          }
+        }
+        if (cleanX !== -1) {
+          const refIdx = (yWidth + cleanX) * 4;
+          data[i] = data[refIdx];
+          data[i + 1] = data[refIdx + 1];
+          data[i + 2] = data[refIdx + 2];
+        }
       }
     }
   }
@@ -149,7 +193,7 @@ export function renderPerspectivePage(
 ): PixelImage {
   const { outputWidth, outputHeight } = options;
   const isRealisticPage = outputWidth >= 64 && outputHeight >= 64;
-  const safetyInset = options.safetyInset ?? (isRealisticPage ? 0.006 : 0);
+  const safetyInset = options.safetyInset ?? (isRealisticPage ? 0.007 : 0);
   const effectiveQuad = safetyInset > 0 ? computeSafetyInsetQuad(quad, safetyInset) : quad;
 
   const output: PixelImage = {
