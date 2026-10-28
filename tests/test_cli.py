@@ -12,6 +12,8 @@ import pytest
 from PIL import Image, ImageDraw, ImageFilter, ImageOps
 
 from slides_thief.cli import (
+    clean_dark_perimeter,
+    compute_safety_inset_quad,
     detect_quad,
     enhance_slide,
     is_paper_ratio,
@@ -358,6 +360,39 @@ def test_warp_slide_uses_custom_fill_color() -> None:
 
     warped_black = warp_slide(img, quad, 100, 100, fill_color=(0, 0, 0))
     assert warped_black.getpixel((0, 0)) == (0, 0, 0)
+
+
+def test_compute_safety_inset_quad_scales_towards_centroid() -> None:
+    quad = np.array([[0, 0], [100, 0], [100, 100], [0, 100]], dtype=np.float64)
+    inset = compute_safety_inset_quad(quad, factor=0.01)
+    # Centroid is (50, 50). Factor 0.01 shrinks by 1% from centroid.
+    assert np.allclose(inset[0], [0.5, 0.5])
+    assert np.allclose(inset[1], [99.5, 0.5])
+    assert np.allclose(inset[2], [99.5, 99.5])
+    assert np.allclose(inset[3], [0.5, 99.5])
+
+
+def test_clean_dark_perimeter_replaces_anomalous_dark_border_pixels() -> None:
+    # 100x100 white page with dark bottom border
+    arr = np.full((100, 100, 3), 220, dtype=np.uint8)
+    arr[99, :] = 20  # dark table bleed
+    img = Image.fromarray(arr)
+    cleaned = clean_dark_perimeter(img, depth=3)
+    cleaned_arr = np.array(cleaned)
+    assert cleaned_arr[99, 50, 0] == 220
+    assert cleaned_arr[99, 50, 1] == 220
+    assert cleaned_arr[99, 50, 2] == 220
+
+
+def test_clean_dark_perimeter_preserves_dark_background_slides() -> None:
+    # Inverted dark slide (black background with white content)
+    arr = np.full((100, 100, 3), 20, dtype=np.uint8)
+    arr[30:70, 30:70] = 240
+    img = Image.fromarray(arr)
+    cleaned = clean_dark_perimeter(img, depth=3)
+    cleaned_arr = np.array(cleaned)
+    assert cleaned_arr[0, 50, 0] == 20
+    assert cleaned_arr[99, 50, 0] == 20
 
 
 def test_order_quad_returns_clockwise_from_top_left() -> None:

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const { renderPerspectivePage } = await import(
+const { cleanDarkPerimeter, computeSafetyInsetQuad, renderPerspectivePage } = await import(
   new URL("../app/lib/perspective-render.ts", import.meta.url).href,
 );
 const { applyEnhancement } = await import(
@@ -188,4 +188,49 @@ test("applyEnhancement in bw mode flattens shadow and preserves text", () => {
 
   assert.equal(data[0], data[1]);
   assert.equal(data[1], data[2]);
+});
+
+test("computeSafetyInsetQuad scales quad coordinates toward centroid", () => {
+  const quad = [[0, 0], [100, 0], [100, 100], [0, 100]];
+  const inset = computeSafetyInsetQuad(quad, 0.01);
+  assert.equal(inset[0][0], 0.5);
+  assert.equal(inset[0][1], 0.5);
+  assert.equal(inset[1][0], 99.5);
+  assert.equal(inset[1][1], 0.5);
+  assert.equal(inset[2][0], 99.5);
+  assert.equal(inset[2][1], 99.5);
+  assert.equal(inset[3][0], 0.5);
+  assert.equal(inset[3][1], 99.5);
+
+  // factor <= 0 returns original quad
+  assert.deepEqual(computeSafetyInsetQuad(quad, 0), quad);
+});
+
+test("cleanDarkPerimeter inpaint replaces anomalous dark outer perimeter on realistic pages", () => {
+  const width = 100;
+  const height = 100;
+  const data = new Uint8ClampedArray(width * height * 4);
+  data.fill(210); // paper background
+  // simulate tabletop bleed along the bottom line
+  for (let x = 0; x < width; x += 1) {
+    const idx = ((height - 1) * width + x) * 4;
+    data[idx] = 20;
+    data[idx + 1] = 20;
+    data[idx + 2] = 20;
+    data[idx + 3] = 255;
+  }
+
+  assert.equal(data[((height - 1) * width + 50) * 4], 20);
+  cleanDarkPerimeter(data, width, height, 3);
+  assert.equal(data[((height - 1) * width + 50) * 4], 210);
+});
+
+test("cleanDarkPerimeter preserves inverted dark-background slides", () => {
+  const width = 100;
+  const height = 100;
+  const data = new Uint8ClampedArray(width * height * 4);
+  data.fill(20); // dark slide background
+  cleanDarkPerimeter(data, width, height, 3);
+  assert.equal(data[0], 20);
+  assert.equal(data[((height - 1) * width + 50) * 4], 20);
 });

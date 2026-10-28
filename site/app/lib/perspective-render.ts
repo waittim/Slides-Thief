@@ -20,7 +20,121 @@ export type RenderPerspectivePageOptions = {
   fillColor: string;
   enhancement: EnhancementMode;
   interpolation: PerspectiveInterpolation;
+  safetyInset?: number;
+  suppressDarkBorders?: boolean;
 };
+
+/**
+ * Applies a subtle safety inset towards the quadrilateral centroid.
+ * Shifting the sampling rays 0.5% - 0.8% inward prevents sampling outer desk surfaces,
+ * shadows, and background bleed without cutting into document or presentation margins.
+ */
+export function computeSafetyInsetQuad(quad: Quad, factor: number = 0.006): Quad {
+  if (factor <= 0) return quad;
+  const cx = (quad[0][0] + quad[1][0] + quad[2][0] + quad[3][0]) / 4;
+  const cy = (quad[0][1] + quad[1][1] + quad[2][1] + quad[3][1]) / 4;
+  const scale = 1 - factor;
+  return quad.map(([x, y]) => [
+    cx + (x - cx) * scale,
+    cy + (y - cy) * scale,
+  ]) as Quad;
+}
+
+/**
+ * Suppresses residual dark perimeter lines (e.g. tabletop bleed or camera frame shadows)
+ * by inpainting anomalous dark pixels on the outermost 1-4 perimeter pixels using adjacent
+ * clean paper tone.
+ */
+export function cleanDarkPerimeter(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  depth: number = 4,
+): void {
+  if (width < 64 || height < 64 || depth < 1) return;
+  const d = Math.min(depth, Math.max(1, Math.floor(Math.min(width, height) * 0.01)));
+
+  // Sample interior background luma from the central 80% stats region
+  const x0 = Math.floor(width * 0.1);
+  const y0 = Math.floor(height * 0.1);
+  const x1 = Math.max(x0 + 1, Math.ceil(width * 0.9));
+  const y1 = Math.max(y0 + 1, Math.ceil(height * 0.9));
+  let lumaSum = 0;
+  let count = 0;
+  const stride = Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 20_000)));
+  for (let y = y0; y < y1; y += stride) {
+    const yWidth = y * width;
+    for (let x = x0; x < x1; x += stride) {
+      const idx = (yWidth + x) * 4;
+      lumaSum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+      count += 1;
+    }
+  }
+  if (count === 0) return;
+  const interiorLuma = lumaSum / count;
+  if (interiorLuma < 50) return; // inverted or dark-background slide
+  const darkThreshold = interiorLuma * 0.65;
+
+  // Clean top edge
+  for (let y = 0; y < d; y += 1) {
+    const yWidth = y * width;
+    const refWidth = d * width;
+    for (let x = 0; x < width; x += 1) {
+      const i = (yWidth + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        const ref = (refWidth + x) * 4;
+        data[i] = data[ref];
+        data[i + 1] = data[ref + 1];
+        data[i + 2] = data[ref + 2];
+      }
+    }
+  }
+
+  // Clean bottom edge
+  for (let y = height - 1; y >= height - d; y -= 1) {
+    const yWidth = y * width;
+    const refWidth = (height - 1 - d) * width;
+    for (let x = 0; x < width; x += 1) {
+      const i = (yWidth + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        const ref = (refWidth + x) * 4;
+        data[i] = data[ref];
+        data[i + 1] = data[ref + 1];
+        data[i + 2] = data[ref + 2];
+      }
+    }
+  }
+
+  // Clean left edge
+  for (let x = 0; x < d; x += 1) {
+    for (let y = 0; y < height; y += 1) {
+      const i = (y * width + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        const ref = (y * width + d) * 4;
+        data[i] = data[ref];
+        data[i + 1] = data[ref + 1];
+        data[i + 2] = data[ref + 2];
+      }
+    }
+  }
+
+  // Clean right edge
+  for (let x = width - 1; x >= width - d; x -= 1) {
+    for (let y = 0; y < height; y += 1) {
+      const i = (y * width + x) * 4;
+      const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma < darkThreshold) {
+        const ref = (y * width + (width - 1 - d)) * 4;
+        data[i] = data[ref];
+        data[i + 1] = data[ref + 1];
+        data[i + 2] = data[ref + 2];
+      }
+    }
+  }
+}
 
 /**
  * Renders a perspective-corrected page from an already decoded source image.
@@ -34,13 +148,17 @@ export function renderPerspectivePage(
   options: RenderPerspectivePageOptions,
 ): PixelImage {
   const { outputWidth, outputHeight } = options;
+  const isRealisticPage = outputWidth >= 64 && outputHeight >= 64;
+  const safetyInset = options.safetyInset ?? (isRealisticPage ? 0.006 : 0);
+  const effectiveQuad = safetyInset > 0 ? computeSafetyInsetQuad(quad, safetyInset) : quad;
+
   const output: PixelImage = {
     width: outputWidth,
     height: outputHeight,
     data: new Uint8ClampedArray(outputWidth * outputHeight * 4),
   };
   const target = containedRect(outputWidth, outputHeight, options.sourceRatio);
-  const coeffs = perspectiveCoefficients(quad, target);
+  const coeffs = perspectiveCoefficients(effectiveQuad, target);
   const provisionalFill = options.fillColor === "auto"
     ? [255, 255, 255] as [number, number, number]
     : parseHexColor(options.fillColor);
@@ -67,6 +185,10 @@ export function renderPerspectivePage(
 
   const contentBounds = contentPixelBounds(target);
   const content = extractContent(output, contentBounds);
+  const shouldCleanBorders = options.suppressDarkBorders ?? isRealisticPage;
+  if (shouldCleanBorders) {
+    cleanDarkPerimeter(content.data, content.width, content.height);
+  }
   applyEnhancement(content.data, content.width, content.height, options.enhancement);
   const fill = resolveFillColor(options.fillColor, content);
   fillAndBlitContent(output, content, contentBounds, fill, provisionalFill);
