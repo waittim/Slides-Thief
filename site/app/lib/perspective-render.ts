@@ -52,32 +52,113 @@ export function cleanDarkPerimeter(
 ): void {
   if (width < 64 || height < 64 || depth < 1) return;
   const maxScan = Math.min(
-    Math.max(depth, Math.floor(Math.min(width, height) * 0.025)),
-    32,
+    Math.max(depth, Math.floor(Math.min(width, height) * 0.05)),
+    64,
   );
 
-  // Sample interior background luma from the central 80% stats region
+  // Sample interior background luma from the central 80% stats region using 256-bucket histogram
   const x0 = Math.floor(width * 0.1);
   const y0 = Math.floor(height * 0.1);
   const x1 = Math.max(x0 + 1, Math.ceil(width * 0.9));
   const y1 = Math.max(y0 + 1, Math.ceil(height * 0.9));
-  let lumaSum = 0;
+  const hist = new Int32Array(256);
   let count = 0;
   const stride = Math.max(1, Math.floor(Math.sqrt(((x1 - x0) * (y1 - y0)) / 20_000)));
   for (let y = y0; y < y1; y += stride) {
     const yWidth = y * width;
     for (let x = x0; x < x1; x += stride) {
       const idx = (yWidth + x) * 4;
-      lumaSum += data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+      const luma = Math.floor(data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114);
+      hist[Math.min(255, Math.max(0, luma))] += 1;
       count += 1;
     }
   }
   if (count === 0) return;
-  const interiorLuma = lumaSum / count;
-  if (interiorLuma < 50) return; // inverted or dark-background slide
-  const darkThreshold = interiorLuma * 0.78;
 
-  // 1. Clean top edge (downward ray search)
+  // Extract 80th percentile of interior luma to represent clean paper background
+  const targetCount = count * 0.8;
+  let accumulated = 0;
+  let p80 = 0;
+  for (let i = 0; i < 256; i += 1) {
+    accumulated += hist[i];
+    if (accumulated >= targetCount) {
+      p80 = i;
+      break;
+    }
+  }
+  if (p80 < 50) return; // inverted or dark-background slide
+  const darkThreshold = p80 * 0.85;
+
+  // 1. Corner anchor inpainting for acute overshoots where orthogonal rays stay outside paper
+  const tlIdx = (maxScan * width + maxScan) * 4;
+  const tlLuma = data[tlIdx] * 0.299 + data[tlIdx + 1] * 0.587 + data[tlIdx + 2] * 0.114;
+  if (tlLuma >= darkThreshold) {
+    for (let y = 0; y < maxScan; y += 1) {
+      const yWidth = y * width;
+      for (let x = 0; x < maxScan; x += 1) {
+        const i = (yWidth + x) * 4;
+        const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        if (luma < darkThreshold) {
+          data[i] = data[tlIdx];
+          data[i + 1] = data[tlIdx + 1];
+          data[i + 2] = data[tlIdx + 2];
+        }
+      }
+    }
+  }
+
+  const trIdx = (maxScan * width + (width - 1 - maxScan)) * 4;
+  const trLuma = data[trIdx] * 0.299 + data[trIdx + 1] * 0.587 + data[trIdx + 2] * 0.114;
+  if (trLuma >= darkThreshold) {
+    for (let y = 0; y < maxScan; y += 1) {
+      const yWidth = y * width;
+      for (let x = width - 1; x >= width - 1 - maxScan; x -= 1) {
+        const i = (yWidth + x) * 4;
+        const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        if (luma < darkThreshold) {
+          data[i] = data[trIdx];
+          data[i + 1] = data[trIdx + 1];
+          data[i + 2] = data[trIdx + 2];
+        }
+      }
+    }
+  }
+
+  const blIdx = ((height - 1 - maxScan) * width + maxScan) * 4;
+  const blLuma = data[blIdx] * 0.299 + data[blIdx + 1] * 0.587 + data[blIdx + 2] * 0.114;
+  if (blLuma >= darkThreshold) {
+    for (let y = height - 1; y >= height - 1 - maxScan; y -= 1) {
+      const yWidth = y * width;
+      for (let x = 0; x < maxScan; x += 1) {
+        const i = (yWidth + x) * 4;
+        const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        if (luma < darkThreshold) {
+          data[i] = data[blIdx];
+          data[i + 1] = data[blIdx + 1];
+          data[i + 2] = data[blIdx + 2];
+        }
+      }
+    }
+  }
+
+  const brIdx = ((height - 1 - maxScan) * width + (width - 1 - maxScan)) * 4;
+  const brLuma = data[brIdx] * 0.299 + data[brIdx + 1] * 0.587 + data[brIdx + 2] * 0.114;
+  if (brLuma >= darkThreshold) {
+    for (let y = height - 1; y >= height - 1 - maxScan; y -= 1) {
+      const yWidth = y * width;
+      for (let x = width - 1; x >= width - 1 - maxScan; x -= 1) {
+        const i = (yWidth + x) * 4;
+        const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+        if (luma < darkThreshold) {
+          data[i] = data[brIdx];
+          data[i + 1] = data[brIdx + 1];
+          data[i + 2] = data[brIdx + 2];
+        }
+      }
+    }
+  }
+
+  // 2. Clean top edge (downward ray search)
   for (let x = 0; x < width; x += 1) {
     for (let y = 0; y < maxScan && y < height; y += 1) {
       const i = (y * width + x) * 4;

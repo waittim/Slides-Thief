@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.10] - 2026-10-28
+
+### Fixed
+
+- Fixed perimeter and corner bleed suppression (`cleanDarkPerimeter` in TypeScript, `clean_dark_perimeter` in Python) for acute corner overshoots where dark background wedges extend past shallow scan depths.
+- Upgraded thresholding to an interior luma 80th-percentile estimator ($P_{80} \times 0.85$), preventing middle shadows from dragging down the dark threshold and stopping at blur transition pixels.
+- Increased max scan depth to 5% (capped at 64px) and added clean corner anchor fallback inpainting to guarantee 100% white margins across all four corners in both color and black-and-white enhancement modes.
+
 ## [3.0.9] - 2026-10-28
 
 ### Improved

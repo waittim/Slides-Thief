@@ -221,14 +221,52 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
     y0 = int(h * 0.1)
     x1 = max(x0 + 1, int(w * 0.9))
     y1 = max(y0 + 1, int(h * 0.9))
-    interior_luma = float(gray[y0:y1, x0:x1].mean())
-    if interior_luma < 50:
+    interior = gray[y0:y1, x0:x1]
+    if interior.size == 0:
+        return image
+
+    p80 = float(np.percentile(interior, 80))
+    if p80 < 50:
         return image  # dark background slide
 
-    dark_threshold = interior_luma * 0.78
-    max_scan = min(max(depth, int(min(w, h) * 0.025)), 32)
+    dark_threshold = p80 * 0.85
+    max_scan = min(max(depth, int(min(w, h) * 0.05)), 64)
 
-    # 1. Top edge (downward ray search)
+    # 1. Corner anchor inpainting for acute overshoots where orthogonal rays stay outside paper
+    tl_ref = arr[max_scan, max_scan] if gray[max_scan, max_scan] >= dark_threshold else None
+    tr_ref = arr[max_scan, w - 1 - max_scan] if gray[max_scan, w - 1 - max_scan] >= dark_threshold else None
+    bl_ref = arr[h - 1 - max_scan, max_scan] if gray[h - 1 - max_scan, max_scan] >= dark_threshold else None
+    br_ref = arr[h - 1 - max_scan, w - 1 - max_scan] if gray[h - 1 - max_scan, w - 1 - max_scan] >= dark_threshold else None
+
+    if tl_ref is not None:
+        for y in range(max_scan):
+            for x in range(max_scan):
+                if gray[y, x] < dark_threshold:
+                    arr[y, x] = tl_ref
+                    gray[y, x] = dark_threshold
+
+    if tr_ref is not None:
+        for y in range(max_scan):
+            for x in range(w - 1, w - 1 - max_scan, -1):
+                if gray[y, x] < dark_threshold:
+                    arr[y, x] = tr_ref
+                    gray[y, x] = dark_threshold
+
+    if bl_ref is not None:
+        for y in range(h - 1, h - 1 - max_scan, -1):
+            for x in range(max_scan):
+                if gray[y, x] < dark_threshold:
+                    arr[y, x] = bl_ref
+                    gray[y, x] = dark_threshold
+
+    if br_ref is not None:
+        for y in range(h - 1, h - 1 - max_scan, -1):
+            for x in range(w - 1, w - 1 - max_scan, -1):
+                if gray[y, x] < dark_threshold:
+                    arr[y, x] = br_ref
+                    gray[y, x] = dark_threshold
+
+    # 2. Top edge (downward ray search)
     for x in range(w):
         for y in range(max_scan):
             if gray[y, x] < dark_threshold:
