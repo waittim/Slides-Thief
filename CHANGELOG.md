@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.9] - 2026-10-28
+
+### Improved
+
+- Upgraded perimeter dark border suppression (`cleanDarkPerimeter` in TypeScript and `clean_dark_perimeter` in Python) to use adaptive directional ray inpainting. Rather than sampling from a fixed shallow offset, each border pixel scans inward along its orthogonal ray up to 2.5% of the image dimension (capped at 32px) to locate the first clean paper pixel (`luma >= interior_luma * 0.78`), completely eliminating triangular corner bleed wedges caused by optical perspective curvature or desk drift.
+- Calibrated the default safety inset ratio to `0.007` (0.7% centroid contraction), providing optimal cushion against corner overshoots while preserving 100% of document content and margins.
+
 ## [3.0.8] - 2026-10-27
 
 ### Added

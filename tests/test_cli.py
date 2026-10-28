@@ -395,6 +395,19 @@ def test_clean_dark_perimeter_preserves_dark_background_slides() -> None:
     assert cleaned_arr[99, 50, 0] == 20
 
 
+def test_clean_dark_perimeter_eliminates_corner_bleed_wedges() -> None:
+    # 120x120 white page with a triangular dark corner bleed in top-right
+    arr = np.full((120, 120, 3), 225, dtype=np.uint8)
+    for y in range(10):
+        for x in range(115 - y, 120):
+            arr[y, x] = 25
+    img = Image.fromarray(arr)
+    cleaned = clean_dark_perimeter(img, depth=12)
+    cleaned_arr = np.array(cleaned)
+    assert cleaned_arr[0, 119, 0] >= 200
+    assert cleaned_arr[5, 119, 0] >= 200
+
+
 def test_order_quad_returns_clockwise_from_top_left() -> None:
     points = np.array(
         [

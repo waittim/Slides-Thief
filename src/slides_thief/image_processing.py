@@ -195,7 +195,7 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
     return ImageEnhance.Sharpness(rgb).enhance(1.35)
 
 
-def compute_safety_inset_quad(quad: np.ndarray, factor: float = 0.006) -> np.ndarray:
+def compute_safety_inset_quad(quad: np.ndarray, factor: float = 0.007) -> np.ndarray:
     """Apply a subtle safety inset towards the quadrilateral centroid.
 
     Shifting the sampling rays 0.5% - 0.8% inward prevents sampling outer desk surfaces,
@@ -210,7 +210,7 @@ def compute_safety_inset_quad(quad: np.ndarray, factor: float = 0.006) -> np.nda
 
 
 def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
-    """Suppress residual dark perimeter lines (e.g. tabletop bleed or camera frame shadows)."""
+    """Suppress residual dark perimeter lines and corner overshoots via directional inpainting."""
     w, h = image.size
     if w < 64 or h < 64 or depth < 1:
         return image
@@ -225,24 +225,60 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
     if interior_luma < 50:
         return image  # dark background slide
 
-    dark_threshold = interior_luma * 0.65
-    d = min(depth, max(1, int(min(w, h) * 0.01)))
+    dark_threshold = interior_luma * 0.78
+    max_scan = min(max(depth, int(min(w, h) * 0.025)), 32)
 
-    for y in range(d):
-        dark_mask = gray[y, :] < dark_threshold
-        arr[y, dark_mask] = arr[d, dark_mask]
+    # 1. Top edge (downward ray search)
+    for x in range(w):
+        for y in range(max_scan):
+            if gray[y, x] < dark_threshold:
+                clean_y = None
+                for sy in range(y + 1, min(h, max_scan + 1)):
+                    if gray[sy, x] >= dark_threshold:
+                        clean_y = sy
+                        break
+                if clean_y is not None:
+                    arr[y, x] = arr[clean_y, x]
+                    gray[y, x] = gray[clean_y, x]
 
-    for y in range(h - 1, h - 1 - d, -1):
-        dark_mask = gray[y, :] < dark_threshold
-        arr[y, dark_mask] = arr[h - 1 - d, dark_mask]
+    # 2. Bottom edge (upward ray search)
+    for x in range(w):
+        for y in range(h - 1, max(-1, h - 1 - max_scan), -1):
+            if gray[y, x] < dark_threshold:
+                clean_y = None
+                for sy in range(y - 1, max(-1, h - 1 - max_scan - 1), -1):
+                    if gray[sy, x] >= dark_threshold:
+                        clean_y = sy
+                        break
+                if clean_y is not None:
+                    arr[y, x] = arr[clean_y, x]
+                    gray[y, x] = gray[clean_y, x]
 
-    for x in range(d):
-        dark_mask = gray[:, x] < dark_threshold
-        arr[dark_mask, x] = arr[dark_mask, d]
+    # 3. Left edge (rightward ray search)
+    for y in range(h):
+        for x in range(max_scan):
+            if gray[y, x] < dark_threshold:
+                clean_x = None
+                for sx in range(x + 1, min(w, max_scan + 1)):
+                    if gray[y, sx] >= dark_threshold:
+                        clean_x = sx
+                        break
+                if clean_x is not None:
+                    arr[y, x] = arr[y, clean_x]
+                    gray[y, x] = gray[y, clean_x]
 
-    for x in range(w - 1, w - 1 - d, -1):
-        dark_mask = gray[:, x] < dark_threshold
-        arr[dark_mask, x] = arr[dark_mask, w - 1 - d]
+    # 4. Right edge (leftward ray search)
+    for y in range(h):
+        for x in range(w - 1, max(-1, w - 1 - max_scan), -1):
+            if gray[y, x] < dark_threshold:
+                clean_x = None
+                for sx in range(x - 1, max(-1, w - 1 - max_scan - 1), -1):
+                    if gray[y, sx] >= dark_threshold:
+                        clean_x = sx
+                        break
+                if clean_x is not None:
+                    arr[y, x] = arr[y, clean_x]
+                    gray[y, x] = gray[y, clean_x]
 
     return Image.fromarray(arr)
 
@@ -257,7 +293,7 @@ def warp_slide(
     suppress_dark_borders: bool | None = None,
 ) -> Image.Image:
     is_realistic = out_w >= 64 and out_h >= 64
-    inset = safety_inset if safety_inset is not None else (0.006 if is_realistic else 0.0)
+    inset = safety_inset if safety_inset is not None else (0.007 if is_realistic else 0.0)
     effective_quad = compute_safety_inset_quad(quad, inset) if inset > 0 else np.asarray(quad, dtype=np.float64)
 
     dst = np.array([[0, 0], [out_w, 0], [out_w, out_h], [0, out_h]], dtype=np.float64)
