@@ -2568,7 +2568,7 @@ canvas {
   position: absolute;
   bottom: calc(100% - var(--space-1));
   left: 50%;
-  transform: translateX(-50%) translateY(2px) scale(0.9);
+  transform: translateX(-50%) translateY(0);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -2584,15 +2584,17 @@ canvas {
   font-weight: 600;
   line-height: 1;
   pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.92;
+  transition: opacity 0.15s ease, transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease;
   user-select: none;
 }
 
 .cornerHandle:hover .cornerHandleBadge,
 .cornerHandle:focus-visible .cornerHandleBadge {
   opacity: 1;
-  transform: translateX(-50%) translateY(0) scale(1);
+  transform: translateX(-50%) translateY(-2px) scale(1.08);
+  background: var(--panel-strong);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
 }
 
 .cornerHandle.active .cornerHandleBadge {
@@ -2650,7 +2652,7 @@ canvas {
 
 .cornerTableHeader {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) 28px;
   gap: var(--space-2);
   align-items: center;
 }
@@ -2664,9 +2666,26 @@ canvas {
 
 .cornerRow {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-columns: 24px minmax(0, 1fr) minmax(0, 1fr) 28px;
   gap: var(--space-2);
   align-items: center;
+}
+
+.cornerExtrapolateBtn {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.cornerExtrapolateBtn:hover:not(:disabled) {
+  color: var(--color-ink-900);
+  background: var(--line);
 }
 
 .cornerRow span,
@@ -2715,6 +2734,42 @@ canvas {
 .cornerInput:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+.cornerOrderLegend {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-1) var(--space-2);
+  margin-top: calc(-1 * var(--space-1));
+  border-radius: var(--radius-sm);
+  background: light-dark(rgba(0, 0, 0, 0.025), rgba(255, 255, 255, 0.035));
+  border: 1px solid light-dark(rgba(0, 0, 0, 0.04), rgba(255, 255, 255, 0.05));
+  color: var(--muted);
+  font-size: var(--font-size-2xs);
+  font-weight: var(--font-weight-medium);
+  user-select: none;
+}
+
+.cornerLegendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.cornerLegendNum {
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+}
+
+.cornerLegendPos {
+  color: var(--muted);
+}
+
+.cornerLegendSep {
+  margin-left: var(--space-1);
+  opacity: 0.45;
+  font-size: var(--font-size-2xs);
 }
 
 .inspectorBatchActions {

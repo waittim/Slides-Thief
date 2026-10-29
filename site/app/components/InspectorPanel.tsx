@@ -1,12 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { formatSlideError, type LocaleCopy, type LocaleValue, type ReviewUiCopy } from "../i18n";
 import type { SlideItem } from "../lib/types";
+import { maxQuadOutside } from "../lib/slide-utils.ts";
 import { Button, CountBadge, Icon } from "./ui";
 
 export type MetricItem = [string, React.ReactNode, string?];
 
 export interface CornerCoordinateInputProps {
   value: number;
+  min?: number;
   max: number;
   ariaLabel: string;
   title: string;
@@ -16,6 +18,7 @@ export interface CornerCoordinateInputProps {
 
 export function CornerCoordinateInput({
   value,
+  min = 0,
   max,
   ariaLabel,
   title,
@@ -38,7 +41,7 @@ export function CornerCoordinateInput({
       setLocalText(String(roundedValue));
       return;
     }
-    const clamped = Math.max(0, Math.min(max, Math.round(parsed)));
+    const clamped = Math.max(min, Math.min(max, Math.round(parsed)));
     setLocalText(String(clamped));
     if (clamped !== lastCommittedRef.current) {
       lastCommittedRef.current = clamped;
@@ -51,7 +54,7 @@ export function CornerCoordinateInput({
       type="number"
       className="cornerInput"
       value={displayedText}
-      min={0}
+      min={min}
       max={max}
       step={1}
       disabled={disabled}
@@ -95,6 +98,7 @@ export interface InspectorPanelProps {
   isReviewMode?: boolean;
   reviewSlideCount?: number;
   onCornerChange?: (cornerIndex: number, coordIndex: 0 | 1, value: number) => void;
+  onExtrapolateCorner?: (cornerIndex: number) => void;
   disabled?: boolean;
 }
 
@@ -116,6 +120,7 @@ export function InspectorPanel({
   isReviewMode = false,
   reviewSlideCount = 0,
   onCornerChange,
+  onExtrapolateCorner,
   disabled = false,
 }: InspectorPanelProps) {
   return (
@@ -202,37 +207,79 @@ export function InspectorPanel({
           {selectedSlide?.quad ? (
             <>
               <div className="cornerTableHeader" aria-hidden="true">
-                <span className="cornerTableColHeader">#</span>
+                <span
+                  className="cornerTableColHeader"
+                  title={text.cornerPositions.map((pos, i) => `${i + 1}: ${pos}`).join(", ")}
+                >
+                  #
+                </span>
                 <span className="cornerTableColHeader">X</span>
                 <span className="cornerTableColHeader">Y</span>
+                {onExtrapolateCorner ? (
+                  <span className="cornerTableColHeader" title={text.snap}>
+                    ✨
+                  </span>
+                ) : null}
               </div>
               {selectedSlide.quad.map(([x, y], index) => {
                 const width = selectedSlide.width > 0 ? selectedSlide.width : 10000;
                 const height = selectedSlide.height > 0 ? selectedSlide.height : 10000;
+                const maxOutsideX = maxQuadOutside(width);
+                const maxOutsideY = maxQuadOutside(height);
+                const posName = text.cornerPositions[index];
                 return (
                   <div className="cornerRow" key={index}>
-                    <span className="cornerIndex" aria-hidden="true">
+                    <span
+                      className="cornerIndex"
+                      aria-hidden="true"
+                      title={`${text.cornerHandle} ${index + 1}: ${posName}`}
+                    >
                       {index + 1}
                     </span>
                     <CornerCoordinateInput
                       value={x}
-                      max={width}
-                      ariaLabel={`${text.cornerHandle} ${index + 1} X`}
-                      title={`${text.cornerHandle} ${index + 1} X (0 – ${width})`}
+                      min={-maxOutsideX}
+                      max={width + maxOutsideX}
+                      ariaLabel={`${text.cornerHandle} ${index + 1} (${posName}) X`}
+                      title={`${text.cornerHandle} ${index + 1} (${posName}) X (${-maxOutsideX} – ${width + maxOutsideX})`}
                       disabled={disabled}
                       onChange={(newVal) => onCornerChange?.(index, 0, newVal)}
                     />
                     <CornerCoordinateInput
                       value={y}
-                      max={height}
-                      ariaLabel={`${text.cornerHandle} ${index + 1} Y`}
-                      title={`${text.cornerHandle} ${index + 1} Y (0 – ${height})`}
+                      min={-maxOutsideY}
+                      max={height + maxOutsideY}
+                      ariaLabel={`${text.cornerHandle} ${index + 1} (${posName}) Y`}
+                      title={`${text.cornerHandle} ${index + 1} (${posName}) Y (${-maxOutsideY} – ${height + maxOutsideY})`}
                       disabled={disabled}
                       onChange={(newVal) => onCornerChange?.(index, 1, newVal)}
                     />
+                    {onExtrapolateCorner ? (
+                      <Button
+                        variant="icon"
+                        size="sm"
+                        className="cornerExtrapolateBtn"
+                        type="button"
+                        disabled={disabled}
+                        title={`${text.extrapolateCorner(index + 1)} (${posName})`}
+                        aria-label={`${text.extrapolateCorner(index + 1)} (${posName})`}
+                        onClick={() => onExtrapolateCorner(index)}
+                      >
+                        <Icon name="sparkles" size={13} />
+                      </Button>
+                    ) : null}
                   </div>
                 );
               })}
+              <div className="cornerOrderLegend" aria-hidden="true" title={text.adjustCorners}>
+                {text.cornerPositions.map((pos, idx) => (
+                  <span key={idx} className="cornerLegendItem">
+                    <span className="cornerLegendNum">{idx + 1}</span>
+                    <span className="cornerLegendPos">{pos}</span>
+                    {idx < 3 ? <span className="cornerLegendSep">›</span> : null}
+                  </span>
+                ))}
+              </div>
             </>
           ) : null}
         </div>

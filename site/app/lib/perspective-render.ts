@@ -52,8 +52,8 @@ export function cleanDarkPerimeter(
 ): void {
   if (width < 64 || height < 64 || depth < 1) return;
   const maxScan = Math.min(
-    Math.max(depth, Math.floor(Math.min(width, height) * 0.05)),
-    64,
+    Math.max(depth, Math.floor(Math.min(width, height) * 0.08)),
+    96,
   );
 
   // Sample interior background luma from the central 80% stats region using 256-bucket histogram
@@ -90,9 +90,22 @@ export function cleanDarkPerimeter(
   const darkThreshold = p80 * 0.85;
 
   // 1. Corner anchor inpainting for acute overshoots where orthogonal rays stay outside paper
-  const tlIdx = (maxScan * width + maxScan) * 4;
-  const tlLuma = data[tlIdx] * 0.299 + data[tlIdx + 1] * 0.587 + data[tlIdx + 2] * 0.114;
-  if (tlLuma >= darkThreshold) {
+  const findCleanCornerAnchor = (startX: number, startY: number, stepX: number, stepY: number) => {
+    for (let step = 0; step < maxScan; step += 2) {
+      const cx = startX + step * stepX;
+      const cy = startY + step * stepY;
+      if (cx < 0 || cx >= width || cy < 0 || cy >= height) break;
+      const idx = (cy * width + cx) * 4;
+      const luma = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114;
+      if (luma >= darkThreshold) {
+        return idx;
+      }
+    }
+    return -1;
+  };
+
+  const tlIdx = findCleanCornerAnchor(maxScan, maxScan, 1, 1);
+  if (tlIdx !== -1) {
     for (let y = 0; y < maxScan; y += 1) {
       const yWidth = y * width;
       for (let x = 0; x < maxScan; x += 1) {
@@ -107,9 +120,8 @@ export function cleanDarkPerimeter(
     }
   }
 
-  const trIdx = (maxScan * width + (width - 1 - maxScan)) * 4;
-  const trLuma = data[trIdx] * 0.299 + data[trIdx + 1] * 0.587 + data[trIdx + 2] * 0.114;
-  if (trLuma >= darkThreshold) {
+  const trIdx = findCleanCornerAnchor(width - 1 - maxScan, maxScan, -1, 1);
+  if (trIdx !== -1) {
     for (let y = 0; y < maxScan; y += 1) {
       const yWidth = y * width;
       for (let x = width - 1; x >= width - 1 - maxScan; x -= 1) {
@@ -124,9 +136,8 @@ export function cleanDarkPerimeter(
     }
   }
 
-  const blIdx = ((height - 1 - maxScan) * width + maxScan) * 4;
-  const blLuma = data[blIdx] * 0.299 + data[blIdx + 1] * 0.587 + data[blIdx + 2] * 0.114;
-  if (blLuma >= darkThreshold) {
+  const blIdx = findCleanCornerAnchor(maxScan, height - 1 - maxScan, 1, -1);
+  if (blIdx !== -1) {
     for (let y = height - 1; y >= height - 1 - maxScan; y -= 1) {
       const yWidth = y * width;
       for (let x = 0; x < maxScan; x += 1) {
@@ -141,9 +152,8 @@ export function cleanDarkPerimeter(
     }
   }
 
-  const brIdx = ((height - 1 - maxScan) * width + (width - 1 - maxScan)) * 4;
-  const brLuma = data[brIdx] * 0.299 + data[brIdx + 1] * 0.587 + data[brIdx + 2] * 0.114;
-  if (brLuma >= darkThreshold) {
+  const brIdx = findCleanCornerAnchor(width - 1 - maxScan, height - 1 - maxScan, -1, -1);
+  if (brIdx !== -1) {
     for (let y = height - 1; y >= height - 1 - maxScan; y -= 1) {
       const yWidth = y * width;
       for (let x = width - 1; x >= width - 1 - maxScan; x -= 1) {
@@ -160,15 +170,22 @@ export function cleanDarkPerimeter(
 
   // 2. Clean top edge (downward ray search)
   for (let x = 0; x < width; x += 1) {
+    let maxRef = 0;
+    for (let sy = maxScan; sy <= Math.min(height - 1, maxScan + 24); sy += 2) {
+      const sIdx = (sy * width + x) * 4;
+      const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+      if (sLuma > maxRef) maxRef = sLuma;
+    }
+    const colThreshold = Math.max(darkThreshold, maxRef * 0.88);
     for (let y = 0; y < maxScan && y < height; y += 1) {
       const i = (y * width + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
+      if (luma < colThreshold) {
         let cleanY = -1;
         for (let sy = y + 1; sy <= maxScan && sy < height; sy += 1) {
           const sIdx = (sy * width + x) * 4;
           const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
-          if (sLuma >= darkThreshold) {
+          if (sLuma >= colThreshold) {
             cleanY = sy;
             break;
           }
@@ -185,15 +202,22 @@ export function cleanDarkPerimeter(
 
   // 2. Clean bottom edge (upward ray search)
   for (let x = 0; x < width; x += 1) {
+    let maxRef = 0;
+    for (let sy = Math.max(0, height - 1 - maxScan - 24); sy <= height - 1 - maxScan; sy += 2) {
+      const sIdx = (sy * width + x) * 4;
+      const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+      if (sLuma > maxRef) maxRef = sLuma;
+    }
+    const colThreshold = Math.max(darkThreshold, maxRef * 0.88);
     for (let y = height - 1; y >= height - maxScan && y >= 0; y -= 1) {
       const i = (y * width + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
+      if (luma < colThreshold) {
         let cleanY = -1;
         for (let sy = y - 1; sy >= height - maxScan - 1 && sy >= 0; sy -= 1) {
           const sIdx = (sy * width + x) * 4;
           const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
-          if (sLuma >= darkThreshold) {
+          if (sLuma >= colThreshold) {
             cleanY = sy;
             break;
           }
@@ -211,15 +235,22 @@ export function cleanDarkPerimeter(
   // 3. Clean left edge (rightward ray search)
   for (let y = 0; y < height; y += 1) {
     const yWidth = y * width;
+    let maxRef = 0;
+    for (let sx = maxScan; sx <= Math.min(width - 1, maxScan + 24); sx += 2) {
+      const sIdx = (yWidth + sx) * 4;
+      const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+      if (sLuma > maxRef) maxRef = sLuma;
+    }
+    const rowThreshold = Math.max(darkThreshold, maxRef * 0.88);
     for (let x = 0; x < maxScan && x < width; x += 1) {
       const i = (yWidth + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
+      if (luma < rowThreshold) {
         let cleanX = -1;
         for (let sx = x + 1; sx <= maxScan && sx < width; sx += 1) {
           const sIdx = (yWidth + sx) * 4;
           const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
-          if (sLuma >= darkThreshold) {
+          if (sLuma >= rowThreshold) {
             cleanX = sx;
             break;
           }
@@ -237,15 +268,22 @@ export function cleanDarkPerimeter(
   // 4. Clean right edge (leftward ray search)
   for (let y = 0; y < height; y += 1) {
     const yWidth = y * width;
+    let maxRef = 0;
+    for (let sx = Math.max(0, width - 1 - maxScan - 24); sx <= width - 1 - maxScan; sx += 2) {
+      const sIdx = (yWidth + sx) * 4;
+      const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
+      if (sLuma > maxRef) maxRef = sLuma;
+    }
+    const rowThreshold = Math.max(darkThreshold, maxRef * 0.88);
     for (let x = width - 1; x >= width - maxScan && x >= 0; x -= 1) {
       const i = (yWidth + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-      if (luma < darkThreshold) {
+      if (luma < rowThreshold) {
         let cleanX = -1;
         for (let sx = x - 1; sx >= width - maxScan - 1 && sx >= 0; sx -= 1) {
           const sIdx = (yWidth + sx) * 4;
           const sLuma = data[sIdx] * 0.299 + data[sIdx + 1] * 0.587 + data[sIdx + 2] * 0.114;
-          if (sLuma >= darkThreshold) {
+          if (sLuma >= rowThreshold) {
             cleanX = sx;
             break;
           }
@@ -256,6 +294,57 @@ export function cleanDarkPerimeter(
           data[i + 1] = data[refIdx + 1];
           data[i + 2] = data[refIdx + 2];
         }
+      }
+    }
+  }
+
+  // 5. Clean outermost 1-pixel boundary to prevent residual subpixel border lines
+  const rimThreshold = p80 * 0.95;
+  if (height > 2) {
+    for (let x = 0; x < width; x += 1) {
+      const top0 = x * 4;
+      const top1 = (width + x) * 4;
+      const topLuma = data[top0] * 0.299 + data[top0 + 1] * 0.587 + data[top0 + 2] * 0.114;
+      const topRefLuma = data[top1] * 0.299 + data[top1 + 1] * 0.587 + data[top1 + 2] * 0.114;
+      if (topLuma < rimThreshold && topRefLuma >= darkThreshold) {
+        data[top0] = data[top1];
+        data[top0 + 1] = data[top1 + 1];
+        data[top0 + 2] = data[top1 + 2];
+      }
+
+      const bot0 = ((height - 1) * width + x) * 4;
+      const bot1 = ((height - 2) * width + x) * 4;
+      const botLuma = data[bot0] * 0.299 + data[bot0 + 1] * 0.587 + data[bot0 + 2] * 0.114;
+      const botRefLuma = data[bot1] * 0.299 + data[bot1 + 1] * 0.587 + data[bot1 + 2] * 0.114;
+      if (botLuma < rimThreshold && botRefLuma >= darkThreshold) {
+        data[bot0] = data[bot1];
+        data[bot0 + 1] = data[bot1 + 1];
+        data[bot0 + 2] = data[bot1 + 2];
+      }
+    }
+  }
+
+  if (width > 2) {
+    for (let y = 0; y < height; y += 1) {
+      const yWidth = y * width;
+      const left0 = yWidth * 4;
+      const left1 = (yWidth + 1) * 4;
+      const leftLuma = data[left0] * 0.299 + data[left0 + 1] * 0.587 + data[left0 + 2] * 0.114;
+      const leftRefLuma = data[left1] * 0.299 + data[left1 + 1] * 0.587 + data[left1 + 2] * 0.114;
+      if (leftLuma < rimThreshold && leftRefLuma >= darkThreshold) {
+        data[left0] = data[left1];
+        data[left0 + 1] = data[left1 + 1];
+        data[left0 + 2] = data[left1 + 2];
+      }
+
+      const right0 = (yWidth + width - 1) * 4;
+      const right1 = (yWidth + width - 2) * 4;
+      const rightLuma = data[right0] * 0.299 + data[right0 + 1] * 0.587 + data[right0 + 2] * 0.114;
+      const rightRefLuma = data[right1] * 0.299 + data[right1 + 1] * 0.587 + data[right1 + 2] * 0.114;
+      if (rightLuma < rimThreshold && rightRefLuma >= darkThreshold) {
+        data[right0] = data[right1];
+        data[right0 + 1] = data[right1 + 1];
+        data[right0 + 2] = data[right1 + 2];
       }
     }
   }
@@ -304,7 +393,15 @@ export function renderPerspectivePage(
       const denominator = coeffs[6] * x + coeffs[7] * y + 1;
       const sourceX = (coeffs[0] * x + coeffs[1] * y + coeffs[2]) / denominator;
       const sourceY = (coeffs[3] * x + coeffs[4] * y + coeffs[5]) / denominator;
-      sampleRgb(source, sourceX, sourceY, output.data, outputOffset, options.interpolation);
+      sampleRgb(
+        source,
+        sourceX,
+        sourceY,
+        output.data,
+        outputOffset,
+        options.interpolation,
+        isRealisticPage ? provisionalFill : undefined,
+      );
     }
   }
 
@@ -327,13 +424,21 @@ function sampleRgb(
   target: Uint8ClampedArray,
   offset: number,
   interpolation: PerspectiveInterpolation,
+  outOfBoundsFill?: [number, number, number],
 ) {
   const { width, height, data } = source;
-  const dx = x < 0 ? -x : x >= width ? x - (width - 1) : 0;
-  const dy = y < 0 ? -y : y >= height ? y - (height - 1) : 0;
+  const minBound = outOfBoundsFill ? 0.5 : 0;
+  const maxBoundX = outOfBoundsFill ? width - 1.5 : width - 1;
+  const maxBoundY = outOfBoundsFill ? height - 1.5 : height - 1;
+  const dx = x < minBound ? minBound - x : x >= maxBoundX ? x - maxBoundX : 0;
+  const dy = y < minBound ? minBound - y : y >= maxBoundY ? y - maxBoundY : 0;
   const distance = Math.sqrt(dx * dx + dy * dy);
 
   if (distance > 0) {
+    if (outOfBoundsFill) {
+      writeRgb(target, offset, outOfBoundsFill);
+      return;
+    }
     const cx = Math.max(0, Math.min(width - 1, x));
     const cy = Math.max(0, Math.min(height - 1, y));
     const radius = Math.min(14, 2 + Math.floor(distance * 0.25));

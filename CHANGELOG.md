@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.0] - 2026-10-29
+
+### Added
+
+- Added corner extrapolation from three known corners (`extrapolateCorner` in TypeScript and Python) with an interactive snap action button (`✨`) in the Inspector panel. Automatically predicts the perspective position of an occluded, cut-off, or out-of-frame fourth corner using projective geometry, vanishing points, and affine parallel approximations.
+- Added out-of-bounds quad corner support across both browser canvas editor and backend rendering pipelines. Allows corner handles to be placed outside the photographic sensor bounds (up to 35% margin) while cleanly sampling with document provisional white fill.
+- Added permanent corner numbering badges (`1`, `2`, `3`, `4`) on canvas handles with clockwise sequence indicators (`1 左上 › 2 右上 › 3 右下 › 4 左下`) and localized position tooltips across all 9 supported languages.
+
+### Fixed
+
+- Fixed perimeter border inpainting (`cleanDarkPerimeter` in TypeScript, `clean_dark_perimeter` in Python) under uneven document illumination: replaced global dark thresholding with local scanline/column-adaptive thresholds (`Math.max(darkThreshold, maxRef * 0.88)`), preventing heavy shadows in lower document sections from blinding desk bleed suppression near bright top margins.
+- Enforced physical sensor frame falloff boundary clipping (`width - 1.5`, `height - 1.5`) when sampling out-of-bounds perspective coordinates, preventing camera lens vignetting on extreme edge columns from entering the warped document canvas.
+- Excluded synthetic white fill (`luma >= 254`) from local background histogram estimation in black-and-white scan mode (`documentScanBw`), preventing background inflation and false ink edges along extrapolated margins.
+
 ## [3.0.10] - 2026-10-28
 
 ### Fixed

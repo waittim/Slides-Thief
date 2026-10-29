@@ -79,6 +79,7 @@ function documentScanBw(data: Uint8ClampedArray, width: number, height: number) 
 
   const hist = new Int32Array(gridH * gridW * 256);
   const blockCounts = new Int32Array(gridH * gridW);
+  const nonSyntheticCounts = new Int32Array(gridH * gridW);
 
   for (let y = 0; y < height; y += 1) {
     const gy = Math.floor(y / blockSize);
@@ -89,25 +90,81 @@ function documentScanBw(data: Uint8ClampedArray, width: number, height: number) 
       const gx = Math.floor(x / blockSize);
       const i = (yWidth + x) * 4;
       const luma = Math.round(data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114);
-      hist[rowOffset + gx * 256 + luma] += 1;
       blockCounts[countRowOffset + gx] += 1;
+      if (luma < 254) {
+        hist[rowOffset + gx * 256 + luma] += 1;
+        nonSyntheticCounts[countRowOffset + gx] += 1;
+      }
     }
   }
 
   const bgGrid = new Float32Array(gridH * gridW);
+  const isSynthetic = new Uint8Array(gridH * gridW);
+
   for (let b = 0; b < gridH * gridW; b += 1) {
-    const target = Math.floor(blockCounts[b] * 0.88);
-    let acc = 0;
-    let p = 255;
-    const bOffset = b * 256;
-    for (let val = 0; val < 256; val += 1) {
-      acc += hist[bOffset + val];
-      if (acc >= target) {
-        p = val;
-        break;
+    const total = blockCounts[b];
+    const nonSyn = nonSyntheticCounts[b];
+    if (total > 0 && nonSyn < total * 0.2) {
+      isSynthetic[b] = 1;
+    }
+    if (nonSyn > 0) {
+      const target = Math.floor(nonSyn * 0.88);
+      let acc = 0;
+      let p = 255;
+      const bOffset = b * 256;
+      for (let val = 0; val < 256; val += 1) {
+        acc += hist[bOffset + val];
+        if (acc >= target) {
+          p = val;
+          break;
+        }
+      }
+      bgGrid[b] = Math.max(1, p);
+    }
+  }
+
+  // Bidirectional background propagation from document body to synthetic fill/margins
+  for (let gy = 0; gy < gridH; gy += 1) {
+    const rowOffset = gy * gridW;
+    let lastValid = -1;
+    for (let gx = 0; gx < gridW; gx += 1) {
+      const b = rowOffset + gx;
+      if (!isSynthetic[b]) {
+        lastValid = bgGrid[b];
+      } else if (lastValid !== -1) {
+        bgGrid[b] = lastValid;
       }
     }
-    bgGrid[b] = Math.max(1, p);
+    lastValid = -1;
+    for (let gx = gridW - 1; gx >= 0; gx -= 1) {
+      const b = rowOffset + gx;
+      if (!isSynthetic[b]) {
+        lastValid = bgGrid[b];
+      } else if (lastValid !== -1) {
+        bgGrid[b] = lastValid;
+      }
+    }
+  }
+
+  for (let gx = 0; gx < gridW; gx += 1) {
+    let lastValid = -1;
+    for (let gy = 0; gy < gridH; gy += 1) {
+      const b = gy * gridW + gx;
+      if (!isSynthetic[b]) {
+        lastValid = bgGrid[b];
+      } else if (lastValid !== -1) {
+        bgGrid[b] = lastValid;
+      }
+    }
+    lastValid = -1;
+    for (let gy = gridH - 1; gy >= 0; gy -= 1) {
+      const b = gy * gridW + gx;
+      if (!isSynthetic[b]) {
+        lastValid = bgGrid[b];
+      } else if (lastValid !== -1) {
+        bgGrid[b] = lastValid;
+      }
+    }
   }
 
   const knee = 0.86;
@@ -134,6 +191,12 @@ function documentScanBw(data: Uint8ClampedArray, width: number, height: number) 
 
       const i = (yWidth + x) * 4;
       const luma = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
+      if (luma >= 254) {
+        data[i] = 255;
+        data[i + 1] = 255;
+        data[i + 2] = 255;
+        continue;
+      }
       const r = luma / bg;
       let out = 255;
       if (r < knee) {

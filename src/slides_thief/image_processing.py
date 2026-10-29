@@ -158,7 +158,46 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
         padded = np.pad(gray, ((0, pad_h), (0, pad_w)), mode="edge")
 
         blocks = padded.reshape(grid_h, block_size, grid_w, block_size).swapaxes(1, 2)
-        bg_grid = np.percentile(blocks, 88, axis=(2, 3)).astype(np.float32)
+        non_syn_mask = blocks < 254.5
+        non_syn_counts = np.sum(non_syn_mask, axis=(2, 3))
+        total_counts = block_size * block_size
+        is_synthetic = non_syn_counts < (total_counts * 0.2)
+
+        bg_grid = np.zeros((grid_h, grid_w), dtype=np.float32)
+        for r_idx in range(grid_h):
+            for c_idx in range(grid_w):
+                b_pixels = blocks[r_idx, c_idx][non_syn_mask[r_idx, c_idx]]
+                if len(b_pixels) > 0:
+                    bg_grid[r_idx, c_idx] = np.percentile(b_pixels, 88)
+                else:
+                    bg_grid[r_idx, c_idx] = 255.0
+        for r_idx in range(grid_h):
+            last_valid = None
+            for c_idx in range(grid_w):
+                if not is_synthetic[r_idx, c_idx]:
+                    last_valid = bg_grid[r_idx, c_idx]
+                elif last_valid is not None:
+                    bg_grid[r_idx, c_idx] = last_valid
+            last_valid = None
+            for c_idx in range(grid_w - 1, -1, -1):
+                if not is_synthetic[r_idx, c_idx]:
+                    last_valid = bg_grid[r_idx, c_idx]
+                elif last_valid is not None:
+                    bg_grid[r_idx, c_idx] = last_valid
+
+        for c_idx in range(grid_w):
+            last_valid = None
+            for r_idx in range(grid_h):
+                if not is_synthetic[r_idx, c_idx]:
+                    last_valid = bg_grid[r_idx, c_idx]
+                elif last_valid is not None:
+                    bg_grid[r_idx, c_idx] = last_valid
+            last_valid = None
+            for r_idx in range(grid_h - 1, -1, -1):
+                if not is_synthetic[r_idx, c_idx]:
+                    last_valid = bg_grid[r_idx, c_idx]
+                elif last_valid is not None:
+                    bg_grid[r_idx, c_idx] = last_valid
 
         bg_img = Image.fromarray(np.clip(bg_grid, 0, 255).astype(np.uint8)).resize(
             (w, h), Image.Resampling.BICUBIC
@@ -168,7 +207,7 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
         r = gray / bg
         knee = 0.86
         gamma = 2.05
-        mapped = np.where(r >= knee, 1.0, (r / knee) ** gamma) * 255.0
+        mapped = np.where(gray >= 254.5, 255.0, np.where(r >= knee, 1.0, (r / knee) ** gamma) * 255.0)
         normalized_gray = np.clip(mapped, 0, 255).astype(np.uint8)
 
         rgb = Image.fromarray(np.stack([normalized_gray, normalized_gray, normalized_gray], axis=-1))
@@ -230,13 +269,21 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
         return image  # dark background slide
 
     dark_threshold = p80 * 0.85
-    max_scan = min(max(depth, int(min(w, h) * 0.05)), 64)
+    max_scan = min(max(depth, int(min(w, h) * 0.08)), 96)
 
     # 1. Corner anchor inpainting for acute overshoots where orthogonal rays stay outside paper
-    tl_ref = arr[max_scan, max_scan] if gray[max_scan, max_scan] >= dark_threshold else None
-    tr_ref = arr[max_scan, w - 1 - max_scan] if gray[max_scan, w - 1 - max_scan] >= dark_threshold else None
-    bl_ref = arr[h - 1 - max_scan, max_scan] if gray[h - 1 - max_scan, max_scan] >= dark_threshold else None
-    br_ref = arr[h - 1 - max_scan, w - 1 - max_scan] if gray[h - 1 - max_scan, w - 1 - max_scan] >= dark_threshold else None
+    def find_corner_ref(start_x: int, start_y: int, step_x: int, step_y: int) -> np.ndarray | None:
+        for step in range(0, max_scan, 2):
+            cx = start_x + step * step_x
+            cy = start_y + step * step_y
+            if 0 <= cx < w and 0 <= cy < h and gray[cy, cx] >= dark_threshold:
+                return arr[cy, cx]
+        return None
+
+    tl_ref = find_corner_ref(max_scan, max_scan, 1, 1)
+    tr_ref = find_corner_ref(w - 1 - max_scan, max_scan, -1, 1)
+    bl_ref = find_corner_ref(max_scan, h - 1 - max_scan, 1, -1)
+    br_ref = find_corner_ref(w - 1 - max_scan, h - 1 - max_scan, -1, -1)
 
     if tl_ref is not None:
         for y in range(max_scan):
@@ -268,11 +315,14 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
 
     # 2. Top edge (downward ray search)
     for x in range(w):
+        ref_slice = gray[max_scan : min(h, max_scan + 25) : 2, x]
+        max_ref = float(np.max(ref_slice)) if len(ref_slice) > 0 else 0.0
+        col_threshold = max(dark_threshold, max_ref * 0.88)
         for y in range(max_scan):
-            if gray[y, x] < dark_threshold:
+            if gray[y, x] < col_threshold:
                 clean_y = None
                 for sy in range(y + 1, min(h, max_scan + 1)):
-                    if gray[sy, x] >= dark_threshold:
+                    if gray[sy, x] >= col_threshold:
                         clean_y = sy
                         break
                 if clean_y is not None:
@@ -281,11 +331,14 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
 
     # 2. Bottom edge (upward ray search)
     for x in range(w):
+        ref_slice = gray[max(0, h - 1 - max_scan - 24) : h - max_scan : 2, x]
+        max_ref = float(np.max(ref_slice)) if len(ref_slice) > 0 else 0.0
+        col_threshold = max(dark_threshold, max_ref * 0.88)
         for y in range(h - 1, max(-1, h - 1 - max_scan), -1):
-            if gray[y, x] < dark_threshold:
+            if gray[y, x] < col_threshold:
                 clean_y = None
                 for sy in range(y - 1, max(-1, h - 1 - max_scan - 1), -1):
-                    if gray[sy, x] >= dark_threshold:
+                    if gray[sy, x] >= col_threshold:
                         clean_y = sy
                         break
                 if clean_y is not None:
@@ -294,11 +347,14 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
 
     # 3. Left edge (rightward ray search)
     for y in range(h):
+        ref_slice = gray[y, max_scan : min(w, max_scan + 25) : 2]
+        max_ref = float(np.max(ref_slice)) if len(ref_slice) > 0 else 0.0
+        row_threshold = max(dark_threshold, max_ref * 0.88)
         for x in range(max_scan):
-            if gray[y, x] < dark_threshold:
+            if gray[y, x] < row_threshold:
                 clean_x = None
                 for sx in range(x + 1, min(w, max_scan + 1)):
-                    if gray[y, sx] >= dark_threshold:
+                    if gray[y, sx] >= row_threshold:
                         clean_x = sx
                         break
                 if clean_x is not None:
@@ -307,16 +363,38 @@ def clean_dark_perimeter(image: Image.Image, depth: int = 4) -> Image.Image:
 
     # 4. Right edge (leftward ray search)
     for y in range(h):
+        ref_slice = gray[y, max(0, w - 1 - max_scan - 24) : w - max_scan : 2]
+        max_ref = float(np.max(ref_slice)) if len(ref_slice) > 0 else 0.0
+        row_threshold = max(dark_threshold, max_ref * 0.88)
         for x in range(w - 1, max(-1, w - 1 - max_scan), -1):
-            if gray[y, x] < dark_threshold:
+            if gray[y, x] < row_threshold:
                 clean_x = None
                 for sx in range(x - 1, max(-1, w - 1 - max_scan - 1), -1):
-                    if gray[y, sx] >= dark_threshold:
+                    if gray[y, sx] >= row_threshold:
                         clean_x = sx
                         break
                 if clean_x is not None:
                     arr[y, x] = arr[y, clean_x]
                     gray[y, x] = gray[y, clean_x]
+
+    # 5. Clean outermost 1-pixel boundary to prevent residual subpixel border lines
+    rim_threshold = p80 * 0.95
+    if h > 2:
+        for x in range(w):
+            if gray[0, x] < rim_threshold and gray[1, x] >= dark_threshold:
+                arr[0, x] = arr[1, x]
+                gray[0, x] = gray[1, x]
+            if gray[h - 1, x] < rim_threshold and gray[h - 2, x] >= dark_threshold:
+                arr[h - 1, x] = arr[h - 2, x]
+                gray[h - 1, x] = gray[h - 2, x]
+    if w > 2:
+        for y in range(h):
+            if gray[y, 0] < rim_threshold and gray[y, 1] >= dark_threshold:
+                arr[y, 0] = arr[y, 1]
+                gray[y, 0] = gray[y, 1]
+            if gray[y, w - 1] < rim_threshold and gray[y, w - 2] >= dark_threshold:
+                arr[y, w - 1] = arr[y, w - 2]
+                gray[y, w - 1] = gray[y, w - 2]
 
     return Image.fromarray(arr)
 

@@ -447,3 +447,16 @@ test("all 9 locales have complete filename validation copy", () => {
     }
   }
 });
+
+test("all 9 locales define complete corner positions copy in clockwise order", () => {
+  for (const locale of ALL_LOCALES) {
+    const localeCopy = copy[locale];
+    assert.ok(localeCopy, `copy exists for ${locale}`);
+    assert.ok(Array.isArray(localeCopy.cornerPositions), `copy.${locale}.cornerPositions should be an array`);
+    assert.equal(localeCopy.cornerPositions.length, 4, `copy.${locale}.cornerPositions should have 4 items`);
+    for (let i = 0; i < 4; i++) {
+      assert.equal(typeof localeCopy.cornerPositions[i], "string");
+      assert.ok(localeCopy.cornerPositions[i].length > 0);
+    }
+  }
+});

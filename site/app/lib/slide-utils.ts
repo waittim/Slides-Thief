@@ -163,6 +163,8 @@ export function clampQuadCoordinate(value: number, size: number, maxOutside: num
   return Math.max(-maxOutside, Math.min(size + maxOutside, value));
 }
 
+export { extrapolateCorner, type ExtrapolateCornerOptions } from "./perspective.ts";
+
 export { adaptQuadToDimensions, applyQuadToSlide } from "./slide-transitions.ts";
 
 export async function resolveSlideDimensions(slide: SlideItem): Promise<{ width: number; height: number }> {

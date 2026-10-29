@@ -11,6 +11,7 @@ export function InspectorHarness({
   onConfirmSlide,
   onStartReviewMode,
   onCornerChange,
+  onExtrapolateCorner,
   disabled = false,
 }: {
   slide: SlideItem | null;
@@ -18,6 +19,7 @@ export function InspectorHarness({
   onConfirmSlide?: (id: string) => void;
   onStartReviewMode?: () => void;
   onCornerChange?: (cornerIndex: number, coordIndex: 0 | 1, value: number) => void;
+  onExtrapolateCorner?: (cornerIndex: number) => void;
   disabled?: boolean;
 }) {
   const [slide, setSlide] = useState(initialSlide);
@@ -63,6 +65,7 @@ export function InspectorHarness({
       onConfirmSlide={onConfirmSlide}
       onStartReviewMode={onStartReviewMode}
       onCornerChange={handleCornerChange}
+      onExtrapolateCorner={onExtrapolateCorner}
       disabled={disabled}
     />
   );

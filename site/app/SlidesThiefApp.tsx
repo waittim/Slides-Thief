@@ -385,6 +385,7 @@ export function SlidesThiefApp() {
     dragHandle,
     cancelActiveDrag: cancelQuadDrag,
     updateCornerCoordinate,
+    extrapolateCorner,
     restoreAutoDetection,
     resetSelected,
     onHandlePointerDown,
@@ -1445,6 +1446,7 @@ export function SlidesThiefApp() {
           isReviewMode={isReviewMode}
           reviewSlideCount={reviewCount}
           onCornerChange={updateCornerCoordinate}
+          onExtrapolateCorner={extrapolateCorner}
           disabled={busy}
         />
       </main>

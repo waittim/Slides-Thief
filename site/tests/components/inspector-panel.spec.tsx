@@ -157,18 +157,54 @@ test("renders editable numeric inputs for corner coordinates and clamps to bound
   expect(cornerChanges.length).toBe(1);
   expect(cornerChanges[0]).toEqual({ cornerIndex: 0, coordIndex: 0, value: 160 });
 
-  // Out of bounds high (exceeding width 1000)
+  // Out of bounds high (exceeding width 1000 + 30% = 1300)
   await c1x.fill("1500");
   await c1x.press("Enter");
-  expect(cornerChanges[1]).toEqual({ cornerIndex: 0, coordIndex: 0, value: 1000 });
-  await expect(c1x).toHaveValue("1000");
+  expect(cornerChanges[1]).toEqual({ cornerIndex: 0, coordIndex: 0, value: 1300 });
+  await expect(c1x).toHaveValue("1300");
 
-  // Out of bounds low (negative value)
+  // Valid negative coordinate within -30% (-80 >= -240 for height 800)
   const c1y = cornerInputs.nth(1);
   await c1y.fill("-80");
   await c1y.press("Enter");
-  expect(cornerChanges[2]).toEqual({ cornerIndex: 0, coordIndex: 1, value: 0 });
-  await expect(c1y).toHaveValue("0");
+  expect(cornerChanges[2]).toEqual({ cornerIndex: 0, coordIndex: 1, value: -80 });
+  await expect(c1y).toHaveValue("-80");
+
+  // Out of bounds low (exceeding -30% = -240 for height 800)
+  await c1y.fill("-500");
+  await c1y.press("Enter");
+  expect(cornerChanges[3]).toEqual({ cornerIndex: 0, coordIndex: 1, value: -240 });
+  await expect(c1y).toHaveValue("-240");
+});
+
+test("triggers corner extrapolation callback when sparkles button is clicked", async ({ mount }) => {
+  const extrapolatedCorners: number[] = [];
+  const slide = makeTestSlide({
+    name: "slide-extrapolate.png",
+    status: "ready",
+    width: 1000,
+    height: 800,
+    quad: [
+      [100, 120],
+      [900, 130],
+      [880, 750],
+      [110, 740],
+    ],
+  });
+
+  const component = await mount(
+    <InspectorHarness
+      slide={slide}
+      onExtrapolateCorner={(cornerIndex) => {
+        extrapolatedCorners.push(cornerIndex);
+      }}
+    />,
+  );
+
+  const extrapolateButtons = component.locator(".cornerExtrapolateBtn");
+  await expect(extrapolateButtons).toHaveCount(4);
+  await extrapolateButtons.nth(2).click();
+  expect(extrapolatedCorners).toEqual([2]);
 });
 
 test("disables corner inputs when disabled prop is true", async ({ mount }) => {

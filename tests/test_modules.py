@@ -6,6 +6,7 @@ from PIL import Image
 from slides_thief.exporter import make_contact_sheet, make_manual_review_html, make_pdf, scale_quad
 from slides_thief.geometry import (
     Line,
+    extrapolate_corner,
     fit_line_xy,
     intersect,
     is_paper_ratio,
@@ -48,6 +49,31 @@ def test_geometry_perspective_coefficients() -> None:
     dst = np.array([[0, 0], [100, 0], [100, 100], [0, 100]], dtype=np.float64)
     coeffs = perspective_coefficients(src, dst)
     assert len(coeffs) == 8
+
+
+def test_geometry_extrapolate_corner() -> None:
+    # 1. Exact reconstruction of all 4 corners of a rectangle
+    rect = np.array([[10.0, 20.0], [110.0, 20.0], [110.0, 80.0], [10.0, 80.0]])
+    for idx in range(4):
+        corrupted = rect.copy()
+        corrupted[idx] = [999.0, 999.0]
+        reconstructed = extrapolate_corner(corrupted, idx)
+        assert np.allclose(reconstructed[idx], rect[idx], atol=1e-2)
+
+    # 2. Affine mode completion
+    affine_result = extrapolate_corner(rect, 2, mode="affine")
+    assert np.allclose(affine_result[2], [110.0, 80.0])
+
+    # 3. Tilted perspective trapezoid extrapolation
+    trapezoid = np.array([[20.0, 10.0], [180.0, 10.0], [195.0, 120.0], [5.0, 120.0]])
+    c2 = extrapolate_corner(trapezoid, 2)
+    assert abs(c2[2][0] - 195.0) < 10.0
+    assert abs(c2[2][1] - 120.0) < 5.0
+
+    # 4. Image bounds clamping
+    clamped = extrapolate_corner(rect, 2, image_width=100.0, image_height=60.0)
+    assert clamped[2][0] <= 130.0  # width 100 + 30%
+    assert clamped[2][1] <= 78.0   # height 60 + 30%
 
 
 def test_scale_quad_scales_x_and_y_independently() -> None:
