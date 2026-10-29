@@ -20,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed perimeter border inpainting (`cleanDarkPerimeter` in TypeScript, `clean_dark_perimeter` in Python) under uneven document illumination: replaced global dark thresholding with local scanline/column-adaptive thresholds (`Math.max(darkThreshold, maxRef * 0.88)`), preventing heavy shadows in lower document sections from blinding desk bleed suppression near bright top margins.
 - Enforced physical sensor frame falloff boundary clipping (`width - 1.5`, `height - 1.5`) when sampling out-of-bounds perspective coordinates, preventing camera lens vignetting on extreme edge columns from entering the warped document canvas.
 - Excluded synthetic white fill (`luma >= 254`) from local background histogram estimation in black-and-white scan mode (`documentScanBw`), preventing background inflation and false ink edges along extrapolated margins.
+- Preserved the accessible colon prefix (`${text.cornerHandle} ${index + 1}:`) on corner button aria-labels, ensuring end-to-end locator compatibility while providing position descriptions via title attributes.
 
 ## [3.0.10] - 2026-10-28
 

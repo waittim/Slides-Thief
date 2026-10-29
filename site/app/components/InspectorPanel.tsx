@@ -240,8 +240,8 @@ export function InspectorPanel({
                       value={x}
                       min={-maxOutsideX}
                       max={width + maxOutsideX}
-                      ariaLabel={`${text.cornerHandle} ${index + 1} (${posName}) X`}
-                      title={`${text.cornerHandle} ${index + 1} (${posName}) X (${-maxOutsideX} – ${width + maxOutsideX})`}
+                      ariaLabel={`${text.cornerHandle} ${index + 1} X (${posName})`}
+                      title={`${text.cornerHandle} ${index + 1} X (${posName}) (${-maxOutsideX} – ${width + maxOutsideX})`}
                       disabled={disabled}
                       onChange={(newVal) => onCornerChange?.(index, 0, newVal)}
                     />
@@ -249,8 +249,8 @@ export function InspectorPanel({
                       value={y}
                       min={-maxOutsideY}
                       max={height + maxOutsideY}
-                      ariaLabel={`${text.cornerHandle} ${index + 1} (${posName}) Y`}
-                      title={`${text.cornerHandle} ${index + 1} (${posName}) Y (${-maxOutsideY} – ${height + maxOutsideY})`}
+                      ariaLabel={`${text.cornerHandle} ${index + 1} Y (${posName})`}
+                      title={`${text.cornerHandle} ${index + 1} Y (${posName}) (${-maxOutsideY} – ${height + maxOutsideY})`}
                       disabled={disabled}
                       onChange={(newVal) => onCornerChange?.(index, 1, newVal)}
                     />

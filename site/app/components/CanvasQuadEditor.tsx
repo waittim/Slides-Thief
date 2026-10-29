@@ -564,7 +564,7 @@ export function CanvasQuadEditor({
                           }}
                           className={`cornerHandle ${dragHandle === index ? "active" : ""}`}
                           style={{ left: position.left, top: position.top }}
-                          aria-label={`${text.cornerHandle} ${index + 1} (${text.cornerPositions[index]}): X ${Math.round(x)}, Y ${Math.round(y)}`}
+                          aria-label={`${text.cornerHandle} ${index + 1}: X ${Math.round(x)}, Y ${Math.round(y)}`}
                           aria-describedby="cornerKeyboardHelp"
                           title={`${text.cornerHandle} ${index + 1} (${text.cornerPositions[index]})`}
                           onPointerDown={(event) => onHandlePointerDown(index, event)}
