@@ -66,6 +66,7 @@ function grayWorldBalance(data: Uint8ClampedArray, width: number, height: number
   const scaleG = target / Math.max(meanG, 1);
   const scaleB = target / Math.max(meanB, 1);
   for (let i = 0; i < data.length; i += 4) {
+    if (data[i] >= 254 && data[i + 1] >= 254 && data[i + 2] >= 254) continue;
     data[i] = clamp(data[i] * scaleR);
     data[i + 1] = clamp(data[i + 1] * scaleG);
     data[i + 2] = clamp(data[i + 2] * scaleB);
@@ -266,6 +267,7 @@ function unsharpMask(data: Uint8ClampedArray, width: number, height: number, amo
   for (let y = 1; y < height - 1; y += 1) {
     for (let x = 1; x < width - 1; x += 1) {
       const i = (y * width + x) * 4;
+      if (copy[i] === 255 && copy[i + 1] === 255 && copy[i + 2] === 255) continue;
       for (let c = 0; c < 3; c += 1) {
         let blur = 0;
         for (let dy = -1; dy <= 1; dy += 1) {

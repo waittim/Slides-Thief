@@ -139,12 +139,14 @@ def enhance_slide(image: Image.Image, mode: str = "original") -> Image.Image:
         return rgb
 
     arr = np.asarray(rgb).astype(np.float32)
+    synthetic_mask = (arr >= 254.0).all(axis=-1)
     # Neutralize projector color cast with a gentle gray-world correction.
     # Stats use the centered 80% so edge fill / wall content does not skew correction.
     sample = _center_stats_region(arr)
     means = sample.reshape(-1, 3).mean(axis=0)
     target = means.mean()
     arr *= target / np.maximum(means, 1.0)
+    arr[synthetic_mask] = 255.0
     arr = np.clip(arr, 0, 255)
 
     if mode == "bw":

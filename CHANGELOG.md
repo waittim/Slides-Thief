@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.1] - 2026-10-30
+
+### Fixed
+
+- Fixed synthetic background scaling in `grayWorldBalance` and `enhance_slide`: excluded out-of-bounds provisional fill pixels (`luma >= 254`) from channel scaling, preventing synthetic white margins from dropping to 253.2 and erroneously contaminating local background estimation in black-and-white scan mode (`documentScanBw`).
+- Protected pure white pixels (`255, 255, 255`) in `unsharpMask` against border convolution ringing, ensuring 100% clean white margins along extrapolated out-of-bounds corners and page boundaries.
+
 ## [3.1.0] - 2026-10-29
 
 ### Added
