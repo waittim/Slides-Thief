@@ -3000,6 +3000,11 @@ canvas {
     padding-inline: max(var(--space-4), env(safe-area-inset-left)) max(var(--space-4), env(safe-area-inset-right));
   }
 
+  .sidebar.sidebarEmpty {
+    gap: var(--space-2);
+    padding-bottom: var(--space-2);
+  }
+
   .sidebar > * {
     min-width: 0;
     max-width: 100%;

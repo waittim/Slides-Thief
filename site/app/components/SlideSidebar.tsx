@@ -263,7 +263,7 @@ export function SlideSidebar({
   );
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${slides.length === 0 ? "sidebarEmpty" : ""}`}>
       <div className="sidebarActions">
         {autoAction}
         {pdfAction}
@@ -495,21 +495,21 @@ export function SlideSidebar({
           )}
         </div>
       )}
-      <div className="sidebarFilePicker">
-        <input
-          ref={inputRef}
-          className="fileInput"
-          type="file"
-          accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
-          multiple
-          disabled={busy}
-          onChange={(event) => {
-            const files = event.currentTarget.files ? Array.from(event.currentTarget.files) : [];
-            event.currentTarget.value = "";
-            if (files.length) void loadFiles(files);
-          }}
-        />
-        {(!isMobile || slides.length > 0) && (
+      <input
+        ref={inputRef}
+        className="fileInput"
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif"
+        multiple
+        disabled={busy}
+        onChange={(event) => {
+          const files = event.currentTarget.files ? Array.from(event.currentTarget.files) : [];
+          event.currentTarget.value = "";
+          if (files.length) void loadFiles(files);
+        }}
+      />
+      {(!isMobile || slides.length > 0) && (
+        <div className="sidebarFilePicker">
           <button
             type="button"
             className={`dropzone ${dragActive ? "active" : ""}`}
@@ -521,7 +521,6 @@ export function SlideSidebar({
               {!isMobile && <span>{text.dropSubtitle}</span>}
             </span>
           </button>
-        )}
         {selectedBatchIds && selectedBatchIds.size > 0 ? (
           <div className="batchActionBar" role="toolbar" aria-label={text.selectedCount(selectedBatchIds.size)}>
             <div className="batchActionInfo">
@@ -578,8 +577,9 @@ export function SlideSidebar({
             </div>
           </div>
         ) : null}
-        <ul className="files">
-          {slides.map((slide, index) => {
+        {slides.length > 0 && (
+          <ul className="files">
+            {slides.map((slide, index) => {
             const active = selectedId === slide.id || (!selectedId && index === 0);
             const isBatchSelected = Boolean(selectedBatchIds?.has(slide.id));
             const isDragging = draggedSlideIndex === index;
@@ -738,8 +738,10 @@ export function SlideSidebar({
               </li>
             );
           })}
-        </ul>
-      </div>
+          </ul>
+        )}
+        </div>
+      )}
     </aside>
   );
 }
