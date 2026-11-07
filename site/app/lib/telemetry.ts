@@ -39,7 +39,10 @@ export function setTelemetryOptOut(optOut: boolean): void {
 
   // Read saved preferences before calling this, so a previous opt-out never loads the script.
   gtagWindow.dataLayer ??= [];
-  gtagWindow.gtag ??= (...args) => { gtagWindow.dataLayer?.push(args); };
+  gtagWindow.gtag ??= function () {
+    // eslint-disable-next-line prefer-rest-params
+    gtagWindow.dataLayer?.push(arguments);
+  };
   gtagWindow.gtag("consent", "default", {
     analytics_storage: "granted",
     ad_storage: "denied",

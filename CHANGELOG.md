@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.2] - 2026-11-06
+
+### Fixed
+
+- Fixed Google Analytics (`gtag.js`) initialization in `site/app/lib/telemetry.ts`: replaced the rest-parameter arrow function with a standard function forwarding `arguments` into `window.dataLayer`, ensuring `gtag.js` correctly parses config and consent payloads to emit `page_view` and telemetry events.
+
 ## [3.1.1] - 2026-10-30
 
 ### Fixed
@@ -280,7 +286,13 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.0.7...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.1.2...HEAD
+[3.1.2]: https://github.com/waittim/Slides-Thief/compare/v3.1.1...v3.1.2
+[3.1.1]: https://github.com/waittim/Slides-Thief/compare/v3.1.0...v3.1.1
+[3.1.0]: https://github.com/waittim/Slides-Thief/compare/v3.0.10...v3.1.0
+[3.0.10]: https://github.com/waittim/Slides-Thief/compare/v3.0.9...v3.0.10
+[3.0.9]: https://github.com/waittim/Slides-Thief/compare/v3.0.8...v3.0.9
+[3.0.8]: https://github.com/waittim/Slides-Thief/compare/v3.0.7...v3.0.8
 [3.0.7]: https://github.com/waittim/Slides-Thief/compare/v3.0.6...v3.0.7
 [3.0.6]: https://github.com/waittim/Slides-Thief/compare/v3.0.5...v3.0.6
 [3.0.5]: https://github.com/waittim/Slides-Thief/compare/v3.0.4...v3.0.5

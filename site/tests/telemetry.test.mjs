@@ -44,6 +44,8 @@ test("analytics stays inactive until preferences are checked and the enabled tag
     assert.equal(isTelemetryOptedOut(), false);
     assert.equal(appended.length, 1);
     assert.match(appended[0].src, /googletagmanager\.com\/gtag\/js/);
+    assert.equal(Array.isArray(mockWindow.dataLayer), true);
+    assert.equal(Object.prototype.toString.call(mockWindow.dataLayer[0]), "[object Arguments]");
 
     setTelemetryOptOut(true);
     assert.equal(isTelemetryOptedOut(), true);
