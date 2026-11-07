@@ -818,7 +818,8 @@ test("mobile keeps import controls available and moves the canvas first after co
   await openApp(page);
 
   await expect(page.locator(".shell > :first-child")).toHaveClass(/sidebar/);
-  await expect(page.locator(".sidebar").getByRole("button", { name: "Click to upload photos" })).toBeVisible();
+  await expect(page.locator(".canvasEmptyState").getByRole("button", { name: "Click to upload photos" })).toBeVisible();
+  await expect(page.locator(".sidebar").getByRole("button", { name: "Click to upload photos" })).toHaveCount(0);
 
   await page.locator('input[type="file"][accept*="image"]').setInputFiles(fixture);
   await page.getByRole("button", { name: "Auto straighten" }).click();
