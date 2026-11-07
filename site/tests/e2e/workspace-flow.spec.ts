@@ -32,7 +32,11 @@ test("converts a real HEIC image locally and exports it as a PDF", async ({ page
   await page.getByRole("button", { name: "Export corners" }).click();
   expect((await cornersDownload).suggestedFilename()).toBe("manual_quads.json");
 
-  const telemetry = await page.evaluate(() => (window as Window & { dataLayer?: unknown[] }).dataLayer ?? []);
+  const telemetry = await page.evaluate(() =>
+    ((window as Window & { dataLayer?: unknown[] }).dataLayer ?? []).map((entry) =>
+      entry && typeof entry === "object" ? Array.from(entry as ArrayLike<unknown>) : entry,
+    ),
+  );
   const downloadEvents = telemetry.filter(
     (entry): entry is unknown[] => Array.isArray(entry) && entry[0] === "event" && entry[1] === "download_started",
   );
