@@ -464,35 +464,37 @@ export function SlideSidebar({
           </div>
         </details>
       ) : null}
-      <div className="sectionHead">
-        <h2>{text.images}</h2>
-        <CountBadge count={slides.length} />
-        {selectReviewNeeded && slides.some((s) => s.status === "ready" && s.needsReview) && (!selectedBatchIds || selectedBatchIds.size === 0) ? (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="selectReviewNeededAction"
-            disabled={busy}
-            title={text.selectReviewNeeded}
-            onClick={selectReviewNeeded}
-          >
-            <Icon name="exclamationmark.circle" size={12} />
-            <span>{text.selectReviewNeeded}</span>
-          </Button>
-        ) : null}
-        {slides.length > 0 && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="clearAction"
-            disabled={busy}
-            title={text.clearAll}
-            onClick={clearAllSlides}
-          >
-            {text.clearAll}
-          </Button>
-        )}
-      </div>
+      {(!isMobile || slides.length > 0) && (
+        <div className="sectionHead">
+          <h2>{text.images}</h2>
+          <CountBadge count={slides.length} />
+          {selectReviewNeeded && slides.some((s) => s.status === "ready" && s.needsReview) && (!selectedBatchIds || selectedBatchIds.size === 0) ? (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="selectReviewNeededAction"
+              disabled={busy}
+              title={text.selectReviewNeeded}
+              onClick={selectReviewNeeded}
+            >
+              <Icon name="exclamationmark.circle" size={12} />
+              <span>{text.selectReviewNeeded}</span>
+            </Button>
+          ) : null}
+          {slides.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="clearAction"
+              disabled={busy}
+              title={text.clearAll}
+              onClick={clearAllSlides}
+            >
+              {text.clearAll}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="sidebarFilePicker">
         <input
           ref={inputRef}
@@ -507,17 +509,19 @@ export function SlideSidebar({
             if (files.length) void loadFiles(files);
           }}
         />
-        <button
-          type="button"
-          className={`dropzone ${dragActive ? "active" : ""}`}
-          disabled={busy}
-          onClick={() => inputRef.current?.click()}
-        >
-          <span className="dropzoneContent">
-            <strong>{slides.length > 0 ? text.addMorePhotos : isMobile ? text.uploadTitle : text.dropTitle}</strong>
-            {!isMobile && <span>{text.dropSubtitle}</span>}
-          </span>
-        </button>
+        {(!isMobile || slides.length > 0) && (
+          <button
+            type="button"
+            className={`dropzone ${dragActive ? "active" : ""}`}
+            disabled={busy}
+            onClick={() => inputRef.current?.click()}
+          >
+            <span className="dropzoneContent">
+              <strong>{slides.length > 0 ? text.addMorePhotos : isMobile ? text.uploadTitle : text.dropTitle}</strong>
+              {!isMobile && <span>{text.dropSubtitle}</span>}
+            </span>
+          </button>
+        )}
         {selectedBatchIds && selectedBatchIds.size > 0 ? (
           <div className="batchActionBar" role="toolbar" aria-label={text.selectedCount(selectedBatchIds.size)}>
             <div className="batchActionInfo">

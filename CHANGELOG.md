@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.1.3] - 2026-11-06
+
+### Fixed
+
+- Fixed duplicate upload buttons on mobile viewports: hid the redundant dropzone box and empty section header (`Images 0`) in `SlideSidebar` when `slides.length === 0`, eliminating vertically stacked duplicate "Click to upload photos" actions on mobile devices while keeping the primary call-to-action button prominent in the canvas empty state.
+
 ## [3.1.2] - 2026-11-06
 
 ### Fixed
@@ -286,7 +292,8 @@ Initial public line of Slides Thief (CLI + browser-local web app). Remained at
 - Local usage shifted toward the CLI for advanced batch work; browser app became the primary interactive surface.
 - Project packaging moved to `pyproject.toml` / `src` layout.
 
-[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.1.2...HEAD
+[Unreleased]: https://github.com/waittim/Slides-Thief/compare/v3.1.3...HEAD
+[3.1.3]: https://github.com/waittim/Slides-Thief/compare/v3.1.2...v3.1.3
 [3.1.2]: https://github.com/waittim/Slides-Thief/compare/v3.1.1...v3.1.2
 [3.1.1]: https://github.com/waittim/Slides-Thief/compare/v3.1.0...v3.1.1
 [3.1.0]: https://github.com/waittim/Slides-Thief/compare/v3.0.10...v3.1.0

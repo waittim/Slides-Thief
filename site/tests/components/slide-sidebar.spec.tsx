@@ -751,3 +751,23 @@ test("sidebar on mobile applies compact middle-truncation preserving distinguish
   await expect(names.nth(0)).toHaveAttribute("aria-label", cameraPhoto1);
   await expect(names.nth(1)).toHaveAttribute("aria-label", cameraPhoto2);
 });
+
+test("sidebar on mobile omits redundant dropzone and section header when empty, and shows them when populated", async ({ mount }) => {
+  const component = await mount(<SidebarHarness isMobile={true} />);
+
+  // In mobile empty state, dropzone and section header are omitted to avoid redundancy with canvas empty state
+  await expect(component.locator(".dropzone")).toHaveCount(0);
+  await expect(component.locator(".sectionHead")).toHaveCount(0);
+
+  // Adding a photo restores the section header and shows "Add more photos"
+  const fileInput = component.locator('input[type="file"][accept*="image"]');
+  await fileInput.setInputFiles({
+    name: "slide.png",
+    mimeType: "image/png",
+    buffer: Buffer.from("slide"),
+  });
+
+  await expect(component.locator(".sectionHead")).toBeVisible();
+  await expect(component.locator(".dropzone")).toBeVisible();
+  await expect(component.getByText("Add more photos")).toBeVisible();
+});
