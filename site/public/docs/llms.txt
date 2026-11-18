@@ -1,0 +1,21 @@
+# Slides Thief documentation
+
+> Contracts, examples, and privacy details for the browser app and Python CLI. Source photos are processed locally and are not uploaded.
+
+This file covers the markdown documents under `/docs/`.
+
+## Docs
+
+- [Documentation index](https://slidesthief.com/docs/index.md): Where to start with the web app, CLI, schemas, and privacy
+- [CLI contract](https://slidesthief.com/docs/cli.md): Batch command, inputs, outputs, ratios, and options
+- [FAQ](https://slidesthief.com/docs/faq.md): Uploads, formats, ratios, corner order, languages, and enhancement modes
+- [JSON inputs and outputs](https://slidesthief.com/docs/output-schema.md): Detection report, manual review data, and corner-file shape
+- [Examples](https://slidesthief.com/docs/examples.md): Standard 16:9 batch and a manual correction pass
+- [Privacy details](https://slidesthief.com/docs/privacy.md): Local processing boundary, analytics defaults, and retention
+
+## Optional
+
+- [Public privacy notice](https://slidesthief.com/privacy.md): Markdown alternate of the privacy page
+- [Detection report schema](https://slidesthief.com/schemas/slide-lens-report.schema.json): Formal JSON Schema for slide_lens_report.json
+- [Manual corner schema](https://slidesthief.com/schemas/manual-quads.schema.json): Formal JSON Schema for manual corner files
+- [Site index](https://slidesthief.com/llms.txt): Site-wide llms.txt

@@ -291,13 +291,43 @@ def generated_document_outputs(metadata: dict) -> dict[Path, str]:
     return outputs
 
 
+PUBLISHED_DOC_NAMES = (
+    "index.md",
+    "cli.md",
+    "faq.md",
+    "output-schema.md",
+    "examples.md",
+    "privacy.md",
+)
+
+
+def publish_docs(document_outputs: dict[Path, str]) -> dict[Path, str]:
+    """Publish agent-facing markdown copies without the generator markers."""
+    published: dict[Path, str] = {}
+    for name in PUBLISHED_DOC_NAMES:
+        source = ROOT / "docs" / name
+        content = document_outputs.get(source)
+        if content is None:
+            content = source.read_text(encoding="utf-8")
+        content = re.sub(r"<!-- (?:BEGIN|END) GENERATED: .*? -->\n", "", content)
+        if name == "index.md":
+            content = content.replace(
+                "[Product metadata source](../metadata/product.json)",
+                "[Product metadata](https://slidesthief.com/product-metadata.json)",
+            )
+        published[ROOT / "site" / "public" / "docs" / name] = content
+    return published
+
+
 def expected_outputs(metadata: dict) -> dict[Path, str]:
+    documents = generated_document_outputs(metadata)
     outputs = {
         PYTHON_OUTPUT: render_python(metadata),
         TYPESCRIPT_OUTPUT: render_typescript(metadata),
         PUBLIC_OUTPUT: render_public(metadata),
     }
-    outputs.update(generated_document_outputs(metadata))
+    outputs.update(documents)
+    outputs.update(publish_docs(documents))
     return outputs
 
 

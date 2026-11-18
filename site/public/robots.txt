@@ -1,3 +1,5 @@
+# Machine-readable site guide: https://slidesthief.com/llms.txt
+
 User-agent: *
 Allow: /
 

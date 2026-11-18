@@ -77,6 +77,11 @@ GitHub Actions, then push to `main`.
 GitHub Pages cannot set custom HTTP `Link` headers. Both builds instead advertise
 machine-readable surfaces with HTML `<link>` tags:
 
+- `alternate` (`text/markdown`) → `/index.md` on the home page, `/privacy.md` on the privacy notice
 - `describedby` → `/llms.txt`
 - `service-doc` → `/llms-full.txt`
 - `sitemap` → `/sitemap.xml`
+
+`/llms.txt` is a v2 file list. Its documentation links point at markdown under
+`/docs/`, published from `docs/` by `scripts/generate_product_metadata.py`.
+`/docs/llms.txt` is the more specific index for that directory.

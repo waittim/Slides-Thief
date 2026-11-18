@@ -39,6 +39,7 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.ok(viewportIndex >= 0 && viewportPatchIndex > viewportIndex);
   assert.match(html, /<title>Slides Thief - Straighten Slide &amp; Document Photos into PDFs<\/title>/i);
   assert.match(html, /<link rel="canonical" href="https:\/\/slidesthief\.com\//i);
+  assert.match(html, /<link rel="alternate" href="\/index\.md" type="text\/markdown"/i);
   assert.match(html, /<link rel="manifest" href="\/manifest\.webmanifest"/i);
   assert.doesNotMatch(html, /rel="manifest" href="https:\/\//i);
   assert.match(html, /<link rel="describedby" href="\/llms\.txt"[^>]*type="text\/plain"/i);
@@ -46,6 +47,7 @@ test("server-renders the Slides Thief workspace shell with SEO metadata", async 
   assert.match(html, /<link rel="sitemap" href="\/sitemap\.xml"[^>]*type="application\/xml"/i);
   assert.match(html, /property="og:title" content="Slides Thief - Straighten Slide &amp; Document Photos into PDFs"/i);
   assert.match(html, /"@type":"WebApplication"/);
+  assert.match(html, /"sameAs":\["https:\/\/github\.com\/waittim\/Slides-Thief"/);
   assert.match(html, /"alternateName":\["PPT捕手"/);
   assert.match(html, /<h1 class="brandText">Slides Thief<\/h1>/);
   assert.match(html, /Auto straighten/);

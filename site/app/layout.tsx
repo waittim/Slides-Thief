@@ -70,6 +70,7 @@ export default async function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#20211f" />
         {/* Agent discovery for crawlers that parse HTML (GitHub Pages has no custom Link headers). */}
+        <link rel="alternate" href="/index.md" type="text/markdown" title="Markdown version" />
         <link rel="describedby" href="/llms.txt" type="text/plain" title="LLM site index" />
         <link rel="service-doc" href="/llms-full.txt" type="text/plain" title="Full agent reference" />
         <link rel="sitemap" href="/sitemap.xml" type="application/xml" />

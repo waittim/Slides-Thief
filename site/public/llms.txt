@@ -2,44 +2,40 @@
 
 > Browser-local web app and Python CLI that turn angled photos of slides or documents into perspective-corrected images and a clean PDF.
 
-## Use and documentation
+Browser processing is local; source photos are not uploaded. Corner order is top-left, top-right, bottom-right, bottom-left. Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR. License: MIT.
 
-- Web app: https://slidesthief.com/
-- Full agent reference: https://slidesthief.com/llms-full.txt
-- GitHub repository: https://github.com/waittim/Slides-Thief
-- CLI documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/cli.md
-- Output documentation: https://github.com/waittim/Slides-Thief/blob/main/docs/output-schema.md
+Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. App events contain counts, corner-adjustment events, and fixed error codes, never filenames, file sizes, or raw errors. Disable automatic file-download measurement in the Google Analytics data stream.
 
-## Machine-readable contracts
-
-- Detection report schema: https://slidesthief.com/schemas/slide-lens-report.schema.json
-- Manual corner schema: https://slidesthief.com/schemas/manual-quads.schema.json
-- Citation metadata: https://slidesthief.com/citation.json
-- Product metadata: https://slidesthief.com/product-metadata.json
-
-## Discovery
-
-Homepage HTML `<link>` tags advertise:
-
-- `describedby` → `/llms.txt`
-- `service-doc` → `/llms-full.txt`
-- `sitemap` → `/sitemap.xml`
-
-## Core facts
-
-- Browser processing is local; source photos are not uploaded.
-- Usage analytics is on by default after saved preferences are checked and can be disabled in the About dialog. App events contain counts, corner-adjustment events, and fixed error codes, never filenames, file sizes, or raw errors. Disable automatic file-download measurement in the Google Analytics data stream.
 <!-- BEGIN GENERATED: llms-core-en -->
 - Web formats: JPEG / JPG, PNG, WebP, HEIC / HEIF. CLI formats: JPEG / JPG, PNG, TIFF, HEIC / HEIF.
 - Web source formats: 16:9, 4:3, 16:10, A4, Letter, and custom ratios.
 - Web PDF layouts: match the selected source format, physical A4, A3, Letter paper, or a custom page size.
 <!-- END GENERATED: llms-core-en -->
-- Web UI languages: zh-CN, zh-TW, en, es, fr, de, ja, ko, pt-BR.
-- Corner order: top-left, top-right, bottom-right, bottom-left.
-- License: MIT.
 
-## Citation
+## Start
 
-Preferred name: Slides Thief
-Author: Zekun Wang
-Source: https://github.com/waittim/Slides-Thief
+- [Web app](https://slidesthief.com/): Interactive local straightening and PDF export
+- [Web app (markdown)](https://slidesthief.com/index.md): Markdown alternate of the homepage
+- [Documentation index](https://slidesthief.com/docs/llms.txt): Curated index for the docs under /docs/
+- [Expanded reference](https://slidesthief.com/llms-full.txt): One-file operating summary for agents that fetch a single document
+
+## Docs
+
+- [CLI contract](https://slidesthief.com/docs/cli.md): Batch command, inputs, outputs, ratios, and options
+- [FAQ](https://slidesthief.com/docs/faq.md): Uploads, formats, ratios, corner order, languages, and enhancement modes
+- [JSON inputs and outputs](https://slidesthief.com/docs/output-schema.md): Detection report, manual review data, and corner-file shape
+- [Examples](https://slidesthief.com/docs/examples.md): Standard 16:9 batch and a manual correction pass
+- [Privacy notice](https://slidesthief.com/privacy.md): Markdown alternate of the public privacy page
+- [Privacy details](https://slidesthief.com/docs/privacy.md): Local processing boundary, analytics defaults, and retention
+
+## Machine-readable contracts
+
+- [Product metadata](https://slidesthief.com/product-metadata.json): Names, version, input formats, and ratio presets
+- [Detection report schema](https://slidesthief.com/schemas/slide-lens-report.schema.json): Formal JSON Schema for slide_lens_report.json
+- [Manual corner schema](https://slidesthief.com/schemas/manual-quads.schema.json): Formal JSON Schema for manual corner files
+
+## Optional
+
+- [Citation metadata](https://slidesthief.com/citation.json): Preferred name, author, version, and license
+- [Source repository](https://github.com/waittim/Slides-Thief): Python CLI, web app, and documentation source
+- [Blog post](https://www.zekun.blog/2026/07/13/slides-thief/): Product introduction

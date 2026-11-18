@@ -1,6 +1,22 @@
 # Slides Thief agent reference
 
-Slides Thief corrects perspective distortion in photographs of projected slides or paper documents and exports corrected images as one PDF. It is useful for conferences, classrooms, lectures, meeting rooms, trade shows, and document capture.
+> Slides Thief corrects perspective distortion in photographs of projected slides or paper documents and exports corrected images as one PDF. Processing stays on the device. Fetch a linked markdown file for the detailed contract.
+
+Canonical detail lives in the markdown files below. This document is the expanded one-file summary.
+
+## Markdown files
+
+- [Web app (markdown)](https://slidesthief.com/index.md): Homepage alternate
+- [Documentation index](https://slidesthief.com/docs/llms.txt): Docs under /docs/
+- [CLI contract](https://slidesthief.com/docs/cli.md): Batch command and options
+- [FAQ](https://slidesthief.com/docs/faq.md): Common product questions
+- [JSON inputs and outputs](https://slidesthief.com/docs/output-schema.md): Report and corner-file shapes
+- [Examples](https://slidesthief.com/docs/examples.md): CLI examples
+- [Privacy notice](https://slidesthief.com/privacy.md): Public privacy page
+- [Privacy details](https://slidesthief.com/docs/privacy.md): Analytics and retention details
+- [Product metadata](https://slidesthief.com/product-metadata.json): Machine-readable product facts
+- [Detection report schema](https://slidesthief.com/schemas/slide-lens-report.schema.json)
+- [Manual corner schema](https://slidesthief.com/schemas/manual-quads.schema.json)
 
 ## Browser application
 
@@ -47,18 +63,22 @@ Presentation source ratios: 16:9 (default), 4:3, 16:10. Paper ratio presets: A4,
 - `--manual PATH` for a second pass with exported corner JSON
 - `--work-dir`, `--clean-converted`
 
-Run `slides-thief --help` for all options. Full contract: https://github.com/waittim/Slides-Thief/blob/main/docs/cli.md
+Run `slides-thief --help` for all options. Full contract: https://slidesthief.com/docs/cli.md
 
 ### Manual correction
 
 Edit corners in `manual_review.html`, export `manual_quads.json`, then run again with `--manual PATH`. Each quad is ordered top-left, top-right, bottom-right, bottom-left.
 
-## Contracts
+## Discovery
 
-- https://slidesthief.com/product-metadata.json
-- https://slidesthief.com/schemas/slide-lens-report.schema.json
-- https://slidesthief.com/schemas/manual-quads.schema.json
-- Homepage HTML discovery: `describedby` → /llms.txt, `service-doc` → /llms-full.txt, `sitemap` → /sitemap.xml
+Homepage and privacy HTML `<link>` tags advertise:
+
+- `alternate` (`text/markdown`) → `/index.md` or `/privacy.md`
+- `describedby` → `/llms.txt`
+- `service-doc` → `/llms-full.txt`
+- `sitemap` → `/sitemap.xml`
+
+GitHub Pages cannot set custom HTTP `Link` headers, so discovery is in the HTML.
 
 ## Project and citation
 

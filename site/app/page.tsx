@@ -29,6 +29,8 @@ const structuredData = {
   url: siteUrl,
   description,
   codeRepository: PRODUCT_METADATA.repository,
+  sameAs: [PRODUCT_METADATA.repository, PRODUCT_METADATA.blog],
+  isAccessibleForFree: true,
   license: "https://opensource.org/license/mit",
   author: { "@type": "Person", name: "Zekun Wang", url: "https://github.com/waittim" },
   featureList: [

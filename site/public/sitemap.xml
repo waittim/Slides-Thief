@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-  <url>
-    <loc>https://slidesthief.com/</loc>
-  </url>
+  <url><loc>https://slidesthief.com/</loc></url>
+  <url><loc>https://slidesthief.com/index.md</loc></url>
   <url><loc>https://slidesthief.com/privacy.html</loc></url>
+  <url><loc>https://slidesthief.com/privacy.md</loc></url>
   <url><loc>https://slidesthief.com/llms.txt</loc></url>
   <url><loc>https://slidesthief.com/llms-full.txt</loc></url>
+  <url><loc>https://slidesthief.com/docs/llms.txt</loc></url>
+  <url><loc>https://slidesthief.com/docs/index.md</loc></url>
+  <url><loc>https://slidesthief.com/docs/cli.md</loc></url>
+  <url><loc>https://slidesthief.com/docs/faq.md</loc></url>
+  <url><loc>https://slidesthief.com/docs/output-schema.md</loc></url>
+  <url><loc>https://slidesthief.com/docs/examples.md</loc></url>
+  <url><loc>https://slidesthief.com/docs/privacy.md</loc></url>
+  <url><loc>https://slidesthief.com/citation.json</loc></url>
   <url><loc>https://slidesthief.com/product-metadata.json</loc></url>
   <url><loc>https://slidesthief.com/schemas/slide-lens-report.schema.json</loc></url>
   <url><loc>https://slidesthief.com/schemas/manual-quads.schema.json</loc></url>
